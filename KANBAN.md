@@ -3,8 +3,8 @@
 ## Cards do Projeto
 
 ### Sprint 0 — Fundação
-- 🔄 Configurar repositório GitHub · Código
-- 📋 Setup Firebase · Infra
+- ✅ Configurar repositório GitHub · Código
+- 🔄 Setup Firebase · Infra
 - 📋 Cloud Run — ambiente inicial · Infra
 - 📋 Protótipo de publicação social · UX
 
