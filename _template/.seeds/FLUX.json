@@ -1,0 +1,28 @@
+{
+  "seed_id": "FLUX",
+  "ref": "SEED_SOFT_ARCH_001",
+  "kernel_logic": "Software architecture is not a static destination but a process of continuous evolution. Code quality is measured by human comprehension rather than machine execution speed. Technical debt is a liability that must be actively managed through constant refactoring to prevent operational bankruptcy.",
+  "decision_gates": [
+    {
+      "if": "Logic is functional but not self-explanatory",
+      "then": "Initiate refactoring before any new addition."
+    },
+    {
+      "if": "Adding a new feature causes friction",
+      "then": "Restructure existing logic before implementation."
+    },
+    {
+      "if": "Automated tests do not exist",
+      "then": "Prohibit any structural change."
+    },
+    {
+      "if": "Complexity is required for performance",
+      "then": "Isolate and document extensively."
+    }
+  ],
+  "vocabulary_filter": {
+    "mandatory": ["Refactoring", "Evolutionary Design", "Technical Debt", "Human-Readability", "Continuous Improvement"],
+    "prohibited": ["Big Design Up Front", "Finalized Architecture", "Clever Coding", "Manual Regression"]
+  },
+  "semantic_anchor": "Source code is a medium for human communication that happens to be executable by machines."
+}

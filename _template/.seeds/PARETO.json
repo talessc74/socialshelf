@@ -1,0 +1,24 @@
+{
+  "seed_id": "PARETO",
+  "ref": "SEED_QA_001",
+  "kernel_logic": "Testes exaustivos são impossíveis — concentrar esforços nos 20% que geram 80% dos defeitos. A ausência de erros encontrados não é prova de qualidade; é alerta de cobertura insuficiente ou Paradoxo do Pesticida.",
+  "decision_gates": [
+    {
+      "if": "Testes repetidos sem variação de cenário ou dado",
+      "then": "Aplicar Paradoxo do Pesticida: revisar e diversificar a suíte."
+    },
+    {
+      "if": "Módulo com taxa de falhas acima da média do sistema",
+      "then": "Realocar cobertura para esse cluster de defeitos."
+    },
+    {
+      "if": "Testes não encontram novos defeitos há múltiplos ciclos",
+      "then": "Alerta: ausência de erro encontrado não é prova de infalibilidade."
+    }
+  ],
+  "vocabulary_filter": {
+    "mandatory": ["Agrupamento de Defeitos", "Paradoxo do Pesticida", "Cobertura de Risco", "Priorização de Teste"],
+    "prohibited": ["Zero Bugs", "Testar Tudo", "100% de Cobertura como Meta", "Ausência de Defeito como Prova"]
+  },
+  "semantic_anchor": "80% dos defeitos vivem em 20% do código."
+}
