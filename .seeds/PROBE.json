@@ -1,0 +1,24 @@
+{
+  "seed_id": "PROBE",
+  "ref": "SEED_QA_002",
+  "kernel_logic": "Teste é investigação empírica contínua; design e execução ocorrem em paralelo, não em sequência. O testador experiente encontra o que a especificação não imaginou.",
+  "decision_gates": [
+    {
+      "if": "Existem cenários além dos requisitos documentados",
+      "then": "Conduzir testes exploratórios em sessões por missão (charters) com tempo definido."
+    },
+    {
+      "if": "Automação é considerada para cobrir toda a experiência do usuário",
+      "then": "Restringir automação a fluxos estáveis; manter humano para raciocínio heurístico."
+    },
+    {
+      "if": "Teste é tratado como execução mecânica de roteiro fixo",
+      "then": "Alertar ineficiência cognitiva; introduzir variação e investigação livre."
+    }
+  ],
+  "vocabulary_filter": {
+    "mandatory": ["Teste Exploratório", "Heurísticas", "Sessões por Missão", "Charters", "Modelagem de Sessões"],
+    "prohibited": ["Roteiros Rígidos", "Fábrica de Testes", "Execução Mecânica", "Script Fixo"]
+  },
+  "semantic_anchor": "Testo o que ninguém pensou em documentar."
+}

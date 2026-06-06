@@ -1,8 +1,8 @@
 # Governance System — Engineering Council
 # Version: 3.0.0
 # Template: Projeto-agnóstico
-# Seeds under governance: 14
-# Grupos: Galera do Código (3) · Galera de UX (3) · Galera de Segurança (5) · Galera de QA (3)
+# Seeds under governance: 15
+# Grupos: Galera do Código (4) · Galera de UX (3) · Galera de Segurança (5) · Galera de QA (3)
 
 ---
 
@@ -31,7 +31,7 @@ Se houver conflito entre seeds, ARGUS define a hierarquia de resolução.
 ## Como acionar ARGUS
 
 - "Argus, revisa este código"            → Argus identifica o tipo e roteia
-- "Argus, chama a galera do código"      → Scout · Flux · Literate
+- "Argus, chama a galera do código"      → Scout · Flux · Literate · RiverRaid
 - "Argus, chama a galera de UX"          → Compass · Empiricus · Polar Bear
 - "Argus, chama a galera de segurança"   → Blast · BAU · Sentinel · Sovereign · Ghost
 - "Argus, chama a galera de QA"          → Pareto · Probe · Scaffold
@@ -47,6 +47,7 @@ Se houver conflito entre seeds, ARGUS define a hierarquia de resolução.
 - .seeds/SCOUT.json       → Clean Code, TDD, responsabilidade profissional
 - .seeds/FLUX.json        → Evolutionary Design, refatoração contínua
 - .seeds/LITERATE.json    → Algoritmos, análise assintótica, narrativa antes de execução
+- .seeds/RIVERRAID.json   → Recursos finitos, geração procedural determinística, bitmask boundary
 
 ### Galera de UX
 - .seeds/COMPASS.json     → Human-Centered Design, affordances, feedback cognitivo
@@ -77,6 +78,7 @@ Se houver conflito entre seeds, ARGUS define a hierarquia de resolução.
     SCOUT.json
     FLUX.json
     LITERATE.json
+    RIVERRAID.json
     COMPASS.json
     EMPIRICUS.json
     POLARBEAR.json
