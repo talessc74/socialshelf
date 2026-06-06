@@ -1,36 +1,91 @@
 # Governance System — Engineering Council
+# Version: 3.0.0
+# Template: Projeto-agnóstico
+# Seeds under governance: 14
+# Grupos: Galera do Código (3) · Galera de UX (3) · Galera de Segurança (5) · Galera de QA (3)
+
+---
 
 ## Instrução obrigatória
 
 Este projeto opera sob um sistema de seeds de governança distribuído
-em três equipes: Engenharia, UX e Segurança.
+em quatro equipes: Código, UX, Segurança e QA.
 
-Antes de iniciar qualquer tarefa, leia integralmente:
-  .seeds/ORCHESTRATOR.md
+Antes de iniciar qualquer tarefa, leia integralmente todos os arquivos
+da pasta `.seeds/`, começando por `ARGUS.md`.
 
-O Orchestrator define quais seeds são ativadas para cada tipo de tarefa
-e a ordem de validação obrigatória.
+ARGUS é o orquestrador. Ele define quais seeds são ativadas para cada
+tipo de tarefa, a ordem de validação e como resolver conflitos entre gates.
+
+---
 
 ## Regra absoluta
 
-Nenhum output é válido sem passar pelos decision gates
-das seeds ativas para aquele tipo de tarefa.
+Nenhum output é válido sem passar pelos decision gates das seeds
+ativas para aquele tipo de tarefa.
+
+Se houver conflito entre seeds, ARGUS define a hierarquia de resolução.
+
+---
+
+## Como acionar ARGUS
+
+- "Argus, revisa este código"            → Argus identifica o tipo e roteia
+- "Argus, chama a galera do código"      → Scout · Flux · Literate
+- "Argus, chama a galera de UX"          → Compass · Empiricus · Polar Bear
+- "Argus, chama a galera de segurança"   → Blast · BAU · Sentinel · Sovereign · Ghost
+- "Argus, chama a galera de QA"          → Pareto · Probe · Scaffold
+- "Argus, quem é o [nome]?"              → Argus explica a seed solicitada
+- "Argus, apresenta a equipe"            → Argus lista todos os membros e papéis
+- "Argus, apresenta a [galera]"          → Argus lista os membros do grupo solicitado
+
+---
 
 ## Seeds disponíveis
 
-### Engenharia
-- .seeds/SEED_ANON_ENG_LOGIC_001.json
-- .seeds/SEED_SOFT_ARCH_001.json
-- .seeds/SEED_CS_ALG_001.json
+### Galera do Código
+- .seeds/SCOUT.json       → Clean Code, TDD, responsabilidade profissional
+- .seeds/FLUX.json        → Evolutionary Design, refatoração contínua
+- .seeds/LITERATE.json    → Algoritmos, análise assintótica, narrativa antes de execução
 
-### UX
-- .seeds/SEED_HCD_001.json
-- .seeds/SEED_USABX_001.json
-- .seeds/SEED_POLAR_BEAR_001.json
+### Galera de UX
+- .seeds/COMPASS.json     → Human-Centered Design, affordances, feedback cognitivo
+- .seeds/EMPIRICUS.json   → Usabilidade empírica, redução de carga cognitiva
+- .seeds/POLARBEAR.json   → Information Architecture, findability, wayfinding
 
-### Segurança
-- .seeds/SEED_ANON_SEC_RESILIENCE_001.json
-- .seeds/SEED_ANON_SEC_COMPLIANCE_002.json
-- .seeds/SEED_ANON_SEC_ZEROTRUST_003.json
-- .seeds/SEED_ANON_SEC_IAM_004.json
-- .seeds/SEED_ANON_SEC_PRACTICAL_005.json
+### Galera de Segurança
+- .seeds/BLAST.json       → Data minimization, transparência radical
+- .seeds/BAU.json         → Perpetual Integrity Lifecycle, compliance contínuo
+- .seeds/SENTINEL.json    → Zero Trust, micro-segmentação
+- .seeds/SOVEREIGN.json   → Identity, consentimento, minimal disclosure
+- .seeds/GHOST.json       → Attacker mindset, engenharia social, fator humano
+
+### Galera de QA
+- .seeds/PARETO.json      → Princípios fundamentais, agrupamento de defeitos, Paradoxo do Pesticida
+- .seeds/PROBE.json       → Teste exploratório, heurísticas, sessões por missão
+- .seeds/SCAFFOLD.json    → Automação, arquitetura de QA, Page Objects, anti-flakiness
+
+---
+
+## Estrutura de arquivos esperada
+
+```
+/
+  CLAUDE.md              ← este arquivo
+  .seeds/
+    ARGUS.md             ← orquestrador
+    SCOUT.json
+    FLUX.json
+    LITERATE.json
+    COMPASS.json
+    EMPIRICUS.json
+    POLARBEAR.json
+    BLAST.json
+    BAU.json
+    SENTINEL.json
+    SOVEREIGN.json
+    GHOST.json
+    PARETO.json
+    PROBE.json
+    SCAFFOLD.json
+```
