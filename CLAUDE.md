@@ -22,10 +22,15 @@ não o resultado de um pipeline sequencial.
 
 Antes de iniciar qualquer tarefa, leia integralmente:
   `.seeds/ARGUS.md`
+  `POLICY.md`
 
 ARGUS define como o sistema opera: vigilância permanente, convocação por
 contexto, deliberação coletiva, convergência orgânica e arbitragem apenas
 em impasse genuíno.
+
+`POLICY.md` define os princípios vinculantes do projeto — engenharia,
+segurança, UX, dados e infraestrutura. Toda deliberação das seeds deve
+respeitar a política do projeto.
 
 ---
 
@@ -98,6 +103,7 @@ A hierarquia de resolução está em `.seeds/ARGUS.md` — Seção V.
 ```
 /
   CLAUDE.md              ← este arquivo — lido primeiro
+  POLICY.md              ← política do projeto — lida antes de qualquer tarefa
   .seeds/
     ARGUS.md             ← orquestrador — lido segundo
     SCOUT.json
