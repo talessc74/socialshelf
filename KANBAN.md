@@ -24,7 +24,6 @@
 - 📋 Testes de usabilidade · UX
 
 ### Sprint 3 — EAI? no ar
-- 📋 Acesso multi-usuário sem API — Logar e usar · UX
 - 📋 EAI? — preparação de lançamento · Marketing
 - 📋 Onboarding Rádio Kactus · Conselho
 - 📋 Plano de conteúdo — semana 1 · Marketing

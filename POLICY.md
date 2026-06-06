@@ -1,13 +1,13 @@
 # POLICY — SocialShelf · Rádio Kactus
-**Versão:** 1.0.0
+**Versão:** 1.1.0
 **Data:** 2026-06-06
-**Governança:** Engineering Council · `.seeds/ORCHESTRATOR.md`
+**Governança:** Engineering Council · `.seeds/ARGUS.md`
 
 ---
 
 ## 1. Propósito e Escopo
 
-SocialShelf é uma plataforma de publicação social multi-produto que permite a organizações como a Rádio Kactus gerenciar e publicar conteúdo em múltiplas redes sociais (Instagram, Facebook, LinkedIn, X/Twitter) a partir de uma interface unificada.
+SocialShelf é um SaaS de publicação social para pequenos criadores de conteúdo que gerenciam suas próprias redes. A plataforma permite ao usuário conectar suas contas via OAuth, publicar e agendar conteúdo em múltiplas redes (Instagram, Facebook, LinkedIn, X/Twitter) e monitorar suas publicações, a partir de uma interface web unificada.
 
 Esta política define os princípios operacionais, de engenharia, segurança e experiência que governam todas as decisões técnicas e de produto do sistema. Ela é vinculante para toda contribuição ao repositório.
 
@@ -95,8 +95,9 @@ Findability é o pré-requisito cardinal de utilidade: um recurso que não pode 
 
 ## 6. Política de Integração com Redes Sociais
 
-As integrações OAuth com Instagram, Facebook, LinkedIn e X/Twitter seguem os seguintes princípios:
+As integrações com Instagram, Facebook, LinkedIn e X/Twitter seguem **exclusivamente o modelo OAuth delegado** pela própria plataforma. O sistema **nunca armazena credenciais** (login e senha) dos usuários em nenhuma rede social. O fluxo de autorização ocorre inteiramente via redirect OAuth da plataforma de destino.
 
+- **OAuth exclusivo:** credenciais de redes sociais jamais transitam ou são armazenadas pelo SocialShelf. Qualquer proposta de armazenamento de senha de rede social é rejeitada sem deliberação.
 - **Escopo mínimo:** apenas as permissões estritamente necessárias para publicação são solicitadas.
 - **Tokens por marca:** cada produto/marca gerenciado usa credenciais isoladas.
 - **Revogação:** o usuário pode revogar o acesso de qualquer rede a qualquer momento, com efeito imediato no sistema.
@@ -147,6 +148,6 @@ Quando princípios desta política se contradizem em uma decisão específica:
 
 ## 10. Governança deste Documento
 
-Esta política é derivada das seeds de governança em `.seeds/` e validada pelo `ORCHESTRATOR.md`. Alterações a este documento seguem o mesmo processo de qualquer decisão estrutural (TIPO 4): requerem validação sequencial das seeds ativas antes de merge.
+Esta política é derivada das seeds de governança em `.seeds/` e validada pelo `ARGUS.md`. Alterações a este documento seguem o mesmo processo de qualquer decisão estrutural (TIPO 4): requerem validação sequencial das seeds ativas antes de merge.
 
 Revisão obrigatória a cada mudança de sprint ou alteração de escopo do produto.
