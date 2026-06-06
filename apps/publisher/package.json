@@ -1,0 +1,31 @@
+{
+  "name": "@socialshelf/publisher",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@socialshelf/domain": "workspace:*",
+    "fastify": "^4.28.1",
+    "@fastify/helmet": "^11.1.1",
+    "firebase-admin": "^12.7.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@socialshelf/tsconfig": "workspace:*",
+    "@types/node": "^22.10.2",
+    "@vitest/coverage-v8": "^2.1.8",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

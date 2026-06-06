@@ -4,27 +4,49 @@
 
 ### Sprint 0 — Fundação
 - ✅ Configurar repositório GitHub · Código
-- 🔄 Setup Firebase · Infra
-- 📋 Cloud Run — ambiente inicial · Infra
-- 📋 Protótipo de publicação social · UX
+- ✅ Monorepo (pnpm workspaces + Turborepo) · Código
+- ✅ TypeScript base config (packages/tsconfig) · Código
+- ✅ Domain package — entidades + ports (arquitetura hexagonal) · Código
+- ✅ api-service scaffold (Fastify + Vitest) · Código
+- ✅ publisher-service scaffold (Fastify + Vitest) · Código
+- ✅ generator-service scaffold (Fastify + Vitest + Gemini/Vertex AI) · Código
+- ✅ Firebase config (firestore.rules + indexes) · Infra
+- ✅ CI/CD — GitHub Actions (lint + type-check + test + docker build) · Infra
+- ✅ Dockerfiles para Cloud Run (api, publisher, generator) · Infra
+- 🔄 Setup Firebase — projeto GCP real · Infra
+- 🔄 Cloud Run — deploy inicial dos 3 serviços · Infra
+- 📋 web scaffold (Next.js 14 + Tailwind) · UX
 
-### Sprint 1 — OAuth e Publicação Real
-- 📋 OAuth Instagram · Código
-- 📋 OAuth Facebook · Código
+### Sprint 1 — OAuth e Publicação
 - 📋 OAuth LinkedIn · Código
+- 📋 OAuth Instagram / Facebook (Meta) · Código
 - 📋 OAuth X (Twitter) · Código
+- 📋 Publicação manual — composer UI · UX
 - 📋 Publicação real — testes E2E · Segurança
 - 📋 Auditoria de segurança OAuth · Segurança
 
-### Sprint 2 — Multi-produto e UX
-- 📋 Multi-produto — seletor de marca · UX
-- 📋 Dashboard de métricas · UX
-- 📋 Agendamento de posts · Código
-- 📋 Editor de conteúdo rich text · UX
-- 📋 Testes de usabilidade · UX
+### Sprint 2a — Publicação Manual
+- 📋 Composer de post — editor de conteúdo · UX
+- 📋 Preview por plataforma · UX
+- 📋 Publicação imediata · Código
 
-### Sprint 3 — EAI? no ar
+### Sprint 2b — Geração de Conteúdo via IA
+- 📋 Cloud Storage buckets + IAM · Infra
+- 📋 EXIF strip middleware + upload · Código
+- 📋 AI consent flow · Segurança
+- 📋 GeminiAdapter (copy generation, Vertex AI) · Código
+- 📋 ImagenAdapter (image generation, Vertex AI) · Código
+- 📋 GenerateContentUseCase · Código
+- 📋 Tela de briefing + tela de revisão · UX
+
+### Sprint 3 — Agendamento e Métricas
+- 📋 Agendamento de posts (Cloud Tasks + Scheduler) · Código
+- 📋 Dashboard de métricas · UX
+- 📋 Monitoramento e alertas · Infra
+
+### Sprint 4 — Multi-produto e Lançamento
+- 📋 Multi-produto — seletor de marca · UX
+- 📋 Testes de usabilidade · UX
 - 📋 EAI? — preparação de lançamento · Marketing
 - 📋 Onboarding Rádio Kactus · Conselho
 - 📋 Plano de conteúdo — semana 1 · Marketing
-- 📋 Monitoramento e alertas · Infra
