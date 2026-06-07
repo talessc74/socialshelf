@@ -3,6 +3,8 @@ import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import { healthRoutes } from './routes/health.routes.js'
+import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
+import { registerAuthMiddleware } from './middleware/auth.middleware.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -21,7 +23,10 @@ export async function buildApp() {
     timeWindow: '1 minute',
   })
 
+  await registerAuthMiddleware(app)
+
   await app.register(healthRoutes)
+  await app.register(linkedinOAuthRoutes)
 
   return app
 }

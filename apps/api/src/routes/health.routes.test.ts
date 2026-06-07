@@ -1,6 +1,21 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest'
 import { buildApp } from '../app.js'
 import type { FastifyInstance } from 'fastify'
+
+vi.mock('../infrastructure/firebase-admin.js', () => ({
+  db: {},
+  adminAuth: {
+    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test' }),
+  },
+}))
+
+vi.mock('../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
+  FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({})),
+}))
+
+vi.mock('../infrastructure/secret-manager/SecretManagerTokenVault.js', () => ({
+  SecretManagerTokenVault: vi.fn().mockImplementation(() => ({})),
+}))
 
 describe('GET /health', () => {
   let app: FastifyInstance
