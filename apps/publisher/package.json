@@ -14,9 +14,10 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@fastify/helmet": "^11.1.1",
+    "@google-cloud/secret-manager": "^5.6.0",
     "@socialshelf/domain": "workspace:*",
     "fastify": "^4.28.1",
-    "@fastify/helmet": "^11.1.1",
     "firebase-admin": "^12.7.0",
     "zod": "^3.24.1"
   },
