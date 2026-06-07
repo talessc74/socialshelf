@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../lib/api.js'
+import { api } from '../../lib/api'
 import { Platform } from '@socialshelf/domain'
 
 const PLATFORM_META = {

@@ -1,6 +1,6 @@
 'use client'
 
-import { auth } from './firebase.js'
+import { auth } from './firebase'
 import { Platform } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { api } from '../../../lib/api.js'
+import { api } from '../../../lib/api'
 import { Platform, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
 
 const PLATFORM_LABELS: Record<Platform, string> = {

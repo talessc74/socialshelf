@@ -7,8 +7,8 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
 } from 'firebase/auth'
-import { auth } from '../../lib/firebase.js'
-import { useAuth } from '../../contexts/AuthContext.js'
+import { auth } from '../../lib/firebase'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function LoginPage() {
   const { user, loading } = useAuth()
