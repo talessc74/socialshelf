@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import cookie from '@fastify/cookie'
 import { z } from 'zod'
+import { validateState } from '../../lib/csrf.js'
 import { GenerateXAuthUrlUseCase } from '../../use-cases/oauth/GenerateXAuthUrlUseCase.js'
 import { HandleXCallbackUseCase } from '../../use-cases/oauth/HandleXCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
@@ -9,7 +10,7 @@ import { SecretManagerTokenVault } from '../../infrastructure/secret-manager/Sec
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
-  brandId: z.string().min(1),
+  brandId: z.string().optional(),
 })
 
 export async function xOAuthRoutes(app: FastifyInstance) {
@@ -55,7 +56,7 @@ export async function xOAuthRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid callback parameters' })
     }
 
-    const { code, state, brandId } = result.data
+    const { code, state } = result.data
 
     const codeVerifier = request.cookies['pkce_verifier']
     const storedState = request.cookies['oauth_state']
@@ -72,6 +73,8 @@ export async function xOAuthRoutes(app: FastifyInstance) {
     reply.clearCookie('oauth_state', { path: '/oauth/x/callback' })
 
     try {
+      const { userId } = validateState(state)
+      const brandId = result.data.brandId ?? userId
       await handleCallback.execute(code, state, codeVerifier, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=twitter`)
     } catch (err) {

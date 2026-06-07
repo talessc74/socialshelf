@@ -1,10 +1,22 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useAuth } from '../contexts/AuthContext.js'
+
 export default function HomePage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading) {
+      router.replace(user ? '/dashboard' : '/login')
+    }
+  }, [user, loading, router])
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-brand-700">SocialShelf</h1>
-        <p className="mt-2 text-gray-500">Publicação social para criadores de conteúdo</p>
-      </div>
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
     </main>
   )
 }

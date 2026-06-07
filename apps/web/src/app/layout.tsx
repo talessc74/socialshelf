@@ -1,19 +1,18 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from '../components/Providers.js'
 
 export const metadata: Metadata = {
   title: 'SocialShelf',
   description: 'Publicação social para criadores de conteúdo',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

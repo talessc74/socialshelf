@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { validateState } from '../../lib/csrf.js'
 import { GenerateMetaAuthUrlUseCase } from '../../use-cases/oauth/GenerateMetaAuthUrlUseCase.js'
 import { HandleMetaCallbackUseCase } from '../../use-cases/oauth/HandleMetaCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
@@ -8,7 +9,7 @@ import { SecretManagerTokenVault } from '../../infrastructure/secret-manager/Sec
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
-  brandId: z.string().min(1),
+  brandId: z.string().optional(),
 })
 
 export async function metaOAuthRoutes(app: FastifyInstance) {
@@ -34,9 +35,11 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid callback parameters' })
     }
 
-    const { code, state, brandId } = result.data
+    const { code, state } = result.data
 
     try {
+      const { userId } = validateState(state)
+      const brandId = result.data.brandId ?? userId
       const { facebook, instagram } = await handleCallback.execute(code, state, brandId)
       const connected = [
         facebook ? 'facebook' : null,
