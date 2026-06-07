@@ -38,6 +38,8 @@ Thumbs.db
 # Firebase
 .firebase/
 firebase-debug.log
+serviceAccountKey.json
+*serviceAccount*.json
 
 # Cloud
 .gcloud/
