@@ -44,7 +44,10 @@ export default function ComposePage() {
     queryFn: () => api.getConnections(),
   })
 
-  const connectedPlatforms = connections?.map((c) => c.platform as Platform) ?? []
+  const validPlatforms = new Set(Object.values(Platform))
+  const connectedPlatforms = connections
+    ?.map((c) => c.platform as Platform)
+    .filter((p) => validPlatforms.has(p)) ?? []
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
