@@ -24,7 +24,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    const b = body as { error?: string; message?: string; details?: unknown }
+    const msg = b.message ?? b.error ?? `HTTP ${res.status}`
+    throw new Error(msg)
   }
 
   return res.json() as Promise<T>
