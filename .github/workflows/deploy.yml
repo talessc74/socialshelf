@@ -48,8 +48,19 @@ jobs:
             --image=${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
-            --no-allow-unauthenticated \
-            --set-env-vars="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --set-env-vars="\
+              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              WEB_URL=https://radiokactus.com,\
+              X_CLIENT_ID=${{ secrets.X_CLIENT_ID }},\
+              X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }},\
+              X_REDIRECT_URI=https://api.radiokactus.com/oauth/x/callback,\
+              LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }},\
+              LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }},\
+              LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback,\
+              PUBLISHER_URL=${{ secrets.PUBLISHER_URL }},\
+              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}" \
             --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
@@ -95,8 +106,11 @@ jobs:
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
-            --no-allow-unauthenticated \
-            --set-env-vars="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}" \
+            --allow-unauthenticated \
+            --set-env-vars="\
+              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}" \
             --service-account=publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
@@ -143,10 +157,69 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --no-allow-unauthenticated \
-            --set-env-vars="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},VERTEX_AI_LOCATION=us-central1,GEMINI_MODEL=gemini-2.0-flash,IMAGEN_MODEL=imagegeneration@006" \
+            --set-env-vars="\
+              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
+              VERTEX_AI_LOCATION=us-central1,\
+              GEMINI_MODEL=gemini-2.0-flash,\
+              IMAGEN_MODEL=imagegeneration@006" \
             --service-account=generator-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=2 \
             --memory=1Gi \
             --cpu=1 \
             --timeout=120
+
+  deploy-web:
+    name: Deploy web
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }},${{ env.ARTIFACT_REGISTRY }}/web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            NEXT_PUBLIC_API_URL=https://api.radiokactus.com
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+
+      - name: Deploy web to Cloud Run
+        run: |
+          gcloud run deploy web-service \
+            --image=${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }} \
+            --region=${{ env.GCP_REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --min-instances=0 \
+            --max-instances=3 \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=30
