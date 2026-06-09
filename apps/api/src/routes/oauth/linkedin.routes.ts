@@ -7,7 +7,9 @@ import { FirestoreOAuthRepository } from '../../infrastructure/firestore/Firesto
 import { SecretManagerTokenVault } from '../../infrastructure/secret-manager/SecretManagerTokenVault.js'
 
 const callbackQuerySchema = z.object({
-  code: z.string().min(1),
+  code: z.string().min(1).optional(),
+  error: z.string().optional(),
+  error_description: z.string().optional(),
   state: z.string().min(1),
   brandId: z.string().optional(),
 })
@@ -33,10 +35,15 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
   app.get('/oauth/linkedin/callback', async (request, reply) => {
     const result = callbackQuerySchema.safeParse(request.query)
     if (!result.success) {
-      return reply.status(400).send({ error: 'Invalid callback parameters' })
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
     }
 
-    const { code, state } = result.data
+    const { code, error, state } = result.data
+
+    if (error || !code) {
+      app.log.error({ error, error_description: result.data.error_description }, 'LinkedIn OAuth error')
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+    }
 
     try {
       const { userId } = validateState(state)
