@@ -2,7 +2,7 @@ import { Platform } from '@socialshelf/domain'
 import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 const LI_REST = 'https://api.linkedin.com/rest'
-const LI_USERINFO = 'https://api.linkedin.com/v2/userinfo'
+const LI_ME = 'https://api.linkedin.com/v2/me'
 const LI_VERSION = '202401'
 
 interface LinkedInToken {
@@ -54,15 +54,15 @@ export class LinkedInPublisher implements PublisherPort {
   }
 
   private async getPersonId(accessToken: string): Promise<string> {
-    const response = await fetch(LI_USERINFO, {
+    const response = await fetch(LI_ME, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
 
     if (!response.ok) {
-      throw new Error(`LinkedIn userinfo failed: ${response.status}`)
+      throw new Error(`LinkedIn /me failed: ${response.status}`)
     }
 
-    const data = (await response.json()) as { sub: string }
-    return data.sub
+    const data = (await response.json()) as { id: string }
+    return data.id
   }
 }
