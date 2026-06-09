@@ -52,7 +52,7 @@ export async function postsRoutes(app: FastifyInstance) {
           userId: request.userId,
           brandId: request.userId,
           content: parsed.data.content as Array<{ platform: Platform; text: string }>,
-          imageStoragePaths: parsed.data.imageStoragePaths,
+          ...(parsed.data.imageStoragePaths !== undefined && { imageStoragePaths: parsed.data.imageStoragePaths }),
         })
         return reply.status(201).send({ post })
       } catch (err) {
