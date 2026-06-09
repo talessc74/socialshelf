@@ -25,6 +25,7 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (request, reply) => {
       const { url } = generateUrl.execute(request.userId)
+      app.log.info({ url }, 'LinkedIn auth URL generated')
       return reply.send({ url })
     },
   )
