@@ -52,7 +52,7 @@ describe('LinkedInPublisher', () => {
     vi.unstubAllGlobals()
   })
 
-  it('fetches person ID and posts UGC post', async () => {
+  it('fetches person ID and posts to /rest/posts', async () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
@@ -60,41 +60,64 @@ describe('LinkedInPublisher', () => {
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id: 'urn:li:ugcPost:9876543' }),
+        headers: { get: (h: string) => h === 'x-restli-id' ? 'urn:li:share:9876543' : null },
+        json: async () => ({}),
       })
 
     const result = await publisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
 
-    expect(result.externalId).toBe('urn:li:ugcPost:9876543')
+    expect(result.externalId).toBe('urn:li:share:9876543')
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
-    const [userinfoCall, ugcCall] = fetchMock.mock.calls
+    const [userinfoCall, postsCall] = fetchMock.mock.calls
     expect(userinfoCall[0]).toContain('userinfo')
-    expect(ugcCall[0]).toContain('ugcPosts')
+    expect(postsCall[0]).toContain('/rest/posts')
   })
 
-  it('includes post text in UGC body', async () => {
+  it('sends LinkedIn-Version header', async () => {
     fetchMock
       .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'urn:li:ugcPost:111' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (_: string) => 'urn:li:share:111' },
+        json: async () => ({}),
+      })
 
     await publisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
 
-    const ugcBody = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)
-    expect(ugcBody.specificContent['com.linkedin.ugc.ShareContent'].shareCommentary.text).toBe(
-      'Hello LinkedIn!',
-    )
+    const postsHeaders = fetchMock.mock.calls[1]![1]!.headers as Record<string, string>
+    expect(postsHeaders['LinkedIn-Version']).toBe('202401')
+  })
+
+  it('includes post text as commentary', async () => {
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (_: string) => 'urn:li:share:111' },
+        json: async () => ({}),
+      })
+
+    await publisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
+
+    const body = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)
+    expect(body.commentary).toBe('Hello LinkedIn!')
+    expect(body.visibility).toBe('PUBLIC')
   })
 
   it('uses person sub as author URN', async () => {
     fetchMock
       .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'abc-456' }) })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'urn:li:ugcPost:111' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (_: string) => 'urn:li:share:111' },
+        json: async () => ({}),
+      })
 
     await publisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
 
-    const ugcBody = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)
-    expect(ugcBody.author).toBe('urn:li:person:abc-456')
+    const body = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)
+    expect(body.author).toBe('urn:li:person:abc-456')
   })
 
   it('throws when LinkedIn API returns an error', async () => {
