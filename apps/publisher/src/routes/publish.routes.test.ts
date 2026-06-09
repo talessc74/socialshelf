@@ -122,7 +122,8 @@ describe('POST /publish', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
-    }))
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any))
 
     // Re-build app with new mock
     const freshApp = await buildApp()
