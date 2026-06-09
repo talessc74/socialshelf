@@ -14,7 +14,7 @@ import { initializeApp, getApps, applicationDefault } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
 
 const USER_ID = 'fuY74jufCaO1kgPz4fMgovo3qMa2'
-const PLATFORM = 'TWITTER'
+const PLATFORM = 'twitter'
 const GCP_PROJECT_ID = process.env['GCP_PROJECT_ID'] ?? process.env['FIREBASE_PROJECT_ID'] ?? ''
 
 const accessToken = process.env['X_ACCESS_TOKEN']
