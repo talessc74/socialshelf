@@ -13,16 +13,17 @@
 - ✅ Firebase config (firestore.rules + indexes) · Infra
 - ✅ CI/CD — GitHub Actions (lint + type-check + test + docker build) · Infra
 - ✅ Dockerfiles para Cloud Run (api, publisher, generator) · Infra
-- 🔄 Setup Firebase — projeto GCP real · Infra
-- 🔄 Cloud Run — deploy inicial dos 3 serviços · Infra
-- 📋 web scaffold (Next.js 14 + Tailwind) · UX
+- ✅ Setup Firebase — projeto GCP real · Infra
+- ✅ web scaffold (Next.js 15 + Tailwind) · UX
+- ✅ Secret Manager API habilitado + credenciais locais via gcloud ADC · Infra
+- 📋 Cloud Run — deploy inicial dos 3 serviços · Infra
 
 ### Sprint 1 — OAuth e Publicação
-- 📋 OAuth LinkedIn · Código
-- 📋 OAuth Instagram / Facebook (Meta) · Código
-- 📋 OAuth X (Twitter) · Código
-- 📋 Publicação manual — composer UI · UX
-- 📋 Publicação real — testes E2E · Segurança
+- ✅ OAuth LinkedIn — end-to-end funcionando (profile + w_member_social) · Código
+- 🔄 OAuth X (Twitter) — código implementado, teste E2E pendente · Código
+- ⏸️ OAuth Instagram / Facebook (Meta) — aguardando deploy (precisa de HTTPS real) · Código
+- ✅ Publicação manual — composer UI (+ Novo Post) · UX
+- 📋 Publicação real — testes E2E LinkedIn + X · Segurança
 - 📋 Auditoria de segurança OAuth · Segurança
 
 ### Sprint 2a — Publicação Manual
