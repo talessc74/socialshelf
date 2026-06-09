@@ -80,9 +80,11 @@ export default function ComposePage() {
     setSynced((v) => !v)
   }
 
+  const validSelectedPlatforms = [...selectedPlatforms].filter((p) => validPlatforms.has(p))
+
   const canPublish =
-    selectedPlatforms.size > 0 &&
-    [...selectedPlatforms].every((p) => {
+    validSelectedPlatforms.length > 0 &&
+    validSelectedPlatforms.every((p) => {
       const t = texts[p] ?? ''
       return t.trim().length > 0 && t.length <= PLATFORM_CHARACTER_LIMITS[p]
     })
@@ -91,7 +93,7 @@ export default function ComposePage() {
     setError('')
     setPublishing(true)
     try {
-      const content = [...selectedPlatforms].map((platform) => ({
+      const content = validSelectedPlatforms.map((platform) => ({
         platform,
         text: texts[platform] ?? '',
       }))
