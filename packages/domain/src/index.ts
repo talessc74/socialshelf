@@ -1,32 +1,32 @@
 // Entities
-export type { User, AiConsent } from './entities/User.js'
-export type { Brand } from './entities/Brand.js'
-export type { OAuthConnection } from './entities/OAuthConnection.js'
-export type { Post, PostStatus, PlatformContent } from './entities/Post.js'
+export type { User, AiConsent } from './entities/User'
+export type { Brand } from './entities/Brand'
+export type { OAuthConnection } from './entities/OAuthConnection'
+export type { Post, PostStatus, PlatformContent } from './entities/Post'
 export type {
   GenerationRequest,
   GenerationStatus,
   PlatformCopy,
-} from './entities/GenerationRequest.js'
-export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform.js'
+} from './entities/GenerationRequest'
+export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform'
 
 // Ports
-export type { OAuthRepository } from './ports/OAuthRepository.js'
-export type { PostRepository } from './ports/PostRepository.js'
-export type { TokenVaultPort } from './ports/TokenVaultPort.js'
-export type { PublisherPort, PublishResult } from './ports/PublisherPort.js'
+export type { OAuthRepository } from './ports/OAuthRepository'
+export type { PostRepository } from './ports/PostRepository'
+export type { TokenVaultPort } from './ports/TokenVaultPort'
+export type { PublisherPort, PublishResult } from './ports/PublisherPort'
 export type {
   CopyGeneratorPort,
   ContentInputs,
   PlatformCopies,
-} from './ports/CopyGeneratorPort.js'
+} from './ports/CopyGeneratorPort'
 export type {
   ImageGeneratorPort,
   ImagePrompt,
   GeneratedImage,
-} from './ports/ImageGeneratorPort.js'
-export type { ImageStoragePort } from './ports/ImageStoragePort.js'
-export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
+} from './ports/ImageGeneratorPort'
+export type { ImageStoragePort } from './ports/ImageStoragePort'
+export type { GenerationRequestRepository } from './ports/GenerationRequestRepository'
 
 // Value Objects
-export { derivePairwiseId } from './value-objects/PairwiseId.js'
+export { derivePairwiseId } from './value-objects/PairwiseId'
