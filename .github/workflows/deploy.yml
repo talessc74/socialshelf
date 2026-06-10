@@ -60,7 +60,8 @@ jobs:
               LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }},\
               LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback,\
               PUBLISHER_URL=${{ secrets.PUBLISHER_URL }},\
-              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}" \
+              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }},\
+              CSRF_SECRET=${{ secrets.CSRF_SECRET }}" \
             --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
