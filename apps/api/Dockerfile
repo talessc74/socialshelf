@@ -17,6 +17,7 @@ COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY packages/tsconfig ./packages/tsconfig
 COPY packages/domain ./packages/domain
 COPY apps/api ./apps/api
+RUN pnpm --filter @socialshelf/domain build
 RUN pnpm --filter @socialshelf/api build
 
 FROM node:20-alpine AS runner

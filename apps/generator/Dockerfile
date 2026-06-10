@@ -18,6 +18,7 @@ COPY --from=deps /app/apps/generator/node_modules ./apps/generator/node_modules
 COPY packages/tsconfig ./packages/tsconfig
 COPY packages/domain ./packages/domain
 COPY apps/generator ./apps/generator
+RUN pnpm --filter @socialshelf/domain build
 RUN pnpm --filter @socialshelf/generator build
 
 FROM node:20-alpine AS runner
