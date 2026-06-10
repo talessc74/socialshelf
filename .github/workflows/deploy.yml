@@ -36,6 +36,8 @@ jobs:
           done
 
       - name: Grant IAM roles (idempotent)
+        env:
+          DEPLOYER_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: |
           PROJECT=${{ env.GCP_PROJECT_ID }}
 
@@ -58,6 +60,15 @@ jobs:
             gcloud projects add-iam-policy-binding "$PROJECT" \
               --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
               --role="$ROLE" --condition=None 2>/dev/null || true
+          done
+
+          # Grant deployer SA permission to act as each app service account
+          # Required for gcloud run deploy --service-account to work
+          for SA in api-service publisher-service generator-service; do
+            gcloud iam service-accounts add-iam-policy-binding \
+              "${SA}@${PROJECT}.iam.gserviceaccount.com" \
+              --member="serviceAccount:${DEPLOYER_SA}" \
+              --role="roles/iam.serviceAccountUser" 2>/dev/null || true
           done
 
   deploy-api:
