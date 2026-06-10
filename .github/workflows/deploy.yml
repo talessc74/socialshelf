@@ -71,6 +71,11 @@ jobs:
               --role="roles/iam.serviceAccountUser" 2>/dev/null || true
           done
 
+      - name: Wait for IAM propagation
+        run: |
+          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
+          sleep 60
+
   deploy-api:
     name: Deploy api-service
     needs: bootstrap-iam
