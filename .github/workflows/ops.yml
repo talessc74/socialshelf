@@ -1,0 +1,32 @@
+name: Ops
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'gcloud command to run (without "gcloud" prefix)'
+        required: true
+        type: string
+
+env:
+  GCP_PROJECT_ID: socialshelf-547da
+  GCP_REGION: us-central1
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run command
+        run: gcloud ${{ inputs.command }}
