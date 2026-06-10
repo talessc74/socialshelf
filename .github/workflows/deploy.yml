@@ -10,8 +10,59 @@ env:
   ARTIFACT_REGISTRY: us-central1-docker.pkg.dev/socialshelf-547da/socialshelf
 
 jobs:
+  bootstrap-iam:
+    name: Bootstrap IAM service accounts
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Create service accounts (idempotent)
+        run: |
+          for SA in api-service publisher-service generator-service; do
+            gcloud iam service-accounts create "$SA" \
+              --display-name="SocialShelf $SA" \
+              --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null || true
+          done
+
+      - name: Grant IAM roles (idempotent)
+        run: |
+          PROJECT=${{ env.GCP_PROJECT_ID }}
+
+          # api-service: Firestore + Secret Manager
+          for ROLE in roles/datastore.user roles/secretmanager.secretAccessor; do
+            gcloud projects add-iam-policy-binding "$PROJECT" \
+              --member="serviceAccount:api-service@${PROJECT}.iam.gserviceaccount.com" \
+              --role="$ROLE" --condition=None 2>/dev/null || true
+          done
+
+          # publisher-service: Firestore + Secret Manager
+          for ROLE in roles/datastore.user roles/secretmanager.secretAccessor; do
+            gcloud projects add-iam-policy-binding "$PROJECT" \
+              --member="serviceAccount:publisher-service@${PROJECT}.iam.gserviceaccount.com" \
+              --role="$ROLE" --condition=None 2>/dev/null || true
+          done
+
+          # generator-service: Firestore + Vertex AI
+          for ROLE in roles/datastore.user roles/aiplatform.user; do
+            gcloud projects add-iam-policy-binding "$PROJECT" \
+              --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
+              --role="$ROLE" --condition=None 2>/dev/null || true
+          done
+
   deploy-api:
     name: Deploy api-service
+    needs: bootstrap-iam
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -71,6 +122,7 @@ jobs:
 
   deploy-publisher:
     name: Deploy publisher-service
+    needs: bootstrap-iam
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -121,6 +173,7 @@ jobs:
 
   deploy-generator:
     name: Deploy generator-service
+    needs: bootstrap-iam
     runs-on: ubuntu-latest
     permissions:
       contents: read
