@@ -62,14 +62,19 @@ jobs:
               --role="$ROLE" --condition=None 2>/dev/null || true
           done
 
-          # Grant deployer SA permission to act as each app service account
-          # Required for gcloud run deploy --service-account to work
-          for SA in api-service publisher-service generator-service; do
-            gcloud iam service-accounts add-iam-policy-binding \
-              "${SA}@${PROJECT}.iam.gserviceaccount.com" \
-              --member="serviceAccount:${DEPLOYER_SA}" \
-              --role="roles/iam.serviceAccountUser" 2>/dev/null || true
-          done
+          # Grant deployer SA permission to act as app service accounts (project-level)
+          # SA-resource-level binding requires iam.serviceAccounts.setIamPolicy which
+          # the deployer may not have; project-level binding uses the same permission
+          # as the datastore/secretmanager grants above.
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/iam.serviceAccountUser" \
+            --condition=None 2>/dev/null || true
+
+      - name: Wait for IAM propagation
+        run: |
+          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
+          sleep 60
 
       - name: Wait for IAM propagation
         run: |
@@ -111,24 +116,24 @@ jobs:
 
       - name: Deploy api-service to Cloud Run
         run: |
+          VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},WEB_URL=https://radiokactus.com"
+          VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
+          VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
+          VARS="${VARS},X_REDIRECT_URI=https://api.radiokactus.com/oauth/x/callback"
+          VARS="${VARS},LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}"
+          VARS="${VARS},LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}"
+          VARS="${VARS},LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback"
+          VARS="${VARS},PUBLISHER_URL=${{ secrets.PUBLISHER_URL }}"
+          VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
+          VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           gcloud run deploy api-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
-            --set-env-vars="\
-              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              WEB_URL=https://radiokactus.com,\
-              X_CLIENT_ID=${{ secrets.X_CLIENT_ID }},\
-              X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }},\
-              X_REDIRECT_URI=https://api.radiokactus.com/oauth/x/callback,\
-              LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }},\
-              LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }},\
-              LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback,\
-              PUBLISHER_URL=${{ secrets.PUBLISHER_URL }},\
-              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }},\
-              CSRF_SECRET=${{ secrets.CSRF_SECRET }}" \
+            --set-env-vars="${VARS}" \
             --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
@@ -171,15 +176,15 @@ jobs:
 
       - name: Deploy publisher-service to Cloud Run
         run: |
+          VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
           gcloud run deploy publisher-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
-            --set-env-vars="\
-              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}" \
+            --set-env-vars="${VARS}" \
             --service-account=publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
@@ -222,17 +227,17 @@ jobs:
 
       - name: Deploy generator-service to Cloud Run
         run: |
+          VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS},VERTEX_AI_LOCATION=us-central1"
+          VARS="${VARS},GEMINI_MODEL=gemini-2.0-flash"
+          VARS="${VARS},IMAGEN_MODEL=imagegeneration@006"
           gcloud run deploy generator-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/generator:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --no-allow-unauthenticated \
-            --set-env-vars="\
-              FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }},\
-              VERTEX_AI_LOCATION=us-central1,\
-              GEMINI_MODEL=gemini-2.0-flash,\
-              IMAGEN_MODEL=imagegeneration@006" \
+            --set-env-vars="${VARS}" \
             --service-account=generator-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=2 \
