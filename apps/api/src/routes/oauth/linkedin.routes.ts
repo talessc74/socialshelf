@@ -35,7 +35,7 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
   app.get('/oauth/linkedin/callback', async (request, reply) => {
     const result = callbackQuerySchema.safeParse(request.query)
     if (!result.success) {
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      return reply.status(400).send({ error: 'missing_required_params' })
     }
 
     const { code, error, state } = result.data
