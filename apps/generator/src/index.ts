@@ -1,6 +1,6 @@
 import { buildApp } from './app.js'
 
-const port = Number(process.env['GENERATOR_PORT'] ?? 3003)
+const port = Number(process.env['PORT'] ?? process.env['GENERATOR_PORT'] ?? 3003)
 const host = '0.0.0.0'
 
 const app = await buildApp()
