@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isValidTimestamp(value) {
+      return value is timestamp;
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+
+      // AI consent sub-document
+      match /ai_consent/{doc} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+
+      // Daily quota sub-document
+      match /daily_quota/{date} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false; // written only by backend services
+      }
+
+      // ── Brands ───────────────────────────────────────────────────────
+      match /brands/{brandId} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow create: if isAuthenticated() && isOwner(userId)
+          && request.resource.data.userId == userId;
+        allow update: if isAuthenticated() && isOwner(userId)
+          && request.resource.data.userId == userId;
+        allow delete: if isAuthenticated() && isOwner(userId);
+
+        // ── OAuth Connections ───────────────────────────────────────
+        match /oauth_connections/{connectionId} {
+          allow read: if isAuthenticated() && isOwner(userId);
+          allow write: if false; // written only by api-service
+        }
+
+        // ── Posts ───────────────────────────────────────────────────
+        match /posts/{postId} {
+          allow read: if isAuthenticated() && isOwner(userId);
+          allow create: if isAuthenticated() && isOwner(userId)
+            && request.resource.data.userId == userId
+            && request.resource.data.brandId == brandId;
+          allow update: if isAuthenticated() && isOwner(userId);
+          allow delete: if isAuthenticated() && isOwner(userId);
+        }
+
+        // ── Generation Requests ─────────────────────────────────────
+        match /generation_requests/{requestId} {
+          allow read: if isAuthenticated() && isOwner(userId);
+          allow create: if isAuthenticated() && isOwner(userId);
+          allow update: if false; // updated only by generator-service
+          allow delete: if isAuthenticated() && isOwner(userId);
+        }
+      }
+    }
+
+    // ── Deny everything else ───────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
