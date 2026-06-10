@@ -20,8 +20,9 @@ export class SecretManagerTokenVault implements TokenVaultPort {
         secretId: ref,
         secret: { replication: { automatic: {} } },
       })
-    } catch {
-      // Secret already exists — add a new version below
+    } catch (err: unknown) {
+      const grpcCode = (err as { code?: number }).code
+      if (grpcCode !== 6) throw err // 6 = ALREADY_EXISTS
     }
 
     await this.client.addSecretVersion({

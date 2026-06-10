@@ -32,6 +32,35 @@
         { "fieldPath": "brandId", "order": "ASCENDING" },
         { "fieldPath": "platform", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "oauth_connections",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "brandId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oauth_connections",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "brandId", "order": "ASCENDING" },
+        { "fieldPath": "platform", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oauth_connections",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "pairwiseId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "oauth_connections",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

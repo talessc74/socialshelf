@@ -33,7 +33,8 @@ export async function postsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (request, reply) => {
       const connections = await oauthRepo.findByBrand(request.userId)
-      return reply.send({ connections })
+      const safe = connections.map(({ tokenRef: _tokenRef, ...rest }) => rest)
+      return reply.send({ connections: safe })
     },
   )
 
