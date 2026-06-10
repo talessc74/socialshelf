@@ -82,6 +82,7 @@ gcloud iam workload-identity-pools providers create-oidc "github-provider" \
   --workload-identity-pool="github-pool" \
   --display-name="GitHub Actions Provider" \
   --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository=='talessc74/socialshelf'" \
   --issuer-uri="https://token.actions.githubusercontent.com" || true
 
 WORKLOAD_IDENTITY_POOL_ID=$(gcloud iam workload-identity-pools describe "github-pool" \
