@@ -30,6 +30,10 @@ export async function publishRoutes(app: FastifyInstance) {
   const useCase = new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)
   const internalSecret = process.env['INTERNAL_SECRET']
 
+  if (!internalSecret) {
+    app.log.warn('INTERNAL_SECRET not set — /publish endpoint has no authentication (set the env var)')
+  }
+
   app.post('/publish', async (request, reply) => {
     if (internalSecret) {
       const header = request.headers['x-internal-secret']
