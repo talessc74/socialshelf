@@ -129,7 +129,6 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --set-env-vars="${VARS}" \
-            --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
             --memory=512Mi \
@@ -180,7 +179,6 @@ jobs:
             --platform=managed \
             --allow-unauthenticated \
             --set-env-vars="${VARS}" \
-            --service-account=publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=3 \
             --memory=512Mi \
@@ -233,7 +231,6 @@ jobs:
             --platform=managed \
             --no-allow-unauthenticated \
             --set-env-vars="${VARS}" \
-            --service-account=generator-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --min-instances=0 \
             --max-instances=2 \
             --memory=1Gi \
