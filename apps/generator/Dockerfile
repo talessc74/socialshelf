@@ -20,14 +20,14 @@ COPY packages/domain ./packages/domain
 COPY apps/generator ./apps/generator
 RUN pnpm --filter @socialshelf/domain build
 RUN pnpm --filter @socialshelf/generator build
+RUN pnpm deploy --filter @socialshelf/generator --prod /deploy
 
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache vips
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 appuser
-COPY --from=builder --chown=appuser:nodejs /app/apps/generator/dist ./dist
-COPY --from=builder --chown=appuser:nodejs /app/apps/generator/node_modules ./node_modules
+COPY --from=builder --chown=appuser:nodejs /deploy ./
 USER appuser
 EXPOSE 3003
 CMD ["node", "dist/index.js"]
