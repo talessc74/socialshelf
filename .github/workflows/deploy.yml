@@ -76,11 +76,6 @@ jobs:
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
           sleep 60
 
-      - name: Wait for IAM propagation
-        run: |
-          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
-          sleep 60
-
   deploy-api:
     name: Deploy api-service
     needs: bootstrap-iam
