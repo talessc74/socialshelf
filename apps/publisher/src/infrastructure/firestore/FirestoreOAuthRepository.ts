@@ -46,8 +46,9 @@ export class FirestoreOAuthRepository implements OAuthRepository {
     platform: Platform,
   ): Promise<OAuthConnection | null> {
     const snapshot = await db
-      .collectionGroup('oauth_connections')
-      .where('brandId', '==', brandId)
+      .collection('users').doc(brandId)
+      .collection('brands').doc(brandId)
+      .collection('oauth_connections')
       .where('platform', '==', platform)
       .limit(1)
       .get()
@@ -58,8 +59,9 @@ export class FirestoreOAuthRepository implements OAuthRepository {
 
   async findByBrand(brandId: string): Promise<OAuthConnection[]> {
     const snapshot = await db
-      .collectionGroup('oauth_connections')
-      .where('brandId', '==', brandId)
+      .collection('users').doc(brandId)
+      .collection('brands').doc(brandId)
+      .collection('oauth_connections')
       .get()
 
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
