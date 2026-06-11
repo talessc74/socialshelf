@@ -40,6 +40,9 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
     try {
       const { userId } = validateState(state)
       const brandId = result.data.brandId ?? userId
+      if (brandId !== userId) {
+        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      }
       const { facebook, instagram } = await handleCallback.execute(code, state, brandId)
       const connected = [
         facebook ? 'facebook' : null,
