@@ -86,7 +86,7 @@ export async function postsRoutes(app: FastifyInstance) {
         const body = await res.text()
         if (res.status === 404) return reply.status(404).send({ error: 'Post not found' })
         app.log.error(`Publisher error ${res.status}: ${body}`)
-        return reply.status(502).send({ error: 'Publisher error' })
+        return reply.status(502).send({ error: 'Publisher error', detail: body })
       }
 
       return reply.send(await res.json())
