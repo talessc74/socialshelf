@@ -65,7 +65,7 @@ export class FirestorePostRepository implements PostRepository {
       id: data['id'] as string,
       userId: data['userId'] as string,
       brandId: data['brandId'] as string,
-      content: data['content'] as Post['content'],
+      content: (data['content'] as Post['content']) ?? [],
       imageStoragePaths: (data['imageStoragePaths'] as string[]) ?? [],
       status: data['status'] as PostStatus,
       scheduledAt: data['scheduledAt'] ? new Date(data['scheduledAt'] as string) : null,
