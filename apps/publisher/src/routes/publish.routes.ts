@@ -54,8 +54,9 @@ export async function publishRoutes(app: FastifyInstance) {
       if (err instanceof Error && err.message.startsWith('Post not found')) {
         return reply.status(404).send({ error: err.message })
       }
-      app.log.error(err)
-      return reply.status(500).send({ error: 'Internal error' })
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'publish use-case failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
     }
   })
 }

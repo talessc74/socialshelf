@@ -76,6 +76,34 @@ jobs:
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
           sleep 60
 
+  deploy-firestore-indexes:
+    name: Deploy Firestore indexes
+    needs: bootstrap-iam
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools@latest
+
+      - name: Deploy Firestore indexes
+        run: firebase deploy --only firestore:indexes --project ${{ env.GCP_PROJECT_ID }} --non-interactive
+
   deploy-api:
     name: Deploy api-service
     needs: bootstrap-iam
