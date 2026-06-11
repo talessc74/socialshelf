@@ -7,21 +7,24 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: {},
 }))
 
+const mockPost = {
+  id: 'post-1',
+  userId: 'user-1',
+  brandId: 'brand-1',
+  content: [{ platform: 'twitter', text: 'Hello!', charCount: 6 }],
+  imageStoragePaths: [],
+  status: 'scheduled',
+  scheduledAt: null,
+  publishedAt: null,
+  externalIds: {},
+  createdAt: new Date(),
+  updatedAt: new Date(),
+}
+
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
-    findById: vi.fn().mockResolvedValue({
-      id: 'post-1',
-      userId: 'user-1',
-      brandId: 'brand-1',
-      content: [{ platform: 'twitter', text: 'Hello!', charCount: 6 }],
-      imageStoragePaths: [],
-      status: 'scheduled',
-      scheduledAt: null,
-      publishedAt: null,
-      externalIds: {},
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+    findById: vi.fn().mockResolvedValue(mockPost),
+    findByIdAndBrand: vi.fn().mockResolvedValue(mockPost),
     save: vi.fn().mockResolvedValue(undefined),
     findByBrand: vi.fn(),
     findScheduledBefore: vi.fn(),
@@ -127,6 +130,7 @@ describe('POST /publish', () => {
     const { FirestorePostRepository } = await import('../infrastructure/firestore/FirestorePostRepository.js')
     vi.mocked(FirestorePostRepository).mockImplementationOnce(() => ({
       findById: vi.fn().mockResolvedValue(null),
+      findByIdAndBrand: vi.fn().mockResolvedValue(null),
       save: vi.fn(),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
