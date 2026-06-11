@@ -87,7 +87,7 @@ describe('Meta OAuth routes', () => {
       const state = generateState('user-test-123')
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}&brandId=brand-1`,
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
       })
 
       expect(response.statusCode).toBe(302)
@@ -99,7 +99,7 @@ describe('Meta OAuth routes', () => {
     it('redirects with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/oauth/meta/callback?code=meta-code&state=bad.state&brandId=brand-1',
+        url: '/oauth/meta/callback?code=meta-code&state=bad.state&brandId=user-test-123',
       })
 
       expect(response.statusCode).toBe(302)
