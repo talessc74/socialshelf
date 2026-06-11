@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from '../components/Providers'
+import { BuildBadge } from '../components/BuildBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR">
       <body>
         <Providers>{children}</Providers>
+        <BuildBadge />
       </body>
     </html>
   )
