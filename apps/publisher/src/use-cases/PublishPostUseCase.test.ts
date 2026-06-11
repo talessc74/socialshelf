@@ -53,6 +53,7 @@ describe('PublishPostUseCase', () => {
     postRepo = {
       save: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn().mockResolvedValue(makePost([Platform.LINKEDIN])),
+      findByIdAndBrand: vi.fn().mockResolvedValue(makePost([Platform.LINKEDIN])),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
@@ -98,12 +99,12 @@ describe('PublishPostUseCase', () => {
   })
 
   it('throws when post is not found', async () => {
-    vi.mocked(postRepo.findById).mockResolvedValueOnce(null)
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(null)
     await expect(useCase.execute('missing-post', 'brand-1')).rejects.toThrow('Post not found')
   })
 
   it('publishes to all platforms in post.content', async () => {
-    vi.mocked(postRepo.findById).mockResolvedValueOnce(
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
@@ -123,7 +124,7 @@ describe('PublishPostUseCase', () => {
   })
 
   it('stores externalId in post.externalIds for each platform', async () => {
-    vi.mocked(postRepo.findById).mockResolvedValueOnce(
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
@@ -164,7 +165,7 @@ describe('PublishPostUseCase', () => {
   })
 
   it('records failed platform when no publisher is registered', async () => {
-    vi.mocked(postRepo.findById).mockResolvedValueOnce(makePost([Platform.FACEBOOK]))
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(makePost([Platform.FACEBOOK]))
 
     const result = await useCase.execute('post-1', 'brand-1')
 

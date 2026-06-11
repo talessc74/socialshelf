@@ -32,7 +32,7 @@ export class PublishPostUseCase {
   }
 
   async execute(postId: string, brandId: string): Promise<PublishPostResult> {
-    const post = await this.postRepo.findById(postId)
+    const post = await this.postRepo.findByIdAndBrand(postId, brandId)
     if (!post) throw new Error(`Post not found: ${postId}`)
 
     const results: PlatformPublishResult[] = []

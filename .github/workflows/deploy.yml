@@ -83,58 +83,6 @@ jobs:
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
           sleep 60
 
-  deploy-firestore-indexes:
-    name: Deploy Firestore indexes
-    needs: bootstrap-iam
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Create Firestore COLLECTION_GROUP indexes for posts
-        run: |
-          PROJECT=${{ env.GCP_PROJECT_ID }}
-
-          create_index() {
-            local SCOPE="$1"; shift
-            local COLLECTION="$1"; shift
-            echo "Creating index: collection=$COLLECTION scope=$SCOPE fields=$*"
-            # --quiet suppresses interactive prompts; exit code ignored only on
-            # "already exists" (exit 1 with that message) — other errors propagate
-            OUTPUT=$(gcloud firestore indexes composite create \
-              --project="$PROJECT" \
-              --collection-group="$COLLECTION" \
-              --query-scope="$SCOPE" \
-              "$@" \
-              --quiet 2>&1) && echo "$OUTPUT" || {
-                echo "$OUTPUT"
-                echo "$OUTPUT" | grep -q "already exists" && echo "(index already exists, skipping)" || exit 1
-              }
-          }
-
-          # posts — id (COLLECTION_GROUP) — used by findById
-          create_index COLLECTION_GROUP posts \
-            --field-config=field-path=id,order=ascending
-
-          # posts — brandId (COLLECTION_GROUP) — used by findByBrand
-          create_index COLLECTION_GROUP posts \
-            --field-config=field-path=brandId,order=ascending
-
-          # posts — status + scheduledAt (COLLECTION_GROUP) — used by findScheduledBefore
-          create_index COLLECTION_GROUP posts \
-            --field-config=field-path=status,order=ascending \
-            --field-config=field-path=scheduledAt,order=ascending
-
   deploy-api:
     name: Deploy api-service
     needs: bootstrap-iam

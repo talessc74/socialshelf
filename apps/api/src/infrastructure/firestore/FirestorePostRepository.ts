@@ -31,6 +31,17 @@ export class FirestorePostRepository implements PostRepository {
     return this.fromFirestore(snapshot.docs[0]!.data())
   }
 
+  async findByIdAndBrand(id: string, brandId: string): Promise<Post | null> {
+    const doc = await db
+      .collection('users').doc(brandId)
+      .collection('brands').doc(brandId)
+      .collection('posts').doc(id)
+      .get()
+
+    if (!doc.exists) return null
+    return this.fromFirestore(doc.data()!)
+  }
+
   async findByBrand(brandId: string, status?: PostStatus): Promise<Post[]> {
     let query = db.collectionGroup('posts').where('brandId', '==', brandId)
     if (status) query = query.where('status', '==', status)
