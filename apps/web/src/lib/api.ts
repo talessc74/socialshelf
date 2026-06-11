@@ -24,8 +24,8 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    const b = body as { error?: string; message?: string; details?: unknown }
-    const msg = b.message ?? b.error ?? `HTTP ${res.status}`
+    const b = body as { error?: string; message?: string; details?: unknown; detail?: string }
+    const msg = b.message ?? (b.error && b.detail ? `${b.error}: ${b.detail}` : b.error) ?? `HTTP ${res.status}`
     throw new Error(msg)
   }
 
