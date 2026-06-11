@@ -85,7 +85,7 @@ describe('LinkedIn OAuth routes', () => {
       const state = generateState('user-test-123')
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state)}&brandId=brand-1`,
+        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
       })
 
       expect(response.statusCode).toBe(302)
@@ -95,7 +95,7 @@ describe('LinkedIn OAuth routes', () => {
     it('redirects to dashboard with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/oauth/linkedin/callback?code=valid-code&state=invalid.tampered&brandId=brand-1',
+        url: '/oauth/linkedin/callback?code=valid-code&state=invalid.tampered&brandId=user-test-123',
       })
 
       expect(response.statusCode).toBe(302)
