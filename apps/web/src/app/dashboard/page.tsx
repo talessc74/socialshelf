@@ -106,7 +106,7 @@ export default function DashboardPage() {
                       </span>
                       <button
                         onClick={() => handleConnect(meta.oauth)}
-                        className="text-xs text-gray-400 underline hover:text-gray-600"
+                        className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
                       >
                         Reconectar
                       </button>
