@@ -100,9 +100,17 @@ export default function DashboardPage() {
                     <span className="font-medium text-gray-800">{meta.label}</span>
                   </div>
                   {isConnected ? (
-                    <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                      Conectado
-                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                        Conectado
+                      </span>
+                      <button
+                        onClick={() => handleConnect(meta.oauth)}
+                        className="text-xs text-gray-400 underline hover:text-gray-600"
+                      >
+                        Reconectar
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleConnect(meta.oauth)}
