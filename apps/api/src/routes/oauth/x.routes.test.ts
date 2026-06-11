@@ -96,7 +96,7 @@ describe('X OAuth routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=brand-1`,
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
         cookies: {
           pkce_verifier: 'test-verifier-32-bytes-base64url',
           oauth_state: state,
@@ -112,7 +112,7 @@ describe('X OAuth routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=brand-1`,
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
       })
 
       expect(response.statusCode).toBe(302)
@@ -124,7 +124,7 @@ describe('X OAuth routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=brand-1`,
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
         cookies: {
           pkce_verifier: 'test-verifier-32-bytes-base64url',
           oauth_state: 'different-state',
