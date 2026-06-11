@@ -26,6 +26,7 @@ describe('GET /health', () => {
   let app: FastifyInstance
 
   beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
     app = await buildApp()
     await app.ready()
   })

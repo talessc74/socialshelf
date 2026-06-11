@@ -31,15 +31,13 @@ export async function publishRoutes(app: FastifyInstance) {
   const internalSecret = process.env['INTERNAL_SECRET']
 
   if (!internalSecret) {
-    app.log.warn('INTERNAL_SECRET not set — /publish endpoint has no authentication (set the env var)')
+    throw new Error('INTERNAL_SECRET env var is required — set it before starting the publisher service')
   }
 
   app.post('/publish', async (request, reply) => {
-    if (internalSecret) {
-      const header = request.headers['x-internal-secret']
-      if (header !== internalSecret) {
-        return reply.status(401).send({ error: 'Unauthorized' })
-      }
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
     }
 
     const parsed = bodySchema.safeParse(request.body)

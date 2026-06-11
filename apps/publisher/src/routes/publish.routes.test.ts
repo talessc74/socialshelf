@@ -77,18 +77,25 @@ vi.mock('../infrastructure/publishers/MetaPublisher.js', () => ({
   })),
 }))
 
+describe('startup validation', () => {
+  it('throws if INTERNAL_SECRET is not set', async () => {
+    delete process.env['INTERNAL_SECRET']
+    await expect(buildApp()).rejects.toThrow('INTERNAL_SECRET')
+  })
+})
+
 describe('POST /publish', () => {
   let app: FastifyInstance
 
   beforeAll(async () => {
-    process.env['WEB_URL'] = 'http://localhost:3000'
-    delete process.env['INTERNAL_SECRET']
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
     app = await buildApp()
     await app.ready()
   })
 
   afterAll(async () => {
     await app.close()
+    delete process.env['INTERNAL_SECRET']
   })
 
   it('returns 200 with publish results', async () => {
@@ -96,6 +103,7 @@ describe('POST /publish', () => {
       method: 'POST',
       url: '/publish',
       payload: { postId: 'post-1', brandId: 'brand-1' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
     expect(response.statusCode).toBe(200)
@@ -109,6 +117,7 @@ describe('POST /publish', () => {
       method: 'POST',
       url: '/publish',
       payload: { postId: 'post-1' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
     expect(response.statusCode).toBe(400)
@@ -125,7 +134,6 @@ describe('POST /publish', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any))
 
-    // Re-build app with new mock
     const freshApp = await buildApp()
     await freshApp.ready()
 
@@ -133,43 +141,41 @@ describe('POST /publish', () => {
       method: 'POST',
       url: '/publish',
       payload: { postId: 'nonexistent', brandId: 'brand-1' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
     await freshApp.close()
     expect(response.statusCode).toBe(404)
   })
 
-  it('returns 401 when INTERNAL_SECRET is set and header is missing', async () => {
-    process.env['INTERNAL_SECRET'] = 'super-secret-123'
-    const securedApp = await buildApp()
-    await securedApp.ready()
-
-    const response = await securedApp.inject({
+  it('returns 401 when INTERNAL_SECRET header is missing', async () => {
+    const response = await app.inject({
       method: 'POST',
       url: '/publish',
       payload: { postId: 'post-1', brandId: 'brand-1' },
     })
 
-    await securedApp.close()
-    delete process.env['INTERNAL_SECRET']
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 401 when INTERNAL_SECRET header is wrong', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/publish',
+      payload: { postId: 'post-1', brandId: 'brand-1' },
+      headers: { 'x-internal-secret': 'wrong-secret' },
+    })
 
     expect(response.statusCode).toBe(401)
   })
 
   it('accepts request when correct INTERNAL_SECRET header is provided', async () => {
-    process.env['INTERNAL_SECRET'] = 'super-secret-123'
-    const securedApp = await buildApp()
-    await securedApp.ready()
-
-    const response = await securedApp.inject({
+    const response = await app.inject({
       method: 'POST',
       url: '/publish',
       payload: { postId: 'post-1', brandId: 'brand-1' },
-      headers: { 'x-internal-secret': 'super-secret-123' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
     })
-
-    await securedApp.close()
-    delete process.env['INTERNAL_SECRET']
 
     expect(response.statusCode).toBe(200)
   })
