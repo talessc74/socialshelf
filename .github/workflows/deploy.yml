@@ -85,24 +85,42 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools@latest
+      - name: Create Firestore COLLECTION_GROUP indexes for posts
+        run: |
+          PROJECT=${{ env.GCP_PROJECT_ID }}
 
-      - name: Deploy Firestore indexes
-        run: firebase deploy --only firestore:indexes --project ${{ env.GCP_PROJECT_ID }} --non-interactive
+          create_index() {
+            local SCOPE="$1"; shift
+            echo "Creating index: collection=$1 scope=$SCOPE fields=$*"
+            gcloud firestore indexes composite create \
+              --project="$PROJECT" \
+              --collection-group="$1" \
+              --query-scope="$SCOPE" \
+              "${@:2}" \
+              --quiet 2>&1 | grep -v "^$" || true
+          }
+
+          # posts — id (COLLECTION_GROUP) — used by findById
+          create_index COLLECTION_GROUP posts \
+            --field-config=field-path=id,order=ascending
+
+          # posts — brandId (COLLECTION_GROUP) — used by findByBrand
+          create_index COLLECTION_GROUP posts \
+            --field-config=field-path=brandId,order=ascending
+
+          # posts — status + scheduledAt (COLLECTION_GROUP) — used by findScheduledBefore
+          create_index COLLECTION_GROUP posts \
+            --field-config=field-path=status,order=ascending \
+            --field-config=field-path=scheduledAt,order=ascending
 
   deploy-api:
     name: Deploy api-service
