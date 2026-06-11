@@ -71,6 +71,13 @@ jobs:
             --role="roles/iam.serviceAccountUser" \
             --condition=None 2>/dev/null || true
 
+          # Grant deployer SA datastore.owner so it can create/manage Firestore indexes
+          # (roles/datastore.user only covers read/write of data, not index management)
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/datastore.owner" \
+            --condition=None 2>/dev/null || true
+
       - name: Wait for IAM propagation
         run: |
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
@@ -100,13 +107,19 @@ jobs:
 
           create_index() {
             local SCOPE="$1"; shift
-            echo "Creating index: collection=$1 scope=$SCOPE fields=$*"
-            gcloud firestore indexes composite create \
+            local COLLECTION="$1"; shift
+            echo "Creating index: collection=$COLLECTION scope=$SCOPE fields=$*"
+            # --quiet suppresses interactive prompts; exit code ignored only on
+            # "already exists" (exit 1 with that message) — other errors propagate
+            OUTPUT=$(gcloud firestore indexes composite create \
               --project="$PROJECT" \
-              --collection-group="$1" \
+              --collection-group="$COLLECTION" \
               --query-scope="$SCOPE" \
-              "${@:2}" \
-              --quiet 2>&1 | grep -v "^$" || true
+              "$@" \
+              --quiet 2>&1) && echo "$OUTPUT" || {
+                echo "$OUTPUT"
+                echo "$OUTPUT" | grep -q "already exists" && echo "(index already exists, skipping)" || exit 1
+              }
           }
 
           # posts — id (COLLECTION_GROUP) — used by findById
