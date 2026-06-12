@@ -4,7 +4,7 @@ import { validateState } from '../../lib/csrf.js'
 import { GenerateXAuthUrlUseCase } from '../../use-cases/oauth/GenerateXAuthUrlUseCase.js'
 import { HandleXCallbackUseCase } from '../../use-cases/oauth/HandleXCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
-import { SecretManagerTokenVault } from '../../infrastructure/secret-manager/SecretManagerTokenVault.js'
+import { FirestoreTokenVault } from '../../infrastructure/firestore/FirestoreTokenVault.js'
 
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
@@ -14,7 +14,7 @@ const callbackQuerySchema = z.object({
 
 export async function xOAuthRoutes(app: FastifyInstance) {
   const oauthRepo = new FirestoreOAuthRepository()
-  const tokenVault = new SecretManagerTokenVault()
+  const tokenVault = new FirestoreTokenVault()
   const generateUrl = new GenerateXAuthUrlUseCase()
   const handleCallback = new HandleXCallbackUseCase(oauthRepo, tokenVault)
 

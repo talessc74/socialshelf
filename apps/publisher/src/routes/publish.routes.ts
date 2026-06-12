@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { PublishPostUseCase } from '../use-cases/PublishPostUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
-import { SecretManagerTokenVault } from '../infrastructure/secret-manager/SecretManagerTokenVault.js'
+import { FirestoreTokenVault } from '../infrastructure/secret-manager/FirestoreTokenVault.js'
 import { LinkedInPublisher } from '../infrastructure/publishers/LinkedInPublisher.js'
 import { MetaPublisher } from '../infrastructure/publishers/MetaPublisher.js'
 import { XPublisher } from '../infrastructure/publishers/XPublisher.js'
@@ -18,7 +18,7 @@ const bodySchema = z.object({
 export async function publishRoutes(app: FastifyInstance) {
   const postRepo = new FirestorePostRepository()
   const oauthRepo = new FirestoreOAuthRepository()
-  const tokenVault = new SecretManagerTokenVault()
+  const tokenVault = new FirestoreTokenVault()
 
   const publishers = new Map<Platform, PublisherPort>([
     [Platform.LINKEDIN, new LinkedInPublisher(tokenVault)],

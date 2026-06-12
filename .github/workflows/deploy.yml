@@ -181,6 +181,7 @@ jobs:
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
+          VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
           gcloud run deploy publisher-service \
