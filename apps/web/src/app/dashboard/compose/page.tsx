@@ -13,6 +13,8 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.TWITTER]: 'X (Twitter)',
 }
 
+const COMING_SOON_PLATFORMS = new Set<Platform>([Platform.TWITTER])
+
 function CharCounter({ current, max }: { current: number; max: number }) {
   const remaining = max - current
   const pct = current / max
@@ -171,20 +173,39 @@ export default function ComposePage() {
             </a>
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
-            {connectedPlatforms.map((p) => (
-              <button
-                key={p}
-                onClick={() => togglePlatform(p)}
-                className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
-                  selectedPlatforms.has(p)
-                    ? 'border-brand-600 bg-brand-600 text-white'
-                    : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
-                }`}
-              >
-                {PLATFORM_LABELS[p]}
-              </button>
-            ))}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {connectedPlatforms.filter((p) => !COMING_SOON_PLATFORMS.has(p)).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => togglePlatform(p)}
+                  className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                    selectedPlatforms.has(p)
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                  }`}
+                >
+                  {PLATFORM_LABELS[p]}
+                </button>
+              ))}
+              {connectedPlatforms.filter((p) => COMING_SOON_PLATFORMS.has(p)).map((p) => (
+                <span
+                  key={p}
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                  title="Disponível em breve"
+                >
+                  {PLATFORM_LABELS[p]}
+                  <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                    Em breve
+                  </span>
+                </span>
+              ))}
+            </div>
+            {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
+              <p className="text-xs text-gray-400">
+                * A publicação via X (Twitter) estará disponível em breve. A API do X requer plano pago para envio de posts.
+              </p>
+            )}
           </div>
         )}
       </section>
