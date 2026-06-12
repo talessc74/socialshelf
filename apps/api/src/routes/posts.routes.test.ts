@@ -41,8 +41,8 @@ vi.mock('../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   })),
 }))
 
-vi.mock('../infrastructure/secret-manager/SecretManagerTokenVault.js', () => ({
-  SecretManagerTokenVault: vi.fn().mockImplementation(() => ({
+vi.mock('../infrastructure/secret-manager/FirestoreTokenVault.js', () => ({
+  FirestoreTokenVault: vi.fn().mockImplementation(() => ({
     store: vi.fn(),
     retrieve: vi.fn(),
     delete: vi.fn(),
