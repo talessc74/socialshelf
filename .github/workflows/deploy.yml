@@ -41,15 +41,15 @@ jobs:
         run: |
           PROJECT=${{ env.GCP_PROJECT_ID }}
 
-          # api-service: Firestore + Secret Manager
-          for ROLE in roles/datastore.user roles/secretmanager.secretAccessor; do
+          # api-service: Firestore + Secret Manager (create + version + read)
+          for ROLE in roles/datastore.user roles/secretmanager.admin; do
             gcloud projects add-iam-policy-binding "$PROJECT" \
               --member="serviceAccount:api-service@${PROJECT}.iam.gserviceaccount.com" \
               --role="$ROLE" --condition=None 2>/dev/null || true
           done
 
-          # publisher-service: Firestore + Secret Manager
-          for ROLE in roles/datastore.user roles/secretmanager.secretAccessor; do
+          # publisher-service: Firestore + Secret Manager (read + version for token refresh)
+          for ROLE in roles/datastore.user roles/secretmanager.admin; do
             gcloud projects add-iam-policy-binding "$PROJECT" \
               --member="serviceAccount:publisher-service@${PROJECT}.iam.gserviceaccount.com" \
               --role="$ROLE" --condition=None 2>/dev/null || true
@@ -135,6 +135,7 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
+            --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars="${VARS}" \
             --min-instances=0 \
             --max-instances=3 \
