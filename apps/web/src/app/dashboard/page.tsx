@@ -33,7 +33,8 @@ export default function DashboardPage() {
       setNotice({ type: 'success', message: `Conectado com sucesso: ${platforms}` })
       router.replace('/dashboard')
     } else if (error) {
-      setNotice({ type: 'error', message: 'Falha ao conectar plataforma. Tente novamente.' })
+      const detail = searchParams.get('detail')
+      setNotice({ type: 'error', message: `Falha ao conectar plataforma. Tente novamente.${detail ? ` [${detail}]` : ''}` })
       router.replace('/dashboard')
     }
   }, [searchParams, router])
