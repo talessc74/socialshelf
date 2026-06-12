@@ -10,7 +10,7 @@ export class FirestoreOAuthRepository implements OAuthRepository {
       .collection('brands')
       .doc(connection.brandId)
       .collection('oauth_connections')
-      .doc(connection.id)
+      .doc(connection.pairwiseId)
       .set({
         ...connection,
         expiresAt: connection.expiresAt?.toISOString() ?? null,
