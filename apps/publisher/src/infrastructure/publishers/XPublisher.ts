@@ -48,6 +48,10 @@ export class XPublisher implements PublisherPort {
 
     const attempt = await this.postTweet(token.access_token, text)
 
+    if (attempt.status === 402) {
+      throw new Error('Publicação no X (Twitter) requer plano pago na API do X Developer. Funcionalidade temporariamente indisponível.')
+    }
+
     if (attempt.status === 401 && token.refresh_token) {
       const refreshed = await refreshXToken(token.refresh_token)
       const newExpiresAt = new Date(Date.now() + refreshed.expires_in * 1000)
@@ -60,6 +64,9 @@ export class XPublisher implements PublisherPort {
       await this.tokenVault.store(connection.tokenRef, JSON.stringify(token))
 
       const retry = await this.postTweet(token.access_token, text)
+      if (retry.status === 402) {
+        throw new Error('Publicação no X (Twitter) requer plano pago na API do X Developer. Funcionalidade temporariamente indisponível.')
+      }
       if (!retry.ok) {
         const err = await retry.text()
         throw new Error(`X publish failed after token refresh: ${retry.status} ${err}`)
