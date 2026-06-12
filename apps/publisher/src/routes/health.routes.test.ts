@@ -9,7 +9,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
 vi.mock('../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({})),
 }))
-vi.mock('../infrastructure/secret-manager/FirestoreTokenVault.js', () => ({
+vi.mock('../infrastructure/firestore/FirestoreTokenVault.js', () => ({
   FirestoreTokenVault: vi.fn().mockImplementation(() => ({})),
 }))
 vi.mock('../infrastructure/publishers/LinkedInPublisher.js', () => ({
