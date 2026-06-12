@@ -15,6 +15,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = await getToken()
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: 'include',
     headers: {
       ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${token}`,
