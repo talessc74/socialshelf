@@ -62,8 +62,9 @@ export async function xOAuthRoutes(app: FastifyInstance) {
       await handleCallback.execute(code, codeVerifier, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=twitter`)
     } catch (err) {
+      const msg = err instanceof Error ? err.message.slice(0, 120) : String(err).slice(0, 120)
       app.log.error({ err }, 'X callback handler failed')
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=handler_error`)
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=${encodeURIComponent(msg)}`)
     }
   })
 }
