@@ -52,11 +52,11 @@ describe('LinkedInPublisher', () => {
     vi.unstubAllGlobals()
   })
 
-  it('fetches person ID and posts to /rest/posts', async () => {
+  it('fetches person sub via /v2/userinfo and posts to /rest/posts', async () => {
     fetchMock
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id: 'li-person-123' }),
+        json: async () => ({ sub: 'li-person-123' }),
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -69,14 +69,14 @@ describe('LinkedInPublisher', () => {
     expect(result.externalId).toBe('urn:li:share:9876543')
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
-    const [meCall, postsCall] = fetchMock.mock.calls
-    expect(meCall![0]).toContain('/v2/me')
+    const [userinfoCall, postsCall] = fetchMock.mock.calls
+    expect(userinfoCall![0]).toContain('/v2/userinfo')
     expect(postsCall![0]).toContain('/rest/posts')
   })
 
   it('sends LinkedIn-Version header', async () => {
     fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'li-person-123' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
       .mockResolvedValueOnce({
         ok: true,
         headers: { get: (_: string) => 'urn:li:share:111' },
@@ -91,7 +91,7 @@ describe('LinkedInPublisher', () => {
 
   it('includes post text as commentary', async () => {
     fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'li-person-123' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
       .mockResolvedValueOnce({
         ok: true,
         headers: { get: (_: string) => 'urn:li:share:111' },
@@ -107,7 +107,7 @@ describe('LinkedInPublisher', () => {
 
   it('uses person sub as author URN', async () => {
     fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'abc-456' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'abc-456' }) })
       .mockResolvedValueOnce({
         ok: true,
         headers: { get: (_: string) => 'urn:li:share:111' },
@@ -120,9 +120,17 @@ describe('LinkedInPublisher', () => {
     expect(body.author).toBe('urn:li:person:abc-456')
   })
 
-  it('throws when LinkedIn API returns an error', async () => {
+  it('throws when /v2/userinfo returns an error', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401 })
+
+    await expect(
+      publisher.publish(mockPost, Platform.LINKEDIN, mockConnection),
+    ).rejects.toThrow('LinkedIn /userinfo failed: 401')
+  })
+
+  it('throws when LinkedIn REST API returns an error', async () => {
     fetchMock
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'li-person-123' }) })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
       .mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'Unprocessable' })
 
     await expect(
