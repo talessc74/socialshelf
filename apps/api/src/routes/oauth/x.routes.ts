@@ -37,24 +37,33 @@ export async function xOAuthRoutes(app: FastifyInstance) {
 
     const { code, state } = result.data
 
+    let userId: string
+    let codeVerifier: string
+
     try {
-      const { userId, codeVerifier } = validateState(state)
-
-      if (!codeVerifier) {
-        app.log.error('codeVerifier missing from state — OAuth flow started without PKCE embed')
-        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      const validated = validateState(state)
+      userId = validated.userId
+      if (!validated.codeVerifier) {
+        app.log.error('codeVerifier missing from state')
+        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=no_verifier`)
       }
+      codeVerifier = validated.codeVerifier
+    } catch (err) {
+      app.log.error({ err }, 'state validation failed')
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=bad_state`)
+    }
 
-      const brandId = result.data.brandId ?? userId
-      if (brandId !== userId) {
-        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
-      }
+    const brandId = result.data.brandId ?? userId
+    if (brandId !== userId) {
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=brand_mismatch`)
+    }
 
-      await handleCallback.execute(code, state, codeVerifier, brandId)
+    try {
+      await handleCallback.execute(code, codeVerifier, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=twitter`)
     } catch (err) {
-      app.log.error(err)
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      app.log.error({ err }, 'X callback handler failed')
+      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=handler_error`)
     }
   })
 }

@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto'
-import { validateState } from '../../lib/csrf.js'
 import { exchangeCodeForXToken } from '../../lib/x-client.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
 import type { OAuthConnection, OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
@@ -12,11 +11,10 @@ export class HandleXCallbackUseCase {
 
   async execute(
     code: string,
-    state: string,
     codeVerifier: string,
     brandId: string,
   ): Promise<OAuthConnection> {
-    const { userId } = validateState(state)
+    const userId = brandId
 
     const tokenResponse = await exchangeCodeForXToken(code, codeVerifier)
 
