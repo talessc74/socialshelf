@@ -6,15 +6,17 @@ const getSecret = () => {
   return s
 }
 
-export function generateState(userId: string): string {
+export function generateState(userId: string, codeVerifier?: string): string {
   const nonce = randomBytes(16).toString('hex')
   const iat = Date.now()
-  const payload = Buffer.from(JSON.stringify({ userId, nonce, iat })).toString('base64url')
+  const payload = Buffer.from(
+    JSON.stringify({ userId, nonce, iat, ...(codeVerifier ? { codeVerifier } : {}) }),
+  ).toString('base64url')
   const sig = createHmac('sha256', getSecret()).update(payload).digest('base64url')
   return `${payload}.${sig}`
 }
 
-export function validateState(state: string): { userId: string } {
+export function validateState(state: string): { userId: string; codeVerifier?: string } {
   const dotIndex = state.lastIndexOf('.')
   if (dotIndex === -1) throw new Error('Invalid state format')
 
@@ -36,6 +38,7 @@ export function validateState(state: string): { userId: string } {
     userId: string
     nonce: string
     iat: number
+    codeVerifier?: string
   }
 
   const TEN_MINUTES = 10 * 60 * 1000
@@ -43,5 +46,7 @@ export function validateState(state: string): { userId: string } {
     throw new Error('State expired')
   }
 
-  return { userId: parsed.userId }
+  const result: { userId: string; codeVerifier?: string } = { userId: parsed.userId }
+  if (parsed.codeVerifier !== undefined) result.codeVerifier = parsed.codeVerifier
+  return result
 }

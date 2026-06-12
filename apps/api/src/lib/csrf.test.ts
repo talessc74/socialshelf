@@ -21,6 +21,18 @@ describe('csrf', () => {
       const s2 = generateState('user-123')
       expect(s1).not.toBe(s2)
     })
+
+    it('embeds codeVerifier when provided', () => {
+      const state = generateState('user-123', 'my-verifier')
+      const { codeVerifier } = validateState(state)
+      expect(codeVerifier).toBe('my-verifier')
+    })
+
+    it('omits codeVerifier when not provided', () => {
+      const state = generateState('user-123')
+      const { codeVerifier } = validateState(state)
+      expect(codeVerifier).toBeUndefined()
+    })
   })
 
   describe('validateState', () => {
@@ -28,6 +40,13 @@ describe('csrf', () => {
       const state = generateState('user-abc')
       const { userId } = validateState(state)
       expect(userId).toBe('user-abc')
+    })
+
+    it('returns userId and codeVerifier for state with embedded verifier', () => {
+      const state = generateState('user-abc', 'verifier-xyz')
+      const { userId, codeVerifier } = validateState(state)
+      expect(userId).toBe('user-abc')
+      expect(codeVerifier).toBe('verifier-xyz')
     })
 
     it('throws on tampered signature', () => {

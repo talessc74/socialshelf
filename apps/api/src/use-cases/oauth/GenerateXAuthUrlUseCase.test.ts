@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GenerateXAuthUrlUseCase } from './GenerateXAuthUrlUseCase.js'
+import { validateState } from '../../lib/csrf.js'
 
 vi.mock('../../lib/x-client.js', () => ({
   generatePkce: vi.fn().mockReturnValue({
     codeVerifier: 'mock-verifier-32-bytes-base64url-ok',
     codeChallenge: 'mock-challenge-s256',
   }),
-  buildXAuthUrl: vi.fn().mockReturnValue('https://twitter.com/i/oauth2/authorize?mocked=1'),
+  buildXAuthUrl: vi.fn().mockReturnValue('https://x.com/i/oauth2/authorize?mocked=1'),
 }))
 
 describe('GenerateXAuthUrlUseCase', () => {
@@ -19,14 +20,15 @@ describe('GenerateXAuthUrlUseCase', () => {
     useCase = new GenerateXAuthUrlUseCase()
   })
 
-  it('returns a URL containing twitter.com', () => {
+  it('returns a URL containing x.com', () => {
     const { url } = useCase.execute('user-abc')
-    expect(url).toContain('twitter.com')
+    expect(url).toContain('x.com')
   })
 
-  it('returns a non-empty codeVerifier', () => {
-    const { codeVerifier } = useCase.execute('user-abc')
-    expect(codeVerifier.length).toBeGreaterThan(0)
+  it('embeds codeVerifier in the state JWT', () => {
+    const { state } = useCase.execute('user-abc')
+    const { codeVerifier } = validateState(state)
+    expect(codeVerifier).toBe('mock-verifier-32-bytes-base64url-ok')
   })
 
   it('returns a signed state string', () => {

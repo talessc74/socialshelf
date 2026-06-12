@@ -27,7 +27,7 @@ vi.mock('../../lib/x-client.js', () => ({
     codeVerifier: 'test-verifier-32-bytes-base64url',
     codeChallenge: 'test-challenge-s256',
   }),
-  buildXAuthUrl: vi.fn().mockReturnValue('https://twitter.com/i/oauth2/authorize?mocked=1'),
+  buildXAuthUrl: vi.fn().mockReturnValue('https://x.com/i/oauth2/authorize?mocked=1'),
   exchangeCodeForXToken: vi.fn().mockResolvedValue({
     access_token: 'x-access-token',
     refresh_token: 'x-refresh-token',
@@ -55,7 +55,7 @@ describe('X OAuth routes', () => {
   })
 
   describe('GET /oauth/x/authorize', () => {
-    it('returns Twitter auth URL for authenticated user', async () => {
+    it('returns X auth URL for authenticated user', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/oauth/x/authorize',
@@ -64,20 +64,18 @@ describe('X OAuth routes', () => {
 
       expect(response.statusCode).toBe(200)
       const body = response.json<{ url: string }>()
-      expect(body.url).toContain('twitter.com')
+      expect(body.url).toContain('x.com')
     })
 
-    it('sets pkce_verifier and oauth_state cookies', async () => {
+    it('does not set pkce_verifier or oauth_state cookies', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/oauth/x/authorize',
         headers: { authorization: 'Bearer valid-token' },
       })
 
-      const setCookieHeader = response.headers['set-cookie'] as string | string[]
-      const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader]
-      expect(cookies.some((c) => c.startsWith('pkce_verifier='))).toBe(true)
-      expect(cookies.some((c) => c.startsWith('oauth_state='))).toBe(true)
+      const setCookieHeader = response.headers['set-cookie']
+      expect(setCookieHeader).toBeUndefined()
     })
 
     it('returns 401 without authorization header', async () => {
@@ -91,23 +89,19 @@ describe('X OAuth routes', () => {
   })
 
   describe('GET /oauth/x/callback', () => {
-    it('redirects with connected=twitter on valid state and verifier', async () => {
-      const state = generateState('user-test-123')
+    it('redirects with connected=twitter on valid state with embedded codeVerifier', async () => {
+      const state = generateState('user-test-123', 'test-verifier-32-bytes-base64url')
 
       const response = await app.inject({
         method: 'GET',
         url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
-        cookies: {
-          pkce_verifier: 'test-verifier-32-bytes-base64url',
-          oauth_state: state,
-        },
       })
 
       expect(response.statusCode).toBe(302)
       expect(response.headers['location']).toContain('connected=twitter')
     })
 
-    it('redirects with error=oauth_failed when cookies are missing', async () => {
+    it('redirects with error=oauth_failed when state has no embedded codeVerifier', async () => {
       const state = generateState('user-test-123')
 
       const response = await app.inject({
@@ -119,16 +113,10 @@ describe('X OAuth routes', () => {
       expect(response.headers['location']).toContain('error=oauth_failed')
     })
 
-    it('redirects with error=oauth_failed when state does not match cookie', async () => {
-      const state = generateState('user-test-123')
-
+    it('redirects with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
-        cookies: {
-          pkce_verifier: 'test-verifier-32-bytes-base64url',
-          oauth_state: 'different-state',
-        },
+        url: `/oauth/x/callback?code=x-code&state=invalid.tampered&brandId=user-test-123`,
       })
 
       expect(response.statusCode).toBe(302)
