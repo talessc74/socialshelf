@@ -1,7 +1,7 @@
 import { randomBytes, createHash } from 'crypto'
 
 const X_API_BASE = 'https://api.twitter.com'
-const X_AUTH_BASE = 'https://twitter.com'
+const X_AUTH_BASE = 'https://x.com'
 
 export interface XTokenResponse {
   access_token: string
