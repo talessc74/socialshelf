@@ -135,6 +135,7 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
+            --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars="${VARS}" \
             --min-instances=0 \
             --max-instances=3 \
