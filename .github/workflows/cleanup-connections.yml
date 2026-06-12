@@ -10,5 +10,4 @@ jobs:
       - name: Call cleanup endpoint
         run: |
           curl -s -X POST https://api.radiokactus.com/admin/cleanup-duplicate-connections \
-            -H "x-internal-secret: ${{ secrets.INTERNAL_SECRET }}" \
-            -H "Content-Type: application/json"
+            -H "x-internal-secret: ${{ secrets.INTERNAL_SECRET }}"
