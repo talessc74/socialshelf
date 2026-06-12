@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HandleLinkedInCallbackUseCase } from './HandleLinkedInCallbackUseCase.js'
-import { generateState } from '../../lib/csrf.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
 import type { OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
 
@@ -40,18 +39,16 @@ describe('HandleLinkedInCallbackUseCase', () => {
   })
 
   it('saves OAuth connection with correct platform and userId', async () => {
-    const state = generateState('user-123')
-    const connection = await useCase.execute('auth-code', state, 'brand-456')
+    const connection = await useCase.execute('auth-code', 'brand-456')
 
     expect(connection.platform).toBe(Platform.LINKEDIN)
-    expect(connection.userId).toBe('user-123')
+    expect(connection.userId).toBe('brand-456')
     expect(connection.brandId).toBe('brand-456')
     expect(mockOAuthRepo.save).toHaveBeenCalledWith(connection)
   })
 
   it('stores encrypted token in vault with pairwise ref', async () => {
-    const state = generateState('user-123')
-    const connection = await useCase.execute('auth-code', state, 'brand-456')
+    const connection = await useCase.execute('auth-code', 'brand-456')
 
     expect(mockTokenVault.store).toHaveBeenCalledWith(
       `oauth-token-${connection.pairwiseId}`,
@@ -60,39 +57,23 @@ describe('HandleLinkedInCallbackUseCase', () => {
   })
 
   it('derives pairwise ID from userId and platform', async () => {
-    const state = generateState('user-123')
-    const connection = await useCase.execute('auth-code', state, 'brand-456')
+    const connection = await useCase.execute('auth-code', 'brand-456')
 
-    const expectedPairwiseId = derivePairwiseId('user-123', Platform.LINKEDIN)
+    const expectedPairwiseId = derivePairwiseId('brand-456', Platform.LINKEDIN)
     expect(connection.pairwiseId).toBe(expectedPairwiseId)
     expect(connection.tokenRef).toBe(`oauth-token-${expectedPairwiseId}`)
   })
 
   it('includes correct scopes from token response', async () => {
-    const state = generateState('user-123')
-    const connection = await useCase.execute('auth-code', state, 'brand-456')
+    const connection = await useCase.execute('auth-code', 'brand-456')
 
     expect(connection.scopes).toContain('w_member_social')
     expect(connection.scopes).toContain('openid')
   })
 
-  it('throws on invalid state signature', async () => {
-    await expect(
-      useCase.execute('auth-code', 'invalid.tampered', 'brand-456'),
-    ).rejects.toThrow()
-  })
-
-  it('throws on malformed state', async () => {
-    await expect(
-      useCase.execute('auth-code', 'nodothere', 'brand-456'),
-    ).rejects.toThrow('Invalid state format')
-  })
-
   it('assigns a unique ID to each connection', async () => {
-    const s1 = generateState('user-123')
-    const s2 = generateState('user-123')
-    const c1 = await useCase.execute('code-1', s1, 'brand-456')
-    const c2 = await useCase.execute('code-2', s2, 'brand-456')
+    const c1 = await useCase.execute('code-1', 'brand-456')
+    const c2 = await useCase.execute('code-2', 'brand-456')
     expect(c1.id).not.toBe(c2.id)
   })
 })

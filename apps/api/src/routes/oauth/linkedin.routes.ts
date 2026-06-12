@@ -51,7 +51,7 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
       if (brandId !== userId) {
         return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
       }
-      await handleCallback.execute(code, state, brandId)
+      await handleCallback.execute(code, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=linkedin`)
     } catch (err) {
       app.log.error(err)

@@ -1,5 +1,4 @@
 import { randomUUID } from 'crypto'
-import { validateState } from '../../lib/csrf.js'
 import { exchangeCodeForToken } from '../../lib/linkedin-client.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
 import type { OAuthConnection, OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
@@ -10,8 +9,8 @@ export class HandleLinkedInCallbackUseCase {
     private readonly tokenVault: TokenVaultPort,
   ) {}
 
-  async execute(code: string, state: string, brandId: string): Promise<OAuthConnection> {
-    const { userId } = validateState(state)
+  async execute(code: string, brandId: string): Promise<OAuthConnection> {
+    const userId = brandId
 
     const redirectUri = process.env['LINKEDIN_REDIRECT_URI'] ?? ''
     const tokenResponse = await exchangeCodeForToken(code, redirectUri)
