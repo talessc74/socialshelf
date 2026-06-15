@@ -1,5 +1,5 @@
 ---
-name: _local-adr-policy-001-engineering-principles
+name: _local-adr-policy-001-principios-de-engenharia
 description: Define os princípios de engenharia que governam todas as decisões técnicas do SocialShelf. Use ao avaliar qualquer mudança arquitetural, priorização de dívida técnica ou decisão de design de software.
 apply-to: Todo o código e decisões de engenharia do projeto
 valid-from: 2026-06-06
@@ -38,5 +38,5 @@ Detalhes de infraestrutura (Firebase, Cloud Run, APIs de redes sociais) não gov
 
 ## References
 
-- [_local-adr-policy-001-hexagonal-architecture](../application/001-hexagonal-architecture.md) - Implementação de inversão de dependência
+- [_local-adr-policy-001-hexagonal-architecture](../application/002-hexagonal-architecture.md) - Implementação de inversão de dependência
 - [_local-edr-policy-001-tdd](../../edrs/principles/001-tdd.md) - Detalhes de prática TDD

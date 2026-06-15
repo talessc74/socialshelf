@@ -1,5 +1,5 @@
 ---
-name: _local-edr-policy-002-typescript-strict
+name: _local-edr-policy-002-typescript-strict-mode
 description: Define as flags TypeScript obrigatórias em todo o monorepo SocialShelf. Use ao criar novos packages, configurar tsconfig ou avaliar erros de tipo.
 apply-to: Todos os packages e apps do monorepo
 valid-from: 2026-06-06
@@ -58,4 +58,4 @@ Configuração centralizada em `packages/tsconfig` — todos os apps e packages 
 
 ## References
 
-- [_local-adr-policy-002-monorepo-pnpm-turbo](../../adrs/application/002-monorepo-pnpm-turbo.md) - Estrutura de packages compartilhados
+- [_local-adr-policy-002-monorepo-pnpm-turbo](../../adrs/application/003-monorepo-pnpm-turbo.md) - Estrutura de packages compartilhados

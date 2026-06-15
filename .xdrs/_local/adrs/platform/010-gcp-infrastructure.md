@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-gcp-infrastructure
+name: _local-adr-policy-010-gcp-infrastructure-baseline
 description: Define GCP como plataforma de infraestrutura do SocialShelf e os serviços utilizados. Use ao provisionar novos recursos, definir permissões IAM ou avaliar novos serviços de plataforma.
 apply-to: Toda infraestrutura de produção e staging
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: GCP Infrastructure Baseline
+# _local-adr-policy-010: GCP Infrastructure Baseline
 
 ## Context and Problem Statement
 
@@ -61,6 +61,6 @@ Firebase é tratado como detalhe de infraestrutura — a lógica de negócio nã
 
 ## References
 
-- [_local-adr-policy-003-service-decomposition](../application/003-service-decomposition.md) - Serviços e seus limites
-- [_local-edr-policy-001-cloud-run](../../edrs/infra/001-cloud-run.md) - Configuração detalhada do Cloud Run
-- [_local-adr-policy-001-zero-trust-baseline](../controls/001-zero-trust-baseline.md) - IAM e micro-segmentação
+- [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites
+- [_local-edr-policy-001-cloud-run](../../edrs/infra/007-cloud-run.md) - Configuração detalhada do Cloud Run
+- [_local-adr-policy-001-zero-trust-baseline](../controls/005-zero-trust-baseline.md) - IAM e micro-segmentação

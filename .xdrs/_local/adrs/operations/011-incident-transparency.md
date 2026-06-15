@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-incident-transparency
+name: _local-adr-policy-011-transparencia-em-incidentes
 description: Define o protocolo de comunicação em incidentes de segurança do SocialShelf. Use ao identificar vulnerabilidade, comprometimento de dados ou falha de segurança com impacto em usuários.
 apply-to: Todos os incidentes de segurança com potencial impacto em dados de usuário
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: Transparência em Incidentes
+# _local-adr-policy-011: Transparência em Incidentes
 
 ## Context and Problem Statement
 
@@ -45,5 +45,5 @@ Defesas técnicas robustas não eliminam vulnerabilidade humana. Fluxos de auten
 
 ## References
 
-- [_local-adr-policy-001-zero-trust-baseline](../controls/001-zero-trust-baseline.md) - Controles que reduzem superfície de incidente
-- [_local-adr-policy-001-data-retention-privacy](../data/001-data-retention-privacy.md) - O que está em risco em um incidente
+- [_local-adr-policy-001-zero-trust-baseline](../controls/005-zero-trust-baseline.md) - Controles que reduzem superfície de incidente
+- [_local-adr-policy-001-data-retention-privacy](../data/008-data-retention-privacy.md) - O que está em risco em um incidente

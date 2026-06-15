@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-001-ci-pipeline
+name: _local-edr-policy-005-ci-pipeline
 description: Define o pipeline de CI/CD do SocialShelf via GitHub Actions. Use ao modificar workflows, adicionar etapas de validação ou entender a ordem de execução do build.
 apply-to: .github/workflows/ — ci.yml e deploy.yml
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-001: CI Pipeline
+# _local-edr-policy-005: CI Pipeline
 
 ## Context and Problem Statement
 
@@ -70,5 +70,5 @@ Nenhuma etapa avança sem a anterior ter passado. Deploy só ocorre após todas 
 ## References
 
 - [_local-edr-policy-001-tdd](../principles/001-tdd.md) - Coverage como produto obrigatório do pipeline
-- [_local-edr-policy-002-docker-multistage](002-docker-multistage.md) - Dockerfile validado em CI
-- [_local-edr-policy-001-cloud-run](../infra/001-cloud-run.md) - Deploy no Cloud Run após CI
+- [_local-edr-policy-002-docker-multistage](006-docker-multistage.md) - Dockerfile validado em CI
+- [_local-edr-policy-001-cloud-run](../infra/007-cloud-run.md) - Deploy no Cloud Run após CI

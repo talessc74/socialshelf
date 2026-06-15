@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-001-fastify-plugins
+name: _local-edr-policy-003-fastify-plugins-padrao
 description: Define Fastify como framework HTTP e os plugins obrigatórios nos serviços backend do SocialShelf. Use ao criar novos endpoints, configurar middleware ou adicionar serviços backend.
 apply-to: apps/api, apps/publisher, apps/generator
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-001: Fastify + Plugins Padrão
+# _local-edr-policy-003: Fastify + Plugins Padrão
 
 ## Context and Problem Statement
 
@@ -60,5 +60,5 @@ await app.register(cookie, { secret: process.env.CSRF_SECRET })
 
 ## References
 
-- [_local-adr-policy-001-hexagonal-architecture](../../adrs/application/001-hexagonal-architecture.md) - Handlers delegam para use-cases
-- [_local-adr-policy-001-zero-trust-baseline](../../adrs/controls/001-zero-trust-baseline.md) - Plugins de segurança como baseline
+- [_local-adr-policy-001-hexagonal-architecture](../../adrs/application/002-hexagonal-architecture.md) - Handlers delegam para use-cases
+- [_local-adr-policy-001-zero-trust-baseline](../../adrs/controls/005-zero-trust-baseline.md) - Plugins de segurança como baseline

@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-001-vocabulario-proibido
+name: _local-edr-policy-008-vocabulario-proibido
 description: Define o vocabulário proibido em todos os artefatos do SocialShelf. Use ao revisar PRs, documentação, comentários de código, issues ou qualquer artefato de texto do projeto.
 apply-to: Todo artefato de texto — código, documentação, PRs, comentários, issues, XDRS
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-001: Vocabulário Proibido
+# _local-edr-policy-008: Vocabulário Proibido
 
 ## Context and Problem Statement
 
@@ -56,4 +56,4 @@ infinite storage assumption · defesa estática infalível
 ## References
 
 - [_local-adr-policy-001-engineering-principles](../../adrs/principles/001-engineering-principles.md) - Princípios que fundamentam as proibições
-- [_local-adr-policy-001-zero-trust-baseline](../../adrs/controls/001-zero-trust-baseline.md) - Termos de segurança proibidos
+- [_local-adr-policy-001-zero-trust-baseline](../../adrs/controls/005-zero-trust-baseline.md) - Termos de segurança proibidos

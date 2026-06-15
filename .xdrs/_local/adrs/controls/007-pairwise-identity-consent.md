@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-003-pairwise-identity-consent
+name: _local-adr-policy-007-identidade-pairwise-e-consentimento
 description: Define o modelo de identidade pairwise e consentimento explícito do SocialShelf. Use ao projetar fluxos OAuth, armazenar conexões de rede social ou solicitar dados do usuário.
 apply-to: Todos os fluxos OAuth, armazenamento de identidade e coleta de dados de usuário
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-003: Identidade Pairwise e Consentimento
+# _local-adr-policy-007: Identidade Pairwise e Consentimento
 
 ## Context and Problem Statement
 
@@ -50,5 +50,5 @@ Apenas os atributos estritamente necessários para a operação são solicitados
 
 ## References
 
-- [_local-adr-policy-002-data-minimization](002-data-minimization.md) - Coleta mínima de dados
-- [_local-adr-policy-001-oauth-social-networks](../integration/001-oauth-social-networks.md) - Fluxo OAuth completo
+- [_local-adr-policy-002-data-minimization](006-data-minimization.md) - Coleta mínima de dados
+- [_local-adr-policy-001-oauth-social-networks](../integration/009-oauth-social-networks.md) - Fluxo OAuth completo

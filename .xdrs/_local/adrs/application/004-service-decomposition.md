@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-003-service-decomposition
+name: _local-adr-policy-004-decomposicao-de-servicos
 description: Define a decomposição dos serviços do SocialShelf em quatro aplicações independentes. Use ao decidir onde implementar nova funcionalidade ou criar um novo serviço.
 apply-to: Todos os apps do monorepo
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-003: Decomposição de Serviços
+# _local-adr-policy-004: Decomposição de Serviços
 
 ## Context and Problem Statement
 
@@ -42,6 +42,6 @@ Cada serviço tem seu próprio processo, Dockerfile, deploy no Cloud Run e servi
 
 ## References
 
-- [_local-adr-policy-001-hexagonal-architecture](001-hexagonal-architecture.md) - Estrutura interna de cada serviço
-- [_local-edr-policy-001-cloud-run](../../edrs/infra/001-cloud-run.md) - Deploy e IAM por serviço
-- [_local-adr-policy-001-zero-trust-baseline](../controls/001-zero-trust-baseline.md) - Micro-segmentação por serviço
+- [_local-adr-policy-001-hexagonal-architecture](002-hexagonal-architecture.md) - Estrutura interna de cada serviço
+- [_local-edr-policy-001-cloud-run](../../edrs/infra/007-cloud-run.md) - Deploy e IAM por serviço
+- [_local-adr-policy-001-zero-trust-baseline](../controls/005-zero-trust-baseline.md) - Micro-segmentação por serviço

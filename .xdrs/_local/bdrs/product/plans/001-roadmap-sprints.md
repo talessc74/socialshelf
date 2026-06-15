@@ -1,79 +1,114 @@
----
-name: _local-bdr-plan-001-roadmap-sprints
-description: Plano de execução do SocialShelf organizado por sprints. Referência de estado atual de cada card e próximos marcos.
-apply-to: Planejamento de produto e priorização de sprint
-valid-from: 2026-06-15
----
-
 # _local-bdr-plan-001: Roadmap de Sprints — SocialShelf · Rádio Kactus
 
-## Contexto
+## Executive Summary
 
-Plano de execução por sprints do SocialShelf. Captura o estado atual de cada card e os marcos futuros. Atualizado via deliberação ARGUS quando o escopo de sprint muda.
+- Sprint 0 concluído: monorepo, domain hexagonal, 3 serviços Fastify, CI/CD, Firebase, Dockerfiles.
+- Sprint 1 em progresso: OAuth LinkedIn funcionando, OAuth X e Meta implementados (X bloqueado por custo de API do plano pago, Meta ativo na UI), composer de posts entregue.
+- Pendente em Sprint 1: testes E2E e auditoria de segurança OAuth.
+- Sprints 2a–4 planejados: publicação manual, geração via IA, agendamento, métricas e lançamento com Rádio Kactus.
+- Data prevista de encerramento do plano: 2026-12-31.
 
-## Estado Atual
+## Context and Problem Statement
 
-### Sprint 0 — Fundação ✅ Completo
+O SocialShelf é um SaaS de publicação social para pequenos criadores. O objetivo é entregar ao Rádio Kactus — primeiro cliente — uma plataforma funcional para publicar conteúdo em múltiplas redes sociais a partir de uma interface única.
 
-- Repositório GitHub + branch strategy
-- Monorepo pnpm workspaces + Turborepo
-- TypeScript base config (`packages/tsconfig`)
-- Domain package — entidades + ports (arquitetura hexagonal)
-- `api-service` scaffold (Fastify + Vitest)
-- `publisher-service` scaffold (Fastify + Vitest)
-- `generator-service` scaffold (Fastify + Vitest + Gemini/Vertex AI)
-- Firebase config (`firestore.rules` + índices)
-- CI/CD — GitHub Actions (lint + type-check + test + docker build)
-- Dockerfiles para Cloud Run (api, publisher, generator)
-- Setup Firebase — projeto GCP real (`socialshelf-547da`)
-- Web scaffold (Next.js 15 + TailwindCSS)
-- Secret Manager API habilitado + credenciais locais via gcloud ADC
-- 📋 Cloud Run — deploy inicial dos 3 serviços (pendente)
+A execução está organizada em sprints incrementais. Cada sprint entrega valor funcional verificável antes de avançar. Este plano rastreia o estado atual de entrega e os próximos marcos.
 
-### Sprint 1 — OAuth e Publicação (Em progresso)
+## Proposed Solution
 
-- ✅ OAuth LinkedIn — end-to-end funcionando (`profile` + `w_member_social`)
-- 🔄 OAuth X (Twitter) — código implementado, teste E2E pendente
-- ⏸️ OAuth Instagram / Facebook (Meta) — aguardando deploy com HTTPS real
-- ✅ Publicação manual — composer UI (+ Novo Post)
-- 📋 Publicação real — testes E2E LinkedIn + X
-- 📋 Auditoria de segurança OAuth
+Entregar o produto em cinco sprints (0–4), do scaffolding inicial ao lançamento com o Rádio Kactus, com suporte a publicação em LinkedIn, X, Instagram e Facebook, geração de conteúdo via IA e agendamento de posts.
 
-### Sprint 2a — Publicação Manual (Planejado)
+Expected end date: 2026-12-31
 
-- Composer de post — editor de conteúdo
-- Preview por plataforma
-- Publicação imediata
+## Approach
 
-### Sprint 2b — Geração de Conteúdo via IA (Planejado)
+Desenvolvimento incremental com deliberações ARGUS antes de mudanças de escopo ou decisões arquiteturais significativas. Cada sprint tem entregáveis verificáveis. Políticas de segurança e privacidade são avaliadas antes de iniciar funcionalidades que envolvam novos dados do usuário (especialmente Sprint 2b — AI consent flow).
 
+## Milestones
+
+### Milestone 0: Fundação
+Due date: 2026-05-01
+
+Entregue. Monorepo pnpm + Turborepo, domain package hexagonal, 3 serviços Fastify scaffoldados, Firebase config, CI/CD GitHub Actions, Dockerfiles Cloud Run, web scaffold Next.js 15.
+
+**Acceptance checklist:**
+- [x] Domain package com entidades e ports
+- [x] CI passando (lint, type-check, test, docker build)
+- [x] Firebase configurado com projeto GCP real
+
+---
+
+### Milestone 1: OAuth e Publicação Inicial
+Due date: 2026-06-30
+
+Em progresso.
+
+**Acceptance checklist:**
+- [x] OAuth LinkedIn end-to-end funcionando
+- [x] OAuth X implementado (bloqueado por plano de API pago — aguarda decisao comercial)
+- [x] OAuth Meta implementado (Instagram + Facebook ativos na UI)
+- [x] Composer de posts entregue
+- [ ] Testes E2E LinkedIn e X
+- [ ] Auditoria de segurança OAuth
+
+**Riscos:**
+- X API requer plano pago — Mitigação: manter desabilitado na UI até decisao de custo.
+- Meta requer HTTPS real para OAuth — Mitigação: dependente do deploy em producao.
+
+---
+
+### Milestone 2a: Publicação Manual
+Due date: 2026-08-31
+
+Planejado.
+
+**Key tasks:**
+- Composer de post — editor de conteúdo completo
+- Preview por plataforma com limites de caractere
+- Publicação imediata com feedback de resultado
+
+---
+
+### Milestone 2b: Geração de Conteúdo via IA
+Due date: 2026-09-30
+
+Planejado. Requer deliberação da Galera de Segurança antes de iniciar — AI consent flow impacta `_local-adr-policy-007-identidade-pairwise-e-consentimento` e `_local-adr-policy-006-dados-como-passivo-minimizacao`.
+
+**Key tasks:**
 - Cloud Storage buckets + IAM
 - EXIF strip middleware + upload
 - AI consent flow
-- `GeminiAdapter` (copy generation, Vertex AI)
-- `ImagenAdapter` (image generation, Vertex AI)
-- `GenerateContentUseCase`
-- Tela de briefing + tela de revisão
+- GeminiAdapter (copy generation, Vertex AI)
+- ImagenAdapter (image generation, Vertex AI)
+- GenerateContentUseCase
+- Tela de briefing + tela de revisao
 
-### Sprint 3 — Agendamento e Métricas (Planejado)
+---
 
+### Milestone 3: Agendamento e Metricas
+Due date: 2026-10-31
+
+Planejado.
+
+**Key tasks:**
 - Agendamento de posts (Cloud Tasks + Cloud Scheduler)
-- Dashboard de métricas
+- Dashboard de metricas
 - Monitoramento e alertas
 
-### Sprint 4 — Multi-produto e Lançamento (Planejado)
+---
 
+### Milestone 4: Multi-produto e Lancamento
+Due date: 2026-12-31
+
+Planejado.
+
+**Key tasks:**
 - Multi-produto — seletor de marca
 - Testes de usabilidade
-- Preparação de lançamento
 - Onboarding Rádio Kactus
 - Plano de conteúdo — semana 1
 
-## Próximas Decisões
-
-Antes de iniciar Sprint 2b, a Galera de Segurança deve deliberar sobre o fluxo de AI consent — coleta de dados para geração de imagens impacta `_local-adr-policy-003-pairwise-identity-consent` e `_local-adr-policy-002-data-minimization`.
-
 ## References
 
-- [_local-bdr-policy-001-plataforma-produto](../001-plataforma-produto.md) - Contexto de produto
-- [_local-bdr-policy-002-redes-sociais-suportadas](../002-redes-sociais-suportadas.md) - Status por plataforma
+- [_local-bdr-policy-002-socialshelf-plataforma-e-produto](../002-plataforma-produto.md) - Contexto de produto
+- [_local-bdr-policy-003-redes-sociais-suportadas](../003-redes-sociais-suportadas.md) - Status por plataforma

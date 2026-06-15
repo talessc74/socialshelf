@@ -1,11 +1,11 @@
 ---
-name: _local-bdr-policy-001-plataforma-produto
+name: _local-bdr-policy-002-socialshelf-plataforma-e-produto
 description: Define o produto SocialShelf, seu público-alvo e proposta de valor. Use ao priorizar features, avaliar escopo de novas funcionalidades ou comunicar o produto para novos colaboradores.
 apply-to: Todas as decisões de produto e roadmap
 valid-from: 2026-06-06
 ---
 
-# _local-bdr-policy-001: SocialShelf — Plataforma e Produto
+# _local-bdr-policy-002: SocialShelf — Plataforma e Produto
 
 ## Context and Problem Statement
 
@@ -46,6 +46,6 @@ O primeiro cliente e parceiro de lançamento é o Rádio Kactus. As decisões de
 
 ## References
 
-- [_local-bdr-policy-002-redes-sociais-suportadas](002-redes-sociais-suportadas.md) - Plataformas suportadas
+- [_local-bdr-policy-002-redes-sociais-suportadas](003-redes-sociais-suportadas.md) - Plataformas suportadas
 - [_local-bdr-policy-001-ux-principles](../principles/001-ux-principles.md) - Princípios de UX que guiam o produto
 - [_local-bdr-plan-001-roadmap-sprints](plans/001-roadmap-sprints.md) - Roadmap de execução

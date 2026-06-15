@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-002-docker-multistage
+name: _local-edr-policy-006-docker-multi-stage-non-root
 description: Define o padrão de Dockerfile multi-stage para os serviços do SocialShelf. Use ao criar ou modificar Dockerfiles de qualquer serviço.
 apply-to: Dockerfiles de apps/api, apps/publisher, apps/generator, apps/web
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-002: Docker Multi-Stage Non-Root
+# _local-edr-policy-006: Docker Multi-Stage Non-Root
 
 ## Context and Problem Statement
 
@@ -67,5 +67,5 @@ CMD ["node", "dist/index.js"]
 
 ## References
 
-- [_local-edr-policy-001-ci-pipeline](001-ci-pipeline.md) - Docker build check em CI
-- [_local-edr-policy-001-cloud-run](../infra/001-cloud-run.md) - Imagem publicada no Artifact Registry
+- [_local-edr-policy-001-ci-pipeline](005-ci-pipeline.md) - Docker build check em CI
+- [_local-edr-policy-001-cloud-run](../infra/007-cloud-run.md) - Imagem publicada no Artifact Registry

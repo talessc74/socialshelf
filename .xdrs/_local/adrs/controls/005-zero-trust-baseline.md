@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-zero-trust-baseline
+name: _local-adr-policy-005-zero-trust-baseline
 description: Define Zero Trust como modelo de segurança base do SocialShelf. Use ao projetar qualquer fluxo de autenticação, autorização, acesso a dados ou comunicação entre serviços.
 apply-to: Todos os serviços, regras de banco de dados e fluxos de autenticação
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: Zero Trust Baseline
+# _local-adr-policy-005: Zero Trust Baseline
 
 ## Context and Problem Statement
 
@@ -58,6 +58,6 @@ Sessões Firebase verificadas a cada requisição via middleware de autenticaç�
 
 ## References
 
-- [_local-adr-policy-003-pairwise-identity-consent](003-pairwise-identity-consent.md) - Identidade e consentimento
-- [_local-adr-policy-002-data-minimization](002-data-minimization.md) - Minimização de superfície de exposição
-- [_local-edr-policy-001-cloud-run](../../edrs/infra/001-cloud-run.md) - Configuração IAM por serviço
+- [_local-adr-policy-003-pairwise-identity-consent](007-pairwise-identity-consent.md) - Identidade e consentimento
+- [_local-adr-policy-002-data-minimization](006-data-minimization.md) - Minimização de superfície de exposição
+- [_local-edr-policy-001-cloud-run](../../edrs/infra/007-cloud-run.md) - Configuração IAM por serviço

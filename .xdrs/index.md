@@ -24,4 +24,4 @@ Project-local decisions created through ARGUS deliberations. These records stay 
 workspace only and are not distributed to other contexts. Decisions here override all
 other scopes.
 
-[View scope _local](_local/index.md)
+Consult `_local/index.md` directly for project-local policies.

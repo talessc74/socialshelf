@@ -1,11 +1,11 @@
 ---
-name: _local-bdr-policy-002-redes-sociais-suportadas
+name: _local-bdr-policy-003-redes-sociais-suportadas
 description: Define as redes sociais suportadas pelo SocialShelf e o status de integração de cada uma. Use ao priorizar integração de nova plataforma ou avaliar escopo de publicação.
 apply-to: Todas as integrações com plataformas de redes sociais
 valid-from: 2026-06-06
 ---
 
-# _local-bdr-policy-002: Redes Sociais Suportadas
+# _local-bdr-policy-003: Redes Sociais Suportadas
 
 ## Context and Problem Statement
 
@@ -54,5 +54,5 @@ Para adicionar uma nova rede social:
 
 ## References
 
-- [_local-adr-policy-001-oauth-social-networks](../../adrs/integration/001-oauth-social-networks.md) - Modelo de integração OAuth
-- [_local-adr-policy-003-pairwise-identity-consent](../../adrs/controls/003-pairwise-identity-consent.md) - Identidade pairwise por plataforma
+- [_local-adr-policy-001-oauth-social-networks](../../adrs/integration/009-oauth-social-networks.md) - Modelo de integração OAuth
+- [_local-adr-policy-003-pairwise-identity-consent](../../adrs/controls/007-pairwise-identity-consent.md) - Identidade pairwise por plataforma

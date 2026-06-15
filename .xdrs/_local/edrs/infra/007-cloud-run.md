@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-001-cloud-run
+name: _local-edr-policy-007-cloud-run-deployment
 description: Define a configuração de deploy dos serviços no Cloud Run. Use ao modificar parâmetros de deploy, configurar variáveis de ambiente ou definir limites de recursos de um serviço.
 apply-to: Todos os serviços deployados no Cloud Run
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-001: Cloud Run Deployment
+# _local-edr-policy-007: Cloud Run Deployment
 
 ## Context and Problem Statement
 
@@ -61,6 +61,6 @@ Passadas como `--set-env-vars` no deploy — nunca em Dockerfile ou código. Sec
 
 ## References
 
-- [_local-edr-policy-001-ci-pipeline](../devops/001-ci-pipeline.md) - CI precede deploy
-- [_local-edr-policy-002-docker-multistage](../devops/002-docker-multistage.md) - Imagem construída antes do deploy
-- [_local-adr-policy-001-gcp-infrastructure](../../adrs/platform/001-gcp-infrastructure.md) - IAM roles por serviço
+- [_local-edr-policy-001-ci-pipeline](../devops/005-ci-pipeline.md) - CI precede deploy
+- [_local-edr-policy-002-docker-multistage](../devops/006-docker-multistage.md) - Imagem construída antes do deploy
+- [_local-adr-policy-001-gcp-infrastructure](../../adrs/platform/010-gcp-infrastructure.md) - IAM roles por serviço

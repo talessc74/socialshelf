@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-002-nextjs-app-router
+name: _local-edr-policy-004-next-js-15-app-router
 description: Define Next.js 15 com App Router como padrão do frontend do SocialShelf. Use ao criar páginas, layouts, componentes ou configurar roteamento no apps/web.
 apply-to: apps/web
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-002: Next.js 15 App Router
+# _local-edr-policy-004: Next.js 15 App Router
 
 ## Context and Problem Statement
 
@@ -65,5 +65,5 @@ app/
 
 ## References
 
-- [_local-adr-policy-001-hexagonal-architecture](../../adrs/application/001-hexagonal-architecture.md) - Frontend comunica com api via HTTP
+- [_local-adr-policy-001-hexagonal-architecture](../../adrs/application/002-hexagonal-architecture.md) - Frontend comunica com api via HTTP
 - [_local-bdr-policy-001-ux-principles](../../bdrs/principles/001-ux-principles.md) - Princípios UX que guiam o design das páginas

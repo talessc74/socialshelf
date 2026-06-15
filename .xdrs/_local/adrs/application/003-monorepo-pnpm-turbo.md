@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-002-monorepo-pnpm-turbo
+name: _local-adr-policy-003-monorepo-pnpm-turborepo
 description: Define pnpm workspaces + Turborepo como estrutura de monorepo do SocialShelf. Use ao adicionar novos apps ou packages, configurar pipelines de build, ou gerenciar dependências compartilhadas.
 apply-to: Estrutura de repositório e pipeline de build
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-002: Monorepo pnpm + Turborepo
+# _local-adr-policy-003: Monorepo pnpm + Turborepo
 
 ## Context and Problem Statement
 
@@ -52,4 +52,4 @@ apps/
 ## References
 
 - [_local-edr-policy-002-typescript-strict](../../edrs/principles/002-typescript-strict.md) - Flags TypeScript obrigatórias
-- [_local-edr-policy-001-ci-pipeline](../../edrs/devops/001-ci-pipeline.md) - Como o CI usa pnpm + turbo
+- [_local-edr-policy-001-ci-pipeline](../../edrs/devops/005-ci-pipeline.md) - Como o CI usa pnpm + turbo

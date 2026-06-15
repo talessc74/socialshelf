@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-data-retention-privacy
+name: _local-adr-policy-008-retencao-e-privacidade-de-dados
 description: Define a política de retenção e privacidade de dados do SocialShelf. Use ao implementar deleção de dados, configurar retenção de logs ou avaliar quanto tempo um dado deve ser mantido.
 apply-to: Todo dado armazenado ou processado pelo sistema
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: Retenção e Privacidade de Dados
+# _local-adr-policy-008: Retenção e Privacidade de Dados
 
 ## Context and Problem Statement
 
@@ -47,5 +47,5 @@ Em caso de comprometimento de dados, a comunicação com os usuários afetados �
 
 ## References
 
-- [_local-adr-policy-002-data-minimization](../controls/002-data-minimization.md) - Critério de coleta
-- [_local-adr-policy-001-incident-transparency](../operations/001-incident-transparency.md) - Protocolo de incidente
+- [_local-adr-policy-002-data-minimization](../controls/006-data-minimization.md) - Critério de coleta
+- [_local-adr-policy-001-incident-transparency](../operations/011-incident-transparency.md) - Protocolo de incidente

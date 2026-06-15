@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-oauth-social-networks
+name: _local-adr-policy-009-oauth-exclusivo-redes-sociais
 description: Define o modelo de integração OAuth com redes sociais no SocialShelf. Use ao implementar ou modificar fluxos de autenticação com Instagram, Facebook, LinkedIn ou X/Twitter.
 apply-to: Todos os fluxos OAuth com redes sociais externas
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: OAuth Exclusivo — Integração com Redes Sociais
+# _local-adr-policy-009: OAuth Exclusivo — Redes Sociais
 
 ## Context and Problem Statement
 
@@ -54,6 +54,6 @@ O fluxo de autorização ocorre inteiramente via redirect OAuth da plataforma de
 
 ## References
 
-- [_local-adr-policy-003-pairwise-identity-consent](../controls/003-pairwise-identity-consent.md) - Identidade pairwise por plataforma
-- [_local-adr-policy-001-zero-trust-baseline](../controls/001-zero-trust-baseline.md) - Acesso restrito ao backend
-- [_local-bdr-policy-002-redes-sociais-suportadas](../../bdrs/product/002-redes-sociais-suportadas.md) - Plataformas suportadas
+- [_local-adr-policy-003-pairwise-identity-consent](../controls/007-pairwise-identity-consent.md) - Identidade pairwise por plataforma
+- [_local-adr-policy-001-zero-trust-baseline](../controls/005-zero-trust-baseline.md) - Acesso restrito ao backend
+- [_local-bdr-policy-002-redes-sociais-suportadas](../../bdrs/product/003-redes-sociais-suportadas.md) - Plataformas suportadas

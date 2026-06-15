@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-002-data-minimization
+name: _local-adr-policy-006-dados-como-passivo-minimizacao
 description: Define dados como passivo e a minimização como princípio de coleta. Use ao projetar novas features que envolvam dados de usuário, definir campos de schema ou avaliar integrações.
 apply-to: Toda coleta, armazenamento, processamento e transmissão de dados de usuário
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-002: Dados como Passivo — Minimização
+# _local-adr-policy-006: Dados como Passivo — Minimização
 
 ## Context and Problem Statement
 
@@ -52,6 +52,6 @@ Tokens de acesso não são armazenados diretamente no Firestore. São armazenado
 
 ## References
 
-- [_local-adr-policy-003-pairwise-identity-consent](003-pairwise-identity-consent.md) - Consentimento explícito como pré-requisito
-- [_local-adr-policy-001-data-retention-privacy](../data/001-data-retention-privacy.md) - Tabela de retenção detalhada
-- [_local-adr-policy-001-zero-trust-baseline](001-zero-trust-baseline.md) - Escrita de dados sensíveis restrita ao backend
+- [_local-adr-policy-003-pairwise-identity-consent](007-pairwise-identity-consent.md) - Consentimento explícito como pré-requisito
+- [_local-adr-policy-001-data-retention-privacy](../data/008-data-retention-privacy.md) - Tabela de retenção detalhada
+- [_local-adr-policy-001-zero-trust-baseline](005-zero-trust-baseline.md) - Escrita de dados sensíveis restrita ao backend

@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-001-hexagonal-architecture
+name: _local-adr-policy-002-arquitetura-hexagonal
 description: Define a arquitetura hexagonal como padrão estrutural do SocialShelf. Use ao criar novos serviços, casos de uso, ou adaptar integrações externas.
 apply-to: Todos os apps e packages do monorepo
 valid-from: 2026-06-06
 ---
 
-# _local-adr-policy-001: Arquitetura Hexagonal
+# _local-adr-policy-002: Arquitetura Hexagonal
 
 ## Context and Problem Statement
 
@@ -46,5 +46,5 @@ Lógica de domínio encapsulada como value objects no domain. Exemplo: `Pairwise
 ## References
 
 - [_local-adr-policy-001-engineering-principles](../principles/001-engineering-principles.md) - Inversão de dependência como princípio raiz
-- [_local-adr-policy-003-service-decomposition](002-monorepo-pnpm-turbo.md) - Como os serviços se organizam no monorepo
-- [_local-adr-policy-003-pairwise-identity-consent](../controls/003-pairwise-identity-consent.md) - PairwiseId como control de identidade
+- [_local-adr-policy-003-service-decomposition](003-monorepo-pnpm-turbo.md) - Como os serviços se organizam no monorepo
+- [_local-adr-policy-003-pairwise-identity-consent](../controls/007-pairwise-identity-consent.md) - PairwiseId como control de identidade

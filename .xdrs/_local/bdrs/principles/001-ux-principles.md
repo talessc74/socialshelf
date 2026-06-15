@@ -1,5 +1,5 @@
 ---
-name: _local-bdr-policy-001-ux-principles
+name: _local-bdr-policy-001-principios-de-ux
 description: Define os princípios de UX que governam o design da interface do SocialShelf. Use ao projetar novas telas, avaliar fluxos de usuário ou resolver conflitos entre estética e usabilidade.
 apply-to: Toda interface de usuário e decisão de produto visível ao usuário
 valid-from: 2026-06-06
@@ -53,5 +53,5 @@ Conflito entre princípios é resolvido pelo princípio de maior hierarquia. Con
 
 ## References
 
-- [_local-bdr-policy-001-plataforma-produto](../product/001-plataforma-produto.md) - Contexto de produto que orienta decisões de UX
-- [_local-edr-policy-002-nextjs-app-router](../../edrs/application/002-nextjs-app-router.md) - Implementação frontend
+- [_local-bdr-policy-001-plataforma-produto](../product/002-plataforma-produto.md) - Contexto de produto que orienta decisões de UX
+- [_local-edr-policy-002-nextjs-app-router](../../edrs/application/004-nextjs-app-router.md) - Implementação frontend
