@@ -1,0 +1,36 @@
+sets:
+  # Compose xdrs-core _core content (managed — do not edit locally)
+  - package: xdrs-core
+    selector:
+      exclude:
+        - .xdrs/index.md
+        - "**/*.test.js"
+        - "**/*.test.int.js"
+        - "**/*.test.int.report"
+    output:
+      path: .
+      gitignore: false
+      symlinks:
+        - source: .xdrs/**/skills/001-review
+          target: .github/skills
+        - source: .xdrs/**/skills/008-write-xdrs-doc
+          target: .github/skills
+
+  # Governance files: seeds, CLAUDE.md, AGENTS.md (managed — do not edit locally)
+  - selector:
+      files:
+        - CLAUDE.md
+        - AGENTS.md
+        - .seeds/**
+    output:
+      path: .
+      gitignore: false
+
+  # Root XDRS index (editable by consumer — not managed)
+  - selector:
+      files:
+        - .xdrs/index.md
+    output:
+      path: .
+      gitignore: false
+      managed: false
