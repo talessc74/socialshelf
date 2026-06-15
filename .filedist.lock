@@ -29,7 +29,7 @@ files:
     - .xdrs/_core/adrs/principles/skills/007-write-presentation/SKILL.md|xdrs-core|0.28.4|file|eaae488e6198|0
     - .xdrs/_core/adrs/principles/skills/008-write-xdrs-doc/SKILL.md|xdrs-core|0.28.4|file|0236f9e4819d|0
     - .xdrs/_core/index.md|xdrs-core|0.28.4|file|de2c5180edbe|0
-    - AGENTS.md|xdrs-core|0.28.4|file|c258486519ae|0
+    - AGENTS.md|argus-xdrs-governance|1.0.1|file|c9bf3992da84|0
     - .seeds/ARGUS.md|argus-xdrs-governance|1.0.1|file|686b3190884c|0
     - .seeds/BAU.json|argus-xdrs-governance|1.0.1|file|8143f811960e|0
     - .seeds/BLAST.json|argus-xdrs-governance|1.0.1|file|f3ced360e2ad|0
@@ -51,5 +51,4 @@ files:
     - CLAUDE.md|argus-xdrs-governance|1.0.1|file|69a7a2b3df9a|0
     - .github/skills/001-review|xdrs-core|0.28.4|symlink|18c5f3a037d4|0
     - .github/skills/008-write-xdrs-doc|xdrs-core|0.28.4|symlink|c3a23ff52f24|0
-checksum: 2e0b0cdce3b9
-
+checksum: 82b6e536e171
