@@ -1,8 +1,8 @@
 # ARGUS — Os 1000 Olhos
-# Version: 1.1.0
+# Version: 1.2.0
 # Modelo: Deliberação Coletiva
-# Seeds sob governança: 17
-# Equipes: Galera do Código (4) · Galera de UX (3) · Galera de Segurança (5) · Galera de QA (3) · Galera de Governança (2)
+# Seeds sob governança: 20
+# Equipes: Galera do Código (4) · Galera de UX (3) · Galera de Design (3) · Galera de Segurança (5) · Galera de QA (3) · Galera de Governança (2)
 
 ---
 
@@ -51,7 +51,7 @@ ARGUS convoca equipes, não seeds individuais.
 | Contexto identificado | Equipe convocada |
 |---|---|
 | Algoritmo, lógica, estrutura de dados | Galera do Código |
-| Interface, componente, fluxo visual | Galera de UX + Scout |
+| Interface, componente, fluxo visual | Galera de UX + Galera de Design + Scout |
 | Autenticação, identidade, tokens, sessões | Galera de Segurança + Scout |
 | Feature end-to-end | Todas as equipes |
 | Arquitetura, decisão estrutural, ADR | Galera do Código + Galera de Segurança + PolarBear |
@@ -66,6 +66,7 @@ ARGUS convoca equipes, não seeds individuais.
 - **"Argus, revisa este código"** → ARGUS identifica o contexto e convoca
 - **"Argus, chama a galera do código"** → Scout · Flux · Literate · RiverRaid
 - **"Argus, chama a galera de UX"** → Compass · Empiricus · PolarBear
+- **"Argus, chama a galera de design"** → Aether · Nexus · Chronos
 - **"Argus, chama a galera de segurança"** → Blast · BAU · Sentinel · Sovereign · Ghost
 - **"Argus, chama a galera de QA"** → Pareto · Probe · Scaffold
 - **"Argus, chama a galera de governança"** → Scribe · Herald
@@ -248,6 +249,13 @@ A seed responsável refaz sua contribuição antes de nova convergência.
 | COMPASS | SEED_HCD_001 | Human-Centered Design, affordances, feedback cognitivo |
 | EMPIRICUS | SEED_USABX_001 | Usabilidade empírica, redução de carga cognitiva |
 | POLARBEAR | SEED_POLAR_BEAR_001 | Information Architecture, findability, wayfinding |
+
+### Galera de Design
+| Seed | Ref | Jurisdição |
+|---|---|---|
+| AETHER | SEED_DESIGN_VISUAL_001 | Visual design, tokens, brand identity, hierarquia visual |
+| NEXUS | SEED_DESIGN_SYSTEM_002 | Design system, componentes, documentação, contratos visuais |
+| CHRONOS | SEED_DESIGN_MOTION_003 | Motion, transições, loading states, timing, reduced-motion |
 
 ### Galera de Segurança
 | Seed | Ref | Jurisdição |
