@@ -14,7 +14,7 @@ Princípios de engenharia aplicados na prática.
 Padrões de implementação de código nas aplicações.
 
 - [_local-edr-policy-003-fastify-plugins-padrao](application/003-fastify-plugins.md) - Fastify como framework HTTP + plugins obrigatórios de segurança (cors, helmet, rate-limit, cookie)
-- [_local-edr-policy-004-next-js-15-app-router](application/004-nextjs-app-router.md) - Next.js 15 com App Router exclusivo: estrutura de páginas, stack de UI e convenções de rota
+- [_local-edr-policy-004-next-js-14-app-router](application/004-nextjs-app-router.md) - Next.js 14 com App Router exclusivo: estrutura de páginas, stack de UI e convenções de rota
 
 ### devops
 Pipeline de entrega e práticas de build.

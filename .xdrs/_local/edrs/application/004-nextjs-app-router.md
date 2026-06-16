@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-004-next-js-15-app-router
-description: Define Next.js 15 com App Router como padrão do frontend do SocialShelf. Use ao criar páginas, layouts, componentes ou configurar roteamento no apps/web.
+name: _local-edr-policy-004-next-js-14-app-router
+description: Define Next.js 14 com App Router como padrão do frontend do SocialShelf. Use ao criar páginas, layouts, componentes ou configurar roteamento no apps/web.
 apply-to: apps/web
 valid-from: 2026-06-06
 ---
 
-# _local-edr-policy-004: Next.js 15 App Router
+# _local-edr-policy-004: Next.js 14 App Router
 
 ## Context and Problem Statement
 
@@ -15,7 +15,7 @@ Como estruturar o frontend Next.js para aproveitar React Server Components e man
 
 ## Decision Outcome
 
-**Next.js 15 com App Router exclusivamente — sem uso do Pages Router**
+**Next.js 14 com App Router exclusivamente — sem uso do Pages Router**
 
 Toda página, layout e componente de servidor usa a convenção de arquivos do App Router (`page.tsx`, `layout.tsx`, `loading.tsx`).
 
