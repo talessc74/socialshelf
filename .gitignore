@@ -46,3 +46,6 @@ serviceAccountKey.json
 
 # Misc
 *.bak
+
+# build artifacts
+**/tsconfig.tsbuildinfo
