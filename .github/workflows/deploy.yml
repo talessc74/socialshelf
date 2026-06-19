@@ -76,12 +76,22 @@ jobs:
           gcloud projects add-iam-policy-binding "$PROJECT" \
             --member="serviceAccount:${DEPLOYER_SA}" \
             --role="roles/datastore.owner" \
-            --condition=None 2>/dev/null || true
+            --condition=None
+
+      - name: Verify deployer SA IAM bindings
+        env:
+          DEPLOYER_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          PROJECT=${{ env.GCP_PROJECT_ID }}
+          gcloud projects get-iam-policy "$PROJECT" \
+            --flatten="bindings[].members" \
+            --filter="bindings.members:serviceAccount:${DEPLOYER_SA}" \
+            --format="table(bindings.role)"
 
       - name: Wait for IAM propagation
         run: |
-          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
-          sleep 60
+          echo "Aguardando 120s para o IAM propagar antes dos deploys..."
+          sleep 120
 
       - name: Deploy Firestore indexes
         run: |
