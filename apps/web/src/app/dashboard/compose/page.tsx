@@ -254,6 +254,14 @@ export default function ComposePage() {
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       )}
 
+      {selectedPlatforms.size > 0 && !canPublish && !publishing && (
+        <p className="text-sm text-gray-500">
+          {validSelectedPlatforms.some((p) => (texts[p] ?? '').length > PLATFORM_CHARACTER_LIMITS[p])
+            ? 'O texto excede o limite de caracteres de uma das plataformas selecionadas.'
+            : 'Escreva o texto para cada plataforma selecionada antes de publicar.'}
+        </p>
+      )}
+
       {selectedPlatforms.size > 0 && (
         <button
           onClick={handlePublish}

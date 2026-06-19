@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { api, type ApiGenerationRequest } from '../../../lib/api'
+import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
@@ -96,7 +96,10 @@ export default function GenerateContentPage() {
 
   const { stages, stageIndex } = useGenerationProgress(generating, artifactCount)
 
-  const connectedPlatforms = connections?.map((c) => c.platform) ?? []
+  const validPlatforms = new Set(Object.values(Platform))
+  const connectedPlatforms = connections
+    ?.map((c) => c.platform)
+    .filter((p) => validPlatforms.has(p)) ?? []
   const selectedSuggestion = suggestions?.find((s) => s.id === topicSuggestionId) ?? null
 
   const togglePlatform = (p: Platform) => {
@@ -388,6 +391,28 @@ function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: 
 function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: () => void }) {
   const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
   const failedArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'failed') ?? []
+  const [publishing, setPublishing] = useState(false)
+  const [publishResult, setPublishResult] = useState<PublishResponse | null>(null)
+  const [publishError, setPublishError] = useState('')
+
+  const handlePublish = async () => {
+    if (!result.outputs) return
+    setPublishError('')
+    setPublishing(true)
+    try {
+      const content = Object.entries(result.outputs.copies).map(([platform, copy]) => ({
+        platform: platform as Platform,
+        text: copy!.text,
+      }))
+      const post = await api.createPost(content, readyArtifacts.map((a) => a.imageStoragePath!))
+      const response = await api.publishPost(post.id)
+      setPublishResult(response)
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Erro ao publicar.')
+    } finally {
+      setPublishing(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -395,9 +420,7 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
 
       {result.status === 'ready' ? (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-          <p className="font-semibold text-green-800">
-            Rascunho criado com sucesso! Encontre-o em breve na sua lista de posts.
-          </p>
+          <p className="font-semibold text-green-800">Rascunho criado com sucesso.</p>
         </div>
       ) : (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
@@ -441,9 +464,53 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
         </section>
       )}
 
+      {publishResult ? (
+        <div className="space-y-3">
+          {publishResult.results.length > 0 && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <p className="mb-2 font-semibold text-green-800">Publicado com sucesso:</p>
+              <ul className="space-y-1">
+                {publishResult.results.map((r) => (
+                  <li key={r.platform} className="text-sm text-green-700">
+                    ✓ {PLATFORM_LABELS[r.platform]}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {publishResult.failedPlatforms.length > 0 && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="mb-2 font-semibold text-red-800">Falhou:</p>
+              <ul className="space-y-1">
+                {publishResult.failedPlatforms.map((f) => (
+                  <li key={f.platform} className="text-sm text-red-700">
+                    ✗ {PLATFORM_LABELS[f.platform]} — {f.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        result.status === 'ready' && (
+          <div className="space-y-2">
+            {publishError && (
+              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{publishError}</p>
+            )}
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+            >
+              {publishing ? 'Publicando…' : 'Publicar Agora'}
+            </button>
+          </div>
+        )
+      )}
+
       <button
         onClick={onBack}
-        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
       >
         Voltar ao Dashboard
       </button>
