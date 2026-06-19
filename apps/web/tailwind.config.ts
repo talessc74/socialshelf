@@ -6,12 +6,18 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-          900: '#0c4a6e',
+          50: '#fdf0f7',
+          100: '#fbe2ef',
+          200: '#f6b8da',
+          300: '#f08dc3',
+          500: '#e91e8c',
+          600: '#c91577',
+          700: '#a10f5f',
+          900: '#5c0936',
+        },
+        surface: {
+          diagnostic: '#15101c',
+          operation: '#fbf7f2',
         },
       },
     },

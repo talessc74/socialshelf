@@ -22,8 +22,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="border-b border-gray-200 bg-white px-6 py-3">
+    <div className="bg-surface-operation-dots min-h-screen">
+      <nav className="border-b border-gray-200 bg-white/80 px-6 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <Link href="/dashboard" className="text-lg font-bold text-brand-700">
             SocialShelf

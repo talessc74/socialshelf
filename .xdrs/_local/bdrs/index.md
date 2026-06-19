@@ -9,6 +9,11 @@ Princípios de negócio transversais.
 
 - [_local-bdr-policy-001-principios-de-ux](principles/001-ux-principles.md) - Três princípios de UX em hierarquia: HCD → Usabilidade Empírica → Findability First
 
+### design
+Decisões de identidade visual, tokens e componentes-padrão.
+
+- [_local-bdr-policy-005-design-tokens-identidade-visual](design/001-tokens-identidade-visual.md) - Paleta magenta + dois contextos de fundo, tom de copy conversacional, stepper/painel-recomendação/badge-de-score como componentes-padrão
+
 ### product
 Decisões de produto, roadmap e plataformas suportadas.
 
