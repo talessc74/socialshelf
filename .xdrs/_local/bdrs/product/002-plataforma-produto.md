@@ -41,11 +41,15 @@ O primeiro cliente e parceiro de lançamento é o Rádio Kactus. As decisões de
 **Restrições de escopo**
 
 - O SocialShelf não armazena credenciais de redes sociais (apenas tokens OAuth).
-- O sistema não gerencia comunidades, DMs ou comentários — foco exclusivo em publicação.
-- Features de analytics e métricas são Sprint 3 — não Sprint 1 ou 2.
+- O sistema não gerencia comunidades, DMs ou comentários — escuta de insights e audiência é leitura de desempenho agregado, não atendimento ou moderação.
+
+**Revisão de visão — equipe autônoma de marketing e analytics**
+
+A restrição original de "foco exclusivo em publicação" e o adiamento de analytics para sprint futuro estão superados por `_local-bdr-plan-002-roadmap-equipe-marketing-autonoma`. O SocialShelf é definido como sistema que conecta às redes, escuta insights e audiência, entende o público, decide pauta, cria conteúdo e mede resultado — recalibrando o próprio comportamento. Publicação é uma das camadas do produto, não o produto inteiro.
 
 ## References
 
 - [_local-bdr-policy-002-redes-sociais-suportadas](003-redes-sociais-suportadas.md) - Plataformas suportadas
 - [_local-bdr-policy-001-ux-principles](../principles/001-ux-principles.md) - Princípios de UX que guiam o produto
 - [_local-bdr-plan-001-roadmap-sprints](plans/001-roadmap-sprints.md) - Roadmap de execução
+- [_local-bdr-plan-002-roadmap-equipe-marketing-autonoma](plans/002-roadmap-equipe-marketing-autonoma.md) - Revisão da visão de produto: equipe autônoma de marketing e analytics
