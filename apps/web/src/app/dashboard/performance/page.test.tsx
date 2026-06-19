@@ -15,6 +15,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('../../../lib/api', () => ({
   api: {
     getPostsPerformance: vi.fn(),
+    getPerformanceInsights: vi.fn(),
   },
 }))
 
@@ -61,6 +62,18 @@ describe('PerformanceDashboardPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Nenhum post publicado com métricas medidas/)).toBeInTheDocument()
+  })
+
+  it('mostra os insights ao clicar em "Analisar Padrões"', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue([makeEntry()])
+    mockedApi.getPerformanceInsights.mockResolvedValue('Posts com chamada direta à ação performam melhor.')
+    const user = userEvent.setup()
+
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '✨ Analisar Padrões' }))
+
+    expect(await screen.findByText('Posts com chamada direta à ação performam melhor.')).toBeInTheDocument()
   })
 
   it('navega para a geração com o texto do post ao clicar em "Semear Criação"', async () => {

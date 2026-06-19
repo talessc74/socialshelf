@@ -232,6 +232,11 @@ export const api = {
     return data.entries
   },
 
+  async getPerformanceInsights(): Promise<string> {
+    const data = await apiFetch<{ insights: string }>('/performance-insights')
+    return data.insights
+  },
+
   async getImageUrl(path: string): Promise<string> {
     const data = await apiFetch<{ url: string }>(
       `/generation-images/signed-url?path=${encodeURIComponent(path)}`,

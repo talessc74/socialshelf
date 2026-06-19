@@ -51,6 +51,7 @@ export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPo
 export type { AudienceSignalRepository } from './ports/AudienceSignalRepository.js'
 export type { NewsSourcePort } from './ports/NewsSourcePort.js'
 export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'
+export type { PatternAnalyzerPort, PostPerformanceSummary } from './ports/PatternAnalyzerPort.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

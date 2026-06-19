@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -35,6 +36,23 @@ export default function PerformanceDashboardPage() {
 
   const handleSeed = (entry: { text: string }) => {
     router.push(`/dashboard/generate?seed=${encodeURIComponent(entry.text)}`)
+  }
+
+  const [insights, setInsights] = useState('')
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analyzeError, setAnalyzeError] = useState('')
+
+  const handleAnalyze = async () => {
+    setAnalyzeError('')
+    setAnalyzing(true)
+    try {
+      const result = await api.getPerformanceInsights()
+      setInsights(result)
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : 'Erro ao analisar padrões.')
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   return (
@@ -117,6 +135,27 @@ export default function PerformanceDashboardPage() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-700">Analisar Padrões com IA</h2>
+              <button
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+              >
+                {analyzing ? 'Analisando…' : insights ? 'Analisar de novo' : '✨ Analisar Padrões'}
+              </button>
+            </div>
+            {analyzeError && (
+              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{analyzeError}</p>
+            )}
+            {insights && (
+              <div className="whitespace-pre-wrap rounded-xl border border-brand-100 bg-brand-50 p-4 text-sm text-gray-800">
+                {insights}
+              </div>
+            )}
           </section>
         </>
       )}
