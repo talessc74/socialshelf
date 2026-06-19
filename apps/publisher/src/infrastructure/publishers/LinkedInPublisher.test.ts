@@ -7,6 +7,7 @@ const mockPost: Post = {
   id: 'post-1',
   userId: 'user-1',
   brandId: 'brand-1',
+  brandProfileVersion: null,
   content: [{ platform: Platform.LINKEDIN, text: 'Hello LinkedIn!', charCount: 16 }],
   imageStoragePaths: [],
   status: 'scheduled',

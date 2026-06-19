@@ -15,6 +15,7 @@ function makePost(platforms: Platform[]): Post {
     id: 'post-1',
     userId: 'user-1',
     brandId: 'brand-1',
+    brandProfileVersion: null,
     content: platforms.map((p) => ({ platform: p, text: `Text for ${p}`, charCount: 10 })),
     imageStoragePaths: [],
     status: 'scheduled',

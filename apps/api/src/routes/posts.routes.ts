@@ -4,6 +4,7 @@ import { Platform } from '@socialshelf/domain'
 import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
+import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -22,7 +23,8 @@ const createPostSchema = z.object({
 export async function postsRoutes(app: FastifyInstance) {
   const postRepo = new FirestorePostRepository()
   const oauthRepo = new FirestoreOAuthRepository()
-  const createPost = new CreatePostUseCase(postRepo)
+  const brandProfileRepo = new FirestoreBrandProfileRepository()
+  const createPost = new CreatePostUseCase(postRepo, brandProfileRepo)
 
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''

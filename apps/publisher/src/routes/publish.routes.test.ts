@@ -11,6 +11,7 @@ const mockPost = {
   id: 'post-1',
   userId: 'user-1',
   brandId: 'brand-1',
+  brandProfileVersion: null,
   content: [{ platform: 'twitter', text: 'Hello!', charCount: 6 }],
   imageStoragePaths: [],
   status: 'scheduled',

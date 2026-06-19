@@ -1,6 +1,11 @@
 import { randomUUID } from 'crypto'
 import { PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
-import type { Post, PostRepository, PlatformContent } from '@socialshelf/domain'
+import type {
+  Post,
+  PostRepository,
+  PlatformContent,
+  BrandProfileRepository,
+} from '@socialshelf/domain'
 import { Platform } from '@socialshelf/domain'
 
 export interface CreatePostInput {
@@ -11,7 +16,10 @@ export interface CreatePostInput {
 }
 
 export class CreatePostUseCase {
-  constructor(private readonly postRepo: PostRepository) {}
+  constructor(
+    private readonly postRepo: PostRepository,
+    private readonly brandProfileRepo: BrandProfileRepository,
+  ) {}
 
   async execute(input: CreatePostInput): Promise<Post> {
     const platformContent: PlatformContent[] = input.content.map((c) => {
@@ -24,10 +32,13 @@ export class CreatePostUseCase {
       return { platform: c.platform, text: c.text, charCount: c.text.length }
     })
 
+    const latestBrandProfile = await this.brandProfileRepo.findLatestByBrand(input.brandId)
+
     const post: Post = {
       id: randomUUID(),
       userId: input.userId,
       brandId: input.brandId,
+      brandProfileVersion: latestBrandProfile?.version ?? null,
       content: platformContent,
       imageStoragePaths: input.imageStoragePaths ?? [],
       status: 'draft',

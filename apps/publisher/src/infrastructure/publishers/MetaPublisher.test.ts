@@ -8,6 +8,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     id: 'post-1',
     userId: 'user-1',
     brandId: 'brand-1',
+    brandProfileVersion: null,
     content: [
       { platform: Platform.FACEBOOK, text: 'Hello Facebook!', charCount: 15 },
       { platform: Platform.INSTAGRAM, text: 'Hello Instagram!', charCount: 16 },

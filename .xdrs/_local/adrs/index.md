@@ -17,6 +17,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-004-decomposicao-de-servicos](application/004-service-decomposition.md) - Quatro serviços independentes (api, publisher, generator, web) com responsabilidades mutuamente exclusivas
 - [_local-adr-policy-018-post-maquina-de-estados-de-publicacao](application/018-post-state-machine.md) - Cinco estados do ciclo de vida de um Post: draft, ai-draft, scheduled, published, failed
 - [_local-adr-policy-019-geracao-de-conteudo-maquina-de-estados](application/019-generation-state-machine.md) - Estados de GenerationRequest para geração assíncrona de conteúdo via IA
+- [_local-adr-policy-025-brandprofile-schema-e-versionamento](application/025-brand-profile-schema-versionamento.md) - Schema de 6 seções do BrandProfile e versionamento imutável como base do contexto de marca
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.

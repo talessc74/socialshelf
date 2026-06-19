@@ -7,6 +7,7 @@ const mockPost: Post = {
   id: 'post-1',
   userId: 'user-1',
   brandId: 'brand-1',
+  brandProfileVersion: null,
   content: [{ platform: Platform.TWITTER, text: 'Hello X!', charCount: 8 }],
   imageStoragePaths: [],
   status: 'scheduled',

@@ -4,6 +4,16 @@ export type { Brand } from './entities/Brand.js'
 export type { OAuthConnection } from './entities/OAuthConnection.js'
 export type { Post, PostStatus, PlatformContent } from './entities/Post.js'
 export type {
+  BrandProfile,
+  BrandProfileBusiness,
+  BrandProfileIdentity,
+  BrandProfileVisual,
+  BrandProfileVoice,
+  BrandProfileNarrative,
+  BrandProfileOperation,
+  AutonomyLevel,
+} from './entities/BrandProfile.js'
+export type {
   GenerationRequest,
   GenerationStatus,
   PlatformCopy,
@@ -27,6 +37,7 @@ export type {
 } from './ports/ImageGeneratorPort.js'
 export type { ImageStoragePort } from './ports/ImageStoragePort.js'
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
+export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

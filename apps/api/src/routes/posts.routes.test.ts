@@ -17,6 +17,14 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   })),
 }))
 
+vi.mock('../infrastructure/firestore/FirestoreBrandProfileRepository.js', () => ({
+  FirestoreBrandProfileRepository: vi.fn().mockImplementation(() => ({
+    save: vi.fn().mockResolvedValue(undefined),
+    findLatestByBrand: vi.fn().mockResolvedValue(null),
+    findByBrandAndVersion: vi.fn().mockResolvedValue(null),
+  })),
+}))
+
 vi.mock('../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),

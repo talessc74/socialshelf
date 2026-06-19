@@ -1,10 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { CreatePostUseCase } from './CreatePostUseCase.js'
 import { Platform } from '@socialshelf/domain'
-import type { PostRepository } from '@socialshelf/domain'
+import type { PostRepository, BrandProfileRepository } from '@socialshelf/domain'
 
 describe('CreatePostUseCase', () => {
   let postRepo: PostRepository
+  let brandProfileRepo: BrandProfileRepository
   let useCase: CreatePostUseCase
 
   beforeEach(() => {
@@ -16,7 +17,12 @@ describe('CreatePostUseCase', () => {
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
     }
-    useCase = new CreatePostUseCase(postRepo)
+    brandProfileRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+      findLatestByBrand: vi.fn().mockResolvedValue(null),
+      findByBrandAndVersion: vi.fn(),
+    }
+    useCase = new CreatePostUseCase(postRepo, brandProfileRepo)
   })
 
   it('creates a post with correct userId and brandId', async () => {
@@ -99,5 +105,63 @@ describe('CreatePostUseCase', () => {
     })
 
     expect(post1.id).not.toBe(post2.id)
+  })
+
+  it('snapshots brandProfileVersion as null when no brand profile exists', async () => {
+    const post = await useCase.execute({
+      userId: 'user-1',
+      brandId: 'brand-1',
+      content: [{ platform: Platform.LINKEDIN, text: 'No brand yet' }],
+    })
+
+    expect(post.brandProfileVersion).toBeNull()
+  })
+
+  it('snapshots the latest brandProfileVersion at creation time', async () => {
+    vi.mocked(brandProfileRepo.findLatestByBrand).mockResolvedValue({
+      id: 'profile-1',
+      userId: 'user-1',
+      brandId: 'brand-1',
+      version: 3,
+      business: { name: 'Acme', segment: 'Retail', description: '' },
+      identity: { positioning: '', values: [] },
+      visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
+      voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
+      narrative: { recurringThemes: [] },
+      operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+      createdAt: new Date(),
+    })
+
+    const post = await useCase.execute({
+      userId: 'user-1',
+      brandId: 'brand-1',
+      content: [{ platform: Platform.LINKEDIN, text: 'With brand' }],
+    })
+
+    expect(post.brandProfileVersion).toBe(3)
+  })
+
+  it('does not mutate brandProfileVersion after the post is created', async () => {
+    vi.mocked(brandProfileRepo.findLatestByBrand).mockResolvedValueOnce({
+      id: 'profile-1',
+      userId: 'user-1',
+      brandId: 'brand-1',
+      version: 1,
+      business: { name: 'Acme', segment: 'Retail', description: '' },
+      identity: { positioning: '', values: [] },
+      visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
+      voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
+      narrative: { recurringThemes: [] },
+      operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+      createdAt: new Date(),
+    })
+
+    const post = await useCase.execute({
+      userId: 'user-1',
+      brandId: 'brand-1',
+      content: [{ platform: Platform.LINKEDIN, text: 'v1 snapshot' }],
+    })
+
+    expect(post.brandProfileVersion).toBe(1)
   })
 })

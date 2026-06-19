@@ -55,6 +55,7 @@ export interface ApiPost {
   id: string
   userId: string
   brandId: string
+  brandProfileVersion: number | null
   content: PostContent[]
   imageStoragePaths: string[]
   status: string

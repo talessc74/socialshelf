@@ -12,6 +12,7 @@ export interface Post {
   id: string
   userId: string
   brandId: string
+  brandProfileVersion: number | null
   content: PlatformContent[]
   imageStoragePaths: string[]
   status: PostStatus
