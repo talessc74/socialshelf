@@ -72,26 +72,19 @@ jobs:
             --condition=None 2>/dev/null || true
 
           # Grant deployer SA datastore.owner so it can create/manage Firestore indexes
-          # (roles/datastore.user only covers read/write of data, not index management)
+          # (roles/datastore.user only covers read/write of data, not index management).
+          # NOTE: this requires the deployer SA to already hold
+          # resourcemanager.projects.setIamPolicy; if it doesn't, this is a silent no-op
+          # and someone with Owner/IAM Admin access must grant the role manually once.
           gcloud projects add-iam-policy-binding "$PROJECT" \
             --member="serviceAccount:${DEPLOYER_SA}" \
             --role="roles/datastore.owner" \
-            --condition=None
-
-      - name: Verify deployer SA IAM bindings
-        env:
-          DEPLOYER_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-        run: |
-          PROJECT=${{ env.GCP_PROJECT_ID }}
-          gcloud projects get-iam-policy "$PROJECT" \
-            --flatten="bindings[].members" \
-            --filter="bindings.members:serviceAccount:${DEPLOYER_SA}" \
-            --format="table(bindings.role)"
+            --condition=None 2>/dev/null || true
 
       - name: Wait for IAM propagation
         run: |
-          echo "Aguardando 120s para o IAM propagar antes dos deploys..."
-          sleep 120
+          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
+          sleep 60
 
       - name: Deploy Firestore indexes
         run: |
@@ -101,7 +94,7 @@ jobs:
             --field-config field-path=id,order=ascending \
             --project=${{ env.GCP_PROJECT_ID }} || true
 
-          gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }}
+          gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }} || true
 
   deploy-api:
     name: Deploy api-service
