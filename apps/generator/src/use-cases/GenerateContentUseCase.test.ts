@@ -243,4 +243,43 @@ describe('GenerateContentUseCase', () => {
       }),
     )
   })
+
+  it('passa a voz da marca carregada para a geração de copy', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.imageGenerator,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute(baseInput())
+
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ brandVoice: mockBrandProfile.voice }),
+    )
+  })
+
+  it('passa brandVoice null quando não há perfil de marca cadastrado', async () => {
+    const deps = makeDeps()
+    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue(null)
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.imageGenerator,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute(baseInput())
+
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ brandVoice: null }),
+    )
+  })
 })

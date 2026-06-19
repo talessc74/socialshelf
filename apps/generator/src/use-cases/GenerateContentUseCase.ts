@@ -72,6 +72,7 @@ export class GenerateContentUseCase {
         targetPlatforms: input.targetPlatforms,
         format: input.artifactCount > 1 ? 'carousel' : 'single',
         pautaContext,
+        brandVoice: brandProfile?.voice ?? null,
       })
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err)

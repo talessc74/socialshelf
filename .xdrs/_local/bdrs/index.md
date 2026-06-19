@@ -22,3 +22,4 @@ Decisões de produto, roadmap e plataformas suportadas.
 - [_local-bdr-policy-004-limites-de-caracteres-por-plataforma](product/004-limites-de-caracteres-plataforma.md) - Limites de caracteres por plataforma: X 280, LinkedIn 3000, Instagram 2200, Facebook 63206
 - [_local-bdr-plan-001-roadmap-sprints](product/plans/001-roadmap-sprints.md) - Roadmap de sprints com milestones e estado de entrega por sprint
 - [_local-bdr-plan-002-roadmap-equipe-marketing-autonoma](product/plans/002-roadmap-equipe-marketing-autonoma.md) - Roadmap em 6 fases (F0–F5): SocialShelf como equipe autônoma de marketing e analytics, ancorada na marca
+- [_local-bdr-policy-006-visao-de-experiencia-produto](product/005-visao-experiencia-produto.md) - Rejeita minimalismo extremo; exige IA visível fazendo o trabalho e voz de marca aplicada em toda geração, não só na imagem

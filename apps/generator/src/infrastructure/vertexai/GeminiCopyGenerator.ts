@@ -40,6 +40,18 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
       ? `\nPauta de referência (notícia verificada): "${inputs.pautaContext.headline}". Relevância: ${inputs.pautaContext.rationale}`
       : ''
 
+    const voiceSection = inputs.brandVoice
+      ? `\nVoz da marca — escreva seguindo estritamente este tom: ${inputs.brandVoice.tone}.${
+          inputs.brandVoice.allowedVocabulary.length > 0
+            ? ` Prefira este vocabulário quando fizer sentido: ${inputs.brandVoice.allowedVocabulary.join(', ')}.`
+            : ''
+        }${
+          inputs.brandVoice.prohibitedVocabulary.length > 0
+            ? ` Nunca use estas palavras ou expressões: ${inputs.brandVoice.prohibitedVocabulary.join(', ')}.`
+            : ''
+        }`
+      : ''
+
     const formatSection =
       inputs.format === 'carousel'
         ? 'Formato: carrossel com múltiplos slides. O CTA deve incentivar a navegação entre os slides (ex: "arraste para ver mais").'
@@ -50,6 +62,7 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
 Descrição: ${inputs.description}
 ${inputs.textContent ? `Texto de referência fornecido pelo usuário: ${inputs.textContent}` : ''}
 ${pautaSection}
+${voiceSection}
 ${formatSection}
 
 Limites de caracteres por plataforma:

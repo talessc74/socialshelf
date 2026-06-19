@@ -1,5 +1,6 @@
 import type { Platform } from '../entities/Platform.js'
 import type { PlatformCopy } from '../entities/GenerationRequest.js'
+import type { BrandProfileVoice } from '../entities/BrandProfile.js'
 
 export interface PautaContext {
   headline: string
@@ -13,6 +14,7 @@ export interface ContentInputs {
   targetPlatforms: Platform[]
   format: 'single' | 'carousel'
   pautaContext: PautaContext | null
+  brandVoice: BrandProfileVoice | null
 }
 
 export type PlatformCopies = Partial<Record<Platform, PlatformCopy>>
