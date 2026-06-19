@@ -9,6 +9,7 @@ import { xOAuthRoutes } from './routes/oauth/x.routes.js'
 import { postsRoutes } from './routes/posts.routes.js'
 import { brandProfileRoutes } from './routes/brand-profile.routes.js'
 import { audienceSignalRoutes } from './routes/audience-signal.routes.js'
+import { postsPerformanceRoutes } from './routes/posts-performance.routes.js'
 import { pautaRoutes } from './routes/pauta.routes.js'
 import { generationRoutes } from './routes/generation.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
@@ -39,6 +40,7 @@ export async function buildApp() {
   await app.register(postsRoutes)
   await app.register(brandProfileRoutes)
   await app.register(audienceSignalRoutes)
+  await app.register(postsPerformanceRoutes)
   await app.register(pautaRoutes)
   await app.register(generationRoutes)
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
@@ -70,7 +70,8 @@ function useGenerationProgress(active: boolean, totalArtifacts: number) {
 
 export default function GenerateContentPage() {
   const router = useRouter()
-  const [description, setDescription] = useState('')
+  const searchParams = useSearchParams()
+  const [description, setDescription] = useState(() => searchParams.get('seed') ?? '')
   const [textContent, setTextContent] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set())
   const [artifactCount, setArtifactCount] = useState(1)

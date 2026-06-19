@@ -8,6 +8,7 @@ import { api, type ApiConnection, type ApiGenerationRequest, type ApiTopicSugges
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock('../../../lib/api', () => ({

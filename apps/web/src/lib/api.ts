@@ -149,6 +149,22 @@ export interface ApiBrandProfile {
   createdAt: string
 }
 
+export interface ApiPostMetrics {
+  impressions: number
+  likes: number
+  comments: number
+  shares: number
+}
+
+export interface ApiPostPerformanceEntry {
+  postId: string
+  platform: Platform
+  text: string
+  metrics: ApiPostMetrics
+  score: number
+  publishedAt: string
+}
+
 export interface GenerateContentInput {
   description: string
   textContent?: string
@@ -209,6 +225,11 @@ export const api = {
   async getGenerationRequest(id: string): Promise<ApiGenerationRequest> {
     const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(`/generation-requests/${id}`)
     return data.generationRequest
+  },
+
+  async getPostsPerformance(): Promise<ApiPostPerformanceEntry[]> {
+    const data = await apiFetch<{ entries: ApiPostPerformanceEntry[] }>('/posts-performance')
+    return data.entries
   },
 
   async getImageUrl(path: string): Promise<string> {
