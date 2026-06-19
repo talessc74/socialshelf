@@ -19,6 +19,9 @@ export type {
   PlatformCopy,
 } from './entities/GenerationRequest.js'
 export type { AudienceSignal } from './entities/AudienceSignal.js'
+export type { NewsItem } from './entities/NewsItem.js'
+export type { VerifiedNewsItem } from './entities/VerifiedNewsItem.js'
+export type { TopicSuggestion } from './entities/TopicSuggestion.js'
 export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform.js'
 
 // Ports
@@ -41,6 +44,8 @@ export type { GenerationRequestRepository } from './ports/GenerationRequestRepos
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'
 export type { AudienceSignalRepository } from './ports/AudienceSignalRepository.js'
+export type { NewsSourcePort } from './ports/NewsSourcePort.js'
+export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

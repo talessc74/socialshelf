@@ -89,6 +89,18 @@ export interface ApiAudienceSignal {
   computedAt: string
 }
 
+export interface ApiTopicSuggestion {
+  id: string
+  brandId: string
+  headline: string
+  summary: string
+  sourceUrl: string
+  sourceDomain: string
+  rationale: string
+  audienceFitScore: number
+  createdAt: string
+}
+
 export const api = {
   async getConnections(): Promise<ApiConnection[]> {
     const data = await apiFetch<{ connections: ApiConnection[] }>('/connections')
@@ -117,5 +129,10 @@ export const api = {
       `/audience-signal?platform=${platform}`,
     )
     return data.audienceSignal
+  },
+
+  async getTopicSuggestions(): Promise<ApiTopicSuggestion[]> {
+    const data = await apiFetch<{ suggestions: ApiTopicSuggestion[] }>('/pauta-suggestions')
+    return data.suggestions
   },
 }
