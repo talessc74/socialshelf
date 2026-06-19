@@ -131,6 +131,24 @@ export interface ApiGenerationRequest {
   updatedAt: string
 }
 
+export interface ApiBrandProfile {
+  id: string
+  userId: string
+  brandId: string
+  version: number
+  business: { name: string; segment: string; description: string }
+  identity: { positioning: string; values: string[] }
+  visual: { primaryColor: string; secondaryColor: string; typography: string; logoStoragePath: string | null }
+  voice: { tone: string; allowedVocabulary: string[]; prohibitedVocabulary: string[] }
+  narrative: { recurringThemes: string[] }
+  operation: {
+    autonomyLevel: 'manual' | 'semi-automatic' | 'automatic'
+    autoPublishTopics: string[]
+    blockedTopics: string[]
+  }
+  createdAt: string
+}
+
 export interface GenerateContentInput {
   description: string
   textContent?: string
@@ -173,6 +191,11 @@ export const api = {
   async getTopicSuggestions(): Promise<ApiTopicSuggestion[]> {
     const data = await apiFetch<{ suggestions: ApiTopicSuggestion[] }>('/pauta-suggestions')
     return data.suggestions
+  },
+
+  async getBrandProfile(): Promise<ApiBrandProfile | null> {
+    const data = await apiFetch<{ brandProfile: ApiBrandProfile | null }>('/brand-profile')
+    return data.brandProfile
   },
 
   async generateContent(input: GenerateContentInput): Promise<ApiGenerationRequest> {

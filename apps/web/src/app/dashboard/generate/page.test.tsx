@@ -14,6 +14,7 @@ vi.mock('../../../lib/api', () => ({
   api: {
     getConnections: vi.fn(),
     getTopicSuggestions: vi.fn(),
+    getBrandProfile: vi.fn(),
     generateContent: vi.fn(),
     getImageUrl: vi.fn(),
   },
@@ -48,6 +49,7 @@ function renderPage() {
 beforeEach(() => {
   vi.clearAllMocks()
   mockedApi.getTopicSuggestions.mockResolvedValue([])
+  mockedApi.getBrandProfile.mockResolvedValue(null)
 })
 
 describe('GenerateContentPage', () => {
@@ -120,7 +122,7 @@ describe('GenerateContentPage', () => {
     await user.click(await screen.findByText('LinkedIn'))
     await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
 
-    expect(await screen.findByText('Gerando copy e imagens…')).toBeInTheDocument()
+    expect(await screen.findByText('Lendo a voz da marca…')).toBeInTheDocument()
 
     resolveGenerate({
       id: 'gen-1',

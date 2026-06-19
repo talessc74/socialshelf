@@ -39,7 +39,7 @@ Token novo substitui o `brand.*` azul-céu genérico em `apps/web/tailwind.confi
 
 - **Stepper numerado**: navegação de fluxo multi-etapa (ex.: Fase 3 — Slides → Legenda → Revisão final → Publicar). Mostra etapa atual e total.
 - **Painel de recomendação**: painel lateral fixo "Recomendado por [agente]" — usado em qualquer ponto onde IA sugere ação sobre conteúdo do usuário (geração, pauta, CTA), com ações explícitas de aceitar/rejeitar a sugestão.
-- **Badge de score/categoria**: indicador visual compacto de métrica calculada (ex.: potencial de alcance da Fase 2, categoria de pauta) — nunca usado para dado não verificado ou não calculado (consistente com o pipeline de verificação factual da Fase 2).
+- **Badge de score/categoria**: indicador visual compacto de métrica calculada (ex.: potencial de alcance da Fase 2, categoria de pauta) — nunca usado para dado não verificado ou não calculado (consistente com o pipeline de verificação factual da Fase 2). Mostra o valor cru da métrica; nunca apresenta fração contra um teto fixo (ex.: "x/3") quando a métrica subjacente não tem limite superior definido — isso criaria uma escala falsa.
 
 **Hierarquia de conflito**
 

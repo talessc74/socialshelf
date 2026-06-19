@@ -1,10 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
+import { Stepper } from '../../../components/Stepper'
+import { RecommendationPanel } from '../../../components/RecommendationPanel'
+import { ScoreBadge } from '../../../components/ScoreBadge'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -19,6 +22,8 @@ const ARTIFACT_STATUS_LABELS: Record<string, string> = {
   ready: 'Pronto',
   failed: 'Falhou',
 }
+
+const STEPS = ['Descrever', 'Gerando', 'Resultado']
 
 function GeneratedImage({ path }: { path: string }) {
   const { data: url, isLoading } = useQuery({
@@ -38,6 +43,29 @@ function GeneratedImage({ path }: { path: string }) {
 
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt="Artefato gerado" className="aspect-square w-full rounded-lg object-cover" />
+}
+
+function useGenerationProgress(active: boolean, totalArtifacts: number) {
+  const stages = [
+    'Lendo a voz da marca…',
+    'Escrevendo a copy para as plataformas escolhidas…',
+    ...Array.from({ length: totalArtifacts }, (_, i) => `Criando o card ${i + 1} de ${totalArtifacts}…`),
+  ]
+  const [stageIndex, setStageIndex] = useState(0)
+
+  useEffect(() => {
+    if (!active) {
+      setStageIndex(0)
+      return
+    }
+    const interval = setInterval(() => {
+      setStageIndex((i) => Math.min(i + 1, stages.length - 1))
+    }, 4000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, stages.length])
+
+  return { stages, stageIndex }
 }
 
 export default function GenerateContentPage() {
@@ -61,7 +89,15 @@ export default function GenerateContentPage() {
     queryFn: () => api.getTopicSuggestions(),
   })
 
+  const { data: brandProfile } = useQuery({
+    queryKey: ['brand-profile'],
+    queryFn: () => api.getBrandProfile(),
+  })
+
+  const { stages, stageIndex } = useGenerationProgress(generating, artifactCount)
+
   const connectedPlatforms = connections?.map((c) => c.platform) ?? []
+  const selectedSuggestion = suggestions?.find((s) => s.id === topicSuggestionId) ?? null
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
@@ -93,89 +129,7 @@ export default function GenerateContentPage() {
     }
   }
 
-  if (result) {
-    const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
-    const failedArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'failed') ?? []
-
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Resultado da Geração</h1>
-
-        {result.status === 'ready' ? (
-          <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-            <p className="font-semibold text-green-800">
-              Rascunho criado com sucesso! Encontre-o em breve na sua lista de posts.
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-4">
-            <p className="font-semibold text-red-800">Falha na geração: {result.error}</p>
-          </div>
-        )}
-
-        {result.outputs?.cta && (
-          <p className="text-sm text-gray-500">
-            <span className="font-medium text-gray-700">CTA sugerido:</span> {result.outputs.cta}
-          </p>
-        )}
-
-        {result.outputs && Object.keys(result.outputs.copies).length > 0 && (
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-gray-700">Copy gerada</h2>
-            {Object.entries(result.outputs.copies).map(([platform, copy]) => (
-              <div key={platform} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p className="mb-2 text-sm font-medium text-gray-700">
-                  {PLATFORM_LABELS[platform as Platform]}
-                </p>
-                <p className="whitespace-pre-wrap text-sm text-gray-800">{copy?.text}</p>
-              </div>
-            ))}
-          </section>
-        )}
-
-        {(readyArtifacts.length > 0 || failedArtifacts.length > 0) && (
-          <section className="space-y-3">
-            <h2 className="text-sm font-semibold text-gray-700">
-              {(result.outputs?.artifacts.length ?? 0) > 1 ? 'Carrossel' : 'Imagem'}
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {result.outputs?.artifacts.map((artifact) => (
-                <div key={artifact.position} className="space-y-1">
-                  {artifact.status === 'ready' && artifact.imageStoragePath ? (
-                    <GeneratedImage path={artifact.imageStoragePath} />
-                  ) : (
-                    <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-400">
-                      {ARTIFACT_STATUS_LABELS[artifact.status]}
-                    </div>
-                  )}
-                  <p className="text-center text-xs text-gray-400">#{artifact.position}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        <button
-          onClick={() => router.push('/dashboard')}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          Voltar ao Dashboard
-        </button>
-      </div>
-    )
-  }
-
-  if (generating) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
-        <p className="text-sm font-medium text-gray-700">Gerando copy e imagens…</p>
-        <p className="max-w-sm text-xs text-gray-400">
-          Isso pode levar até 2 minutos, especialmente para carrosséis com várias imagens. Não saia desta página.
-        </p>
-      </div>
-    )
-  }
+  const currentStep = result ? 2 : generating ? 1 : 0
 
   return (
     <div className="space-y-6">
@@ -186,7 +140,114 @@ export default function GenerateContentPage() {
         <h1 className="text-2xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
       </div>
 
-      <section className="space-y-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <Stepper steps={STEPS} currentStep={currentStep} />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-6">
+          {result ? (
+            <ResultView result={result} onBack={() => router.push('/dashboard')} />
+          ) : generating ? (
+            <GeneratingView stages={stages} stageIndex={stageIndex} />
+          ) : (
+            <FormView
+              description={description}
+              setDescription={setDescription}
+              textContent={textContent}
+              setTextContent={setTextContent}
+              suggestions={suggestions}
+              topicSuggestionId={topicSuggestionId}
+              setTopicSuggestionId={setTopicSuggestionId}
+              loadingConnections={loadingConnections}
+              connectedPlatforms={connectedPlatforms}
+              selectedPlatforms={selectedPlatforms}
+              togglePlatform={togglePlatform}
+              artifactCount={artifactCount}
+              setArtifactCount={setArtifactCount}
+              error={error}
+              canGenerate={canGenerate}
+              onGenerate={handleGenerate}
+            />
+          )}
+        </div>
+
+        <RecommendationPanel>
+          {brandProfile ? (
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-gray-800">{brandProfile.business.name}</p>
+              <p className="text-xs text-gray-500">
+                Tom de voz: <span className="font-medium text-gray-700">{brandProfile.voice.tone}</span>
+              </p>
+              <p className="text-xs text-gray-400">
+                A copy gerada vai seguir esse tom automaticamente.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1 rounded-lg bg-amber-50 p-3">
+              <p className="text-sm font-medium text-amber-800">Nenhuma marca cadastrada</p>
+              <p className="text-xs text-amber-700">
+                Sem perfil de marca, a copy gerada é genérica — sem tom de voz próprio.
+              </p>
+            </div>
+          )}
+
+          {selectedSuggestion && (
+            <div className="space-y-2 border-t border-gray-100 pt-3">
+              <p className="text-sm font-medium text-gray-800">{selectedSuggestion.headline}</p>
+              <ScoreBadge label="Aderência ao público" score={selectedSuggestion.audienceFitScore} />
+              <p className="text-xs text-gray-400">{selectedSuggestion.rationale}</p>
+            </div>
+          )}
+
+          {result?.outputs?.cta && (
+            <div className="space-y-1 border-t border-gray-100 pt-3">
+              <p className="text-sm font-medium text-gray-800">CTA sugerido</p>
+              <p className="text-xs text-gray-500">{result.outputs.cta}</p>
+            </div>
+          )}
+        </RecommendationPanel>
+      </div>
+    </div>
+  )
+}
+
+function FormView({
+  description,
+  setDescription,
+  textContent,
+  setTextContent,
+  suggestions,
+  topicSuggestionId,
+  setTopicSuggestionId,
+  loadingConnections,
+  connectedPlatforms,
+  selectedPlatforms,
+  togglePlatform,
+  artifactCount,
+  setArtifactCount,
+  error,
+  canGenerate,
+  onGenerate,
+}: {
+  description: string
+  setDescription: (v: string) => void
+  textContent: string
+  setTextContent: (v: string) => void
+  suggestions: { id: string; headline: string }[] | undefined
+  topicSuggestionId: string
+  setTopicSuggestionId: (v: string) => void
+  loadingConnections: boolean
+  connectedPlatforms: Platform[]
+  selectedPlatforms: Set<Platform>
+  togglePlatform: (p: Platform) => void
+  artifactCount: number
+  setArtifactCount: (v: number) => void
+  error: string
+  canGenerate: boolean
+  onGenerate: () => void
+}) {
+  return (
+    <>
+      <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-700">
             Descreva o que você quer publicar
@@ -286,11 +347,105 @@ export default function GenerateContentPage() {
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
       <button
-        onClick={handleGenerate}
+        onClick={onGenerate}
         disabled={!canGenerate}
         className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
       >
         Gerar Conteúdo
+      </button>
+    </>
+  )
+}
+
+function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: number }) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-6 shadow-sm">
+      <ol className="space-y-3">
+        {stages.map((stage, i) => {
+          const isCurrent = i === stageIndex
+          const isPast = i < stageIndex
+          return (
+            <li key={stage} className="flex items-center gap-3">
+              <span
+                className={`h-2 w-2 shrink-0 rounded-full ${
+                  isCurrent ? 'animate-pulse bg-brand-500' : isPast ? 'bg-brand-200' : 'bg-gray-200'
+                }`}
+              />
+              <span className={`text-sm ${isCurrent ? 'font-medium text-gray-800' : 'text-gray-400'}`}>
+                {stage}
+              </span>
+            </li>
+          )
+        })}
+      </ol>
+      <p className="text-xs text-gray-400">
+        Isso pode levar até 2 minutos, especialmente para carrosséis com várias imagens. Não saia desta página.
+      </p>
+    </section>
+  )
+}
+
+function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: () => void }) {
+  const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
+  const failedArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'failed') ?? []
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold text-gray-900">Resultado da Geração</h2>
+
+      {result.status === 'ready' ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <p className="font-semibold text-green-800">
+            Rascunho criado com sucesso! Encontre-o em breve na sua lista de posts.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <p className="font-semibold text-red-800">Falha na geração: {result.error}</p>
+        </div>
+      )}
+
+      {result.outputs && Object.keys(result.outputs.copies).length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700">Copy gerada</h2>
+          {Object.entries(result.outputs.copies).map(([platform, copy]) => (
+            <div key={platform} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="mb-2 text-sm font-medium text-gray-700">
+                {PLATFORM_LABELS[platform as Platform]}
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-gray-800">{copy?.text}</p>
+            </div>
+          ))}
+        </section>
+      )}
+
+      {(readyArtifacts.length > 0 || failedArtifacts.length > 0) && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-700">
+            {(result.outputs?.artifacts.length ?? 0) > 1 ? 'Carrossel' : 'Imagem'}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {result.outputs?.artifacts.map((artifact) => (
+              <div key={artifact.position} className="space-y-1">
+                {artifact.status === 'ready' && artifact.imageStoragePath ? (
+                  <GeneratedImage path={artifact.imageStoragePath} />
+                ) : (
+                  <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-400">
+                    {ARTIFACT_STATUS_LABELS[artifact.status]}
+                  </div>
+                )}
+                <p className="text-center text-xs text-gray-400">#{artifact.position}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <button
+        onClick={onBack}
+        className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+      >
+        Voltar ao Dashboard
       </button>
     </div>
   )
