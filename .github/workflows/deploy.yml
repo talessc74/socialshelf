@@ -78,6 +78,11 @@ jobs:
             --role="roles/datastore.owner" \
             --condition=None 2>/dev/null || true
 
+      - name: Wait for IAM propagation
+        run: |
+          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
+          sleep 60
+
       - name: Deploy Firestore indexes
         run: |
           gcloud firestore indexes composite create \
@@ -87,11 +92,6 @@ jobs:
             --project=${{ env.GCP_PROJECT_ID }} || true
 
           gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }}
-
-      - name: Wait for IAM propagation
-        run: |
-          echo "Aguardando 60s para o IAM propagar antes dos deploys..."
-          sleep 60
 
   deploy-api:
     name: Deploy api-service
