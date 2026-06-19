@@ -71,15 +71,15 @@ jobs:
             --role="roles/iam.serviceAccountUser" \
             --condition=None 2>/dev/null || true
 
-          # Grant deployer SA datastore.owner so it can create/manage Firestore indexes
-          # (roles/datastore.user only covers read/write of data, not index management).
-          # NOTE: this requires the deployer SA to already hold
-          # resourcemanager.projects.setIamPolicy; if it doesn't, this is a silent no-op
-          # and someone with Owner/IAM Admin access must grant the role manually once.
-          gcloud projects add-iam-policy-binding "$PROJECT" \
-            --member="serviceAccount:${DEPLOYER_SA}" \
-            --role="roles/datastore.owner" \
-            --condition=None 2>/dev/null || true
+          # roles/datastore.owner on the deployer SA is NOT granted here. Per
+          # _local-adr-policy-023, it must already be held by the deployer SA —
+          # granting project-level IAM via add-iam-policy-binding requires
+          # resourcemanager.projects.setIamPolicy, a permission the deployer SA
+          # must not hold (Zero Trust / least privilege, _local-adr-policy-005).
+          # If Firestore index creation below fails with PERMISSION_DENIED, the
+          # role is missing in production and must be granted once, manually, by
+          # someone with Owner/IAM Admin access — this is a policy/reality drift,
+          # not something CI can or should self-correct.
 
       - name: Wait for IAM propagation
         run: |
