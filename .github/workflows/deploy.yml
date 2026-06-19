@@ -84,7 +84,9 @@ jobs:
             --collection-group=generation_requests \
             --query-scope=COLLECTION_GROUP \
             --field-config field-path=id,order=ascending \
-            --project=${{ env.GCP_PROJECT_ID }} 2>/dev/null || true
+            --project=${{ env.GCP_PROJECT_ID }} || true
+
+          gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }}
 
       - name: Wait for IAM propagation
         run: |
