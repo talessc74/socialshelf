@@ -187,4 +187,11 @@ export const api = {
     const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(`/generation-requests/${id}`)
     return data.generationRequest
   },
+
+  async getImageUrl(path: string): Promise<string> {
+    const data = await apiFetch<{ url: string }>(
+      `/generation-images/signed-url?path=${encodeURIComponent(path)}`,
+    )
+    return data.url
+  },
 }

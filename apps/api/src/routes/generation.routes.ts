@@ -70,4 +70,32 @@ export async function generationRoutes(app: FastifyInstance) {
       return reply.send(await res.json())
     },
   )
+
+  app.get(
+    '/generation-images/signed-url',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = z.object({ path: z.string().min(1) }).safeParse(request.query)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
+      }
+
+      if (!parsed.data.path.startsWith(`${request.userId}/`)) {
+        return reply.status(403).send({ error: 'Forbidden' })
+      }
+
+      const res = await fetch(
+        `${generatorUrl}/images/signed-url?path=${encodeURIComponent(parsed.data.path)}`,
+        { headers: { 'X-Internal-Secret': internalSecret } },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
 }

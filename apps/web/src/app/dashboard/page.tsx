@@ -72,12 +72,20 @@ export default function DashboardPage() {
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <Link
-          href="/dashboard/compose"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-        >
-          + Novo Post
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/dashboard/generate"
+            className="rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+          >
+            ✨ Gerar com IA
+          </Link>
+          <Link
+            href="/dashboard/compose"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          >
+            + Novo Post
+          </Link>
+        </div>
       </div>
 
       <section>

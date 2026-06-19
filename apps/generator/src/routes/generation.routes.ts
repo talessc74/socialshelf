@@ -100,4 +100,19 @@ export async function generationRoutes(app: FastifyInstance) {
     }
     return reply.send({ generationRequest })
   })
+
+  app.get('/images/signed-url', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = z.object({ path: z.string().min(1) }).safeParse(request.query)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
+    }
+
+    const url = await imageStorage.getSignedUrl(parsed.data.path, 3600)
+    return reply.send({ url })
+  })
 }

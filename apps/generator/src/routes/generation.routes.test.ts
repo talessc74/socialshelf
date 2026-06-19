@@ -70,11 +70,12 @@ vi.mock('../infrastructure/vertexai/ImagenImageGenerator.js', () => ({
 }))
 
 const mockUpload = vi.fn().mockResolvedValue('brand-1/generated/img.png')
+const mockGetSignedUrl = vi.fn().mockResolvedValue('https://storage.googleapis.com/signed-url')
 
 vi.mock('../infrastructure/storage/GcsImageStorage.js', () => ({
   GcsImageStorage: vi.fn().mockImplementation(() => ({
     upload: mockUpload,
-    getSignedUrl: vi.fn(),
+    getSignedUrl: mockGetSignedUrl,
     delete: vi.fn(),
   })),
 }))
@@ -211,5 +212,51 @@ describe('GET /generation-requests/:id', () => {
     })
 
     expect(response.statusCode).toBe(404)
+  })
+})
+
+describe('GET /images/signed-url', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with a signed url', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/images/signed-url?path=brand-1/generated/img.png',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ url: string }>()
+    expect(body.url).toBe('https://storage.googleapis.com/signed-url')
+  })
+
+  it('returns 400 when path is missing', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/images/signed-url',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/images/signed-url?path=brand-1/generated/img.png',
+    })
+
+    expect(response.statusCode).toBe(401)
   })
 })

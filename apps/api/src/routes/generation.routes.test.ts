@@ -106,6 +106,58 @@ describe('POST /generation-requests', () => {
   })
 })
 
+describe('GET /generation-images/signed-url', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['CSRF_SECRET'] = 'test-secret-64-chars-long-enough-for-hmac-sha256-signing'
+    process.env['WEB_URL'] = 'http://localhost:3000'
+    process.env['GENERATOR_URL'] = 'http://localhost:3003'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('returns the signed url for a path owned by the user', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'https://storage.googleapis.com/signed-url' }),
+    })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/generation-images/signed-url?path=user-test-123/generated/img.png',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ url: string }>()
+    expect(body.url).toBe('https://storage.googleapis.com/signed-url')
+  })
+
+  it('returns 403 when path does not belong to the authenticated user', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/generation-images/signed-url?path=other-brand/generated/img.png',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(403)
+  })
+
+  it('returns 401 without auth header', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/generation-images/signed-url?path=user-test-123/generated/img.png',
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
 describe('GET /generation-requests/:id', () => {
   let app: FastifyInstance
 
