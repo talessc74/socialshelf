@@ -3,6 +3,7 @@ import helmet from '@fastify/helmet'
 import multipart from '@fastify/multipart'
 import { healthRoutes } from './routes/health.routes.js'
 import { pautaRoutes } from './routes/pauta.routes.js'
+import { generationRoutes } from './routes/generation.routes.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -18,6 +19,7 @@ export async function buildApp() {
   })
   await app.register(healthRoutes)
   await app.register(pautaRoutes)
+  await app.register(generationRoutes)
 
   return app
 }

@@ -19,6 +19,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-019-geracao-de-conteudo-maquina-de-estados](application/019-generation-state-machine.md) - Estados de GenerationRequest para geração assíncrona de conteúdo via IA
 - [_local-adr-policy-025-brandprofile-schema-e-versionamento](application/025-brand-profile-schema-versionamento.md) - Schema de 6 seções do BrandProfile e versionamento imutável como base do contexto de marca
 - [_local-adr-policy-027-pauta-localizacao-e-verificacao-factual](application/027-pauta-localizacao-e-verificacao-factual.md) - Motor de pauta vive em generator; notícia só é verificada se a fonte resolve para domínio confiável cadastrado
+- [_local-adr-policy-028-geracao-de-conteudo-multiartefato](application/028-geracao-multiartefato.md) - GenerationRequest.outputs.artifacts substitui imagem única; post único e carrossel são o mesmo agregado (N≥1)
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.

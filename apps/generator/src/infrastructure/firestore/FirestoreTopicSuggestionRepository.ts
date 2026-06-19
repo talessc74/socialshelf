@@ -30,6 +30,20 @@ export class FirestoreTopicSuggestionRepository implements TopicSuggestionReposi
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
+  async findById(brandId: string, id: string): Promise<TopicSuggestion | null> {
+    const doc = await db
+      .collection('users')
+      .doc(brandId)
+      .collection('brands')
+      .doc(brandId)
+      .collection('topic_suggestions')
+      .doc(id)
+      .get()
+
+    if (!doc.exists) return null
+    return this.fromFirestore(doc.data()!)
+  }
+
   private fromFirestore(data: FirebaseFirestore.DocumentData): TopicSuggestion {
     return {
       id: data['id'] as string,

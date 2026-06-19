@@ -73,6 +73,7 @@ function makeUseCase(opts: {
   const topicSuggestionRepo: TopicSuggestionRepository = {
     save: vi.fn().mockResolvedValue(undefined),
     findLatestByBrand: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue(null),
   }
 
   const useCase = new SuggestTopicsUseCase(

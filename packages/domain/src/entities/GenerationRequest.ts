@@ -7,6 +7,15 @@ export type GenerationStatus =
   | 'ready'
   | 'failed'
 
+export type ArtifactStatus = 'pending' | 'generating' | 'ready' | 'failed'
+
+export interface GenerationArtifact {
+  position: number
+  status: ArtifactStatus
+  imageStoragePath: string | null
+  error: string | null
+}
+
 export interface PlatformCopy {
   text: string
   charCount: number
@@ -22,10 +31,13 @@ export interface GenerationRequest {
     textContent: string | null
     imageStoragePaths: string[]
     targetPlatforms: Platform[]
+    artifactCount: number
+    topicSuggestionId: string | null
   }
   outputs: {
     copies: Partial<Record<Platform, PlatformCopy>>
-    generatedImagePath: string | null
+    cta: string | null
+    artifacts: GenerationArtifact[]
   } | null
   error: string | null
   createdAt: Date

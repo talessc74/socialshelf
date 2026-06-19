@@ -10,6 +10,7 @@ import { postsRoutes } from './routes/posts.routes.js'
 import { brandProfileRoutes } from './routes/brand-profile.routes.js'
 import { audienceSignalRoutes } from './routes/audience-signal.routes.js'
 import { pautaRoutes } from './routes/pauta.routes.js'
+import { generationRoutes } from './routes/generation.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
 
 export async function buildApp() {
@@ -39,6 +40,7 @@ export async function buildApp() {
   await app.register(brandProfileRoutes)
   await app.register(audienceSignalRoutes)
   await app.register(pautaRoutes)
+  await app.register(generationRoutes)
 
   return app
 }

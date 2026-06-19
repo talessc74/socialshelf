@@ -17,6 +17,8 @@ export type {
   GenerationRequest,
   GenerationStatus,
   PlatformCopy,
+  ArtifactStatus,
+  GenerationArtifact,
 } from './entities/GenerationRequest.js'
 export type { AudienceSignal } from './entities/AudienceSignal.js'
 export type { NewsItem } from './entities/NewsItem.js'
@@ -33,11 +35,14 @@ export type {
   CopyGeneratorPort,
   ContentInputs,
   PlatformCopies,
+  PautaContext,
+  CopyGenerationResult,
 } from './ports/CopyGeneratorPort.js'
 export type {
   ImageGeneratorPort,
   ImagePrompt,
   GeneratedImage,
+  BrandTokens,
 } from './ports/ImageGeneratorPort.js'
 export type { ImageStoragePort } from './ports/ImageStoragePort.js'
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'

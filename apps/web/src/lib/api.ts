@@ -101,6 +101,45 @@ export interface ApiTopicSuggestion {
   createdAt: string
 }
 
+export interface ApiGenerationArtifact {
+  position: number
+  status: 'pending' | 'generating' | 'ready' | 'failed'
+  imageStoragePath: string | null
+  error: string | null
+}
+
+export interface ApiGenerationRequest {
+  id: string
+  userId: string
+  brandId: string
+  status: 'pending' | 'generating_copy' | 'generating_image' | 'ready' | 'failed'
+  inputs: {
+    description: string
+    textContent: string | null
+    imageStoragePaths: string[]
+    targetPlatforms: Platform[]
+    artifactCount: number
+    topicSuggestionId: string | null
+  }
+  outputs: {
+    copies: Partial<Record<Platform, { text: string; charCount: number }>>
+    cta: string | null
+    artifacts: ApiGenerationArtifact[]
+  } | null
+  error: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface GenerateContentInput {
+  description: string
+  textContent?: string
+  imageStoragePaths?: string[]
+  targetPlatforms: Platform[]
+  artifactCount?: number
+  topicSuggestionId?: string
+}
+
 export const api = {
   async getConnections(): Promise<ApiConnection[]> {
     const data = await apiFetch<{ connections: ApiConnection[] }>('/connections')
@@ -134,5 +173,18 @@ export const api = {
   async getTopicSuggestions(): Promise<ApiTopicSuggestion[]> {
     const data = await apiFetch<{ suggestions: ApiTopicSuggestion[] }>('/pauta-suggestions')
     return data.suggestions
+  },
+
+  async generateContent(input: GenerateContentInput): Promise<ApiGenerationRequest> {
+    const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>('/generation-requests', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    return data.generationRequest
+  },
+
+  async getGenerationRequest(id: string): Promise<ApiGenerationRequest> {
+    const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(`/generation-requests/${id}`)
+    return data.generationRequest
   },
 }

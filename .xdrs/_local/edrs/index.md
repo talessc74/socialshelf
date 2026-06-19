@@ -29,6 +29,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-022-snapshot-imutavel-de-brandprofile-por-post](application/022-snapshot-imutavel-brand-profile-post.md) - Post referencia apenas o número de versão do BrandProfile vigente na criação, nunca uma cópia
 - [_local-edr-policy-023-pipeline-sinal-audiencia-sem-retencao](application/023-pipeline-sinal-audiencia.md) - Métricas brutas por post são lidas, agregadas em memória e descartadas; só o AudienceSignal final é persistido
 - [_local-edr-policy-024-pipeline-de-pauta-verificacao-e-sugestao](application/024-pipeline-pauta-verificacao-sugestao.md) - Notícia é filtrada por domínio de fonte confiável antes de alimentar o motor de sugestão; sinal de audiência entra como multiplicador de score
+- [_local-edr-policy-029-geracao-multiartefato-sem-bifurcacao](application/029-pipeline-geracao-multiartefato.md) - Único loop sobre artifactCount sem bifurcação de lógica; falha de copy é fatal, falha de artefato individual é tolerada
 
 ### devops
 Pipeline de entrega e práticas de build.
