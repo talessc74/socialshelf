@@ -5,6 +5,7 @@ import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -75,7 +76,7 @@ export async function postsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
-      const res = await fetch(`${publisherUrl}/publish`, {
+      const res = await fetchInternal(`${publisherUrl}/publish`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

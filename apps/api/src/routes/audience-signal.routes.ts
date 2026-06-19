@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -24,7 +25,7 @@ export async function audienceSignalRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid query params', details: parsed.error.flatten() })
       }
 
-      const res = await fetch(`${publisherUrl}/audience-signal`, {
+      const res = await fetchInternal(`${publisherUrl}/audience-signal`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

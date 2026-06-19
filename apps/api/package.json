@@ -23,6 +23,7 @@
     "@socialshelf/domain": "workspace:*",
     "fastify": "^4.28.1",
     "firebase-admin": "^12.7.0",
+    "google-auth-library": "^9.15.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {

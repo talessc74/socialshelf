@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 export async function pautaRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
@@ -8,7 +9,7 @@ export async function pautaRoutes(app: FastifyInstance) {
     '/pauta-suggestions',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const res = await fetch(`${generatorUrl}/pauta/suggest`, {
+      const res = await fetchInternal(`${generatorUrl}/pauta/suggest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

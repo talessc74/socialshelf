@@ -85,7 +85,7 @@ jobs:
 
   deploy-api:
     name: Deploy api-service
-    needs: bootstrap-iam
+    needs: [bootstrap-iam, deploy-publisher, deploy-generator]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -127,8 +127,8 @@ jobs:
           VARS="${VARS},LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}"
           VARS="${VARS},LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}"
           VARS="${VARS},LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback"
-          VARS="${VARS},PUBLISHER_URL=${{ secrets.PUBLISHER_URL }}"
-          VARS="${VARS},GENERATOR_URL=${{ secrets.GENERATOR_URL }}"
+          VARS="${VARS},PUBLISHER_URL=${{ needs.deploy-publisher.outputs.service-url }}"
+          VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
           VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
           VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           gcloud run deploy api-service \
@@ -151,6 +151,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      service-url: ${{ steps.deploy.outputs.url }}
 
     steps:
       - uses: actions/checkout@v4
@@ -178,6 +180,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy publisher-service to Cloud Run
+        id: deploy
         run: |
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
@@ -189,7 +192,7 @@ jobs:
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
-            --allow-unauthenticated \
+            --no-allow-unauthenticated \
             --service-account=publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
             --set-env-vars="${VARS}" \
             --min-instances=0 \
@@ -198,6 +201,16 @@ jobs:
             --cpu=1 \
             --timeout=60
 
+          URL=$(gcloud run services describe publisher-service --region=${{ env.GCP_REGION }} --format='value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Grant api-service invoker access on publisher-service
+        run: |
+          gcloud run services add-iam-policy-binding publisher-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
+
   deploy-generator:
     name: Deploy generator-service
     needs: bootstrap-iam
@@ -205,6 +218,8 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    outputs:
+      service-url: ${{ steps.deploy.outputs.url }}
 
     steps:
       - uses: actions/checkout@v4
@@ -232,6 +247,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy generator-service to Cloud Run
+        id: deploy
         run: |
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS}#GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
@@ -253,6 +269,16 @@ jobs:
             --memory=1Gi \
             --cpu=1 \
             --timeout=120
+
+          URL=$(gcloud run services describe generator-service --region=${{ env.GCP_REGION }} --format='value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Grant api-service invoker access on generator-service
+        run: |
+          gcloud run services add-iam-policy-binding generator-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
 
   deploy-web:
     name: Deploy web

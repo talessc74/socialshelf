@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 export async function performanceInsightsRoutes(app: FastifyInstance) {
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
@@ -9,7 +10,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
     '/performance-insights',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const performanceRes = await fetch(`${publisherUrl}/posts-performance`, {
+      const performanceRes = await fetchInternal(`${publisherUrl}/posts-performance`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -26,7 +27,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
 
       const { entries } = (await performanceRes.json()) as { entries: unknown[] }
 
-      const insightsRes = await fetch(`${generatorUrl}/performance-insights/analyze`, {
+      const insightsRes = await fetchInternal(`${generatorUrl}/performance-insights/analyze`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

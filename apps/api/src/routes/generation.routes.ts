@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -31,7 +32,7 @@ export async function generationRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
       }
 
-      const res = await fetch(`${generatorUrl}/generate`, {
+      const res = await fetchInternal(`${generatorUrl}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -56,7 +57,7 @@ export async function generationRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
-      const res = await fetch(`${generatorUrl}/generation-requests/${id}`, {
+      const res = await fetchInternal(`${generatorUrl}/generation-requests/${id}`, {
         headers: { 'X-Internal-Secret': internalSecret },
       })
 
@@ -84,7 +85,7 @@ export async function generationRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Forbidden' })
       }
 
-      const res = await fetch(
+      const res = await fetchInternal(
         `${generatorUrl}/images/signed-url?path=${encodeURIComponent(parsed.data.path)}`,
         { headers: { 'X-Internal-Secret': internalSecret } },
       )
