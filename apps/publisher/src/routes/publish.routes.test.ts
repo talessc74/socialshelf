@@ -81,6 +81,25 @@ vi.mock('../infrastructure/publishers/MetaPublisher.js', () => ({
   })),
 }))
 
+vi.mock('../infrastructure/firestore/FirestoreAudienceSignalRepository.js', () => ({
+  FirestoreAudienceSignalRepository: vi.fn().mockImplementation(() => ({
+    save: vi.fn(),
+    findLatestByBrandAndPlatform: vi.fn(),
+  })),
+}))
+
+vi.mock('../infrastructure/analytics/LinkedInAnalyticsReader.js', () => ({
+  LinkedInAnalyticsReader: vi.fn().mockImplementation(() => ({ fetchPostMetrics: vi.fn() })),
+}))
+
+vi.mock('../infrastructure/analytics/MetaAnalyticsReader.js', () => ({
+  MetaAnalyticsReader: vi.fn().mockImplementation(() => ({ fetchPostMetrics: vi.fn() })),
+}))
+
+vi.mock('../infrastructure/analytics/XAnalyticsReader.js', () => ({
+  XAnalyticsReader: vi.fn().mockImplementation(() => ({ fetchPostMetrics: vi.fn() })),
+}))
+
 describe('startup validation', () => {
   it('throws if INTERNAL_SECRET is not set', async () => {
     delete process.env['INTERNAL_SECRET']

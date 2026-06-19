@@ -28,6 +28,7 @@ Controles de segurança e proteção de dados em nível arquitetural.
 - [_local-adr-policy-012-token-vault-criptografia-aes-256-gcm](controls/012-token-vault-encryption.md) - Criptografia AES-256-GCM de tokens OAuth no Firestore com derivação de chave via SHA-256
 - [_local-adr-policy-014-state-oauth-hmac-sha256-com-expiracao](controls/014-state-oauth-hmac-sha256.md) - State parameter OAuth com HMAC-SHA256, nonce, timestamp e expiração de 10 minutos
 - [_local-adr-policy-015-firestore-security-rules-implicit-deny](controls/015-firestore-security-rules.md) - Implicit deny como regra catch-all e acesso baseado em propriedade (isOwner)
+- [_local-adr-policy-026-sinal-de-audiencia-minimizacao-e-leitura](controls/026-sinal-audiencia-minimizacao.md) - Apenas sinal agregado de audiência é retido; leitura de analytics vive em publisher junto aos tokens OAuth
 
 ### data
 Arquitetura e retenção de dados.

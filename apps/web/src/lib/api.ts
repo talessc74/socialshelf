@@ -78,6 +78,17 @@ export interface PublishResponse {
   failedPlatforms: Array<{ platform: Platform; reason: string }>
 }
 
+export interface ApiAudienceSignal {
+  id: string
+  brandId: string
+  platform: Platform
+  postsAnalyzed: number
+  totalImpressions: number
+  totalEngagements: number
+  avgEngagementRate: number
+  computedAt: string
+}
+
 export const api = {
   async getConnections(): Promise<ApiConnection[]> {
     const data = await apiFetch<{ connections: ApiConnection[] }>('/connections')
@@ -99,5 +110,12 @@ export const api = {
 
   async publishPost(postId: string): Promise<PublishResponse> {
     return apiFetch<PublishResponse>(`/posts/${postId}/publish`, { method: 'POST' })
+  },
+
+  async getAudienceSignal(platform: Platform): Promise<ApiAudienceSignal> {
+    const data = await apiFetch<{ audienceSignal: ApiAudienceSignal }>(
+      `/audience-signal?platform=${platform}`,
+    )
+    return data.audienceSignal
   },
 }

@@ -27,6 +27,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-020-helmet-security-headers](application/020-helmet-security-headers.md) - @fastify/helmet registrado globalmente: headers de segurança HTTP em todos os serviços
 - [_local-edr-policy-021-health-check-padrao](application/021-health-check.md) - GET /health em todos os serviços: status + service + timestamp em ISO 8601
 - [_local-edr-policy-022-snapshot-imutavel-de-brandprofile-por-post](application/022-snapshot-imutavel-brand-profile-post.md) - Post referencia apenas o número de versão do BrandProfile vigente na criação, nunca uma cópia
+- [_local-edr-policy-023-pipeline-sinal-audiencia-sem-retencao](application/023-pipeline-sinal-audiencia.md) - Métricas brutas por post são lidas, agregadas em memória e descartadas; só o AudienceSignal final é persistido
 
 ### devops
 Pipeline de entrega e práticas de build.
