@@ -15,8 +15,8 @@ export default function HomePage() {
   }, [user, loading, router])
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-500 border-t-transparent" />
+    <main className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-300 border-t-transparent" />
     </main>
   )
 }

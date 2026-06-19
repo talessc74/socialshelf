@@ -50,55 +50,58 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
-        <h1 className="mb-6 text-center text-2xl font-bold text-brand-700">SocialShelf</h1>
+    <main className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient px-4">
+      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
+        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-200">
+          Bem-vindo de volta
+        </p>
+        <h1 className="mb-6 text-center text-2xl font-bold text-white">SocialShelf</h1>
 
         <form onSubmit={handleEmail} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Email</label>
+            <label className="mb-1 block text-sm font-medium text-white/80">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-300"
               placeholder="seu@email.com"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Senha</label>
+            <label className="mb-1 block text-sm font-medium text-white/80">Senha</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-300"
               placeholder="••••••••"
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-300">{error}</p>}
 
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-900/40 hover:bg-brand-600 disabled:opacity-50"
           >
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
 
         <div className="my-4 flex items-center gap-2">
-          <div className="h-px flex-1 bg-gray-200" />
-          <span className="text-xs text-gray-400">ou</span>
-          <div className="h-px flex-1 bg-gray-200" />
+          <div className="h-px flex-1 bg-white/15" />
+          <span className="text-xs text-white/40">ou</span>
+          <div className="h-px flex-1 bg-white/15" />
         </div>
 
         <button
           onClick={handleGoogle}
           disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/90 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white disabled:opacity-50"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path

@@ -7,3 +7,12 @@
   background-image: radial-gradient(circle, theme('colors.brand.200') 1px, transparent 1px);
   background-size: 20px 20px;
 }
+
+.bg-surface-diagnostic-gradient {
+  background-color: theme('colors.surface.diagnostic');
+  background-image:
+    radial-gradient(circle at 15% 20%, theme('colors.brand.700') 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, theme('colors.brand.500') 0%, transparent 40%),
+    radial-gradient(circle at 75% 85%, theme('colors.brand.900') 0%, transparent 50%),
+    radial-gradient(circle at 10% 90%, theme('colors.brand.600') 0%, transparent 35%);
+}

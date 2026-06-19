@@ -8,10 +8,10 @@ import { api } from '../../lib/api'
 import { Platform } from '@socialshelf/domain'
 
 const PLATFORM_META = {
-  [Platform.LINKEDIN]: { label: 'LinkedIn', color: 'bg-blue-600', oauth: 'linkedin' as const },
-  [Platform.FACEBOOK]: { label: 'Facebook', color: 'bg-blue-500', oauth: 'meta' as const },
-  [Platform.INSTAGRAM]: { label: 'Instagram', color: 'bg-pink-500', oauth: 'meta' as const },
-  [Platform.TWITTER]: { label: 'X (Twitter)', color: 'bg-black', oauth: 'x' as const },
+  [Platform.LINKEDIN]: { label: 'LinkedIn', emoji: '💼', color: 'bg-blue-600', oauth: 'linkedin' as const },
+  [Platform.FACEBOOK]: { label: 'Facebook', emoji: '👥', color: 'bg-blue-500', oauth: 'meta' as const },
+  [Platform.INSTAGRAM]: { label: 'Instagram', emoji: '📸', color: 'bg-pink-500', oauth: 'meta' as const },
+  [Platform.TWITTER]: { label: 'X (Twitter)', emoji: '🐦', color: 'bg-black', oauth: 'x' as const },
 }
 
 export default function DashboardPage() {
@@ -71,23 +71,26 @@ export default function DashboardPage() {
       )}
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        </div>
         <div className="flex gap-2">
           <Link
             href="/dashboard/performance"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-300 hover:bg-brand-50"
           >
             📊 Performance
           </Link>
           <Link
             href="/dashboard/generate"
-            className="rounded-lg border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+            className="rounded-xl border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
           >
             ✨ Gerar com IA
           </Link>
           <Link
             href="/dashboard/compose"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-200 hover:bg-brand-700"
           >
             + Novo Post
           </Link>
@@ -108,16 +111,22 @@ export default function DashboardPage() {
               return (
                 <div
                   key={platform}
-                  className="flex flex-col items-start rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                  className={`flex flex-col items-start rounded-2xl border p-5 shadow-sm transition-shadow ${
+                    isConnected
+                      ? 'border-brand-100 bg-white shadow-brand-100/60'
+                      : 'border-gray-200 bg-white/70'
+                  }`}
                 >
-                  <div className="mb-3 flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${meta.color}`} />
-                    <span className="font-medium text-gray-800">{meta.label}</span>
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <span className={`flex h-9 w-9 items-center justify-center rounded-full text-base ${meta.color}`}>
+                      {meta.emoji}
+                    </span>
+                    <span className="font-semibold text-gray-800">{meta.label}</span>
                   </div>
                   {isConnected ? (
                     <div className="flex flex-col gap-1.5">
-                      <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                        Conectado
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                        ● Conectado
                       </span>
                       <button
                         onClick={() => handleConnect(meta.oauth)}
@@ -129,7 +138,7 @@ export default function DashboardPage() {
                   ) : (
                     <button
                       onClick={() => handleConnect(meta.oauth)}
-                      className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                      className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
                     >
                       Conectar
                     </button>

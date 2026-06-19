@@ -161,8 +161,8 @@ export default function ComposePage() {
       </div>
 
       {/* Platform selector */}
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">Plataformas</h2>
+      <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
+        <h2 className="mb-3 text-sm font-semibold text-gray-700">📡 Plataformas</h2>
         {isLoading ? (
           <p className="text-sm text-gray-400">Carregando conexões…</p>
         ) : connectedPlatforms.length === 0 ? (
@@ -231,7 +231,7 @@ export default function ComposePage() {
             return (
               <div
                 key={platform}
-                className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-700">{PLATFORM_LABELS[platform]}</span>
