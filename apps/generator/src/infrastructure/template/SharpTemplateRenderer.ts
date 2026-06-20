@@ -41,9 +41,6 @@ function buildTspans(lines: string[], fontSize: number): string {
 
 const LOGO_MARGIN_RATIO = 0.04
 const LOGO_SIZE_RATIO = 0.09
-// Espelha o preview de "Configurar Marca" (rounded-full bg-white p-0.5): círculo com
-// preenchimento quase total, só uma margem bem fina para a marca não encostar na borda.
-const LOGO_INNER_RATIO = 0.94
 
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {
@@ -76,26 +73,21 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     height: number,
   ): Promise<Buffer> {
     const logoSize = Math.round(Math.min(width, height) * LOGO_SIZE_RATIO)
-    const innerSize = Math.round(logoSize * LOGO_INNER_RATIO)
 
-    // Mesmo selo do preview de "Configurar Marca": círculo branco com margem mínima, para a
-    // marca preencher quase todo o círculo em vez de "flutuar" dentro de um halo branco grande.
-    const badge = Buffer.from(
+    const circleMask = Buffer.from(
       `<svg width="${logoSize}" height="${logoSize}" xmlns="http://www.w3.org/2000/svg">
         <circle cx="${logoSize / 2}" cy="${logoSize / 2}" r="${logoSize / 2}" fill="#ffffff" />
       </svg>`,
     )
 
-    // trim() remove a margem vazia/transparente ao redor da marca antes de centralizar — sem isso,
-    // logos cujo arquivo original não tem a marca perfeitamente centralizada no próprio canvas
-    // aparecem deslocados dentro do selo.
-    const resizedLogo = await sharp(Buffer.from(logoImage.base64, 'base64'))
+    // trim() remove a margem vazia/transparente ao redor da marca antes de centralizar, e
+    // fit: 'cover' faz a marca preencher todo o quadrado (recorta o excedente em vez de
+    // encolher para caber, que era o que deixava a margem branca visível). dest-in recorta
+    // esse quadrado no formato circular — sem isso o quadrado cobriria o círculo por completo.
+    return sharp(Buffer.from(logoImage.base64, 'base64'))
       .trim()
-      .resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-      .toBuffer()
-
-    return sharp(badge)
-      .composite([{ input: resizedLogo, gravity: 'center' }])
+      .resize(logoSize, logoSize, { fit: 'cover' })
+      .composite([{ input: circleMask, blend: 'dest-in' }])
       .png()
       .toBuffer()
   }

@@ -18,6 +18,7 @@ export function LogoImage({ path, className }: LogoImageProps) {
     return <div className={`animate-pulse rounded-full bg-gray-100 ${className ?? ''}`} />
   }
 
+  // object-cover (não contain) para a marca preencher todo o círculo, sem halo de fundo sobrando.
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="Logo da marca" className={`object-contain ${className ?? ''}`} />
+  return <img src={url} alt="Logo da marca" className={`object-cover ${className ?? ''}`} />
 }
