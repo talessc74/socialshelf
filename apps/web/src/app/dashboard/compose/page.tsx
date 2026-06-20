@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import { Platform, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
+import { Platform, PLATFORM_CHARACTER_LIMITS, PLATFORM_MEDIA_SUPPORT } from '@socialshelf/domain'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -14,6 +14,13 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 }
 
 const COMING_SOON_PLATFORMS = new Set<Platform>([Platform.TWITTER])
+
+// Este compositor é apenas texto — plataformas que exigem imagem (ex: Instagram)
+// não podem ser publicadas por aqui. Use "Gerar com IA" para essas.
+const IMAGE_REQUIRED_PLATFORMS = new Set<Platform>(
+  Object.values(Platform).filter((p) => PLATFORM_MEDIA_SUPPORT[p].requiresImage),
+)
+const UNAVAILABLE_PLATFORMS = new Set<Platform>([...COMING_SOON_PLATFORMS, ...IMAGE_REQUIRED_PLATFORMS])
 
 function CharCounter({ current, max }: { current: number; max: number }) {
   const remaining = max - current
@@ -175,10 +182,11 @@ export default function ComposePage() {
         ) : (
           <div className="space-y-3">
             <div className="flex flex-wrap gap-2">
-              {connectedPlatforms.filter((p) => !COMING_SOON_PLATFORMS.has(p)).map((p) => (
+              {connectedPlatforms.filter((p) => !UNAVAILABLE_PLATFORMS.has(p)).map((p) => (
                 <button
                   key={p}
                   onClick={() => togglePlatform(p)}
+                  title={`Até ${PLATFORM_CHARACTER_LIMITS[p].toLocaleString('pt-BR')} caracteres`}
                   className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
                     selectedPlatforms.has(p)
                       ? 'border-brand-600 bg-brand-600 text-white'
@@ -200,10 +208,31 @@ export default function ComposePage() {
                   </span>
                 </span>
               ))}
+              {connectedPlatforms.filter((p) => IMAGE_REQUIRED_PLATFORMS.has(p)).map((p) => (
+                <span
+                  key={p}
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                  title="Exige imagem — publique pela tela &quot;Gerar com IA&quot;"
+                >
+                  {PLATFORM_LABELS[p]}
+                  <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                    Exige imagem
+                  </span>
+                </span>
+              ))}
             </div>
             {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
               <p className="text-xs text-gray-400">
                 * A publicação via X (Twitter) estará disponível em breve. A API do X requer plano pago para envio de posts.
+              </p>
+            )}
+            {connectedPlatforms.some((p) => IMAGE_REQUIRED_PLATFORMS.has(p)) && (
+              <p className="text-xs text-gray-400">
+                * Instagram exige uma imagem em todo post — esta tela é só texto. Use{' '}
+                <a href="/dashboard/generate" className="text-brand-600 underline">
+                  Gerar com IA
+                </a>{' '}
+                para publicar no Instagram.
               </p>
             )}
           </div>

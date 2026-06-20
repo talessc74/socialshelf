@@ -24,7 +24,13 @@ export type { AudienceSignal } from './entities/AudienceSignal.js'
 export type { NewsItem } from './entities/NewsItem.js'
 export type { VerifiedNewsItem } from './entities/VerifiedNewsItem.js'
 export type { TopicSuggestion } from './entities/TopicSuggestion.js'
-export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform.js'
+export {
+  Platform,
+  PLATFORM_CHARACTER_LIMITS,
+  PLATFORM_MEDIA_SUPPORT,
+  ALL_PLATFORMS,
+} from './entities/Platform.js'
+export type { PlatformMediaSupport } from './entities/Platform.js'
 export { TemplateStyle, ALL_TEMPLATE_STYLES } from './entities/TemplateStyle.js'
 export { AspectRatio, ALL_ASPECT_RATIOS } from './entities/AspectRatio.js'
 

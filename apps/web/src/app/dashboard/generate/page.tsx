@@ -5,7 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
-import { Platform, TemplateStyle, AspectRatio, type GenerationArtifact } from '@socialshelf/domain'
+import {
+  Platform,
+  PLATFORM_MEDIA_SUPPORT,
+  TemplateStyle,
+  AspectRatio,
+  type GenerationArtifact,
+} from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
 import { ScoreBadge } from '../../../components/ScoreBadge'
@@ -25,6 +31,19 @@ const ARTIFACT_STATUS_LABELS: Record<string, string> = {
 }
 
 const STEPS = ['Descrever', 'Gerando', 'Resultado']
+
+const COMING_SOON_PLATFORMS = new Set<Platform>([Platform.TWITTER])
+
+const PLATFORM_MEDIA_NOTE: Record<Platform, string> = Object.fromEntries(
+  Object.values(Platform).map((p) => [
+    p,
+    PLATFORM_MEDIA_SUPPORT[p].requiresImage
+      ? 'Exige imagem'
+      : PLATFORM_MEDIA_SUPPORT[p].supportsImage
+        ? 'Aceita imagem'
+        : 'Apenas texto',
+  ]),
+) as Record<Platform, string>
 
 const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
   { value: TemplateStyle.BOLD_BOTTOM, label: 'Faixa inferior' },
@@ -554,20 +573,52 @@ function FormView({
               </a>
             </p>
           ) : (
-            <div className="flex flex-wrap gap-2">
-              {connectedPlatforms.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => togglePlatform(p)}
-                  className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
-                    selectedPlatforms.has(p)
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
-                  }`}
-                >
-                  {PLATFORM_LABELS[p]}
-                </button>
-              ))}
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
+                {connectedPlatforms.filter((p) => !COMING_SOON_PLATFORMS.has(p)).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => togglePlatform(p)}
+                    title={PLATFORM_MEDIA_NOTE[p]}
+                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
+                      selectedPlatforms.has(p)
+                        ? 'border-brand-600 bg-brand-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                    }`}
+                  >
+                    {PLATFORM_LABELS[p]}
+                    <span
+                      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                        selectedPlatforms.has(p) ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {PLATFORM_MEDIA_NOTE[p]}
+                    </span>
+                  </button>
+                ))}
+                {connectedPlatforms.filter((p) => COMING_SOON_PLATFORMS.has(p)).map((p) => (
+                  <span
+                    key={p}
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                    title="Disponível em breve"
+                  >
+                    {PLATFORM_LABELS[p]}
+                    <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                      Em breve
+                    </span>
+                  </span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400">
+                Instagram exige pelo menos uma imagem. Facebook aceita imagem, mas é opcional. LinkedIn e
+                X (Twitter) publicam apenas o texto — fotos e cards gerados não são usados nessas redes.
+              </p>
+              {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
+                <p className="text-xs text-gray-400">
+                  * A publicação via X (Twitter) estará disponível em breve. A API do X requer plano pago
+                  para envio de posts.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -619,7 +670,8 @@ function FormView({
           <p className="mb-2 text-xs text-gray-400">
             Envie até {artifactCount} foto{artifactCount > 1 ? 's' : ''} sua{artifactCount > 1 ? 's' : ''} para
             usar como fundo dos cards — a IA só monta o template (texto e logo) sobre elas, sem gerar uma imagem
-            nova. Cards sem foto enviada continuam usando imagem gerada por IA.
+            nova. Cards sem foto enviada continuam usando imagem gerada por IA. Válido apenas para Instagram e
+            Facebook — LinkedIn e X publicam somente o texto gerado.
           </p>
           <input
             type="file"
