@@ -5,15 +5,15 @@ interface StepperProps {
 
 export function Stepper({ steps, currentStep }: StepperProps) {
   return (
-    <ol className="flex items-center gap-2">
+    <ol className="flex items-center gap-1 overflow-x-auto sm:gap-2">
       {steps.map((step, i) => {
         const isCurrent = i === currentStep
         const isDone = i < currentStep
         return (
-          <li key={step} className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
+          <li key={step} className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               <span
-                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 ${
                   isCurrent
                     ? 'bg-brand-500 text-white ring-4 ring-brand-100'
                     : isDone
@@ -24,7 +24,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
                 {i + 1}
               </span>
               <span
-                className={`text-sm font-medium ${
+                className={`whitespace-nowrap text-xs font-medium sm:text-sm ${
                   isCurrent ? 'text-brand-700' : isDone ? 'text-gray-600' : 'text-gray-400'
                 }`}
               >
@@ -32,7 +32,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
               </span>
             </div>
             {i < steps.length - 1 && (
-              <span className={`h-px w-8 ${isDone ? 'bg-brand-200' : 'bg-gray-200'}`} />
+              <span className={`h-px w-4 shrink-0 sm:w-8 ${isDone ? 'bg-brand-200' : 'bg-gray-200'}`} />
             )}
           </li>
         )
