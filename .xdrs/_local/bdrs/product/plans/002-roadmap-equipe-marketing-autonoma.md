@@ -41,6 +41,7 @@ Planejado. Pré-requisito de todas as fases seguintes — sem perfil de marca ri
 - Modelo de domínio `BrandProfile` cobrindo Negócio, Identidade, Visual, Voz, Narrativa e Operação.
 - Snapshot imutável de marca por post (cada post referencia a versão de marca vigente no momento da criação).
 - Modelagem do **dial de autonomia** (manual → semi-automático → automático) como atributo de operação da marca, ainda sem ativação de publicação autônoma.
+- Ambiente de "conhecimento de marca": interface onde o usuário alimenta o `BrandProfile` por múltiplas vias — upload de documento, texto livre, e leitura das redes já conectadas (via OAuth, Fase de Conexão) para a IA inferir tom de voz, temas recorrentes e identidade visual a partir do histórico de posts. Pedido explícito do usuário (2026-06-20), registrado aqui para não se perder antes da Fase 0 ser aberta.
 
 **Riscos:**
 - Modelar marca de forma rígida demais trava a evolução das fases seguintes. Mitigação: tratar `BrandProfile` como agregado versionável, não como configuração fixa.
@@ -56,6 +57,7 @@ Planejado. Depende de Fase 0 (snapshot de marca já deve existir para contextual
 - Adapters de leitura de analytics por plataforma (engajamento, alcance, performance por post), seguindo o padrão hexagonal de portas e adapters já estabelecido para integrações externas.
 - Derivação de sinal agregado de audiência ("o público responde a X") a partir do dado bruto de cada plataforma.
 - Decisão de minimização de dados: o sistema retém sinal agregado, nunca base identificável de seguidores.
+- Inclui o cenário pedido pelo usuário (2026-06-20): IA lendo os posts já publicados no Instagram (e demais redes conectadas) para entender o que gerou mais leads/alcance, e usar esse sinal para orientar o que postar a seguir.
 
 **Riscos:**
 - Ingestão de dado de audiência sem decisão de minimização prévia cria passivo de privacidade. Mitigação: decisão de minimização registrada como ADR antes de qualquer ingestão real.
