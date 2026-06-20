@@ -31,7 +31,14 @@ export class HandleMetaCallbackUseCase {
     const shortLived = await exchangeCodeForShortLivedToken(code, redirectUri)
     const longLived = await exchangeShortForLongLived(shortLived.access_token)
 
-    const expiresAt = new Date(Date.now() + longLived.expires_in * 1000)
+    // Algumas respostas da Meta (ex.: fluxo de Business Login) não retornam expires_in —
+    // nesse caso o token é de longa duração por padrão; usamos 60 dias como fallback.
+    const SIXTY_DAYS_IN_SECONDS = 60 * 24 * 60 * 60
+    const expiresInSeconds =
+      typeof longLived.expires_in === 'number' && Number.isFinite(longLived.expires_in)
+        ? longLived.expires_in
+        : SIXTY_DAYS_IN_SECONDS
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000)
 
     // 2. Fetch pages the user manages (includes page tokens + Instagram links)
     const pages = await getUserPages(longLived.access_token)

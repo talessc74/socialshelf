@@ -151,6 +151,20 @@ describe('HandleMetaCallbackUseCase', () => {
     expect(calls[1]![0].brandId).toBe('brand-456')
   })
 
+  it('falls back to a 60-day expiry when Meta omits expires_in', async () => {
+    const { exchangeShortForLongLived } = await import('../../lib/meta-client.js')
+    vi.mocked(exchangeShortForLongLived).mockResolvedValueOnce({
+      access_token: 'long-lived-token-no-expiry',
+      token_type: 'bearer',
+    } as never)
+
+    const state = generateState('user-123')
+    const result = await useCase.execute('meta-code', state, 'brand-456')
+
+    expect(result.facebook!.expiresAt).toBeInstanceOf(Date)
+    expect(Number.isNaN(result.facebook!.expiresAt.getTime())).toBe(false)
+  })
+
   it('throws on invalid state', async () => {
     await expect(
       useCase.execute('meta-code', 'invalid.tampered', 'brand-456'),
