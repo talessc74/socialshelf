@@ -42,7 +42,7 @@ Firebase é tratado como detalhe de infraestrutura — a lógica de negócio nã
 |---|---|
 | `api-service` | `roles/datastore.user`, `roles/secretmanager.admin` |
 | `publisher-service` | `roles/datastore.user`, `roles/secretmanager.admin` |
-| `generator-service` | `roles/datastore.user`, `roles/aiplatform.user` |
+| `generator-service` | `roles/datastore.user`, `roles/aiplatform.user`, `roles/storage.objectAdmin`, `roles/iam.serviceAccountTokenCreator` |
 
 - Bootstrap IAM é idempotente e executado antes de cada deploy (ver `deploy.yml`).
 - Propagação IAM requer espera de 60s após criação/atualização de roles.
@@ -69,6 +69,10 @@ Pelo mesmo motivo, `imagegeneration@006` (Imagen 2) também atingiu fim de vida 
 **Detalhe de implementação — `apiEndpoint` explícito para location `global`**
 
 O SDK `@google-cloud/vertexai` (v1.x) monta o host da requisição como `${location}-aiplatform.googleapis.com` independente do valor de `location`. Com `location: 'global'` isso produz o host inválido `global-aiplatform.googleapis.com`, que retorna uma página de erro HTML em vez de JSON (causando `Unexpected token '<' ... is not valid JSON` na camada de geração de copy/análise). Correção: `GeminiCopyGenerator` e `GeminiPatternAnalyzer` agora passam `apiEndpoint: 'aiplatform.googleapis.com'` explicitamente ao `VertexAI` quando `location === 'global'`, contornando a montagem padrão do SDK.
+
+**Drift de provisionamento — bucket `socialshelf-generated` ausente (2026-06-20)**
+
+O bucket `socialshelf-generated`, referenciado em `GCS_BUCKET_GENERATED` desde a primeira versão desta ADR, nunca foi criado em produção (`404 The specified bucket does not exist`, confirmado ao testar a geração de imagem). `bootstrap-iam` no `deploy.yml` agora concede `roles/storage.objectAdmin` e `roles/iam.serviceAccountTokenCreator` (necessário para `getSignedUrl` sem arquivo de chave) à SA `generator-service`, mas a criação do bucket em si — assim como `roles/datastore.owner` do deployer SA — é uma ação que exige permissão de provisionamento de recursos (`storage.buckets.create`) que o deployer SA não detém (Zero Trust, `_local-adr-policy-005`), e por isso deve ser feita manualmente uma vez por alguém com acesso de Owner/Storage Admin.
 
 ## References
 

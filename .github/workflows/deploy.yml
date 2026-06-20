@@ -55,8 +55,9 @@ jobs:
               --role="$ROLE" --condition=None 2>/dev/null || true
           done
 
-          # generator-service: Firestore + Vertex AI
-          for ROLE in roles/datastore.user roles/aiplatform.user; do
+          # generator-service: Firestore + Vertex AI + Cloud Storage (upload de imagens geradas) +
+          # assinatura de URLs (getSignedUrl exige iam.serviceAccounts.signBlob na própria SA)
+          for ROLE in roles/datastore.user roles/aiplatform.user roles/storage.objectAdmin roles/iam.serviceAccountTokenCreator; do
             gcloud projects add-iam-policy-binding "$PROJECT" \
               --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
               --role="$ROLE" --condition=None 2>/dev/null || true
