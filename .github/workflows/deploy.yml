@@ -66,11 +66,12 @@ jobs:
           # Auto-assinatura (signBlob) exige o binding no próprio recurso da SA, não
           # apenas no projeto — documentado pelo Google para impersonation de service
           # accounts. O binding de projeto acima não habilita getSignedUrl() sozinho.
-          gcloud iam service-accounts add-iam-policy-binding \
-            "generator-service@${PROJECT}.iam.gserviceaccount.com" \
-            --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
-            --role="roles/iam.serviceAccountTokenCreator" \
-            --project="$PROJECT" || echo "::warning::Falha ao conceder signBlob no recurso da SA generator-service — ver mensagem de erro acima"
+          # O deployer SA NÃO tem permissão para fazer esse binding (confirmado em
+          # produção: PERMISSION_DENIED em iam.serviceAccounts.getIamPolicy sobre o
+          # recurso da SA generator-service) — exige iam.serviceAccounts.setIamPolicy
+          # na própria SA, que o deployer não detém (Zero Trust, _local-adr-policy-005).
+          # Por isso este binding não é tentado em CI; deve ser concedido manualmente
+          # uma vez por alguém com acesso de Owner/IAM Admin (ver ADR-010).
 
           # Grant deployer SA permission to act as app service accounts (project-level)
           # SA-resource-level binding requires iam.serviceAccounts.setIamPolicy which

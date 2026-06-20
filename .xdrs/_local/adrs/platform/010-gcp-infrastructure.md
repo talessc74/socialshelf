@@ -76,7 +76,11 @@ O bucket `socialshelf-generated`, referenciado em `GCS_BUCKET_GENERATED` desde a
 
 **Correção — `iam.serviceAccountTokenCreator` precisa de binding no recurso da SA, não no projeto (2026-06-20)**
 
-Mesmo após o bucket ser criado e o binding de `roles/iam.serviceAccountTokenCreator` no projeto (acima) propagar, `getSignedUrl()` continuou falhando em produção com `Permission 'iam.serviceAccounts.signBlob' denied on resource`. Causa: para um SA assinar blobs para si mesmo (auto-impersonation, exigido por `getSignedUrl()` sem arquivo de chave), o Google exige que o binding de `roles/iam.serviceAccountTokenCreator` seja feito no recurso da própria service account (`gcloud iam service-accounts add-iam-policy-binding`), não apenas no projeto — binding de projeto não habilita essa permissão para auto-assinatura. `bootstrap-iam` agora também executa esse binding resource-level para `generator-service`.
+Mesmo após o bucket ser criado e o binding de `roles/iam.serviceAccountTokenCreator` no projeto (acima) propagar, `getSignedUrl()` continuou falhando em produção com `Permission 'iam.serviceAccounts.signBlob' denied on resource`. Causa: para um SA assinar blobs para si mesmo (auto-impersonation, exigido por `getSignedUrl()` sem arquivo de chave), o Google exige que o binding de `roles/iam.serviceAccountTokenCreator` seja feito no recurso da própria service account (`gcloud iam service-accounts add-iam-policy-binding`), não apenas no projeto — binding de projeto não habilita essa permissão para auto-assinatura.
+
+**Drift de provisionamento — binding resource-level exige Owner/IAM Admin manual (2026-06-20)**
+
+A tentativa de `bootstrap-iam` executar esse binding resource-level via CI falhou com `PERMISSION_DENIED: Permission 'iam.serviceAccounts.getIamPolicy' denied on resource ...serviceAccounts/...` — o deployer SA não detém `iam.serviceAccounts.setIamPolicy` sobre a SA `generator-service` (Zero Trust, `_local-adr-policy-005`), mesmo padrão de drift já documentado para `roles/datastore.owner` e para a criação do bucket `socialshelf-generated`. `bootstrap-iam` não tenta mais esse binding (apenas documenta o requisito); deve ser concedido manualmente, uma única vez, por alguém com acesso de Owner/IAM Admin via Console: abrir a SA `generator-service@socialshelf-547da.iam.gserviceaccount.com` em IAM & Admin → Service Accounts, aba "Permissions", "Grant Access", principal = a própria SA (`generator-service@socialshelf-547da.iam.gserviceaccount.com`), papel = "Service Account Token Creator".
 
 ## References
 
