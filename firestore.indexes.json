@@ -2,7 +2,7 @@
   "indexes": [
     {
       "collectionGroup": "posts",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "brandId", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
@@ -11,7 +11,7 @@
     },
     {
       "collectionGroup": "posts",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "brandId", "order": "ASCENDING" },
         { "fieldPath": "scheduledAt", "order": "ASCENDING" }
@@ -19,7 +19,7 @@
     },
     {
       "collectionGroup": "generation_requests",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         { "fieldPath": "brandId", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
