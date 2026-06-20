@@ -26,7 +26,7 @@ const ARTIFACT_STATUS_LABELS: Record<string, string> = {
 const STEPS = ['Descrever', 'Gerando', 'Resultado']
 
 function GeneratedImage({ path }: { path: string }) {
-  const { data: url, isLoading } = useQuery({
+  const { data: url, isLoading, isError, error } = useQuery({
     queryKey: ['generation-image-url', path],
     queryFn: () => api.getImageUrl(path),
   })
@@ -39,7 +39,14 @@ function GeneratedImage({ path }: { path: string }) {
     )
   }
 
-  if (!url) return null
+  if (isError || !url) {
+    return (
+      <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400">
+        <span>Não foi possível carregar a imagem</span>
+        {error instanceof Error && <span className="break-words text-red-600">{error.message}</span>}
+      </div>
+    )
+  }
 
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt="Artefato gerado" className="aspect-square w-full rounded-lg object-cover" />

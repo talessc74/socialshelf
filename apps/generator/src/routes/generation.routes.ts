@@ -113,7 +113,13 @@ export async function generationRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
     }
 
-    const url = await imageStorage.getSignedUrl(parsed.data.path, 3600)
-    return reply.send({ url })
+    try {
+      const url = await imageStorage.getSignedUrl(parsed.data.path, 3600)
+      return reply.send({ url })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'getSignedUrl failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
   })
 }
