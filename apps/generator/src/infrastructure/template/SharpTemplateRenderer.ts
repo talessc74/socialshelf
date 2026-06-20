@@ -41,9 +41,10 @@ function buildTspans(lines: string[], fontSize: number): string {
 
 const LOGO_MARGIN_RATIO = 0.04
 const LOGO_SIZE_RATIO = 0.12
-// Preenchimento interno do logo dentro do selo circular branco, para o logo nunca "vazar" do
-// círculo nem encostar na borda quando a imagem enviada pela marca não for quadrada.
-const LOGO_INNER_RATIO = 0.78
+// Preenchimento interno do logo dentro do selo, para o logo nunca encostar na borda quando a
+// imagem enviada pela marca não for quadrada.
+const LOGO_INNER_RATIO = 0.82
+const LOGO_BADGE_RADIUS_RATIO = 0.22
 
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {
@@ -77,22 +78,26 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
   ): Promise<Buffer> {
     const logoSize = Math.round(Math.min(width, height) * LOGO_SIZE_RATIO)
     const innerSize = Math.round(logoSize * LOGO_INNER_RATIO)
+    const radius = Math.round(logoSize * LOGO_BADGE_RADIUS_RATIO)
 
-    const circleMask = Buffer.from(
+    // Selo com cantos arredondados e leve transparência — não impõe uma forma/cor própria que
+    // conflite com a identidade visual do logo da marca (que normalmente já tem seu próprio
+    // fundo). Apenas garante contraste contra a foto de fundo.
+    const badge = Buffer.from(
       `<svg width="${logoSize}" height="${logoSize}" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="${logoSize / 2}" cy="${logoSize / 2}" r="${logoSize / 2}" fill="#ffffff" />
+        <rect width="${logoSize}" height="${logoSize}" rx="${radius}" ry="${radius}" fill="#ffffff" fill-opacity="0.92" />
       </svg>`,
     )
 
     // trim() remove a margem vazia/transparente ao redor da marca antes de centralizar — sem isso,
     // logos cujo arquivo original não tem a marca perfeitamente centralizada no próprio canvas
-    // aparecem deslocados dentro do selo circular.
+    // aparecem deslocados dentro do selo.
     const resizedLogo = await sharp(Buffer.from(logoImage.base64, 'base64'))
       .trim()
       .resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .toBuffer()
 
-    return sharp(circleMask)
+    return sharp(badge)
       .composite([{ input: resizedLogo, gravity: 'center' }])
       .png()
       .toBuffer()

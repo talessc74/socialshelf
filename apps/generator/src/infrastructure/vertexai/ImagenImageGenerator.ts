@@ -25,7 +25,13 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
       },
       body: JSON.stringify({
         instances: [{ prompt: this.buildPrompt(prompt) }],
-        parameters: { sampleCount: 1, aspectRatio: prompt.aspectRatio },
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: prompt.aspectRatio,
+          // O headline real é desenhado depois por SharpTemplateRenderer; negativePrompt é mais
+          // eficaz que instrução em texto livre para suprimir o texto que o Imagen tenta "escrever".
+          negativePrompt: 'text, words, letters, numbers, typography, writing, captions, watermark, signage',
+        },
       }),
     })
 
