@@ -82,6 +82,10 @@ Mesmo após o bucket ser criado e o binding de `roles/iam.serviceAccountTokenCre
 
 A tentativa de `bootstrap-iam` executar esse binding resource-level via CI falhou com `PERMISSION_DENIED: Permission 'iam.serviceAccounts.getIamPolicy' denied on resource ...serviceAccounts/...` — o deployer SA não detém `iam.serviceAccounts.setIamPolicy` sobre a SA `generator-service` (Zero Trust, `_local-adr-policy-005`), mesmo padrão de drift já documentado para `roles/datastore.owner` e para a criação do bucket `socialshelf-generated`. `bootstrap-iam` não tenta mais esse binding (apenas documenta o requisito); deve ser concedido manualmente, uma única vez, por alguém com acesso de Owner/IAM Admin via Console: abrir a SA `generator-service@socialshelf-547da.iam.gserviceaccount.com` em IAM & Admin → Service Accounts, aba "Permissions", "Grant Access", principal = a própria SA (`generator-service@socialshelf-547da.iam.gserviceaccount.com`), papel = "Service Account Token Creator".
 
+**Correção — geração de imagens sequencial excedia timeout do `api-service` (2026-06-20)**
+
+Com `artifactCount` alto (ex: 6 para um carrossel), o front-end recebia `Load failed` (erro de rede genérico do browser, não um erro de aplicação) ao gerar conteúdo. Causa: `GenerateContentUseCase` gerava as imagens uma a uma em um loop sequencial, e o tempo total (cópia + N chamadas sequenciais ao Imagen) frequentemente excedia o `--timeout=30` do Cloud Run do `api-service`, que mata a conexão antes do `generator-service` (timeout 120s) terminar — o navegador então reporta falha de rede em vez de um erro de aplicação. Corrigido em duas frentes: (1) `GenerateContentUseCase` agora gera todos os artefatos em paralelo (`Promise.all`) em vez de sequencialmente; (2) `--timeout` do `api-service` e do `generator-service` aumentado de 30s/120s para 180s em ambos, como margem de segurança para o limite máximo de 10 artefatos permitido pelo schema.
+
 ## References
 
 - [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites

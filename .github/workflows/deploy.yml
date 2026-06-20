@@ -166,7 +166,7 @@ jobs:
             --max-instances=3 \
             --memory=512Mi \
             --cpu=1 \
-            --timeout=30
+            --timeout=180
 
   deploy-publisher:
     name: Deploy publisher-service
@@ -293,7 +293,7 @@ jobs:
             --max-instances=2 \
             --memory=1Gi \
             --cpu=1 \
-            --timeout=120
+            --timeout=180
 
           URL=$(gcloud run services describe generator-service --region=${{ env.GCP_REGION }} --format='value(status.url)')
           echo "url=${URL}" >> "$GITHUB_OUTPUT"

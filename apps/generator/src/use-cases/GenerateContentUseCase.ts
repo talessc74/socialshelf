@@ -105,30 +105,34 @@ export class GenerateContentUseCase {
 
     for (const artifact of artifacts) {
       artifact.status = 'generating'
-      await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
-
-      try {
-        const image = await this.imageGenerator.generateImage({
-          description: input.description,
-          brandTokens,
-          position: artifact.position,
-          totalArtifacts: input.artifactCount,
-        })
-        const path = await this.imageStorage.upload(
-          input.userId,
-          input.brandId,
-          Buffer.from(image.base64, 'base64'),
-          image.mimeType,
-          request.id,
-        )
-        artifact.status = 'ready'
-        artifact.imageStoragePath = path
-      } catch (err) {
-        artifact.status = 'failed'
-        artifact.error = err instanceof Error ? err.message : String(err)
-      }
-      await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
     }
+    await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
+
+    await Promise.all(
+      artifacts.map(async (artifact) => {
+        try {
+          const image = await this.imageGenerator.generateImage({
+            description: input.description,
+            brandTokens,
+            position: artifact.position,
+            totalArtifacts: input.artifactCount,
+          })
+          const path = await this.imageStorage.upload(
+            input.userId,
+            input.brandId,
+            Buffer.from(image.base64, 'base64'),
+            image.mimeType,
+            request.id,
+          )
+          artifact.status = 'ready'
+          artifact.imageStoragePath = path
+        } catch (err) {
+          artifact.status = 'failed'
+          artifact.error = err instanceof Error ? err.message : String(err)
+        }
+        await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
+      }),
+    )
 
     const readyArtifacts = artifacts.filter((a) => a.status === 'ready')
     if (readyArtifacts.length === 0) {
