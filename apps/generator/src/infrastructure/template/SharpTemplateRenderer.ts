@@ -40,11 +40,10 @@ function buildTspans(lines: string[], fontSize: number): string {
 }
 
 const LOGO_MARGIN_RATIO = 0.04
-const LOGO_SIZE_RATIO = 0.12
-// Preenchimento interno do logo dentro do selo, para o logo nunca encostar na borda quando a
-// imagem enviada pela marca não for quadrada.
-const LOGO_INNER_RATIO = 0.82
-const LOGO_BADGE_RADIUS_RATIO = 0.22
+const LOGO_SIZE_RATIO = 0.09
+// Espelha o preview de "Configurar Marca" (rounded-full bg-white p-0.5): círculo com
+// preenchimento quase total, só uma margem bem fina para a marca não encostar na borda.
+const LOGO_INNER_RATIO = 0.94
 
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {
@@ -78,14 +77,12 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
   ): Promise<Buffer> {
     const logoSize = Math.round(Math.min(width, height) * LOGO_SIZE_RATIO)
     const innerSize = Math.round(logoSize * LOGO_INNER_RATIO)
-    const radius = Math.round(logoSize * LOGO_BADGE_RADIUS_RATIO)
 
-    // Selo com cantos arredondados e leve transparência — não impõe uma forma/cor própria que
-    // conflite com a identidade visual do logo da marca (que normalmente já tem seu próprio
-    // fundo). Apenas garante contraste contra a foto de fundo.
+    // Mesmo selo do preview de "Configurar Marca": círculo branco com margem mínima, para a
+    // marca preencher quase todo o círculo em vez de "flutuar" dentro de um halo branco grande.
     const badge = Buffer.from(
       `<svg width="${logoSize}" height="${logoSize}" xmlns="http://www.w3.org/2000/svg">
-        <rect width="${logoSize}" height="${logoSize}" rx="${radius}" ry="${radius}" fill="#ffffff" fill-opacity="0.92" />
+        <circle cx="${logoSize / 2}" cy="${logoSize / 2}" r="${logoSize / 2}" fill="#ffffff" />
       </svg>`,
     )
 
