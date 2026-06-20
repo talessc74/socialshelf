@@ -75,22 +75,22 @@ export default function DashboardPage() {
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         </div>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link
             href="/dashboard/performance"
-            className="shrink-0 whitespace-nowrap rounded-xl border border-brand-100 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-300 hover:bg-brand-50"
+            className="whitespace-nowrap rounded-xl border border-brand-100 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-300 hover:bg-brand-50"
           >
             📊 Performance
           </Link>
           <Link
             href="/dashboard/generate"
-            className="shrink-0 whitespace-nowrap rounded-xl border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
+            className="whitespace-nowrap rounded-xl border border-brand-600 px-4 py-2 text-center text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
           >
             ✨ Gerar com IA
           </Link>
           <Link
             href="/dashboard/compose"
-            className="shrink-0 whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-200 hover:bg-brand-700"
+            className="whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm shadow-brand-200 hover:bg-brand-700"
           >
             + Novo Post
           </Link>
