@@ -32,7 +32,7 @@ export async function generationRoutes(app: FastifyInstance) {
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
-  const imagenModel = process.env['IMAGEN_MODEL'] ?? 'imagegeneration@006'
+  const imagenModel = process.env['IMAGEN_MODEL'] ?? 'imagen-4.0-generate-001'
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
 
   const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel)

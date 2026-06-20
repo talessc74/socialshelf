@@ -267,7 +267,7 @@ jobs:
           VARS="${VARS}#VERTEX_AI_LOCATION=us-central1"
           VARS="${VARS}#GEMINI_LOCATION=global"
           VARS="${VARS}#GEMINI_MODEL=gemini-2.5-flash"
-          VARS="${VARS}#IMAGEN_MODEL=imagegeneration@006"
+          VARS="${VARS}#IMAGEN_MODEL=imagen-4.0-generate-001"
           VARS="${VARS}#GCS_BUCKET_GENERATED=socialshelf-generated"
           VARS="${VARS}#INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
           VARS="${VARS}#NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}"
