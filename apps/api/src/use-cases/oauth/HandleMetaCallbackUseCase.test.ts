@@ -74,6 +74,30 @@ describe('HandleMetaCallbackUseCase', () => {
     expect(result.instagram).toBeNull()
   })
 
+  it('finds Instagram on a page other than the first one', async () => {
+    const { getUserPages } = await import('../../lib/meta-client.js')
+    vi.mocked(getUserPages).mockResolvedValueOnce([
+      { id: 'page-111', name: 'Página sem Instagram', access_token: 'token-1' },
+      {
+        id: 'page-222',
+        name: 'Página com Instagram',
+        access_token: 'token-2',
+        instagram_business_account: { id: 'ig-biz-999' },
+      },
+    ])
+
+    const state = generateState('user-123')
+    const result = await useCase.execute('meta-code', state, 'brand-456')
+
+    expect(result.facebook).not.toBeNull()
+    expect(result.instagram).not.toBeNull()
+    expect(result.instagram!.tokenRef).toContain('oauth-token-')
+    expect(mockTokenVault.store).toHaveBeenCalledWith(
+      expect.stringContaining('oauth-token-'),
+      expect.stringContaining('ig-biz-999'),
+    )
+  })
+
   it('returns null for both when user has no pages', async () => {
     const { getUserPages } = await import('../../lib/meta-client.js')
     vi.mocked(getUserPages).mockResolvedValueOnce([])

@@ -54,7 +54,10 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
       return reply.redirect(`${webUrl}/dashboard?connected=${connected}`)
     } catch (err) {
       app.log.error(err)
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      const detail = err instanceof Error ? err.message : 'unknown_error'
+      return reply.redirect(
+        `${webUrl}/dashboard?error=oauth_failed&detail=${encodeURIComponent(detail)}`,
+      )
     }
   })
 }

@@ -72,8 +72,10 @@ export class HandleMetaCallbackUseCase {
       }
       await this.oauthRepo.save(facebookConnection)
 
-      // 4. Save Instagram connection if a Business Account is linked to this page
-      if (page.instagram_business_account) {
+      // 4. Save Instagram connection using whichever page has a Business Account linked
+      //    (not necessarily the first page — a user can manage several Facebook Pages)
+      const igPage = pages.find((p) => p.instagram_business_account) ?? null
+      if (igPage?.instagram_business_account) {
         const igPairwiseId = derivePairwiseId(userId, Platform.INSTAGRAM)
         const igTokenRef = `oauth-token-${igPairwiseId}`
 
@@ -81,9 +83,9 @@ export class HandleMetaCallbackUseCase {
           igTokenRef,
           JSON.stringify({
             user_access_token: longLived.access_token,
-            page_access_token: page.access_token,
-            instagram_business_account_id: page.instagram_business_account.id,
-            page_id: page.id,
+            page_access_token: igPage.access_token,
+            instagram_business_account_id: igPage.instagram_business_account.id,
+            page_id: igPage.id,
             expires_at: expiresAt.toISOString(),
           }),
         )
