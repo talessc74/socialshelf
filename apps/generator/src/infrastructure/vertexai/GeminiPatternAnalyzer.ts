@@ -9,7 +9,11 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
   ) {}
 
   async analyzePatterns(entries: PostPerformanceSummary[]): Promise<string> {
-    const vertexAi = new VertexAI({ project: this.projectId, location: this.location })
+    const vertexAi = new VertexAI({
+      project: this.projectId,
+      location: this.location,
+      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
+    })
     const generativeModel = vertexAi.getGenerativeModel({ model: this.model })
 
     const prompt = this.buildPrompt(entries)

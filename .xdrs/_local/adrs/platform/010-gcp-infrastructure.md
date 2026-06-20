@@ -64,6 +64,10 @@ Firebase é tratado como detalhe de infraestrutura — a lógica de negócio nã
 
 `gemini-2.0-flash`, registrado originalmente nesta ADR, foi descontinuado e removido do Model Garden do projeto. O endpoint atual do Gemini para geração de texto também passou a exigir `location=global` em vez de uma região — diferente do Imagen, que continua exigindo região real (`us-central1`) por construir a URL do endpoint manualmente (`${location}-aiplatform.googleapis.com`). Por isso `generator-service` agora usa duas variáveis de localização: `VERTEX_AI_LOCATION=us-central1` (Imagen) e `GEMINI_LOCATION=global` (Gemini). Esta não é uma decisão arquitetural nova — é a atualização desta ADR para refletir a realidade do Model Garden após a depreciação do modelo anterior.
 
+**Detalhe de implementação — `apiEndpoint` explícito para location `global`**
+
+O SDK `@google-cloud/vertexai` (v1.x) monta o host da requisição como `${location}-aiplatform.googleapis.com` independente do valor de `location`. Com `location: 'global'` isso produz o host inválido `global-aiplatform.googleapis.com`, que retorna uma página de erro HTML em vez de JSON (causando `Unexpected token '<' ... is not valid JSON` na camada de geração de copy/análise). Correção: `GeminiCopyGenerator` e `GeminiPatternAnalyzer` agora passam `apiEndpoint: 'aiplatform.googleapis.com'` explicitamente ao `VertexAI` quando `location === 'global'`, contornando a montagem padrão do SDK.
+
 ## References
 
 - [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites

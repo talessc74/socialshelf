@@ -10,7 +10,11 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
   ) {}
 
   async generateCopy(inputs: ContentInputs): Promise<CopyGenerationResult> {
-    const vertexAi = new VertexAI({ project: this.projectId, location: this.location })
+    const vertexAi = new VertexAI({
+      project: this.projectId,
+      location: this.location,
+      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
+    })
     const generativeModel = vertexAi.getGenerativeModel({
       model: this.model,
       generationConfig: { responseMimeType: 'application/json' },
