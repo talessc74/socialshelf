@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiBrandProfile } from '../../../lib/api'
 import type { AutonomyLevel } from '@socialshelf/domain'
 import { TagListEditor } from '../../../components/TagListEditor'
+import { BrandPostPreview } from '../../../components/BrandPostPreview'
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
 
@@ -295,6 +296,16 @@ export default function BrandSettingsPage() {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-semibold text-gray-700">Pré-visualização</p>
+          <p className="mb-3 text-xs text-gray-400">
+            Como o logo e a cor primária aparecem nos cards gerados, em tempo real.
+          </p>
+          <BrandPostPreview
+            primaryColor={form.visual.primaryColor}
+            logoStoragePath={form.visual.logoStoragePath}
+          />
         </div>
       </section>
 

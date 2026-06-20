@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../lib/api'
 import { Platform } from '@socialshelf/domain'
+import { BrandIdentityCard } from '../../components/BrandIdentityCard'
 
 const PLATFORM_META = {
   [Platform.LINKEDIN]: { label: 'LinkedIn', emoji: '💼', color: 'bg-blue-600', oauth: 'linkedin' as const },
@@ -22,6 +23,11 @@ export default function DashboardPage() {
   const { data: connections, isLoading } = useQuery({
     queryKey: ['connections'],
     queryFn: () => api.getConnections(),
+  })
+
+  const { data: brandProfile } = useQuery({
+    queryKey: ['brand-profile'],
+    queryFn: () => api.getBrandProfile(),
   })
 
   useEffect(() => {
@@ -102,6 +108,8 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {brandProfile && <BrandIdentityCard brandProfile={brandProfile} />}
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-gray-800">Plataformas Conectadas</h2>
