@@ -23,7 +23,7 @@ describe('GenerateMetaAuthUrlUseCase', () => {
     const { url } = useCase.execute('user-123')
     const decoded = decodeURIComponent(url)
     expect(decoded).toContain('pages_manage_posts')
-    expect(decoded).toContain('instagram_content_publish')
+    expect(decoded).toContain('instagram_business_content_publish')
     expect(decoded).toContain('pages_show_list')
   })
 
