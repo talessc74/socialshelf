@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
-import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api, type ApiGenerationRequest, type ApiBrandProfile, type PublishResponse } from '../../../lib/api'
 import { Platform, TemplateStyle, AspectRatio, type GenerationArtifact } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
@@ -43,6 +43,56 @@ const ASPECT_RATIO_CLASS: Record<AspectRatio, string> = {
   [AspectRatio.PORTRAIT]: 'aspect-[3/4]',
   [AspectRatio.LANDSCAPE]: 'aspect-video',
   [AspectRatio.STORY]: 'aspect-[9/16]',
+}
+
+function LogoUploader({ brandProfile }: { brandProfile: ApiBrandProfile }) {
+  const queryClient = useQueryClient()
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploadError('')
+    setUploading(true)
+    try {
+      const path = await api.uploadImage(file)
+      await api.updateBrandProfile({
+        business: brandProfile.business,
+        identity: brandProfile.identity,
+        visual: { ...brandProfile.visual, logoStoragePath: path },
+        voice: brandProfile.voice,
+        narrative: brandProfile.narrative,
+        operation: brandProfile.operation,
+      })
+      await queryClient.invalidateQueries({ queryKey: ['brand-profile'] })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Erro ao enviar o logo.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1 border-t border-gray-100 pt-3">
+      <p className="text-sm font-medium text-gray-800">Logo da marca</p>
+      <p className="text-xs text-gray-400">
+        {brandProfile.visual.logoStoragePath
+          ? 'Logo cadastrado — aparece em um canto de cada card gerado.'
+          : 'Envie o logo da marca para que ele apareça em um canto de cada card gerado.'}
+      </p>
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={handleFileChange}
+        disabled={uploading}
+        className="block w-full text-xs text-gray-600"
+      />
+      {uploading && <p className="text-xs text-gray-400">Enviando…</p>}
+      {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
+    </div>
+  )
 }
 
 function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: string }) {
@@ -277,6 +327,7 @@ export default function GenerateContentPage() {
   const [style, setStyle] = useState<TemplateStyle>(TemplateStyle.BOLD_BOTTOM)
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE)
   const [topicSuggestionId, setTopicSuggestionId] = useState('')
+  const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
   const [error, setError] = useState('')
@@ -304,6 +355,10 @@ export default function GenerateContentPage() {
     .filter((p) => validPlatforms.has(p)) ?? []
   const selectedSuggestion = suggestions?.find((s) => s.id === topicSuggestionId) ?? null
 
+  useEffect(() => {
+    setPhotoFiles((prev) => prev.slice(0, artifactCount))
+  }, [artifactCount])
+
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
       const next = new Set(prev)
@@ -315,10 +370,20 @@ export default function GenerateContentPage() {
 
   const canGenerate = description.trim().length > 0 && selectedPlatforms.size > 0 && !generating
 
+  const handlePhotoFilesAdd = (files: File[]) => {
+    setPhotoFiles((prev) => [...prev, ...files].slice(0, artifactCount))
+  }
+
+  const handlePhotoFileRemove = (index: number) => {
+    setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
   const handleGenerate = async () => {
     setError('')
     setGenerating(true)
     try {
+      const imageStoragePaths =
+        photoFiles.length > 0 ? await Promise.all(photoFiles.map((f) => api.uploadImage(f))) : undefined
       const generationRequest = await api.generateContent({
         description: description.trim(),
         ...(textContent.trim() && { textContent: textContent.trim() }),
@@ -327,6 +392,7 @@ export default function GenerateContentPage() {
         style,
         aspectRatio,
         ...(topicSuggestionId && { topicSuggestionId }),
+        ...(imageStoragePaths && { imageStoragePaths }),
       })
       setResult(generationRequest)
     } catch (err) {
@@ -374,6 +440,9 @@ export default function GenerateContentPage() {
               setStyle={setStyle}
               aspectRatio={aspectRatio}
               setAspectRatio={setAspectRatio}
+              photoFiles={photoFiles}
+              onPhotoFilesAdd={handlePhotoFilesAdd}
+              onPhotoFileRemove={handlePhotoFileRemove}
               error={error}
               canGenerate={canGenerate}
               onGenerate={handleGenerate}
@@ -391,6 +460,7 @@ export default function GenerateContentPage() {
               <p className="text-xs text-gray-400">
                 A copy gerada vai seguir esse tom automaticamente.
               </p>
+              <LogoUploader brandProfile={brandProfile} />
             </div>
           ) : (
             <div className="space-y-1 rounded-lg bg-amber-50 p-3">
@@ -439,6 +509,9 @@ function FormView({
   setStyle,
   aspectRatio,
   setAspectRatio,
+  photoFiles,
+  onPhotoFilesAdd,
+  onPhotoFileRemove,
   error,
   canGenerate,
   onGenerate,
@@ -460,6 +533,9 @@ function FormView({
   setStyle: (v: TemplateStyle) => void
   aspectRatio: AspectRatio
   setAspectRatio: (v: AspectRatio) => void
+  photoFiles: File[]
+  onPhotoFilesAdd: (files: File[]) => void
+  onPhotoFileRemove: (index: number) => void
   error: string
   canGenerate: boolean
   onGenerate: () => void
@@ -581,6 +657,49 @@ function FormView({
               {artifactCount === 1 ? 'Post único' : `Carrossel com ${artifactCount} imagens`}
             </p>
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            Suas fotos (opcional)
+          </label>
+          <p className="mb-2 text-xs text-gray-400">
+            Envie até {artifactCount} foto{artifactCount > 1 ? 's' : ''} sua{artifactCount > 1 ? 's' : ''} para
+            usar como fundo dos cards — a IA só monta o template (texto e logo) sobre elas, sem gerar uma imagem
+            nova. Cards sem foto enviada continuam usando imagem gerada por IA.
+          </p>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            multiple
+            onChange={(e) => {
+              onPhotoFilesAdd(Array.from(e.target.files ?? []))
+              e.target.value = ''
+            }}
+            disabled={photoFiles.length >= artifactCount}
+            className="block w-full text-sm text-gray-600"
+          />
+          {photoFiles.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {photoFiles.map((file, i) => (
+                <li
+                  key={`${file.name}-${i}`}
+                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-600"
+                >
+                  <span className="truncate">
+                    #{i + 1} — {file.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onPhotoFileRemove(i)}
+                    className="ml-2 shrink-0 text-red-500 hover:text-red-700"
+                  >
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div>

@@ -35,6 +35,13 @@ const editArtifactSchema = z.object({
   instruction: z.string().min(1),
 })
 
+const uploadImageSchema = z.object({
+  userId: z.string().min(1),
+  brandId: z.string().min(1),
+  base64: z.string().min(1),
+  mimeType: z.string().min(1),
+})
+
 export async function generationRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
@@ -146,6 +153,33 @@ export async function generationRoutes(app: FastifyInstance) {
       app.log.error({ err }, 'edit artifact use-case failed')
       const status = detail.includes('not found') ? 404 : 500
       return reply.status(status).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.post('/images/upload', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = uploadImageSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const path = await imageStorage.upload(
+        parsed.data.userId,
+        parsed.data.brandId,
+        Buffer.from(parsed.data.base64, 'base64'),
+        parsed.data.mimeType,
+        'upload',
+      )
+      return reply.send({ path })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'image upload failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
     }
   })
 

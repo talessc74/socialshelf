@@ -111,6 +111,44 @@ export async function generationRoutes(app: FastifyInstance) {
     },
   )
 
+  app.post(
+    '/images/upload',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const file = await request.file()
+      if (!file) {
+        return reply.status(400).send({ error: 'No file provided' })
+      }
+      const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp']
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return reply.status(400).send({ error: 'Unsupported image type' })
+      }
+
+      const buffer = await file.toBuffer()
+      const res = await fetchInternal(`${generatorUrl}/images/upload`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+        },
+        body: JSON.stringify({
+          userId: request.userId,
+          brandId: request.userId,
+          base64: buffer.toString('base64'),
+          mimeType: file.mimetype,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
   app.get(
     '/generation-images/signed-url',
     { preHandler: [app.authenticate] },

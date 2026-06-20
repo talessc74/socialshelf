@@ -39,6 +39,9 @@ function buildTspans(lines: string[], fontSize: number): string {
     .join('')
 }
 
+const LOGO_MARGIN_RATIO = 0.04
+const LOGO_SIZE_RATIO = 0.12
+
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {
     const backgroundBuffer = Buffer.from(input.backgroundImage.base64, 'base64')
@@ -48,11 +51,20 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     const height = metadata.height ?? 1024
 
     const svg = this.buildSvg(input, width, height)
+    const overlays: Array<{ input: Buffer; top: number; left: number }> = [
+      { input: Buffer.from(svg), top: 0, left: 0 },
+    ]
 
-    const composed = await background
-      .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
-      .png()
-      .toBuffer()
+    if (input.logoImage) {
+      const logoSize = Math.round(Math.min(width, height) * LOGO_SIZE_RATIO)
+      const margin = Math.round(Math.min(width, height) * LOGO_MARGIN_RATIO)
+      const logoBuffer = await sharp(Buffer.from(input.logoImage.base64, 'base64'))
+        .resize(logoSize, logoSize, { fit: 'inside' })
+        .toBuffer()
+      overlays.push({ input: logoBuffer, top: height - logoSize - margin, left: width - logoSize - margin })
+    }
+
+    const composed = await background.composite(overlays).png().toBuffer()
 
     return { base64: composed.toString('base64'), mimeType: 'image/png' }
   }

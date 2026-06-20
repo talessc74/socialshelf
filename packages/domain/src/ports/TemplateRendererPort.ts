@@ -6,6 +6,7 @@ export interface TemplateRenderInput {
   headline: string
   style: TemplateStyle
   brandTokens: BrandTokens | null
+  logoImage: { base64: string; mimeType: string } | null
 }
 
 export interface RenderedTemplateImage {

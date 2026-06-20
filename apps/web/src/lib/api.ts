@@ -219,6 +219,32 @@ export const api = {
     return data.brandProfile
   },
 
+  async updateBrandProfile(profile: Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>): Promise<ApiBrandProfile> {
+    const data = await apiFetch<{ brandProfile: ApiBrandProfile }>('/brand-profile', {
+      method: 'PUT',
+      body: JSON.stringify(profile),
+    })
+    return data.brandProfile
+  },
+
+  async uploadImage(file: File): Promise<string> {
+    const token = await getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${API_URL}/images/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+    const data = (await res.json()) as { path: string }
+    return data.path
+  },
+
   async generateContent(input: GenerateContentInput): Promise<ApiGenerationRequest> {
     const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>('/generation-requests', {
       method: 'POST',

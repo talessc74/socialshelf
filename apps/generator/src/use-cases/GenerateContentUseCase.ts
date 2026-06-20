@@ -112,6 +112,10 @@ export class GenerateContentUseCase {
         }
       : null
 
+    const logoImage = brandProfile?.visual.logoStoragePath
+      ? await this.imageStorage.download(brandProfile.visual.logoStoragePath)
+      : null
+
     for (const artifact of artifacts) {
       artifact.status = 'generating'
     }
@@ -120,18 +124,22 @@ export class GenerateContentUseCase {
     await Promise.all(
       artifacts.map(async (artifact) => {
         try {
-          const image = await this.imageGenerator.generateImage({
-            description: input.description,
-            brandTokens,
-            position: artifact.position,
-            totalArtifacts: input.artifactCount,
-            aspectRatio: input.aspectRatio,
-          })
+          const uploadedPath = input.imageStoragePaths[artifact.position - 1]
+          const image = uploadedPath
+            ? await this.imageStorage.download(uploadedPath)
+            : await this.imageGenerator.generateImage({
+                description: input.description,
+                brandTokens,
+                position: artifact.position,
+                totalArtifacts: input.artifactCount,
+                aspectRatio: input.aspectRatio,
+              })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
             headline: copyResult.headlines[artifact.position - 1]!,
             style: input.style,
             brandTokens,
+            logoImage,
           })
           const path = await this.imageStorage.upload(
             input.userId,

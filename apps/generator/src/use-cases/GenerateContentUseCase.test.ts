@@ -53,6 +53,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
 
   const imageStorage: ImageStoragePort = {
     upload: vi.fn().mockResolvedValue('brand-1/generated/img.png'),
+    download: vi.fn().mockResolvedValue({ base64: 'dXBsb2FkZWQ=', mimeType: 'image/png' }),
     getSignedUrl: vi.fn(),
     delete: vi.fn(),
   }

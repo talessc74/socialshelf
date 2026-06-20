@@ -38,6 +38,9 @@ export class EditArtifactUseCase {
           typography: brandProfile.visual.typography,
         }
       : null
+    const logoImage = brandProfile?.visual.logoStoragePath
+      ? await this.imageStorage.download(brandProfile.visual.logoStoragePath)
+      : null
 
     artifact.status = 'generating'
     artifact.error = null
@@ -57,6 +60,7 @@ export class EditArtifactUseCase {
         headline,
         style: request.inputs.style,
         brandTokens,
+        logoImage,
       })
       const path = await this.imageStorage.upload(
         request.userId,

@@ -19,6 +19,14 @@ export class GcsImageStorage implements ImageStoragePort {
     return path
   }
 
+  async download(path: string): Promise<{ base64: string; mimeType: string }> {
+    const file = this.storage.bucket(this.bucketName).file(path)
+    const [buffer] = await file.download()
+    const [metadata] = await file.getMetadata()
+    const mimeType = metadata.contentType ?? 'image/png'
+    return { base64: buffer.toString('base64'), mimeType }
+  }
+
   async getSignedUrl(path: string, ttlSeconds: number): Promise<string> {
     const [url] = await this.storage
       .bucket(this.bucketName)

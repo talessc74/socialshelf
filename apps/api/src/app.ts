@@ -2,6 +2,7 @@ import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
+import multipart from '@fastify/multipart'
 import { healthRoutes } from './routes/health.routes.js'
 import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
 import { metaOAuthRoutes } from './routes/oauth/meta.routes.js'
@@ -30,6 +31,9 @@ export async function buildApp() {
   await app.register(rateLimit, {
     max: 100,
     timeWindow: '1 minute',
+  })
+  await app.register(multipart, {
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
   })
 
   await registerAuthMiddleware(app)
