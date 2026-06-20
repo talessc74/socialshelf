@@ -27,7 +27,7 @@ export function BrandPostPreview({
       {logoStoragePath && (
         <LogoImage
           path={logoStoragePath}
-          className="absolute bottom-[4%] right-[4%] h-[12%] w-[12%] rounded bg-white/80 p-0.5"
+          className="absolute top-[4%] left-[4%] h-[12%] w-[12%] rounded-full bg-white p-0.5"
         />
       )}
     </div>
