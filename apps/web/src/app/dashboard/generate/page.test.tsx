@@ -143,6 +143,7 @@ describe('GenerateContentPage', () => {
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
         cta: 'Comente abaixo!',
+        headline: 'Headline gerada',
         artifacts: [{ position: 1, status: 'ready', imageStoragePath: 'user-1/generated/img.png', error: null }],
       },
       error: null,
@@ -181,6 +182,7 @@ describe('GenerateContentPage', () => {
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
         cta: 'Comente abaixo!',
+        headline: 'Headline gerada',
         artifacts: [{ position: 1, status: 'ready', imageStoragePath: 'user-1/generated/img.png', error: null }],
       },
       error: null,
@@ -300,6 +302,7 @@ describe('GenerateContentPage', () => {
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
         cta: 'Comente abaixo!',
+        headline: 'Headline gerada',
         artifacts: [
           { position: 1, status: 'ready', imageStoragePath: 'user-1/generated/img-1.png', error: null },
           { position: 2, status: 'failed', imageStoragePath: null, error: 'Imagen timeout' },

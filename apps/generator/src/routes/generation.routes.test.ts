@@ -53,6 +53,7 @@ vi.mock('../infrastructure/news/NewsApiOrgReader.js', () => ({
 const mockGenerateCopy = vi.fn().mockResolvedValue({
   copies: { linkedin: { text: 'Copy gerada', charCount: 12 } },
   cta: 'Comente abaixo!',
+  headline: 'Headline gerada',
 })
 
 vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({
@@ -66,6 +67,14 @@ const mockGenerateImage = vi.fn().mockResolvedValue({ base64: 'YmFzZTY0', mimeTy
 vi.mock('../infrastructure/vertexai/ImagenImageGenerator.js', () => ({
   ImagenImageGenerator: vi.fn().mockImplementation(() => ({
     generateImage: mockGenerateImage,
+  })),
+}))
+
+const mockRender = vi.fn().mockResolvedValue({ base64: 'cmVuZGVyZWQ=', mimeType: 'image/png' })
+
+vi.mock('../infrastructure/template/SharpTemplateRenderer.js', () => ({
+  SharpTemplateRenderer: vi.fn().mockImplementation(() => ({
+    render: mockRender,
   })),
 }))
 

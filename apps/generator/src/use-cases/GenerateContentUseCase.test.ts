@@ -1,9 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
 import { GenerateContentUseCase } from './GenerateContentUseCase.js'
-import { Platform } from '@socialshelf/domain'
+import { Platform, TemplateStyle } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
+  TemplateRendererPort,
   ImageStoragePort,
   GenerationRequestRepository,
   PostRepository,
@@ -34,6 +35,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
       : vi.fn().mockResolvedValue({
           copies: { [Platform.LINKEDIN]: { text: 'Generated copy', charCount: 14 } },
           cta: 'Comente abaixo!',
+          headline: 'Headline gerada',
         }),
   }
 
@@ -43,6 +45,10 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
       if (failPositions.has(prompt.position)) return Promise.reject(new Error('image gen failed'))
       return Promise.resolve({ base64: 'YmFzZTY0', mimeType: 'image/png' })
     }),
+  }
+
+  const templateRenderer: TemplateRendererPort = {
+    render: vi.fn().mockResolvedValue({ base64: 'cmVuZGVyZWQ=', mimeType: 'image/png' }),
   }
 
   const imageStorage: ImageStoragePort = {
@@ -83,6 +89,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
   return {
     copyGenerator,
     imageGenerator,
+    templateRenderer,
     imageStorage,
     generationRequestRepo,
     postRepo,
@@ -101,6 +108,7 @@ function baseInput() {
     targetPlatforms: [Platform.LINKEDIN],
     artifactCount: 1,
     topicSuggestionId: null,
+    style: TemplateStyle.BOLD_BOTTOM,
   }
 }
 
@@ -110,6 +118,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -133,6 +142,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -155,6 +165,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -175,6 +186,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -196,6 +208,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -228,6 +241,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -249,6 +263,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,
@@ -269,6 +284,7 @@ describe('GenerateContentUseCase', () => {
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
+      deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.postRepo,

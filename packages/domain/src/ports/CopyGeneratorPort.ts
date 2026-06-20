@@ -22,6 +22,8 @@ export type PlatformCopies = Partial<Record<Platform, PlatformCopy>>
 export interface CopyGenerationResult {
   copies: PlatformCopies
   cta: string
+  /** Headline curto (~80 caracteres), compartilhado entre plataformas, distinto da legenda completa por plataforma. */
+  headline: string
 }
 
 export interface CopyGeneratorPort {

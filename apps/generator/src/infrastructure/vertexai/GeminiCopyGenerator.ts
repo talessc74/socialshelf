@@ -72,8 +72,10 @@ ${formatSection}
 Limites de caracteres por plataforma:
 ${platformLimits}
 
+Gere também um headline curto (até 80 caracteres), compartilhado entre as plataformas, para ser desenhado como texto sobre a imagem de fundo — distinto da legenda completa de cada plataforma.
+
 Responda apenas com um JSON no formato:
-{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "..."}`
+{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headline": "..."}`
   }
 
   private toCopyGenerationResult(parsed: unknown): CopyGenerationResult {
@@ -83,9 +85,15 @@ Responda apenas com um JSON no formato:
     const obj = parsed as Record<string, unknown>
     const copies = obj['copies']
     const cta = obj['cta']
-    if (typeof copies !== 'object' || copies === null || typeof cta !== 'string') {
+    const headline = obj['headline']
+    if (
+      typeof copies !== 'object' ||
+      copies === null ||
+      typeof cta !== 'string' ||
+      typeof headline !== 'string'
+    ) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
-    return { copies: copies as CopyGenerationResult['copies'], cta }
+    return { copies: copies as CopyGenerationResult['copies'], cta, headline }
   }
 }

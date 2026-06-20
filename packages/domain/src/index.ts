@@ -25,6 +25,7 @@ export type { NewsItem } from './entities/NewsItem.js'
 export type { VerifiedNewsItem } from './entities/VerifiedNewsItem.js'
 export type { TopicSuggestion } from './entities/TopicSuggestion.js'
 export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform.js'
+export { TemplateStyle, ALL_TEMPLATE_STYLES } from './entities/TemplateStyle.js'
 
 // Ports
 export type { OAuthRepository } from './ports/OAuthRepository.js'
@@ -45,6 +46,11 @@ export type {
   BrandTokens,
 } from './ports/ImageGeneratorPort.js'
 export type { ImageStoragePort } from './ports/ImageStoragePort.js'
+export type {
+  TemplateRendererPort,
+  TemplateRenderInput,
+  RenderedTemplateImage,
+} from './ports/TemplateRendererPort.js'
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'

@@ -3,6 +3,7 @@ import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
   ImageStoragePort,
+  TemplateRendererPort,
   GenerationRequestRepository,
   PostRepository,
   BrandProfileRepository,
@@ -11,6 +12,7 @@ import type {
   GenerationArtifact,
   Platform,
   PlatformContent,
+  TemplateStyle,
 } from '@socialshelf/domain'
 
 export interface GenerateContentInput {
@@ -22,12 +24,14 @@ export interface GenerateContentInput {
   targetPlatforms: Platform[]
   artifactCount: number
   topicSuggestionId: string | null
+  style: TemplateStyle
 }
 
 export class GenerateContentUseCase {
   constructor(
     private readonly copyGenerator: CopyGeneratorPort,
     private readonly imageGenerator: ImageGeneratorPort,
+    private readonly templateRenderer: TemplateRendererPort,
     private readonly imageStorage: ImageStoragePort,
     private readonly generationRequestRepo: GenerationRequestRepository,
     private readonly postRepo: PostRepository,
@@ -90,7 +94,7 @@ export class GenerateContentUseCase {
     request = {
       ...request,
       status: 'generating_image',
-      outputs: { copies: copyResult.copies, cta: copyResult.cta, artifacts },
+      outputs: { copies: copyResult.copies, cta: copyResult.cta, headline: copyResult.headline, artifacts },
     }
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
     await this.generationRequestRepo.updateStatus(request.id, 'generating_image')
@@ -117,11 +121,17 @@ export class GenerateContentUseCase {
             position: artifact.position,
             totalArtifacts: input.artifactCount,
           })
+          const finalImage = await this.templateRenderer.render({
+            backgroundImage: image,
+            headline: copyResult.headline,
+            style: input.style,
+            brandTokens,
+          })
           const path = await this.imageStorage.upload(
             input.userId,
             input.brandId,
-            Buffer.from(image.base64, 'base64'),
-            image.mimeType,
+            Buffer.from(finalImage.base64, 'base64'),
+            finalImage.mimeType,
             request.id,
           )
           artifact.status = 'ready'

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
-import { Platform } from '@socialshelf/domain'
+import { Platform, TemplateStyle } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
 import { ScoreBadge } from '../../../components/ScoreBadge'
@@ -24,6 +24,12 @@ const ARTIFACT_STATUS_LABELS: Record<string, string> = {
 }
 
 const STEPS = ['Descrever', 'Gerando', 'Resultado']
+
+const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
+  { value: TemplateStyle.BOLD_BOTTOM, label: 'Faixa inferior' },
+  { value: TemplateStyle.CENTERED_OVERLAY, label: 'Overlay escuro' },
+  { value: TemplateStyle.TOP_STRIP, label: 'Faixa superior' },
+]
 
 function GeneratedImage({ path }: { path: string }) {
   const { data: url, isLoading, isError, error } = useQuery({
@@ -82,6 +88,7 @@ export default function GenerateContentPage() {
   const [textContent, setTextContent] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set())
   const [artifactCount, setArtifactCount] = useState(1)
+  const [style, setStyle] = useState<TemplateStyle>(TemplateStyle.BOLD_BOTTOM)
   const [topicSuggestionId, setTopicSuggestionId] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
@@ -130,6 +137,7 @@ export default function GenerateContentPage() {
         ...(textContent.trim() && { textContent: textContent.trim() }),
         targetPlatforms: [...selectedPlatforms],
         artifactCount,
+        style,
         ...(topicSuggestionId && { topicSuggestionId }),
       })
       setResult(generationRequest)
@@ -174,6 +182,8 @@ export default function GenerateContentPage() {
               togglePlatform={togglePlatform}
               artifactCount={artifactCount}
               setArtifactCount={setArtifactCount}
+              style={style}
+              setStyle={setStyle}
               error={error}
               canGenerate={canGenerate}
               onGenerate={handleGenerate}
@@ -235,6 +245,8 @@ function FormView({
   togglePlatform,
   artifactCount,
   setArtifactCount,
+  style,
+  setStyle,
   error,
   canGenerate,
   onGenerate,
@@ -252,6 +264,8 @@ function FormView({
   togglePlatform: (p: Platform) => void
   artifactCount: number
   setArtifactCount: (v: number) => void
+  style: TemplateStyle
+  setStyle: (v: TemplateStyle) => void
   error: string
   canGenerate: boolean
   onGenerate: () => void
@@ -351,6 +365,48 @@ function FormView({
             <p className="text-xs text-gray-400">
               {artifactCount === 1 ? 'Post único' : `Carrossel com ${artifactCount} imagens`}
             </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            Estilo do template
+          </label>
+          <div className="grid grid-cols-3 gap-3">
+            {TEMPLATE_STYLE_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setStyle(option.value)}
+                className={`space-y-2 rounded-lg border p-2 text-left transition-colors ${
+                  style === option.value
+                    ? 'border-brand-600 bg-brand-50'
+                    : 'border-gray-300 bg-white hover:border-brand-400'
+                }`}
+              >
+                <div className="flex aspect-square w-full flex-col overflow-hidden rounded bg-gray-200">
+                  {option.value === TemplateStyle.TOP_STRIP && (
+                    <div className="h-1/5 w-full bg-brand-300" />
+                  )}
+                  {option.value === TemplateStyle.CENTERED_OVERLAY && (
+                    <div className="flex h-full w-full items-center justify-center bg-black/40">
+                      <div className="h-1/4 w-2/3 rounded bg-white/70" />
+                    </div>
+                  )}
+                  {option.value === TemplateStyle.BOLD_BOTTOM && <div className="flex-1" />}
+                  {option.value === TemplateStyle.BOLD_BOTTOM && (
+                    <div className="h-1/4 w-full bg-brand-300" />
+                  )}
+                </div>
+                <p
+                  className={`text-xs font-medium ${
+                    style === option.value ? 'text-brand-700' : 'text-gray-600'
+                  }`}
+                >
+                  {option.label}
+                </p>
+              </button>
+            ))}
           </div>
         </div>
       </section>

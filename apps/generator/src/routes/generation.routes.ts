@@ -1,9 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform } from '@socialshelf/domain'
+import { Platform, TemplateStyle } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
+import { SharpTemplateRenderer } from '../infrastructure/template/SharpTemplateRenderer.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FirestoreGenerationRequestRepository } from '../infrastructure/firestore/FirestoreGenerationRequestRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
@@ -25,6 +26,7 @@ const generateSchema = z.object({
   targetPlatforms: z.array(platformEnum).min(1),
   artifactCount: z.number().int().min(1).max(10).default(1),
   topicSuggestionId: z.string().min(1).optional(),
+  style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),
 })
 
 export async function generationRoutes(app: FastifyInstance) {
@@ -37,6 +39,7 @@ export async function generationRoutes(app: FastifyInstance) {
 
   const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel)
   const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel)
+  const templateRenderer = new SharpTemplateRenderer()
   const imageStorage = new GcsImageStorage(generatedBucket)
   const generationRequestRepo = new FirestoreGenerationRequestRepository()
   const postRepo = new FirestorePostRepository()
@@ -46,6 +49,7 @@ export async function generationRoutes(app: FastifyInstance) {
   const useCase = new GenerateContentUseCase(
     copyGenerator,
     imageGenerator,
+    templateRenderer,
     imageStorage,
     generationRequestRepo,
     postRepo,
@@ -79,6 +83,7 @@ export async function generationRoutes(app: FastifyInstance) {
         targetPlatforms: parsed.data.targetPlatforms,
         artifactCount: parsed.data.artifactCount,
         topicSuggestionId: parsed.data.topicSuggestionId ?? null,
+        style: parsed.data.style,
       })
       return reply.send({ generationRequest })
     } catch (err) {
