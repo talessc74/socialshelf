@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type ApiGenerationRequest, type ApiBrandProfile, type PublishResponse } from '../../../lib/api'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { Platform, TemplateStyle, AspectRatio, type GenerationArtifact } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
@@ -43,56 +44,6 @@ const ASPECT_RATIO_CLASS: Record<AspectRatio, string> = {
   [AspectRatio.PORTRAIT]: 'aspect-[3/4]',
   [AspectRatio.LANDSCAPE]: 'aspect-video',
   [AspectRatio.STORY]: 'aspect-[9/16]',
-}
-
-function LogoUploader({ brandProfile }: { brandProfile: ApiBrandProfile }) {
-  const queryClient = useQueryClient()
-  const [uploading, setUploading] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setUploadError('')
-    setUploading(true)
-    try {
-      const path = await api.uploadImage(file)
-      await api.updateBrandProfile({
-        business: brandProfile.business,
-        identity: brandProfile.identity,
-        visual: { ...brandProfile.visual, logoStoragePath: path },
-        voice: brandProfile.voice,
-        narrative: brandProfile.narrative,
-        operation: brandProfile.operation,
-      })
-      await queryClient.invalidateQueries({ queryKey: ['brand-profile'] })
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Erro ao enviar o logo.')
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  return (
-    <div className="space-y-1 border-t border-gray-100 pt-3">
-      <p className="text-sm font-medium text-gray-800">Logo da marca</p>
-      <p className="text-xs text-gray-400">
-        {brandProfile.visual.logoStoragePath
-          ? 'Logo cadastrado — aparece em um canto de cada card gerado.'
-          : 'Envie o logo da marca para que ele apareça em um canto de cada card gerado.'}
-      </p>
-      <input
-        type="file"
-        accept="image/png,image/jpeg,image/webp"
-        onChange={handleFileChange}
-        disabled={uploading}
-        className="block w-full text-xs text-gray-600"
-      />
-      {uploading && <p className="text-xs text-gray-400">Enviando…</p>}
-      {uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
-    </div>
-  )
 }
 
 function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: string }) {
@@ -460,7 +411,9 @@ export default function GenerateContentPage() {
               <p className="text-xs text-gray-400">
                 A copy gerada vai seguir esse tom automaticamente.
               </p>
-              <LogoUploader brandProfile={brandProfile} />
+              <Link href="/dashboard/brand" className="text-xs font-semibold text-brand-600 hover:underline">
+                Editar marca →
+              </Link>
             </div>
           ) : (
             <div className="space-y-1 rounded-lg bg-amber-50 p-3">

@@ -77,6 +77,12 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Link
+            href="/dashboard/brand"
+            className="whitespace-nowrap rounded-xl border border-brand-100 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-300 hover:bg-brand-50"
+          >
+            🏷️ Configurar Marca
+          </Link>
+          <Link
             href="/dashboard/performance"
             className="whitespace-nowrap rounded-xl border border-brand-100 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 shadow-sm hover:border-brand-300 hover:bg-brand-50"
           >
