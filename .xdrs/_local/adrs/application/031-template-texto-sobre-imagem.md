@@ -31,7 +31,11 @@ Catálogo é uma lista fechada e pequena nesta fase — não é um editor de tem
 
 **Headline como novo campo de `CopyGeneratorPort`**
 
-`CopyGenerationResult` ganha `headline: string` (curto, ~80 caracteres, compartilhado entre plataformas) — distinto das `copies` por plataforma (que são a legenda completa). O Gemini gera o headline junto com a copy, na mesma chamada. `GenerationRequest.outputs` passa a incluir `headline: string | null` ao lado de `copies`/`cta`.
+`CopyGenerationResult` ganha `headlines: string[]` (curto, ~80 caracteres cada, compartilhado entre plataformas) — distinto das `copies` por plataforma (que são a legenda completa). O Gemini gera os headlines junto com a copy, na mesma chamada. `GenerationRequest.outputs` passa a incluir `headlines: string[] | null` ao lado de `copies`/`cta`.
+
+**Correção — um headline por slide, formando narrativa, não um headline repetido (2026-06-20)**
+
+A primeira versão deste ADR previa um único `headline: string` reaproveitado em todos os artefatos de um carrossel. Em uso real, isso produziu carrosséis onde cada slide tinha imagem de fundo diferente mas o **mesmo texto repetido** em todos os cards — não é isso que um carrossel real faz (cada card avança uma narrativa: gancho → desenvolvimento → fechamento). Corrigido: `ContentInputs` ganha `artifactCount: number`; `CopyGeneratorPort.generateCopy()` retorna `headlines: string[]` com exatamente `artifactCount` itens, um por posição de slide; `GeminiCopyGenerator` instrui explicitamente o Gemini a gerar uma sequência narrativa quando `artifactCount > 1` (primeiro slide = gancho/problema, slides do meio = desenvolvimento, último = conclusão/CTA), e valida que o array retornado tem o tamanho exato esperado, falhando a geração de copy (não a de imagem) se o modelo devolver um número diferente. `GenerateContentUseCase` usa `headlines[artifact.position - 1]` ao renderizar o template de cada artefato.
 
 **Fluxo de geração**
 

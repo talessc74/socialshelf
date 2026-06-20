@@ -75,6 +75,7 @@ export class GenerateContentUseCase {
         images: [],
         targetPlatforms: input.targetPlatforms,
         format: input.artifactCount > 1 ? 'carousel' : 'single',
+        artifactCount: input.artifactCount,
         pautaContext,
         brandVoice: brandProfile?.voice ?? null,
       })
@@ -94,7 +95,7 @@ export class GenerateContentUseCase {
     request = {
       ...request,
       status: 'generating_image',
-      outputs: { copies: copyResult.copies, cta: copyResult.cta, headline: copyResult.headline, artifacts },
+      outputs: { copies: copyResult.copies, cta: copyResult.cta, headlines: copyResult.headlines, artifacts },
     }
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
     await this.generationRequestRepo.updateStatus(request.id, 'generating_image')
@@ -123,7 +124,7 @@ export class GenerateContentUseCase {
           })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
-            headline: copyResult.headline,
+            headline: copyResult.headlines[artifact.position - 1]!,
             style: input.style,
             brandTokens,
           })

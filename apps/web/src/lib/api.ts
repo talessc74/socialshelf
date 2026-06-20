@@ -124,7 +124,7 @@ export interface ApiGenerationRequest {
   outputs: {
     copies: Partial<Record<Platform, { text: string; charCount: number }>>
     cta: string | null
-    headline: string | null
+    headlines: string[] | null
     artifacts: ApiGenerationArtifact[]
   } | null
   error: string | null

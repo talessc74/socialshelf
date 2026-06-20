@@ -35,7 +35,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
       : vi.fn().mockResolvedValue({
           copies: { [Platform.LINKEDIN]: { text: 'Generated copy', charCount: 14 } },
           cta: 'Comente abaixo!',
-          headline: 'Headline gerada',
+          headlines: ['Headline gerada 1', 'Headline gerada 2', 'Headline gerada 3'],
         }),
   }
 

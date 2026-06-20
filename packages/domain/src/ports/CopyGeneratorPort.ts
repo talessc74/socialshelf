@@ -13,6 +13,7 @@ export interface ContentInputs {
   images: Array<{ base64: string; mimeType: string }>
   targetPlatforms: Platform[]
   format: 'single' | 'carousel'
+  artifactCount: number
   pautaContext: PautaContext | null
   brandVoice: BrandProfileVoice | null
 }
@@ -22,8 +23,12 @@ export type PlatformCopies = Partial<Record<Platform, PlatformCopy>>
 export interface CopyGenerationResult {
   copies: PlatformCopies
   cta: string
-  /** Headline curto (~80 caracteres), compartilhado entre plataformas, distinto da legenda completa por plataforma. */
-  headline: string
+  /**
+   * Um headline curto (~80 caracteres) por artefato, na ordem dos slides — sempre
+   * `length === artifactCount`. Em carrossel, formam uma sequência narrativa (gancho →
+   * desenvolvimento → fechamento), não N variações do mesmo texto.
+   */
+  headlines: string[]
 }
 
 export interface CopyGeneratorPort {

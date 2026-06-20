@@ -32,7 +32,7 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
       throw new Error('Gemini returned invalid JSON for copy generation')
     }
 
-    return this.toCopyGenerationResult(parsed)
+    return this.toCopyGenerationResult(parsed, inputs.artifactCount)
   }
 
   private buildPrompt(inputs: ContentInputs): string {
@@ -61,6 +61,11 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
         ? 'Formato: carrossel com múltiplos slides. O CTA deve incentivar a navegação entre os slides (ex: "arraste para ver mais").'
         : 'Formato: post único. O CTA deve incentivar engajamento direto (ex: comentário, compartilhamento).'
 
+    const headlinesSection =
+      inputs.artifactCount > 1
+        ? `Gere exatamente ${inputs.artifactCount} headlines curtos (até 80 caracteres cada), um por slide, na ordem em que aparecem no carrossel. Eles devem contar uma história coesa, não ser variações do mesmo texto: o primeiro é o gancho/problema que prende a atenção, os do meio desenvolvem a ideia passo a passo, e o último fecha com a conclusão ou reforça o CTA. Cada headline será desenhado como texto sobre a imagem daquele slide.`
+        : `Gere também um headline curto (até 80 caracteres), para ser desenhado como texto sobre a imagem de fundo — distinto da legenda completa de cada plataforma.`
+
     return `Gere texto de post para redes sociais a partir da descrição abaixo.
 
 Descrição: ${inputs.description}
@@ -72,28 +77,31 @@ ${formatSection}
 Limites de caracteres por plataforma:
 ${platformLimits}
 
-Gere também um headline curto (até 80 caracteres), compartilhado entre as plataformas, para ser desenhado como texto sobre a imagem de fundo — distinto da legenda completa de cada plataforma.
+${headlinesSection}
 
 Responda apenas com um JSON no formato:
-{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headline": "..."}`
+{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."]}
+O array "headlines" deve ter exatamente ${inputs.artifactCount} ${inputs.artifactCount > 1 ? 'itens' : 'item'}.`
   }
 
-  private toCopyGenerationResult(parsed: unknown): CopyGenerationResult {
+  private toCopyGenerationResult(parsed: unknown, expectedHeadlineCount: number): CopyGenerationResult {
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
     const obj = parsed as Record<string, unknown>
     const copies = obj['copies']
     const cta = obj['cta']
-    const headline = obj['headline']
+    const headlines = obj['headlines']
     if (
       typeof copies !== 'object' ||
       copies === null ||
       typeof cta !== 'string' ||
-      typeof headline !== 'string'
+      !Array.isArray(headlines) ||
+      headlines.length !== expectedHeadlineCount ||
+      !headlines.every((h) => typeof h === 'string')
     ) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
-    return { copies: copies as CopyGenerationResult['copies'], cta, headline }
+    return { copies: copies as CopyGenerationResult['copies'], cta, headlines: headlines as string[] }
   }
 }

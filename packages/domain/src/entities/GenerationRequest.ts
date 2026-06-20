@@ -37,7 +37,7 @@ export interface GenerationRequest {
   outputs: {
     copies: Partial<Record<Platform, PlatformCopy>>
     cta: string | null
-    headline: string | null
+    headlines: string[] | null
     artifacts: GenerationArtifact[]
   } | null
   error: string | null

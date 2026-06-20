@@ -53,7 +53,7 @@ vi.mock('../infrastructure/news/NewsApiOrgReader.js', () => ({
 const mockGenerateCopy = vi.fn().mockResolvedValue({
   copies: { linkedin: { text: 'Copy gerada', charCount: 12 } },
   cta: 'Comente abaixo!',
-  headline: 'Headline gerada',
+  headlines: ['Headline gerada'],
 })
 
 vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({
