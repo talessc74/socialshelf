@@ -454,8 +454,11 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
                 {artifact.status === 'ready' && artifact.imageStoragePath ? (
                   <GeneratedImage path={artifact.imageStoragePath} />
                 ) : (
-                  <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-400">
-                    {ARTIFACT_STATUS_LABELS[artifact.status]}
+                  <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400">
+                    <span>{ARTIFACT_STATUS_LABELS[artifact.status]}</span>
+                    {artifact.error && (
+                      <span className="break-words text-red-600">{artifact.error}</span>
+                    )}
                   </div>
                 )}
                 <p className="text-center text-xs text-gray-400">#{artifact.position}</p>
