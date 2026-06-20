@@ -114,5 +114,17 @@ describe('Meta OAuth routes', () => {
 
       expect(response.statusCode).toBe(400)
     })
+
+    it('redirects with error=oauth_denied when the user denies permissions', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/oauth/meta/callback?error=access_denied&error_reason=user_denied',
+      })
+
+      expect(response.statusCode).toBe(302)
+      const location = response.headers['location'] as string
+      expect(location).toContain('error=oauth_denied')
+      expect(location).toContain('detail=user_denied')
+    })
   })
 })

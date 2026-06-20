@@ -12,6 +12,11 @@ const callbackQuerySchema = z.object({
   brandId: z.string().optional(),
 })
 
+const callbackErrorQuerySchema = z.object({
+  error: z.string().min(1),
+  error_reason: z.string().optional(),
+})
+
 export async function metaOAuthRoutes(app: FastifyInstance) {
   const oauthRepo = new FirestoreOAuthRepository()
   const tokenVault = new FirestoreTokenVault()
@@ -30,6 +35,13 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
   )
 
   app.get('/oauth/meta/callback', async (request, reply) => {
+    const deniedResult = callbackErrorQuerySchema.safeParse(request.query)
+    if (deniedResult.success) {
+      return reply.redirect(
+        `${webUrl}/dashboard?error=oauth_denied&detail=${encodeURIComponent(deniedResult.data.error_reason ?? deniedResult.data.error)}`,
+      )
+    }
+
     const result = callbackQuerySchema.safeParse(request.query)
     if (!result.success) {
       return reply.status(400).send({ error: 'Invalid callback parameters' })
