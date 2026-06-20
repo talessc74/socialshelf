@@ -74,6 +74,10 @@ O SDK `@google-cloud/vertexai` (v1.x) monta o host da requisição como `${locat
 
 O bucket `socialshelf-generated`, referenciado em `GCS_BUCKET_GENERATED` desde a primeira versão desta ADR, nunca foi criado em produção (`404 The specified bucket does not exist`, confirmado ao testar a geração de imagem). `bootstrap-iam` no `deploy.yml` agora concede `roles/storage.objectAdmin` e `roles/iam.serviceAccountTokenCreator` (necessário para `getSignedUrl` sem arquivo de chave) à SA `generator-service`, mas a criação do bucket em si — assim como `roles/datastore.owner` do deployer SA — é uma ação que exige permissão de provisionamento de recursos (`storage.buckets.create`) que o deployer SA não detém (Zero Trust, `_local-adr-policy-005`), e por isso deve ser feita manualmente uma vez por alguém com acesso de Owner/Storage Admin.
 
+**Correção — `iam.serviceAccountTokenCreator` precisa de binding no recurso da SA, não no projeto (2026-06-20)**
+
+Mesmo após o bucket ser criado e o binding de `roles/iam.serviceAccountTokenCreator` no projeto (acima) propagar, `getSignedUrl()` continuou falhando em produção com `Permission 'iam.serviceAccounts.signBlob' denied on resource`. Causa: para um SA assinar blobs para si mesmo (auto-impersonation, exigido por `getSignedUrl()` sem arquivo de chave), o Google exige que o binding de `roles/iam.serviceAccountTokenCreator` seja feito no recurso da própria service account (`gcloud iam service-accounts add-iam-policy-binding`), não apenas no projeto — binding de projeto não habilita essa permissão para auto-assinatura. `bootstrap-iam` agora também executa esse binding resource-level para `generator-service`.
+
 ## References
 
 - [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites

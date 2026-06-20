@@ -63,6 +63,15 @@ jobs:
               --role="$ROLE" --condition=None 2>/dev/null || true
           done
 
+          # Auto-assinatura (signBlob) exige o binding no próprio recurso da SA, não
+          # apenas no projeto — documentado pelo Google para impersonation de service
+          # accounts. O binding de projeto acima não habilita getSignedUrl() sozinho.
+          gcloud iam service-accounts add-iam-policy-binding \
+            "generator-service@${PROJECT}.iam.gserviceaccount.com" \
+            --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
+            --role="roles/iam.serviceAccountTokenCreator" \
+            --project="$PROJECT" 2>/dev/null || true
+
           # Grant deployer SA permission to act as app service accounts (project-level)
           # SA-resource-level binding requires iam.serviceAccounts.setIamPolicy which
           # the deployer may not have; project-level binding uses the same permission
