@@ -84,7 +84,11 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
       </svg>`,
     )
 
+    // trim() remove a margem vazia/transparente ao redor da marca antes de centralizar — sem isso,
+    // logos cujo arquivo original não tem a marca perfeitamente centralizada no próprio canvas
+    // aparecem deslocados dentro do selo circular.
     const resizedLogo = await sharp(Buffer.from(logoImage.base64, 'base64'))
+      .trim()
       .resize(innerSize, innerSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
       .toBuffer()
 
