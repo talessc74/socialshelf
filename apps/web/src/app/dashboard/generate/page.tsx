@@ -548,14 +548,35 @@ function FormView({
             Quantidade de artefatos
           </label>
           <div className="flex items-center gap-3">
-            <input
-              type="number"
-              min={1}
-              max={10}
-              value={artifactCount}
-              onChange={(e) => setArtifactCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-              className="w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-            />
+            <div className="flex items-center rounded-lg border border-gray-300">
+              <button
+                type="button"
+                onClick={() => setArtifactCount(Math.max(1, artifactCount - 1))}
+                disabled={artifactCount <= 1}
+                aria-label="Diminuir quantidade"
+                className="px-3 py-2 text-base font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={10}
+                value={artifactCount}
+                onChange={(e) => setArtifactCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+                className="w-12 border-x border-gray-300 px-2 py-2 text-center text-sm text-gray-800 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setArtifactCount(Math.min(10, artifactCount + 1))}
+                disabled={artifactCount >= 10}
+                aria-label="Aumentar quantidade"
+                className="px-3 py-2 text-base font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+              >
+                +
+              </button>
+            </div>
             <p className="text-xs text-gray-400">
               {artifactCount === 1 ? 'Post único' : `Carrossel com ${artifactCount} imagens`}
             </p>
