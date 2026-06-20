@@ -55,7 +55,10 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
       prompt.totalArtifacts > 1
         ? ` Esta é a imagem ${prompt.position} de ${prompt.totalArtifacts} de um carrossel — manter coerência visual com as demais.`
         : ''
+    // O headline é desenhado depois por SharpTemplateRenderer; sem esta instrução o Imagen
+    // tenta "escrever" palavras do prompt na própria imagem, produzindo texto ilegível.
+    const noTextSection = ' Não incluir nenhum texto, palavra, letra, número ou tipografia na imagem — apenas elementos visuais (fotografia ou ilustração), sem nenhum tipo de escrita.'
 
-    return `${prompt.description}${styleSection}${brandSection}${seriesSection}`
+    return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}`
   }
 }

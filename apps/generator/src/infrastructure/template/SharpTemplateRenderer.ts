@@ -80,7 +80,7 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
       case TemplateStyle.BOLD_BOTTOM:
         return this.boldBottom(input, width, height, fontSize, fontFamily, lines)
       case TemplateStyle.CENTERED_OVERLAY:
-        return this.centeredOverlay(width, height, fontSize, fontFamily, lines)
+        return this.centeredOverlay(input, width, height, fontSize, fontFamily, lines)
       case TemplateStyle.TOP_STRIP:
         return this.topStrip(input, width, height, fontSize, fontFamily, lines)
     }
@@ -94,10 +94,20 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     fontFamily: string,
     lines: string[],
   ): string {
-    const stripHeight = height * 0.25
+    const lineHeight = fontSize * 1.2
+    const textBlockHeight = (lines.length - 1) * lineHeight
+    // O logo fica ancorado no canto inferior direito de toda a imagem (ver render()); reservamos
+    // essa faixa para o texto não ficar embaixo dele quando o headline quebra em 2+ linhas.
+    const logoClearance = input.logoImage
+      ? Math.round(Math.min(width, height) * LOGO_SIZE_RATIO) + Math.round(Math.min(width, height) * LOGO_MARGIN_RATIO) * 1.5
+      : 0
+    const topPadding = fontSize
+    const minStripHeight = lines.length * lineHeight + topPadding + logoClearance
+    const stripHeight = Math.max(height * 0.25, minStripHeight)
     const stripY = height - stripHeight
+    const textAreaHeight = stripHeight - logoClearance
     const fill = input.brandTokens?.primaryColor ?? DEFAULT_DARK
-    const textY = stripY + stripHeight / 2 - ((lines.length - 1) * fontSize * 1.2) / 2
+    const textY = stripY + textAreaHeight / 2 - textBlockHeight / 2
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="${stripY}" width="${width}" height="${stripHeight}" fill="${fill}" />
@@ -106,13 +116,20 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
   }
 
   private centeredOverlay(
+    input: TemplateRenderInput,
     width: number,
     height: number,
     fontSize: number,
     fontFamily: string,
     lines: string[],
   ): string {
-    const textY = height / 2 - ((lines.length - 1) * fontSize * 1.2) / 2
+    const lineHeight = fontSize * 1.2
+    const textBlockHeight = (lines.length - 1) * lineHeight
+    const logoClearance = input.logoImage
+      ? Math.round(Math.min(width, height) * LOGO_SIZE_RATIO) + Math.round(Math.min(width, height) * LOGO_MARGIN_RATIO) * 1.5
+      : 0
+    // Centraliza o texto na área acima da faixa reservada ao logo, em vez de na imagem inteira.
+    const textY = (height - logoClearance) / 2 - textBlockHeight / 2
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="${width}" height="${height}" fill="black" fill-opacity="0.45" />
