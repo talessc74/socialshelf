@@ -13,6 +13,7 @@ import type {
   Platform,
   PlatformContent,
   TemplateStyle,
+  AspectRatio,
 } from '@socialshelf/domain'
 
 export interface GenerateContentInput {
@@ -25,6 +26,7 @@ export interface GenerateContentInput {
   artifactCount: number
   topicSuggestionId: string | null
   style: TemplateStyle
+  aspectRatio: AspectRatio
 }
 
 export class GenerateContentUseCase {
@@ -53,6 +55,7 @@ export class GenerateContentUseCase {
         targetPlatforms: input.targetPlatforms,
         artifactCount: input.artifactCount,
         topicSuggestionId: input.topicSuggestionId,
+        aspectRatio: input.aspectRatio,
       },
       outputs: null,
       error: null,
@@ -121,6 +124,7 @@ export class GenerateContentUseCase {
             brandTokens,
             position: artifact.position,
             totalArtifacts: input.artifactCount,
+            aspectRatio: input.aspectRatio,
           })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,

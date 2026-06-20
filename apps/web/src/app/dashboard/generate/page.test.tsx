@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Platform } from '@socialshelf/domain'
+import { Platform, AspectRatio } from '@socialshelf/domain'
 import GenerateContentPage from './page'
 import { api, type ApiConnection, type ApiGenerationRequest, type ApiTopicSuggestion } from '../../../lib/api'
 
@@ -139,6 +139,7 @@ describe('GenerateContentPage', () => {
         targetPlatforms: [Platform.LINKEDIN],
         artifactCount: 1,
         topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
       },
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
@@ -178,6 +179,7 @@ describe('GenerateContentPage', () => {
         targetPlatforms: [Platform.LINKEDIN],
         artifactCount: 1,
         topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
       },
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
@@ -266,6 +268,7 @@ describe('GenerateContentPage', () => {
         targetPlatforms: [Platform.LINKEDIN],
         artifactCount: 1,
         topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
       },
       outputs: null,
       error: 'All artifacts failed to generate',
@@ -298,6 +301,7 @@ describe('GenerateContentPage', () => {
         targetPlatforms: [Platform.LINKEDIN],
         artifactCount: 2,
         topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
       },
       outputs: {
         copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },

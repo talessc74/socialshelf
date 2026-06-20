@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { GenerateContentUseCase } from './GenerateContentUseCase.js'
-import { Platform, TemplateStyle } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
@@ -109,6 +109,7 @@ function baseInput() {
     artifactCount: 1,
     topicSuggestionId: null,
     style: TemplateStyle.BOLD_BOTTOM,
+    aspectRatio: AspectRatio.SQUARE,
   }
 }
 

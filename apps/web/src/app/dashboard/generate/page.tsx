@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
-import { Platform, TemplateStyle } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
 import { ScoreBadge } from '../../../components/ScoreBadge'
@@ -31,7 +31,21 @@ const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
   { value: TemplateStyle.TOP_STRIP, label: 'Faixa superior' },
 ]
 
-function GeneratedImage({ path }: { path: string }) {
+const ASPECT_RATIO_OPTIONS: Array<{ value: AspectRatio; label: string; preview: string }> = [
+  { value: AspectRatio.SQUARE, label: 'Quadrado', preview: 'aspect-square' },
+  { value: AspectRatio.PORTRAIT, label: 'Retrato', preview: 'aspect-[3/4]' },
+  { value: AspectRatio.LANDSCAPE, label: 'Paisagem', preview: 'aspect-video' },
+  { value: AspectRatio.STORY, label: 'Stories', preview: 'aspect-[9/16]' },
+]
+
+const ASPECT_RATIO_CLASS: Record<AspectRatio, string> = {
+  [AspectRatio.SQUARE]: 'aspect-square',
+  [AspectRatio.PORTRAIT]: 'aspect-[3/4]',
+  [AspectRatio.LANDSCAPE]: 'aspect-video',
+  [AspectRatio.STORY]: 'aspect-[9/16]',
+}
+
+function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: string }) {
   const { data: url, isLoading, isError, error } = useQuery({
     queryKey: ['generation-image-url', path],
     queryFn: () => api.getImageUrl(path),
@@ -39,7 +53,7 @@ function GeneratedImage({ path }: { path: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-gray-100">
+      <div className={`flex w-full items-center justify-center rounded-lg bg-gray-100 ${aspectClass}`}>
         <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
       </div>
     )
@@ -47,7 +61,9 @@ function GeneratedImage({ path }: { path: string }) {
 
   if (isError || !url) {
     return (
-      <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400">
+      <div
+        className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400 ${aspectClass}`}
+      >
         <span>Não foi possível carregar a imagem</span>
         {error instanceof Error && <span className="break-words text-red-600">{error.message}</span>}
       </div>
@@ -55,7 +71,7 @@ function GeneratedImage({ path }: { path: string }) {
   }
 
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="Artefato gerado" className="aspect-square w-full rounded-lg object-cover" />
+  return <img src={url} alt="Artefato gerado" className={`w-full rounded-lg object-cover ${aspectClass}`} />
 }
 
 function useGenerationProgress(active: boolean, totalArtifacts: number) {
@@ -89,6 +105,7 @@ export default function GenerateContentPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set())
   const [artifactCount, setArtifactCount] = useState(1)
   const [style, setStyle] = useState<TemplateStyle>(TemplateStyle.BOLD_BOTTOM)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE)
   const [topicSuggestionId, setTopicSuggestionId] = useState('')
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
@@ -138,6 +155,7 @@ export default function GenerateContentPage() {
         targetPlatforms: [...selectedPlatforms],
         artifactCount,
         style,
+        aspectRatio,
         ...(topicSuggestionId && { topicSuggestionId }),
       })
       setResult(generationRequest)
@@ -184,6 +202,8 @@ export default function GenerateContentPage() {
               setArtifactCount={setArtifactCount}
               style={style}
               setStyle={setStyle}
+              aspectRatio={aspectRatio}
+              setAspectRatio={setAspectRatio}
               error={error}
               canGenerate={canGenerate}
               onGenerate={handleGenerate}
@@ -247,6 +267,8 @@ function FormView({
   setArtifactCount,
   style,
   setStyle,
+  aspectRatio,
+  setAspectRatio,
   error,
   canGenerate,
   onGenerate,
@@ -266,6 +288,8 @@ function FormView({
   setArtifactCount: (v: number) => void
   style: TemplateStyle
   setStyle: (v: TemplateStyle) => void
+  aspectRatio: AspectRatio
+  setAspectRatio: (v: AspectRatio) => void
   error: string
   canGenerate: boolean
   onGenerate: () => void
@@ -409,6 +433,35 @@ function FormView({
             ))}
           </div>
         </div>
+
+        <div>
+          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            Formato da imagem
+          </label>
+          <div className="grid grid-cols-4 gap-3">
+            {ASPECT_RATIO_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setAspectRatio(option.value)}
+                className={`space-y-2 rounded-lg border p-2 text-left transition-colors ${
+                  aspectRatio === option.value
+                    ? 'border-brand-600 bg-brand-50'
+                    : 'border-gray-300 bg-white hover:border-brand-400'
+                }`}
+              >
+                <div className={`mx-auto w-full rounded bg-gray-200 ${option.preview}`} />
+                <p
+                  className={`text-center text-xs font-medium ${
+                    aspectRatio === option.value ? 'text-brand-700' : 'text-gray-600'
+                  }`}
+                >
+                  {option.label}
+                </p>
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -453,6 +506,7 @@ function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: 
 }
 
 function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: () => void }) {
+  const aspectClass = ASPECT_RATIO_CLASS[result.inputs.aspectRatio]
   const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
   const failedArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'failed') ?? []
   const [publishing, setPublishing] = useState(false)
@@ -515,9 +569,12 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
             {result.outputs?.artifacts.map((artifact) => (
               <div key={artifact.position} className="space-y-1">
                 {artifact.status === 'ready' && artifact.imageStoragePath ? (
-                  <GeneratedImage path={artifact.imageStoragePath} />
+                  <GeneratedImage path={artifact.imageStoragePath} aspectClass={aspectClass} />
                 ) : (
-                  <div className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400">
+                  <div
+                    className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400 ${aspectClass}`}
+                  >
+
                     <span>{ARTIFACT_STATUS_LABELS[artifact.status]}</span>
                     {artifact.error && (
                       <span className="break-words text-red-600">{artifact.error}</span>

@@ -52,6 +52,14 @@ A primeira versão deste ADR previa um único `headline: string` reaproveitado e
 
 `/dashboard/generate` ganha um campo de seleção de estilo no `FormView` (grid de 3 prévias, uma por `TemplateStyle`), enviado como `style` no corpo de `POST /generate`. Estilo é input transitório da geração (como `artifactCount`), não um atributo versionado do `BrandProfile` — o usuário escolhe por geração, podendo variar entre posts.
 
+**Seletor de formato/proporção de imagem (2026-06-20)**
+
+Cada plataforma recomenda uma proporção de imagem diferente (ex: quadrado, retrato, paisagem, stories vertical), e o usuário pediu para poder escolher o formato explicitamente em vez de a aplicação decidir silenciosamente. Novo enum `AspectRatio` em `packages/domain` com os valores exatamente suportados pelo parâmetro `parameters.aspectRatio` da API `:predict` do Imagen na Vertex AI — `1:1` (quadrado), `3:4` (retrato), `16:9` (paisagem), `9:16` (stories/vertical). Não existe suporte nativo a `4:5` (proporção recomendada hoje por Instagram/Facebook) no Imagen; `3:4` foi escolhido como substituto mais próximo disponível.
+
+`ImagePrompt.aspectRatio` é passado ao Imagen via `parameters.aspectRatio` em `ImagenImageGenerator`. `GenerateContentInput.aspectRatio` flui do `POST /generate` (`generateSchema` com default `AspectRatio.SQUARE`) até o use-case, e é persistido em `GenerationRequest.inputs.aspectRatio` — é input por geração, no mesmo nível de `style`, não atributo de `BrandProfile`. `SharpTemplateRenderer` não precisou de mudança: já lê `width`/`height` da imagem de fundo real via `sharp(...).metadata()`, então compõe o template corretamente em qualquer proporção.
+
+No front-end, `/dashboard/generate` ganha um segundo seletor visual (`ASPECT_RATIO_OPTIONS`, grid de 4 prévias) ao lado do seletor de estilo. O componente de exibição do resultado (`GeneratedImage` e os placeholders de status) deixam de usar a classe CSS fixa `aspect-square` e passam a usar uma classe derivada de `result.inputs.aspectRatio` (mapa `ASPECT_RATIO_CLASS`), para não cortar/distorcer imagens geradas em 16:9 ou 9:16.
+
 ## References
 
 - [_local-adr-policy-028-geracao-de-conteudo-multiartefato](028-geracao-multiartefato.md) - Decisão anterior (texto só por instrução), superada nesta parte por este ADR

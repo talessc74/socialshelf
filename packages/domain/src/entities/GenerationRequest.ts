@@ -1,4 +1,5 @@
 import type { Platform } from './Platform.js'
+import type { AspectRatio } from './AspectRatio.js'
 
 export type GenerationStatus =
   | 'pending'
@@ -33,6 +34,7 @@ export interface GenerationRequest {
     targetPlatforms: Platform[]
     artifactCount: number
     topicSuggestionId: string | null
+    aspectRatio: AspectRatio
   }
   outputs: {
     copies: Partial<Record<Platform, PlatformCopy>>

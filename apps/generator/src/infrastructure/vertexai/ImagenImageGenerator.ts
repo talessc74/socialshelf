@@ -25,7 +25,7 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
       },
       body: JSON.stringify({
         instances: [{ prompt: this.buildPrompt(prompt) }],
-        parameters: { sampleCount: 1 },
+        parameters: { sampleCount: 1, aspectRatio: prompt.aspectRatio },
       }),
     })
 

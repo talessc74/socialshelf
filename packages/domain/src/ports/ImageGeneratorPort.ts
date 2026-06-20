@@ -1,3 +1,5 @@
+import type { AspectRatio } from '../entities/AspectRatio.js'
+
 export interface BrandTokens {
   primaryColor: string
   secondaryColor: string
@@ -10,6 +12,7 @@ export interface ImagePrompt {
   brandTokens: BrandTokens | null
   position: number
   totalArtifacts: number
+  aspectRatio: AspectRatio
 }
 
 export interface GeneratedImage {

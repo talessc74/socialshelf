@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform, TemplateStyle } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
@@ -27,6 +27,7 @@ const generateSchema = z.object({
   artifactCount: z.number().int().min(1).max(10).default(1),
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),
+  aspectRatio: z.nativeEnum(AspectRatio).default(AspectRatio.SQUARE),
 })
 
 export async function generationRoutes(app: FastifyInstance) {
@@ -84,6 +85,7 @@ export async function generationRoutes(app: FastifyInstance) {
         artifactCount: parsed.data.artifactCount,
         topicSuggestionId: parsed.data.topicSuggestionId ?? null,
         style: parsed.data.style,
+        aspectRatio: parsed.data.aspectRatio,
       })
       return reply.send({ generationRequest })
     } catch (err) {

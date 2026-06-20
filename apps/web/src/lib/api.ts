@@ -1,7 +1,7 @@
 'use client'
 
 import { auth } from './firebase'
-import { Platform, TemplateStyle } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'
 
@@ -120,6 +120,7 @@ export interface ApiGenerationRequest {
     targetPlatforms: Platform[]
     artifactCount: number
     topicSuggestionId: string | null
+    aspectRatio: AspectRatio
   }
   outputs: {
     copies: Partial<Record<Platform, { text: string; charCount: number }>>
@@ -174,6 +175,7 @@ export interface GenerateContentInput {
   artifactCount?: number
   topicSuggestionId?: string
   style?: TemplateStyle
+  aspectRatio?: AspectRatio
 }
 
 export const api = {

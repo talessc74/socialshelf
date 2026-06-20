@@ -26,6 +26,7 @@ export type { VerifiedNewsItem } from './entities/VerifiedNewsItem.js'
 export type { TopicSuggestion } from './entities/TopicSuggestion.js'
 export { Platform, PLATFORM_CHARACTER_LIMITS, ALL_PLATFORMS } from './entities/Platform.js'
 export { TemplateStyle, ALL_TEMPLATE_STYLES } from './entities/TemplateStyle.js'
+export { AspectRatio, ALL_ASPECT_RATIOS } from './entities/AspectRatio.js'
 
 // Ports
 export type { OAuthRepository } from './ports/OAuthRepository.js'
