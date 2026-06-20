@@ -93,7 +93,7 @@ const mockGenerationRequest = {
   id: 'gen-1',
   userId: 'brand-1',
   brandId: 'brand-1',
-  status: 'pending',
+  status: 'ready',
   inputs: {
     description: 'desc',
     textContent: null,
@@ -101,8 +101,15 @@ const mockGenerationRequest = {
     targetPlatforms: ['linkedin'],
     artifactCount: 1,
     topicSuggestionId: null,
+    aspectRatio: '1:1',
+    style: 'bold-bottom',
   },
-  outputs: null,
+  outputs: {
+    copies: { linkedin: { text: 'Copy gerada', charCount: 12 } },
+    cta: 'Comente abaixo!',
+    headlines: ['Headline gerada'],
+    artifacts: [{ position: 1, status: 'ready', imageStoragePath: 'brand-1/generated/img.png', error: null }],
+  },
   error: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -221,6 +228,68 @@ describe('GET /generation-requests/:id', () => {
     })
 
     expect(response.statusCode).toBe(404)
+  })
+})
+
+describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with the updated generation request', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit',
+      payload: { instruction: 'deixe o fundo mais claro' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ generationRequest: { outputs: { artifacts: Array<{ status: string }> } } }>()
+    expect(body.generationRequest.outputs.artifacts[0]!.status).toBe('ready')
+  })
+
+  it('returns 404 when the generation request is not found', async () => {
+    mockFindById.mockResolvedValueOnce(null)
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/missing/artifacts/1/edit',
+      payload: { instruction: 'deixe o fundo mais claro' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('returns 400 when instruction is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit',
+      payload: {},
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit',
+      payload: { instruction: 'deixe o fundo mais claro' },
+    })
+
+    expect(response.statusCode).toBe(401)
   })
 })
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
-import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio, type GenerationArtifact } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
 import { ScoreBadge } from '../../../components/ScoreBadge'
@@ -72,6 +72,176 @@ function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: stri
 
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={url} alt="Artefato gerado" className={`w-full rounded-lg object-cover ${aspectClass}`} />
+}
+
+function LightboxImage({ path, aspectClass }: { path: string; aspectClass: string }) {
+  const { data: url, isLoading, isError } = useQuery({
+    queryKey: ['generation-image-url', path],
+    queryFn: () => api.getImageUrl(path),
+  })
+
+  if (isLoading) {
+    return (
+      <div className={`flex max-h-[70vh] w-full max-w-md items-center justify-center rounded-lg bg-gray-800 ${aspectClass}`}>
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (isError || !url) {
+    return (
+      <div className={`flex max-h-[70vh] w-full max-w-md items-center justify-center rounded-lg bg-gray-800 text-sm text-gray-300 ${aspectClass}`}>
+        Não foi possível carregar a imagem
+      </div>
+    )
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return (
+    <img
+      src={url}
+      alt="Artefato gerado"
+      className={`max-h-[70vh] w-full max-w-md rounded-lg object-contain ${aspectClass}`}
+    />
+  )
+}
+
+function Lightbox({
+  artifacts,
+  aspectClass,
+  index,
+  setIndex,
+  generationRequestId,
+  onResultUpdate,
+  onClose,
+}: {
+  artifacts: GenerationArtifact[]
+  aspectClass: string
+  index: number
+  setIndex: (i: number) => void
+  generationRequestId: string
+  onResultUpdate: (r: ApiGenerationRequest) => void
+  onClose: () => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [instruction, setInstruction] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [editError, setEditError] = useState('')
+
+  const artifact = artifacts[index]!
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowLeft') setIndex(Math.max(0, index - 1))
+      if (e.key === 'ArrowRight') setIndex(Math.min(artifacts.length - 1, index + 1))
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [index, artifacts.length, setIndex, onClose])
+
+  useEffect(() => {
+    setEditing(false)
+    setInstruction('')
+    setEditError('')
+  }, [index])
+
+  const handleSubmitEdit = async () => {
+    if (!instruction.trim()) return
+    setEditError('')
+    setSubmitting(true)
+    try {
+      const updated = await api.editArtifact(generationRequestId, artifact.position, instruction.trim())
+      onResultUpdate(updated)
+      setInstruction('')
+      setEditing(false)
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Erro ao editar o card.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      <button
+        onClick={onClose}
+        className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
+      >
+        Fechar ✕
+      </button>
+
+      <button
+        onClick={() => setIndex(Math.max(0, index - 1))}
+        disabled={index === 0}
+        className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 disabled:opacity-30"
+      >
+        ←
+      </button>
+      <button
+        onClick={() => setIndex(Math.min(artifacts.length - 1, index + 1))}
+        disabled={index === artifacts.length - 1}
+        className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20 disabled:opacity-30"
+      >
+        →
+      </button>
+
+      <div className="flex max-h-full w-full max-w-md flex-col items-center gap-3">
+        {artifact.status === 'ready' && artifact.imageStoragePath ? (
+          <LightboxImage path={artifact.imageStoragePath} aspectClass={aspectClass} />
+        ) : (
+          <div className={`flex w-full max-w-md items-center justify-center rounded-lg bg-gray-800 text-sm text-gray-300 ${aspectClass}`}>
+            {ARTIFACT_STATUS_LABELS[artifact.status]}
+          </div>
+        )}
+
+        <p className="text-sm text-gray-300">
+          #{artifact.position} de {artifacts.length}
+        </p>
+
+        <div className="w-full space-y-2">
+          {!editing ? (
+            <button
+              onClick={() => setEditing(true)}
+              className="w-full rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+            >
+              Editar este card
+            </button>
+          ) : (
+            <div className="space-y-2 rounded-lg bg-white p-3">
+              <p className="text-xs font-medium text-gray-600">
+                Descreva o que você quer mudar neste card
+              </p>
+              <textarea
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                rows={2}
+                autoFocus
+                placeholder="Ex: deixe o fundo mais claro, troque a pessoa por um ícone…"
+                className="w-full resize-none rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              {editError && <p className="text-xs text-red-600">{editError}</p>}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setEditing(false)}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmitEdit}
+                  disabled={submitting || !instruction.trim()}
+                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                >
+                  {submitting ? 'Aplicando…' : 'Aplicar'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function useGenerationProgress(active: boolean, totalArtifacts: number) {
@@ -182,7 +352,7 @@ export default function GenerateContentPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           {result ? (
-            <ResultView result={result} onBack={() => router.push('/dashboard')} />
+            <ResultView result={result} onResultUpdate={setResult} onBack={() => router.push('/dashboard')} />
           ) : generating ? (
             <GeneratingView stages={stages} stageIndex={stageIndex} />
           ) : (
@@ -505,13 +675,22 @@ function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: 
   )
 }
 
-function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: () => void }) {
+function ResultView({
+  result,
+  onResultUpdate,
+  onBack,
+}: {
+  result: ApiGenerationRequest
+  onResultUpdate: (r: ApiGenerationRequest) => void
+  onBack: () => void
+}) {
   const aspectClass = ASPECT_RATIO_CLASS[result.inputs.aspectRatio]
   const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
   const failedArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'failed') ?? []
   const [publishing, setPublishing] = useState(false)
   const [publishResult, setPublishResult] = useState<PublishResponse | null>(null)
   const [publishError, setPublishError] = useState('')
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   const handlePublish = async () => {
     if (!result.outputs) return
@@ -566,10 +745,16 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
             {(result.outputs?.artifacts.length ?? 0) > 1 ? 'Carrossel' : 'Imagem'}
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {result.outputs?.artifacts.map((artifact) => (
+            {result.outputs?.artifacts.map((artifact, i) => (
               <div key={artifact.position} className="space-y-1">
                 {artifact.status === 'ready' && artifact.imageStoragePath ? (
-                  <GeneratedImage path={artifact.imageStoragePath} aspectClass={aspectClass} />
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(i)}
+                    className="block w-full cursor-zoom-in"
+                  >
+                    <GeneratedImage path={artifact.imageStoragePath} aspectClass={aspectClass} />
+                  </button>
                 ) : (
                   <div
                     className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400 ${aspectClass}`}
@@ -586,6 +771,18 @@ function ResultView({ result, onBack }: { result: ApiGenerationRequest; onBack: 
             ))}
           </div>
         </section>
+      )}
+
+      {lightboxIndex !== null && result.outputs && (
+        <Lightbox
+          artifacts={result.outputs.artifacts}
+          aspectClass={aspectClass}
+          index={lightboxIndex}
+          setIndex={setLightboxIndex}
+          generationRequestId={result.id}
+          onResultUpdate={onResultUpdate}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
 
       {publishResult ? (

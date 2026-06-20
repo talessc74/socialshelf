@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
+import { EditArtifactUseCase } from '../use-cases/EditArtifactUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
 import { SharpTemplateRenderer } from '../infrastructure/template/SharpTemplateRenderer.js'
@@ -30,6 +31,10 @@ const generateSchema = z.object({
   aspectRatio: z.nativeEnum(AspectRatio).default(AspectRatio.SQUARE),
 })
 
+const editArtifactSchema = z.object({
+  instruction: z.string().min(1),
+})
+
 export async function generationRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
@@ -56,6 +61,14 @@ export async function generationRoutes(app: FastifyInstance) {
     postRepo,
     brandProfileRepo,
     topicSuggestionRepo,
+  )
+
+  const editArtifactUseCase = new EditArtifactUseCase(
+    imageGenerator,
+    templateRenderer,
+    imageStorage,
+    generationRequestRepo,
+    brandProfileRepo,
   )
 
   const internalSecret = process.env['INTERNAL_SECRET']
@@ -107,6 +120,33 @@ export async function generationRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'Generation request not found' })
     }
     return reply.send({ generationRequest })
+  })
+
+  app.post('/generation-requests/:id/artifacts/:position/edit', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const { id, position } = request.params as { id: string; position: string }
+    const parsed = editArtifactSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const generationRequest = await editArtifactUseCase.execute({
+        generationRequestId: id,
+        position: Number(position),
+        instruction: parsed.data.instruction,
+      })
+      return reply.send({ generationRequest })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'edit artifact use-case failed')
+      const status = detail.includes('not found') ? 404 : 500
+      return reply.status(status).send({ error: 'Internal error', detail })
+    }
   })
 
   app.get('/images/signed-url', async (request, reply) => {

@@ -121,6 +121,7 @@ export interface ApiGenerationRequest {
     artifactCount: number
     topicSuggestionId: string | null
     aspectRatio: AspectRatio
+    style: TemplateStyle
   }
   outputs: {
     copies: Partial<Record<Platform, { text: string; charCount: number }>>
@@ -228,6 +229,18 @@ export const api = {
 
   async getGenerationRequest(id: string): Promise<ApiGenerationRequest> {
     const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(`/generation-requests/${id}`)
+    return data.generationRequest
+  },
+
+  async editArtifact(
+    generationRequestId: string,
+    position: number,
+    instruction: string,
+  ): Promise<ApiGenerationRequest> {
+    const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(
+      `/generation-requests/${generationRequestId}/artifacts/${position}/edit`,
+      { method: 'POST', body: JSON.stringify({ instruction }) },
+    )
     return data.generationRequest
   },
 

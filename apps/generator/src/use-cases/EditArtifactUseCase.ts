@@ -1,0 +1,78 @@
+import type {
+  ImageGeneratorPort,
+  TemplateRendererPort,
+  ImageStoragePort,
+  GenerationRequestRepository,
+  BrandProfileRepository,
+  GenerationRequest,
+} from '@socialshelf/domain'
+
+export interface EditArtifactInput {
+  generationRequestId: string
+  position: number
+  instruction: string
+}
+
+export class EditArtifactUseCase {
+  constructor(
+    private readonly imageGenerator: ImageGeneratorPort,
+    private readonly templateRenderer: TemplateRendererPort,
+    private readonly imageStorage: ImageStoragePort,
+    private readonly generationRequestRepo: GenerationRequestRepository,
+    private readonly brandProfileRepo: BrandProfileRepository,
+  ) {}
+
+  async execute(input: EditArtifactInput): Promise<GenerationRequest> {
+    const request = await this.generationRequestRepo.findById(input.generationRequestId)
+    if (!request) throw new Error('Generation request not found')
+    if (!request.outputs) throw new Error('Generation request has no outputs yet')
+
+    const artifact = request.outputs.artifacts.find((a) => a.position === input.position)
+    if (!artifact) throw new Error(`Artifact at position ${input.position} not found`)
+
+    const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.brandId)
+    const brandTokens = brandProfile
+      ? {
+          primaryColor: brandProfile.visual.primaryColor,
+          secondaryColor: brandProfile.visual.secondaryColor,
+          typography: brandProfile.visual.typography,
+        }
+      : null
+
+    artifact.status = 'generating'
+    artifact.error = null
+    await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
+
+    try {
+      const image = await this.imageGenerator.generateImage({
+        description: `${request.inputs.description}. Ajuste solicitado pelo usuário: ${input.instruction}`,
+        brandTokens,
+        position: artifact.position,
+        totalArtifacts: request.inputs.artifactCount,
+        aspectRatio: request.inputs.aspectRatio,
+      })
+      const headline = request.outputs.headlines?.[artifact.position - 1] ?? ''
+      const finalImage = await this.templateRenderer.render({
+        backgroundImage: image,
+        headline,
+        style: request.inputs.style,
+        brandTokens,
+      })
+      const path = await this.imageStorage.upload(
+        request.userId,
+        request.brandId,
+        Buffer.from(finalImage.base64, 'base64'),
+        finalImage.mimeType,
+        request.id,
+      )
+      artifact.status = 'ready'
+      artifact.imageStoragePath = path
+    } catch (err) {
+      artifact.status = 'failed'
+      artifact.error = err instanceof Error ? err.message : String(err)
+    }
+
+    await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
+    return request
+  }
+}

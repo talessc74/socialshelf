@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { fetchInternal } from '../lib/serviceAuth.js'
 
 const platformEnum = z.enum([
@@ -17,6 +17,12 @@ const generateSchema = z.object({
   targetPlatforms: z.array(platformEnum).min(1),
   artifactCount: z.number().int().min(1).max(10).optional(),
   topicSuggestionId: z.string().min(1).optional(),
+  style: z.nativeEnum(TemplateStyle).optional(),
+  aspectRatio: z.nativeEnum(AspectRatio).optional(),
+})
+
+const editArtifactSchema = z.object({
+  instruction: z.string().min(1),
 })
 
 export async function generationRoutes(app: FastifyInstance) {
@@ -64,6 +70,39 @@ export async function generationRoutes(app: FastifyInstance) {
       if (!res.ok) {
         const body = await res.text()
         if (res.status === 404) return reply.status(404).send({ error: 'Generation request not found' })
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
+  app.post(
+    '/generation-requests/:id/artifacts/:position/edit',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id, position } = request.params as { id: string; position: string }
+      const parsed = editArtifactSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const res = await fetchInternal(
+        `${generatorUrl}/generation-requests/${id}/artifacts/${position}/edit`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Secret': internalSecret,
+          },
+          body: JSON.stringify(parsed.data),
+        },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        if (res.status === 404) return reply.status(404).send({ error: 'Generation request or artifact not found' })
         app.log.error(`Generator error ${res.status}: ${body}`)
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }

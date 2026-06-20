@@ -56,6 +56,7 @@ export class GenerateContentUseCase {
         artifactCount: input.artifactCount,
         topicSuggestionId: input.topicSuggestionId,
         aspectRatio: input.aspectRatio,
+        style: input.style,
       },
       outputs: null,
       error: null,
