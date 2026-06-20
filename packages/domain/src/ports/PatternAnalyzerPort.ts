@@ -8,6 +8,33 @@ export interface PostPerformanceSummary {
   score: number
 }
 
+export interface ProfileDiagnosticChecklistItem {
+  title: string
+  description: string
+}
+
+export interface ProfileDiagnosticTheme {
+  label: string
+  strength: number
+}
+
+export interface ProfileDiagnosticActionStep {
+  title: string
+  description: string
+}
+
+export interface ProfileDiagnostic {
+  niche: string
+  diagnosisSummary: string
+  viralPotential: number
+  whatWorks: ProfileDiagnosticChecklistItem[]
+  engagingThemes: ProfileDiagnosticTheme[]
+  topFormats: string[]
+  bestTimes: string[]
+  engagementAnalysis: string
+  actionPlan: ProfileDiagnosticActionStep[]
+}
+
 export interface PatternAnalyzerPort {
-  analyzePatterns(entries: PostPerformanceSummary[]): Promise<string>
+  analyzePatterns(entries: PostPerformanceSummary[]): Promise<ProfileDiagnostic>
 }

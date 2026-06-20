@@ -2,6 +2,7 @@
 
 import { auth } from './firebase'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
+import type { ProfileDiagnostic } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'
 
@@ -275,8 +276,8 @@ export const api = {
     return data.entries
   },
 
-  async getPerformanceInsights(): Promise<string> {
-    const data = await apiFetch<{ insights: string }>('/performance-insights')
+  async getPerformanceInsights(): Promise<ProfileDiagnostic> {
+    const data = await apiFetch<{ insights: ProfileDiagnostic }>('/performance-insights')
     return data.insights
   },
 

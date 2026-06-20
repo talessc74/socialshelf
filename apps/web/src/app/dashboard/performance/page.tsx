@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
+import type { ProfileDiagnostic } from '@socialshelf/domain'
 import { ScoreBadge } from '../../../components/ScoreBadge'
-import { RecommendationPanel } from '../../../components/RecommendationPanel'
+import { ProfileDiagnosticPanel } from '../../../components/ProfileDiagnosticPanel'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -40,7 +41,7 @@ export default function PerformanceDashboardPage() {
     router.push(`/dashboard/generate?seed=${encodeURIComponent(entry.text)}`)
   }
 
-  const [insights, setInsights] = useState('')
+  const [diagnostic, setDiagnostic] = useState<ProfileDiagnostic | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeError, setAnalyzeError] = useState('')
 
@@ -49,9 +50,9 @@ export default function PerformanceDashboardPage() {
     setAnalyzing(true)
     try {
       const result = await api.getPerformanceInsights()
-      setInsights(result)
+      setDiagnostic(result)
     } catch (err) {
-      setAnalyzeError(err instanceof Error ? err.message : 'Erro ao analisar padrões.')
+      setAnalyzeError(err instanceof Error ? err.message : 'Erro ao gerar o diagnóstico.')
     } finally {
       setAnalyzing(false)
     }
@@ -145,22 +146,30 @@ export default function PerformanceDashboardPage() {
 
           <section className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-700">Analisar Padrões com IA</h2>
+              <h2 className="text-sm font-semibold text-gray-700">Diagnóstico do Perfil</h2>
               <button
                 onClick={handleAnalyze}
                 disabled={analyzing}
                 className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-200 hover:bg-brand-700 disabled:opacity-40"
               >
-                {analyzing ? 'Analisando…' : insights ? 'Analisar de novo' : '✨ Analisar Padrões'}
+                {analyzing ? 'Analisando…' : diagnostic ? '↻ Refazer análise' : '✨ Gerar Diagnóstico'}
               </button>
             </div>
             {analyzeError && (
               <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{analyzeError}</p>
             )}
-            {insights && (
-              <RecommendationPanel agentLabel="o analista de performance">
-                <p className="whitespace-pre-wrap text-sm text-gray-800">{insights}</p>
-              </RecommendationPanel>
+            {diagnostic && (
+              <ProfileDiagnosticPanel
+                diagnostic={diagnostic}
+                postsAnalyzed={entries.length}
+                onCreatePost={() =>
+                  router.push(
+                    `/dashboard/generate?seed=${encodeURIComponent(
+                      `${diagnostic.niche}: ${diagnostic.actionPlan[0]?.title ?? ''}`,
+                    )}`,
+                  )
+                }
+              />
             )}
           </section>
         </>

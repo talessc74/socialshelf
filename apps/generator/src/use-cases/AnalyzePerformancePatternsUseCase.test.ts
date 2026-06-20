@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { AnalyzePerformancePatternsUseCase } from './AnalyzePerformancePatternsUseCase.js'
 import { Platform } from '@socialshelf/domain'
-import type { PatternAnalyzerPort, PostPerformanceSummary } from '@socialshelf/domain'
+import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic } from '@socialshelf/domain'
 
 function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerformanceSummary {
   return {
@@ -13,16 +13,32 @@ function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerform
   }
 }
 
+function makeDiagnostic(overrides: Partial<ProfileDiagnostic> = {}): ProfileDiagnostic {
+  return {
+    niche: 'Tecnologia',
+    diagnosisSummary: 'Os posts sobre IA performam melhor.',
+    viralPotential: 45,
+    whatWorks: [{ title: 'Proposta clara', description: 'Os posts comunicam bem o valor.' }],
+    engagingThemes: [{ label: 'IA aplicada', strength: 80 }],
+    topFormats: ['CAROUSEL_ALBUM'],
+    bestTimes: ['08:00'],
+    engagementAnalysis: 'Mais curtidas que comentários.',
+    actionPlan: [{ title: 'Crie CTAs', description: 'Peça comentários ao final do post.' }],
+    ...overrides,
+  }
+}
+
 describe('AnalyzePerformancePatternsUseCase', () => {
-  it('retorna o texto de insights gerado pelo analisador', async () => {
+  it('retorna o diagnóstico gerado pelo analisador', async () => {
+    const diagnostic = makeDiagnostic()
     const patternAnalyzer: PatternAnalyzerPort = {
-      analyzePatterns: vi.fn().mockResolvedValue('Os posts sobre IA performam melhor.'),
+      analyzePatterns: vi.fn().mockResolvedValue(diagnostic),
     }
     const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer)
 
     const result = await useCase.execute([makeEntry()])
 
-    expect(result).toBe('Os posts sobre IA performam melhor.')
+    expect(result).toEqual(diagnostic)
     expect(patternAnalyzer.analyzePatterns).toHaveBeenCalledWith([makeEntry()])
   })
 
