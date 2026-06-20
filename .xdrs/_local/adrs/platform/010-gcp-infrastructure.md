@@ -57,7 +57,12 @@ Firebase é tratado como detalhe de infraestrutura — a lógica de negócio nã
 
 - GCP Project: `socialshelf-547da`
 - Região primária: `us-central1`
-- Modelos Vertex AI: `gemini-2.0-flash` (copy), `imagegeneration@006` (imagens)
+- Modelos Vertex AI: `gemini-2.5-flash` (copy), `imagegeneration@006` (imagens)
+- Localização Vertex AI: `us-central1` para Imagen (endpoint regional, `${location}-aiplatform.googleapis.com`); `global` para Gemini (`GEMINI_LOCATION`), conforme exigido pelos endpoints atuais do modelo
+
+**Drift de política/realidade — depreciação de modelo (2026-06-20)**
+
+`gemini-2.0-flash`, registrado originalmente nesta ADR, foi descontinuado e removido do Model Garden do projeto. O endpoint atual do Gemini para geração de texto também passou a exigir `location=global` em vez de uma região — diferente do Imagen, que continua exigindo região real (`us-central1`) por construir a URL do endpoint manualmente (`${location}-aiplatform.googleapis.com`). Por isso `generator-service` agora usa duas variáveis de localização: `VERTEX_AI_LOCATION=us-central1` (Imagen) e `GEMINI_LOCATION=global` (Gemini). Esta não é uma decisão arquitetural nova — é a atualização desta ADR para refletir a realidade do Model Garden após a depreciação do modelo anterior.
 
 ## References
 

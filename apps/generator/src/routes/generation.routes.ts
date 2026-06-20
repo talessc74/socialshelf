@@ -30,11 +30,12 @@ const generateSchema = z.object({
 export async function generationRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
-  const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.0-flash'
+  const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
+  const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
   const imagenModel = process.env['IMAGEN_MODEL'] ?? 'imagegeneration@006'
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
 
-  const copyGenerator = new GeminiCopyGenerator(projectId, location, geminiModel)
+  const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel)
   const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel)
   const imageStorage = new GcsImageStorage(generatedBucket)
   const generationRequestRepo = new FirestoreGenerationRequestRepository()
