@@ -70,7 +70,7 @@ jobs:
             "generator-service@${PROJECT}.iam.gserviceaccount.com" \
             --member="serviceAccount:generator-service@${PROJECT}.iam.gserviceaccount.com" \
             --role="roles/iam.serviceAccountTokenCreator" \
-            --project="$PROJECT" 2>/dev/null || true
+            --project="$PROJECT" || echo "::warning::Falha ao conceder signBlob no recurso da SA generator-service — ver mensagem de erro acima"
 
           # Grant deployer SA permission to act as app service accounts (project-level)
           # SA-resource-level binding requires iam.serviceAccounts.setIamPolicy which
