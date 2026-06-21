@@ -60,8 +60,10 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
     const raw = await this.tokenVault.retrieve(connection.tokenRef)
     const token: InstagramToken = JSON.parse(raw)
 
+    // Meta deprecated the "impressions" metric for Instagram media insights; requesting it now
+    // fails the whole call with OAuthException #10. "reach" is the supported replacement.
     const params = new URLSearchParams({
-      metric: 'impressions,likes,comments,shares',
+      metric: 'reach,likes,comments,shares',
       access_token: token.page_access_token,
     })
 
@@ -76,7 +78,7 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
     const metric = (name: string) => data.data.find((m) => m.name === name)?.values[0]?.value ?? 0
 
     return {
-      impressions: metric('impressions'),
+      impressions: metric('reach'),
       likes: metric('likes'),
       comments: metric('comments'),
       shares: metric('shares'),

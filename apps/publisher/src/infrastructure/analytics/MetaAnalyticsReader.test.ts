@@ -98,7 +98,7 @@ describe('MetaAnalyticsReader', () => {
         ok: true,
         json: async () => ({
           data: [
-            { name: 'impressions', values: [{ value: 800 }] },
+            { name: 'reach', values: [{ value: 800 }] },
             { name: 'likes', values: [{ value: 60 }] },
             { name: 'comments', values: [{ value: 9 }] },
             { name: 'shares', values: [{ value: 3 }] },
