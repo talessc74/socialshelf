@@ -12,9 +12,9 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato e transparência em incidentes.
 
-### EDRs — Decisões de Engenharia (26 documentos)
+### EDRs — Decisões de Engenharia (27 documentos)
 
-Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato e testes de componente em apps/web.
+Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato, testes de componente em apps/web e testes visuais de regressão por viewport.
 
 ### BDRs — Decisões de Negócio (7 policies + 2 planos)
 
