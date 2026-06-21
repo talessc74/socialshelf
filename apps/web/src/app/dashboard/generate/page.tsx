@@ -646,7 +646,7 @@ function FormView({
                 max={10}
                 value={artifactCount}
                 onChange={(e) => setArtifactCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-                className="w-12 border-x border-gray-300 px-2 py-2 text-center text-sm text-gray-800 focus:outline-none"
+                className="w-12 border-x border-gray-300 px-2 py-2 text-center text-sm text-gray-800 [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
               />
               <button
                 type="button"
