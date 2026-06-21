@@ -11,7 +11,7 @@ export function BrandIdentityCard({ brandProfile }: BrandIdentityCardProps) {
 
   return (
     <div className="flex flex-col gap-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-4">
+      <div className="flex min-w-0 items-center gap-4">
         {visual.logoStoragePath ? (
           <LogoImage path={visual.logoStoragePath} className="h-14 w-14 shrink-0 rounded-xl border border-gray-100" />
         ) : (
@@ -19,7 +19,7 @@ export function BrandIdentityCard({ brandProfile }: BrandIdentityCardProps) {
             Sem logo
           </div>
         )}
-        <div>
+        <div className="min-w-0">
           <p className="text-base font-bold text-gray-900">{business.name || 'Marca sem nome'}</p>
           <p className="text-xs text-gray-500">{business.segment || 'Segmento não definido'}</p>
           {identity.positioning && (
