@@ -23,7 +23,7 @@ export function BrandIdentityCard({ brandProfile }: BrandIdentityCardProps) {
           <p className="text-base font-bold text-gray-900">{business.name || 'Marca sem nome'}</p>
           <p className="text-xs text-gray-500">{business.segment || 'Segmento não definido'}</p>
           {identity.positioning && (
-            <p className="mt-1 max-w-md truncate text-xs text-gray-400">{identity.positioning}</p>
+            <p className="mt-1 break-words text-xs text-gray-400">{identity.positioning}</p>
           )}
         </div>
       </div>
