@@ -89,6 +89,9 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
         return ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.CENTERED_OVERLAY:
         return ' O centro da composição deve ter tom mais uniforme e contraste suave, sem elementos de destaque ali.'
+      case TemplateStyle.NO_TEXT:
+        // Nunca chega aqui — hasTextOverlay é sempre false para NO_TEXT (decidido pelo use-case).
+        return ''
     }
   }
 }

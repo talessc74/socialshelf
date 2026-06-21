@@ -49,6 +49,7 @@ const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
   { value: TemplateStyle.BOLD_BOTTOM, label: 'Faixa inferior' },
   { value: TemplateStyle.CENTERED_OVERLAY, label: 'Overlay escuro' },
   { value: TemplateStyle.TOP_STRIP, label: 'Faixa superior' },
+  { value: TemplateStyle.NO_TEXT, label: 'Sem texto' },
 ]
 
 const ASPECT_RATIO_OPTIONS: Array<{ value: AspectRatio; label: string; preview: string }> = [
@@ -711,7 +712,7 @@ function FormView({
           <label className="mb-1.5 block text-sm font-semibold text-gray-700">
             Estilo do template
           </label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {TEMPLATE_STYLE_OPTIONS.map((option) => (
               <button
                 key={option.value}

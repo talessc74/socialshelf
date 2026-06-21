@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { TemplateStyle } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
@@ -12,7 +13,6 @@ import type {
   GenerationArtifact,
   Platform,
   PlatformContent,
-  TemplateStyle,
   AspectRatio,
 } from '@socialshelf/domain'
 
@@ -141,7 +141,7 @@ export class GenerateContentUseCase {
                 totalArtifacts: input.artifactCount,
                 aspectRatio: input.aspectRatio,
                 templateStyle: input.style,
-                hasTextOverlay: headline.trim().length > 0,
+                hasTextOverlay: input.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
               })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,

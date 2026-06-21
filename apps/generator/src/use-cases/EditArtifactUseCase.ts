@@ -1,3 +1,4 @@
+import { TemplateStyle } from '@socialshelf/domain'
 import type {
   ImageGeneratorPort,
   TemplateRendererPort,
@@ -56,7 +57,7 @@ export class EditArtifactUseCase {
         totalArtifacts: request.inputs.artifactCount,
         aspectRatio: request.inputs.aspectRatio,
         templateStyle: request.inputs.style,
-        hasTextOverlay: headline.trim().length > 0,
+        hasTextOverlay: request.inputs.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
       })
       const finalImage = await this.templateRenderer.render({
         backgroundImage: image,

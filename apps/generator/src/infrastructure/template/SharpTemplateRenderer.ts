@@ -52,9 +52,10 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
 
     const overlays: Array<{ input: Buffer; top: number; left: number }> = []
 
-    // A barra de texto não é obrigatória: sem headline, não há nada para desenhar, e
-    // forçar a barra deixaria uma faixa colorida vazia sobre a foto sem propósito.
-    if (input.headline.trim().length > 0) {
+    // A barra de texto não é obrigatória: o estilo `no-text` é uma escolha deliberada do
+    // usuário pela foto pura, e sem headline não há nada para desenhar de qualquer forma —
+    // forçar a barra nesses casos deixaria uma faixa colorida vazia sobre a foto sem propósito.
+    if (input.style !== TemplateStyle.NO_TEXT && input.headline.trim().length > 0) {
       const svg = this.buildSvg(input, width, height)
       overlays.push({ input: Buffer.from(svg), top: 0, left: 0 })
     }
@@ -110,6 +111,9 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
         return this.centeredOverlay(input, width, height, fontSize, fontFamily, lines)
       case TemplateStyle.TOP_STRIP:
         return this.topStrip(input, width, height, fontSize, fontFamily, lines)
+      case TemplateStyle.NO_TEXT:
+        // Nunca chega aqui — render() já filtra NO_TEXT antes de chamar buildSvg().
+        return ''
     }
   }
 
