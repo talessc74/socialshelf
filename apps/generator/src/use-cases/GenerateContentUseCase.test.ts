@@ -281,6 +281,36 @@ describe('GenerateContentUseCase', () => {
     )
   })
 
+  it('trunca a copy para o limite da plataforma quando a IA ignora o limite informado no prompt', async () => {
+    const deps = makeDeps()
+    const oversizedText = 'a'.repeat(2433)
+    ;(deps.copyGenerator.generateCopy as ReturnType<typeof vi.fn>).mockResolvedValue({
+      copies: { [Platform.INSTAGRAM]: { text: oversizedText, charCount: 2433 } },
+      cta: 'Comente abaixo!',
+      headlines: ['Headline gerada 1'],
+      visualBriefs: ['Cena gerada 1'],
+    })
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    const result = await useCase.execute({ ...baseInput(), targetPlatforms: [Platform.INSTAGRAM] })
+
+    const copy = result.outputs?.copies[Platform.INSTAGRAM]
+    expect(copy?.text.length).toBeLessThanOrEqual(2200)
+    expect(copy?.charCount).toBe(copy?.text.length)
+    expect(copy?.text.endsWith('…')).toBe(true)
+    const savedPost = (deps.postRepo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(savedPost.content[0].text.length).toBeLessThanOrEqual(2200)
+  })
+
   it('passa brandVoice null quando não há perfil de marca cadastrado', async () => {
     const deps = makeDeps()
     ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue(null)

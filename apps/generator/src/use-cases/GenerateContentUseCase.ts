@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { TemplateStyle } from '@socialshelf/domain'
+import { TemplateStyle, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
@@ -87,6 +87,16 @@ export class GenerateContentUseCase {
       const error = err instanceof Error ? err.message : String(err)
       await this.generationRequestRepo.updateStatus(request.id, 'failed', error)
       return { ...request, status: 'failed', error }
+    }
+
+    // Gemini sometimes ignores the character limits stated in the prompt, so clamp here
+    // as a safety net to avoid rejecting the post downstream (CreatePostUseCase enforces the same limits).
+    for (const [platform, copy] of Object.entries(copyResult.copies) as [Platform, { text: string; charCount: number }][]) {
+      const limit = PLATFORM_CHARACTER_LIMITS[platform]
+      if (copy.text.length > limit) {
+        const truncated = truncateToLimit(copy.text, limit)
+        copyResult.copies[platform] = { text: truncated, charCount: truncated.length }
+      }
     }
 
     const artifacts: GenerationArtifact[] = Array.from({ length: input.artifactCount }, (_, i) => ({
@@ -211,4 +221,11 @@ export class GenerateContentUseCase {
     if (!suggestion) return null
     return { headline: suggestion.headline, rationale: suggestion.rationale }
   }
+}
+
+function truncateToLimit(text: string, limit: number): string {
+  const ellipsis = '…'
+  const truncated = text.slice(0, limit - ellipsis.length)
+  const lastSpace = truncated.lastIndexOf(' ')
+  return (lastSpace > 0 ? truncated.slice(0, lastSpace) : truncated) + ellipsis
 }
