@@ -131,23 +131,26 @@ describe('MetaPublisher', () => {
       ).rejects.toThrow('Instagram requires at least one image')
     })
 
-    it('creates container then publishes and returns externalId', async () => {
+    it('creates container, waits until it is ready, then publishes and returns externalId', async () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
 
       const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
       const result = await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
 
       expect(result.externalId).toBe('media-888')
-      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(fetchMock).toHaveBeenCalledTimes(3)
       expect(fetchMock.mock.calls[0]![0]).toContain('/ig-biz-777/media')
-      expect(fetchMock.mock.calls[1]![0]).toContain('/ig-biz-777/media_publish')
+      expect(fetchMock.mock.calls[1]![0]).toContain('/container-555')
+      expect(fetchMock.mock.calls[2]![0]).toContain('/ig-biz-777/media_publish')
     })
 
     it('resolves the storage path into a signed URL before sending it to the Graph API', async () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
 
       const storagePath = 'user-1/brand-1/photo.jpg'
@@ -157,6 +160,45 @@ describe('MetaPublisher', () => {
       expect(resolveImageUrl).toHaveBeenCalledWith(storagePath)
       const containerBody = fetchMock.mock.calls[0]![1]!.body as string
       expect(containerBody).toContain(encodeURIComponent(`https://signed.example.com/${storagePath}`))
+    })
+
+    it('throws when the container fails to process', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'ERROR' }) })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
+
+      await expect(
+        publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig')),
+      ).rejects.toThrow('failed to process')
+    })
+
+    it('creates one item container per image plus a carousel container when there are multiple images', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'child-1' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'child-2' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'carousel-999' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img1.jpg', 'user-1/brand-1/img2.jpg'] })
+      const result = await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
+
+      expect(result.externalId).toBe('media-888')
+      expect(fetchMock).toHaveBeenCalledTimes(7)
+
+      const child1Body = fetchMock.mock.calls[0]![1]!.body as string
+      expect(new URLSearchParams(child1Body).get('is_carousel_item')).toBe('true')
+
+      const carouselBody = fetchMock.mock.calls[4]![1]!.body as string
+      const carouselParams = new URLSearchParams(carouselBody)
+      expect(carouselParams.get('media_type')).toBe('CAROUSEL')
+      expect(carouselParams.get('children')).toBe('child-1,child-2')
+
+      expect(fetchMock.mock.calls[6]![0]).toContain('/ig-biz-777/media_publish')
     })
   })
 })
