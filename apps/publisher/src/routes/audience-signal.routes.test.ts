@@ -107,6 +107,7 @@ describe('POST /audience-signal', () => {
 
   beforeAll(async () => {
     process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    process.env['GENERATOR_URL'] = 'http://localhost:3002'
     app = await buildApp()
     await app.ready()
   })
@@ -114,6 +115,7 @@ describe('POST /audience-signal', () => {
   afterAll(async () => {
     await app.close()
     delete process.env['INTERNAL_SECRET']
+    delete process.env['GENERATOR_URL']
   })
 
   it('returns 200 with the computed audience signal', async () => {

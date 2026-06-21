@@ -7,6 +7,7 @@ import { FirestoreTokenVault } from '../infrastructure/firestore/FirestoreTokenV
 import { LinkedInPublisher } from '../infrastructure/publishers/LinkedInPublisher.js'
 import { MetaPublisher } from '../infrastructure/publishers/MetaPublisher.js'
 import { XPublisher } from '../infrastructure/publishers/XPublisher.js'
+import { fetchInternal } from '../lib/serviceAuth.js'
 import { Platform } from '@socialshelf/domain'
 import type { PublisherPort } from '@socialshelf/domain'
 
@@ -20,19 +21,36 @@ export async function publishRoutes(app: FastifyInstance) {
   const oauthRepo = new FirestoreOAuthRepository()
   const tokenVault = new FirestoreTokenVault()
 
-  const publishers = new Map<Platform, PublisherPort>([
-    [Platform.LINKEDIN, new LinkedInPublisher(tokenVault)],
-    [Platform.FACEBOOK, new MetaPublisher(tokenVault)],
-    [Platform.INSTAGRAM, new MetaPublisher(tokenVault)],
-    [Platform.TWITTER, new XPublisher(tokenVault)],
-  ])
-
-  const useCase = new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)
   const internalSecret = process.env['INTERNAL_SECRET']
+  const generatorUrl = process.env['GENERATOR_URL']
 
   if (!internalSecret) {
     throw new Error('INTERNAL_SECRET env var is required — set it before starting the publisher service')
   }
+  if (!generatorUrl) {
+    throw new Error('GENERATOR_URL env var is required — set it before starting the publisher service')
+  }
+
+  const resolveImageUrl = async (path: string): Promise<string> => {
+    const res = await fetchInternal(`${generatorUrl}/images/signed-url?path=${encodeURIComponent(path)}`, {
+      headers: { 'X-Internal-Secret': internalSecret },
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      throw new Error(`Failed to resolve image URL: ${res.status} ${err}`)
+    }
+    const data = (await res.json()) as { url: string }
+    return data.url
+  }
+
+  const publishers = new Map<Platform, PublisherPort>([
+    [Platform.LINKEDIN, new LinkedInPublisher(tokenVault)],
+    [Platform.FACEBOOK, new MetaPublisher(tokenVault, resolveImageUrl)],
+    [Platform.INSTAGRAM, new MetaPublisher(tokenVault, resolveImageUrl)],
+    [Platform.TWITTER, new XPublisher(tokenVault)],
+  ])
+
+  const useCase = new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)
 
   app.post('/publish', async (request, reply) => {
     const header = request.headers['x-internal-secret']

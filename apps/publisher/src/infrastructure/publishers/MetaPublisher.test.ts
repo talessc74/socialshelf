@@ -59,10 +59,12 @@ describe('MetaPublisher', () => {
   let publisher: MetaPublisher
   let mockTokenVault: TokenVaultPort
   let fetchMock: ReturnType<typeof vi.fn>
+  let resolveImageUrl: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
+    resolveImageUrl = vi.fn().mockImplementation((path: string) => Promise.resolve(`https://signed.example.com/${path}`))
   })
 
   afterEach(() => {
@@ -76,7 +78,7 @@ describe('MetaPublisher', () => {
         retrieve: vi.fn().mockResolvedValue(fbTokenJson),
         delete: vi.fn(),
       }
-      publisher = new MetaPublisher(mockTokenVault)
+      publisher = new MetaPublisher(mockTokenVault, resolveImageUrl)
     })
 
     it('posts to page feed and returns externalId', async () => {
@@ -120,7 +122,7 @@ describe('MetaPublisher', () => {
         retrieve: vi.fn().mockResolvedValue(igTokenJson),
         delete: vi.fn(),
       }
-      publisher = new MetaPublisher(mockTokenVault)
+      publisher = new MetaPublisher(mockTokenVault, resolveImageUrl)
     })
 
     it('throws when post has no images', async () => {
@@ -134,7 +136,7 @@ describe('MetaPublisher', () => {
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
 
-      const post = makePost({ imageStoragePaths: ['https://storage.googleapis.com/bucket/img.jpg'] })
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
       const result = await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
 
       expect(result.externalId).toBe('media-888')
@@ -143,17 +145,18 @@ describe('MetaPublisher', () => {
       expect(fetchMock.mock.calls[1]![0]).toContain('/ig-biz-777/media_publish')
     })
 
-    it('includes image URL in container request', async () => {
+    it('resolves the storage path into a signed URL before sending it to the Graph API', async () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
 
-      const imageUrl = 'https://storage.googleapis.com/bucket/photo.jpg'
-      const post = makePost({ imageStoragePaths: [imageUrl] })
+      const storagePath = 'user-1/brand-1/photo.jpg'
+      const post = makePost({ imageStoragePaths: [storagePath] })
       await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
 
+      expect(resolveImageUrl).toHaveBeenCalledWith(storagePath)
       const containerBody = fetchMock.mock.calls[0]![1]!.body as string
-      expect(containerBody).toContain(encodeURIComponent(imageUrl))
+      expect(containerBody).toContain(encodeURIComponent(`https://signed.example.com/${storagePath}`))
     })
   })
 })

@@ -14,7 +14,10 @@ interface InstagramToken {
 }
 
 export class MetaPublisher implements PublisherPort {
-  constructor(private readonly tokenVault: TokenVaultPort) {}
+  constructor(
+    private readonly tokenVault: TokenVaultPort,
+    private readonly resolveImageUrl: (path: string) => Promise<string>,
+  ) {}
 
   async publish(post: Post, platform: Platform, connection: OAuthConnection): Promise<PublishResult> {
     if (platform === Platform.FACEBOOK) {
@@ -62,7 +65,7 @@ export class MetaPublisher implements PublisherPort {
     const igAccountId = token.instagram_business_account_id
 
     const caption = post.content.find((c) => c.platform === Platform.INSTAGRAM)?.text ?? ''
-    const imageUrl = post.imageStoragePaths[0]!
+    const imageUrl = await this.resolveImageUrl(post.imageStoragePaths[0]!)
 
     // Step 1: create media container
     const containerParams = new URLSearchParams({

@@ -188,7 +188,7 @@ jobs:
 
   deploy-publisher:
     name: Deploy publisher-service
-    needs: bootstrap-iam
+    needs: [bootstrap-iam, deploy-generator]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -230,6 +230,7 @@ jobs:
           VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
+          VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
           gcloud run deploy publisher-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
@@ -321,6 +322,13 @@ jobs:
           gcloud run services add-iam-policy-binding generator-service \
             --region=${{ env.GCP_REGION }} \
             --member="serviceAccount:api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
+
+      - name: Grant publisher-service invoker access on generator-service
+        run: |
+          gcloud run services add-iam-policy-binding generator-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
             --role="roles/run.invoker"
 
   deploy-web:

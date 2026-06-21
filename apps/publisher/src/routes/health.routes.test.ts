@@ -27,12 +27,15 @@ describe('GET /health', () => {
 
   beforeAll(async () => {
     process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    process.env['GENERATOR_URL'] = 'http://localhost:3002'
     app = await buildApp()
     await app.ready()
   })
 
   afterAll(async () => {
     await app.close()
+    delete process.env['INTERNAL_SECRET']
+    delete process.env['GENERATOR_URL']
   })
 
   it('returns status ok with service name', async () => {
