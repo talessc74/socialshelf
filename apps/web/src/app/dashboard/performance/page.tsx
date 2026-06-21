@@ -112,6 +112,7 @@ export default function PerformanceDashboardPage() {
       ) : error ? (
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           Não foi possível carregar as métricas de performance.
+          {error instanceof Error && error.message ? ` [${error.message}]` : ''}
         </p>
       ) : platformsToShow.length === 0 ? (
         <p className="text-sm text-gray-500">
