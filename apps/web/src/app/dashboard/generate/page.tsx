@@ -52,16 +52,18 @@ const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
   { value: TemplateStyle.NO_TEXT, label: 'Sem texto' },
 ]
 
+// "Stories" (9:16) is intentionally not offered: the publisher only posts to
+// the Instagram feed, and a 9:16 image falls outside Instagram's feed aspect
+// ratio range (0.8–1.91), so Meta crops it on publish.
 const ASPECT_RATIO_OPTIONS: Array<{ value: AspectRatio; label: string; preview: string }> = [
   { value: AspectRatio.SQUARE, label: 'Quadrado', preview: 'aspect-square' },
-  { value: AspectRatio.PORTRAIT, label: 'Retrato', preview: 'aspect-[3/4]' },
+  { value: AspectRatio.PORTRAIT, label: 'Retrato', preview: 'aspect-[4/5]' },
   { value: AspectRatio.LANDSCAPE, label: 'Paisagem', preview: 'aspect-video' },
-  { value: AspectRatio.STORY, label: 'Stories', preview: 'aspect-[9/16]' },
 ]
 
 const ASPECT_RATIO_CLASS: Record<AspectRatio, string> = {
   [AspectRatio.SQUARE]: 'aspect-square',
-  [AspectRatio.PORTRAIT]: 'aspect-[3/4]',
+  [AspectRatio.PORTRAIT]: 'aspect-[4/5]',
   [AspectRatio.LANDSCAPE]: 'aspect-video',
   [AspectRatio.STORY]: 'aspect-[9/16]',
 }

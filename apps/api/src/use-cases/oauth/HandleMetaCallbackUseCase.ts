@@ -126,7 +126,7 @@ export class HandleMetaCallbackUseCase {
             platform: Platform.INSTAGRAM,
             pairwiseId: igPairwiseId,
             tokenRef: igTokenRef,
-            scopes: ['instagram_basic', 'instagram_content_publish'],
+            scopes: ['instagram_basic', 'instagram_content_publish', 'instagram_manage_insights'],
             expiresAt,
             createdAt: new Date(),
             updatedAt: new Date(),

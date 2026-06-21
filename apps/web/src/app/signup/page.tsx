@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
 } from 'firebase/auth'
@@ -11,7 +11,15 @@ import Link from 'next/link'
 import { auth } from '../../lib/firebase'
 import { useAuth } from '../../contexts/AuthContext'
 
-export default function LoginPage() {
+function authErrorMessage(err: unknown): string {
+  const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : ''
+  if (code === 'auth/email-already-in-use') return 'Esse email já tem uma conta. Tente entrar.'
+  if (code === 'auth/weak-password') return 'A senha precisa ter pelo menos 6 caracteres.'
+  if (code === 'auth/invalid-email') return 'Email inválido.'
+  return 'Não foi possível criar a conta. Tente novamente.'
+}
+
+export default function SignupPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -28,10 +36,10 @@ export default function LoginPage() {
     setError('')
     setBusy(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await createUserWithEmailAndPassword(auth, email, password)
       router.replace('/dashboard')
-    } catch {
-      setError('Email ou senha inválidos.')
+    } catch (err) {
+      setError(authErrorMessage(err))
     } finally {
       setBusy(false)
     }
@@ -54,9 +62,9 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient px-4">
       <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
         <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-200">
-          Bem-vindo de volta
+          Vamos começar
         </p>
-        <h1 className="mb-6 text-center text-2xl font-bold text-white">SocialShelf</h1>
+        <h1 className="mb-6 text-center text-2xl font-bold text-white">Criar conta no SocialShelf</h1>
 
         <form onSubmit={handleEmail} className="space-y-4">
           <div>
@@ -75,6 +83,7 @@ export default function LoginPage() {
             <input
               type="password"
               required
+              minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-300"
@@ -89,7 +98,7 @@ export default function LoginPage() {
             disabled={busy}
             className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-900/40 hover:bg-brand-600 disabled:opacity-50"
           >
-            {busy ? 'Entrando…' : 'Entrar'}
+            {busy ? 'Criando conta…' : 'Criar conta'}
           </button>
         </form>
 
@@ -126,9 +135,9 @@ export default function LoginPage() {
         </button>
 
         <p className="mt-6 text-center text-sm text-white/60">
-          Não tem conta?{' '}
-          <Link href="/signup" className="font-semibold text-brand-200 hover:underline">
-            Cadastre-se
+          Já tem conta?{' '}
+          <Link href="/login" className="font-semibold text-brand-200 hover:underline">
+            Entrar
           </Link>
         </p>
       </div>
