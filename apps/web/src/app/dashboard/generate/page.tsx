@@ -290,20 +290,58 @@ function useGenerationProgress(active: boolean, totalArtifacts: number) {
   return { stages, stageIndex }
 }
 
+const DRAFT_STORAGE_KEY = 'socialshelf:generate-draft'
+
+type GenerateDraft = {
+  description: string
+  textContent: string
+  selectedPlatforms: Platform[]
+  artifactCount: number
+  style: TemplateStyle
+  aspectRatio: AspectRatio
+  topicSuggestionId: string
+}
+
+function loadDraft(): GenerateDraft | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = window.sessionStorage.getItem(DRAFT_STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as GenerateDraft) : null
+  } catch {
+    return null
+  }
+}
+
 export default function GenerateContentPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [description, setDescription] = useState(() => searchParams.get('seed') ?? '')
-  const [textContent, setTextContent] = useState('')
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set())
-  const [artifactCount, setArtifactCount] = useState(1)
-  const [style, setStyle] = useState<TemplateStyle>(TemplateStyle.BOLD_BOTTOM)
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(AspectRatio.SQUARE)
-  const [topicSuggestionId, setTopicSuggestionId] = useState('')
+  const draft = loadDraft()
+  const [description, setDescription] = useState(() => searchParams.get('seed') ?? draft?.description ?? '')
+  const [textContent, setTextContent] = useState(() => draft?.textContent ?? '')
+  const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(
+    () => new Set(draft?.selectedPlatforms ?? []),
+  )
+  const [artifactCount, setArtifactCount] = useState(() => draft?.artifactCount ?? 1)
+  const [style, setStyle] = useState<TemplateStyle>(() => draft?.style ?? TemplateStyle.BOLD_BOTTOM)
+  const [aspectRatio, setAspectRatio] = useState<AspectRatio>(() => draft?.aspectRatio ?? AspectRatio.SQUARE)
+  const [topicSuggestionId, setTopicSuggestionId] = useState(() => draft?.topicSuggestionId ?? '')
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const data: GenerateDraft = {
+      description,
+      textContent,
+      selectedPlatforms: [...selectedPlatforms],
+      artifactCount,
+      style,
+      aspectRatio,
+      topicSuggestionId,
+    }
+    window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data))
+  }, [description, textContent, selectedPlatforms, artifactCount, style, aspectRatio, topicSuggestionId])
 
   const { data: connections, isLoading: loadingConnections } = useQuery({
     queryKey: ['connections'],
@@ -351,6 +389,19 @@ export default function GenerateContentPage() {
     setPhotoFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const handleClear = () => {
+    setDescription('')
+    setTextContent('')
+    setSelectedPlatforms(new Set())
+    setArtifactCount(1)
+    setStyle(TemplateStyle.BOLD_BOTTOM)
+    setAspectRatio(AspectRatio.SQUARE)
+    setTopicSuggestionId('')
+    setPhotoFiles([])
+    setError('')
+    window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
+  }
+
   const handleGenerate = async () => {
     setError('')
     setGenerating(true)
@@ -368,6 +419,7 @@ export default function GenerateContentPage() {
         ...(imageStoragePaths && { imageStoragePaths }),
       })
       setResult(generationRequest)
+      window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao gerar conteúdo.')
     } finally {
@@ -419,6 +471,7 @@ export default function GenerateContentPage() {
               error={error}
               canGenerate={canGenerate}
               onGenerate={handleGenerate}
+              onClear={handleClear}
             />
           )}
         </div>
@@ -490,6 +543,7 @@ function FormView({
   error,
   canGenerate,
   onGenerate,
+  onClear,
 }: {
   description: string
   setDescription: (v: string) => void
@@ -514,6 +568,7 @@ function FormView({
   error: string
   canGenerate: boolean
   onGenerate: () => void
+  onClear: () => void
 }) {
   return (
     <>
@@ -784,13 +839,22 @@ function FormView({
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
 
-      <button
-        onClick={onGenerate}
-        disabled={!canGenerate}
-        className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
-      >
-        Gerar Conteúdo
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onGenerate}
+          disabled={!canGenerate}
+          className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+        >
+          Gerar Conteúdo
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+        >
+          Limpar
+        </button>
+      </div>
     </>
   )
 }

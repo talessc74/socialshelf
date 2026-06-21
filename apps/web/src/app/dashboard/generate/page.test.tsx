@@ -51,6 +51,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  window.sessionStorage.clear()
   mockedApi.getTopicSuggestions.mockResolvedValue([])
   mockedApi.getBrandProfile.mockResolvedValue(null)
 })
