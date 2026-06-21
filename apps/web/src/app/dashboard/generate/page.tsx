@@ -676,7 +676,7 @@ function FormView({
           </p>
           <input
             type="file"
-            accept="image/png,image/jpeg,image/webp"
+            accept="image/*"
             multiple
             onChange={(e) => {
               onPhotoFilesAdd(Array.from(e.target.files ?? []))
