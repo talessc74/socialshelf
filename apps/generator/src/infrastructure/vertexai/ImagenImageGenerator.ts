@@ -54,9 +54,10 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
 
   private buildPrompt(prompt: ImagePrompt): string {
     const styleSection = prompt.style ? ` Estilo: ${prompt.style}.` : ''
-    const brandSection = prompt.brandTokens
-      ? ` Usar paleta de cores ${prompt.brandTokens.primaryColor} e ${prompt.brandTokens.secondaryColor}, com estilo tipográfico ${prompt.brandTokens.typography}.`
-      : ''
+    // As cores reais da marca são aplicadas depois por SharpTemplateRenderer (fills de SVG).
+    // Nunca mencionar os códigos hex em si: o Imagen tende a renderizá-los como texto literal
+    // na imagem (ex.: "#22E5E5" aparecendo escrito sobre a foto).
+    const brandSection = prompt.brandTokens ? ` Estilo tipográfico de referência: ${prompt.brandTokens.typography}.` : ''
     const seriesSection =
       prompt.totalArtifacts > 1
         ? ` Esta é a imagem ${prompt.position} de ${prompt.totalArtifacts} de um carrossel — manter coerência visual com as demais.`
