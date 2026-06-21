@@ -99,6 +99,12 @@ Decisão:
 - `SharpTemplateRenderer.render()` só desenha o retângulo + texto do template quando `input.headline.trim().length > 0` — sem headline, o card final é só a foto + selo do logo, sem faixa colorida vazia. Esta é a "verificação se precisa de texto acima da imagem" exigida: a decisão já existe (`hasTextOverlay`/checagem de headline vazio), não depende de configuração nova do usuário nesta fase.
 - Não foi implementada a opção de o Imagen desenhar texto literal integrado à imagem (a "terceira via" considerada) — risco de confiabilidade descartado deliberadamente por SCOUT, dado o histórico de bugs de texto ilegível nesta mesma classe de problema; pode ser revisitado no futuro só se/quando houver um modelo de geração de imagem com renderização de texto comprovadamente confiável em português.
 
+**Instrução de "zona calma" reintroduziu o próprio bug que evitava (2026-06-21, correção)**
+
+A seção anterior introduziu `textZoneInstruction`, dizendo ao Imagen explicitamente que "uma barra de texto será sobreposta" em determinada região. Em produção, isso teve o efeito oposto ao pretendido: o Imagen passou a interpretar a cena como uma peça publicitária com "espaço reservado para legenda" — padrão fortemente presente em fotos de banco de imagens com `copy space` — e preencheu essa região com texto fictício ilegível (frases sem sentido tipo lorem-ipsum), exatamente sobre a faixa onde o headline real seria desenhado.
+
+Correção: `textZoneInstruction` nunca mais menciona texto, legenda, barra ou propósito — a instrução passa a ser puramente fotográfica (tom uniforme, baixo contraste, fora de foco na zona relevante), sem dar ao modelo nenhum motivo para associar aquela área a uma peça com escrita. `negativePrompt` ganha termos adicionais (`lorem ipsum`, `placeholder text`, `gibberish text`, `fake subtitles`, `advertisement copy`) como reforço, mas a instrução positiva — nunca dar ao modelo um motivo para "reservar espaço para texto" — é a correção real; negativePrompt por si só não havia sido suficiente da primeira vez.
+
 ## References
 
 - [_local-adr-policy-028-geracao-de-conteudo-multiartefato](028-geracao-multiartefato.md) - Decisão anterior (texto só por instrução), superada nesta parte por este ADR

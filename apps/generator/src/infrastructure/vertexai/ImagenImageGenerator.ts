@@ -31,7 +31,11 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
           aspectRatio: prompt.aspectRatio,
           // O headline real é desenhado depois por SharpTemplateRenderer; negativePrompt é mais
           // eficaz que instrução em texto livre para suprimir o texto que o Imagen tenta "escrever".
-          negativePrompt: 'text, words, letters, numbers, typography, writing, captions, watermark, signage',
+          // Termos de "placeholder"/lorem ipsum são necessários porque o Imagen, ao receber qualquer
+          // instrução de composição que reserve uma área da imagem, tende a interpretar isso como
+          // "anúncio com espaço para legenda" e preenche essa área com texto fictício ilegível.
+          negativePrompt:
+            'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy',
         },
       }),
     })
@@ -72,18 +76,19 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
     return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}${textZoneSection}`
   }
 
-  // Uma barra de texto vetorial será sobreposta depois nesta zona — pedimos ao Imagen para
-  // compor a cena com uma área visualmente "calma" ali (sem elementos de foco), em vez de
-  // só proibir texto sem dar nenhuma direção de composição, o que deixava a barra com cara de
-  // remendo colado sobre a foto.
+  // Uma barra de texto vetorial será sobreposta depois nesta zona, mas a instrução abaixo nunca
+  // menciona texto, legenda ou "espaço reservado": dizer ao Imagen que uma área é "para texto"
+  // o faz associar a cena a uma peça publicitária e preencher essa área com texto fictício
+  // ilegível — o próprio bug que estamos evitando. A direção é puramente fotográfica (tom
+  // uniforme, baixo contraste, fora de foco) e nunca cita o propósito por trás dela.
   private textZoneInstruction(templateStyle: TemplateStyle): string {
     switch (templateStyle) {
       case TemplateStyle.BOLD_BOTTOM:
-        return ' Componha a cena deixando o terço inferior da imagem mais simples e com menos detalhe visual, pois uma barra de texto será sobreposta ali.'
+        return ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.TOP_STRIP:
-        return ' Componha a cena deixando a faixa superior da imagem mais simples e com menos detalhe visual, pois uma barra de texto será sobreposta ali.'
+        return ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.CENTERED_OVERLAY:
-        return ' Componha a cena com o centro da imagem visualmente mais calmo (menos detalhe, contraste suave), pois um texto será sobreposto centralizado ali.'
+        return ' O centro da composição deve ter tom mais uniforme e contraste suave, sem elementos de destaque ali.'
     }
   }
 }
