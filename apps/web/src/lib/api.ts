@@ -169,6 +169,17 @@ export interface ApiPostPerformanceEntry {
   publishedAt: string
 }
 
+export interface ApiPostPerformanceError {
+  platform: Platform
+  postId: string
+  message: string
+}
+
+export interface ApiPostsPerformanceResult {
+  entries: ApiPostPerformanceEntry[]
+  errors: ApiPostPerformanceError[]
+}
+
 export interface GenerateContentInput {
   description: string
   textContent?: string
@@ -271,9 +282,8 @@ export const api = {
     return data.generationRequest
   },
 
-  async getPostsPerformance(): Promise<ApiPostPerformanceEntry[]> {
-    const data = await apiFetch<{ entries: ApiPostPerformanceEntry[] }>('/posts-performance')
-    return data.entries
+  async getPostsPerformance(): Promise<ApiPostsPerformanceResult> {
+    return apiFetch<ApiPostsPerformanceResult>('/posts-performance')
   },
 
   async getPerformanceInsights(): Promise<ProfileDiagnostic> {

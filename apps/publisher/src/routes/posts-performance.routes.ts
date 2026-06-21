@@ -45,8 +45,8 @@ export async function postsPerformanceRoutes(app: FastifyInstance) {
     }
 
     try {
-      const entries = await useCase.execute(parsed.data.brandId)
-      return reply.send({ entries })
+      const { entries, errors } = await useCase.execute(parsed.data.brandId)
+      return reply.send({ entries, errors })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'get posts performance use-case failed')

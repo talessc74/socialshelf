@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import type { ProfileDiagnostic } from '@socialshelf/domain'
 import PerformanceDashboardPage from './page'
-import { api, type ApiPostPerformanceEntry } from '../../../lib/api'
+import { api, type ApiPostPerformanceEntry, type ApiPostsPerformanceResult } from '../../../lib/api'
 
 const pushMock = vi.fn()
 
@@ -30,6 +30,14 @@ function makeEntry(overrides: Partial<ApiPostPerformanceEntry> = {}): ApiPostPer
     metrics: { impressions: 1000, likes: 50, comments: 10, shares: 5 },
     score: 1065,
     publishedAt: new Date('2026-06-01T00:00:00.000Z').toISOString(),
+    ...overrides,
+  }
+}
+
+function makeResult(overrides: Partial<ApiPostsPerformanceResult> = {}): ApiPostsPerformanceResult {
+  return {
+    entries: [],
+    errors: [],
     ...overrides,
   }
 }
@@ -63,25 +71,46 @@ beforeEach(() => {
 })
 
 describe('PerformanceDashboardPage', () => {
-  it('mostra os KPIs agregados e o ranking de posts', async () => {
-    mockedApi.getPostsPerformance.mockResolvedValue([makeEntry()])
+  it('mostra os KPIs agregados e o ranking de posts da sessão da rede', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
 
     renderPage()
 
     expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
-    expect(screen.getByText('Ranking de posts')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'LinkedIn' })).toBeInTheDocument()
   })
 
   it('mostra mensagem quando não há posts com métricas medidas', async () => {
-    mockedApi.getPostsPerformance.mockResolvedValue([])
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult())
 
     renderPage()
 
     expect(await screen.findByText(/Nenhum post publicado com métricas medidas/)).toBeInTheDocument()
   })
 
+  it('isola o erro de uma rede sem afetar a exibição das demais', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.LINKEDIN })],
+        errors: [{ platform: Platform.INSTAGRAM, postId: 'post-2', message: 'Token do Instagram expirado' }],
+      }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    const instagramTab = screen.getByRole('button', { name: /Instagram/ })
+    expect(instagramTab).toBeInTheDocument()
+
+    await user.click(instagramTab)
+
+    expect(await screen.findByText(/Token do Instagram expirado/)).toBeInTheDocument()
+    expect(screen.queryByText('Texto do post de melhor desempenho')).not.toBeInTheDocument()
+  })
+
   it('mostra o diagnóstico ao clicar em "Gerar Diagnóstico"', async () => {
-    mockedApi.getPostsPerformance.mockResolvedValue([makeEntry()])
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
     mockedApi.getPerformanceInsights.mockResolvedValue(makeDiagnostic())
     const user = userEvent.setup()
 
@@ -94,7 +123,7 @@ describe('PerformanceDashboardPage', () => {
   })
 
   it('navega para a geração com o texto do post ao clicar em "Semear Criação"', async () => {
-    mockedApi.getPostsPerformance.mockResolvedValue([makeEntry()])
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
     const user = userEvent.setup()
 
     renderPage()

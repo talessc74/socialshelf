@@ -15,6 +15,17 @@ export interface PostPerformanceEntry {
   publishedAt: string
 }
 
+export interface PostPerformanceError {
+  platform: Platform
+  postId: string
+  message: string
+}
+
+export interface PostsPerformanceResult {
+  entries: PostPerformanceEntry[]
+  errors: PostPerformanceError[]
+}
+
 export class GetPostsPerformanceUseCase {
   constructor(
     private readonly postRepo: PostRepository,
@@ -22,9 +33,10 @@ export class GetPostsPerformanceUseCase {
     private readonly readers: Map<Platform, AnalyticsReaderPort>,
   ) {}
 
-  async execute(brandId: string): Promise<PostPerformanceEntry[]> {
+  async execute(brandId: string): Promise<PostsPerformanceResult> {
     const publishedPosts = await this.postRepo.findByBrand(brandId, 'published')
     const entries: PostPerformanceEntry[] = []
+    const errors: PostPerformanceError[] = []
 
     for (const post of publishedPosts) {
       for (const [platformKey, externalId] of Object.entries(post.externalIds)) {
@@ -32,23 +44,33 @@ export class GetPostsPerformanceUseCase {
         const reader = this.readers.get(platform)
         if (!reader || !externalId) continue
 
-        const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, platform)
-        if (!connection) continue
+        // Cada plataforma é isolada: uma falha de token expirado/API indisponível em
+        // uma rede não pode impedir a exibição das métricas das demais redes.
+        try {
+          const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, platform)
+          if (!connection) continue
 
-        const metrics = await reader.fetchPostMetrics(externalId, connection)
-        const content = post.content.find((c) => c.platform === platform)
+          const metrics = await reader.fetchPostMetrics(externalId, connection)
+          const content = post.content.find((c) => c.platform === platform)
 
-        entries.push({
-          postId: post.id,
-          platform,
-          text: content?.text ?? '',
-          metrics,
-          score: metrics.impressions + metrics.likes + metrics.comments + metrics.shares,
-          publishedAt: (post.publishedAt ?? post.updatedAt).toISOString(),
-        })
+          entries.push({
+            postId: post.id,
+            platform,
+            text: content?.text ?? '',
+            metrics,
+            score: metrics.impressions + metrics.likes + metrics.comments + metrics.shares,
+            publishedAt: (post.publishedAt ?? post.updatedAt).toISOString(),
+          })
+        } catch (err) {
+          errors.push({
+            platform,
+            postId: post.id,
+            message: err instanceof Error ? err.message : String(err),
+          })
+        }
       }
     }
 
-    return entries.sort((a, b) => b.score - a.score)
+    return { entries: entries.sort((a, b) => b.score - a.score), errors }
   }
 }

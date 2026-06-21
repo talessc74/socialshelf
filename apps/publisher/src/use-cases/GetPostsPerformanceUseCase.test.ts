@@ -80,10 +80,11 @@ describe('GetPostsPerformanceUseCase', () => {
 
     const result = await useCase.execute('brand-1')
 
-    expect(result).toHaveLength(2)
-    expect(result[0]!.postId).toBe('post-high')
-    expect(result[0]!.score).toBe(1065)
-    expect(result[1]!.postId).toBe('post-low')
+    expect(result.entries).toHaveLength(2)
+    expect(result.entries[0]!.postId).toBe('post-high')
+    expect(result.entries[0]!.score).toBe(1065)
+    expect(result.entries[1]!.postId).toBe('post-low')
+    expect(result.errors).toEqual([])
   })
 
   it('ignora plataformas sem leitor de analytics registrado', async () => {
@@ -93,7 +94,7 @@ describe('GetPostsPerformanceUseCase', () => {
 
     const result = await useCase.execute('brand-1')
 
-    expect(result).toHaveLength(0)
+    expect(result.entries).toHaveLength(0)
   })
 
   it('ignora plataformas sem conexão OAuth ativa', async () => {
@@ -101,14 +102,14 @@ describe('GetPostsPerformanceUseCase', () => {
 
     const result = await useCase.execute('brand-1')
 
-    expect(result).toHaveLength(0)
+    expect(result.entries).toHaveLength(0)
     expect(liReader.fetchPostMetrics).not.toHaveBeenCalled()
   })
 
   it('inclui o texto do conteúdo correspondente à plataforma', async () => {
     const result = await useCase.execute('brand-1')
 
-    expect(result[0]!.text).toBe('Hello')
+    expect(result.entries[0]!.text).toBe('Hello')
   })
 
   it('retorna lista vazia quando não há posts publicados', async () => {
@@ -116,6 +117,35 @@ describe('GetPostsPerformanceUseCase', () => {
 
     const result = await useCase.execute('brand-1')
 
-    expect(result).toEqual([])
+    expect(result.entries).toEqual([])
+    expect(result.errors).toEqual([])
+  })
+
+  it('isola falha de uma plataforma sem afetar as demais', async () => {
+    const fbReader: AnalyticsReaderPort = {
+      fetchPostMetrics: vi.fn().mockRejectedValue(new Error('Meta token expired')),
+    }
+    const readers = new Map([
+      [Platform.LINKEDIN, liReader],
+      [Platform.FACEBOOK, fbReader],
+    ])
+    useCase = new GetPostsPerformanceUseCase(postRepo, oauthRepo, readers)
+
+    vi.mocked(postRepo.findByBrand).mockResolvedValueOnce([
+      makePost({
+        externalIds: {
+          [Platform.LINKEDIN]: 'urn:li:share:1',
+          [Platform.FACEBOOK]: 'fb-post-1',
+        },
+      }),
+    ])
+
+    const result = await useCase.execute('brand-1')
+
+    expect(result.entries).toHaveLength(1)
+    expect(result.entries[0]!.platform).toBe(Platform.LINKEDIN)
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]!.platform).toBe(Platform.FACEBOOK)
+    expect(result.errors[0]!.message).toBe('Meta token expired')
   })
 })
