@@ -110,10 +110,20 @@ export default function PerformanceDashboardPage() {
           Carregando…
         </div>
       ) : error ? (
-        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          Não foi possível carregar as métricas de performance.
-          {error instanceof Error && error.message ? ` [${error.message}]` : ''}
-        </p>
+        <div className="space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p>
+            Não foi possível carregar as métricas de performance.
+            {error instanceof Error && error.message ? ` [${error.message}]` : ''}
+          </p>
+          {error instanceof Error && error.message && (
+            <button
+              onClick={() => navigator.clipboard.writeText(error.message)}
+              className="rounded-md border border-red-300 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+            >
+              📋 Copiar erro completo
+            </button>
+          )}
+        </div>
       ) : platformsToShow.length === 0 ? (
         <p className="text-sm text-gray-500">
           Nenhum post publicado com métricas medidas ainda. Publique um post para começar a acompanhar
