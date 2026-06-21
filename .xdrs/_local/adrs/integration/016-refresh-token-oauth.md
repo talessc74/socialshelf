@@ -47,6 +47,23 @@ Cada plataforma tem uma estratégia explícita — a ausência de refresh em Lin
 
 Em caso de falha de autenticação (401) sem refresh disponível, o erro retornado ao frontend deve informar ao usuário que a conexão com a plataforma expirou e solicitar reconexão via OAuth.
 
+### 2026-06-21 — correção: saneamento de expires_in implausível (Meta)
+
+Usuário reportou falha ao conectar/reconectar Instagram: callback retornava
+`?error=oauth_failed&detail=Invalid time value`. Causa raiz: `HandleMetaCallbackUseCase`
+calculava `expiresAt = new Date(Date.now() + expires_in * 1000)` confiando apenas em
+`typeof === 'number' && Number.isFinite(...)` para validar `expires_in` vindo da Meta.
+Um valor implausível (ausente, zero, negativo ou fora de uma faixa razoável) produzia
+uma `Date` inválida, e `expiresAt.toISOString()` lançava `RangeError: Invalid time value`
+ao serializar para o token vault / Firestore — quebrando a conexão de Facebook e Instagram
+nesse fluxo.
+
+Correção: validar que `expires_in` é finito, positivo e não excede um teto de 1 ano antes
+de usá-lo; caso contrário, aplicar o fallback de 60 dias já existente. Adicionalmente,
+após construir a `Date`, verificar `Number.isNaN(expiresAt.getTime())` e reaplicar o
+fallback se ainda assim resultar em data inválida — uma segunda camada de defesa contra
+qualquer valor anômalo que a Meta venha a retornar.
+
 ## References
 
 - [_local-adr-policy-009-oauth-exclusivo-redes-sociais](009-oauth-social-networks.md) - OAuth como único modelo de integração
