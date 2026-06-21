@@ -66,6 +66,8 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
         ? `Gere exatamente ${inputs.artifactCount} headlines curtos (até 80 caracteres cada), um por slide, na ordem em que aparecem no carrossel. Eles devem contar uma história coesa, não ser variações do mesmo texto: o primeiro é o gancho/problema que prende a atenção, os do meio desenvolvem a ideia passo a passo, e o último fecha com a conclusão ou reforça o CTA. Cada headline será desenhado como texto sobre a imagem daquele slide.`
         : `Gere também um headline curto (até 80 caracteres), para ser desenhado como texto sobre a imagem de fundo — distinto da legenda completa de cada plataforma.`
 
+    const visualBriefsSection = `Para cada headline, gere também uma "visualBrief": uma descrição de cena (1-2 frases, em inglês, para um gerador de imagens) que ilustre visualmente a ideia daquele headline especificamente — não a descrição genérica do post. Ex.: se o headline fala de "perder tempo com burocracia", a cena pode ser "a tired person buried in stacks of paperwork at a cluttered desk", não uma foto genérica de escritório. Nunca peça para incluir texto, palavras ou números na cena.`
+
     return `Gere texto de post para redes sociais a partir da descrição abaixo.
 
 Descrição: ${inputs.description}
@@ -79,9 +81,11 @@ ${platformLimits}
 
 ${headlinesSection}
 
+${visualBriefsSection}
+
 Responda apenas com um JSON no formato:
-{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."]}
-O array "headlines" deve ter exatamente ${inputs.artifactCount} ${inputs.artifactCount > 1 ? 'itens' : 'item'}.`
+{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."], "visualBriefs": ["...", "..."]}
+Os arrays "headlines" e "visualBriefs" devem ter exatamente ${inputs.artifactCount} ${inputs.artifactCount > 1 ? 'itens cada' : 'item cada'}, na mesma ordem.`
   }
 
   private toCopyGenerationResult(parsed: unknown, expectedHeadlineCount: number): CopyGenerationResult {
@@ -92,16 +96,25 @@ O array "headlines" deve ter exatamente ${inputs.artifactCount} ${inputs.artifac
     const copies = obj['copies']
     const cta = obj['cta']
     const headlines = obj['headlines']
+    const visualBriefs = obj['visualBriefs']
     if (
       typeof copies !== 'object' ||
       copies === null ||
       typeof cta !== 'string' ||
       !Array.isArray(headlines) ||
       headlines.length !== expectedHeadlineCount ||
-      !headlines.every((h) => typeof h === 'string')
+      !headlines.every((h) => typeof h === 'string') ||
+      !Array.isArray(visualBriefs) ||
+      visualBriefs.length !== expectedHeadlineCount ||
+      !visualBriefs.every((v) => typeof v === 'string')
     ) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
-    return { copies: copies as CopyGenerationResult['copies'], cta, headlines: headlines as string[] }
+    return {
+      copies: copies as CopyGenerationResult['copies'],
+      cta,
+      headlines: headlines as string[],
+      visualBriefs: visualBriefs as string[],
+    }
   }
 }

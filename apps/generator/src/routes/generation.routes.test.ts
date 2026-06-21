@@ -54,6 +54,7 @@ const mockGenerateCopy = vi.fn().mockResolvedValue({
   copies: { linkedin: { text: 'Copy gerada', charCount: 12 } },
   cta: 'Comente abaixo!',
   headlines: ['Headline gerada'],
+  visualBriefs: ['Cena gerada'],
 })
 
 vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({
@@ -108,6 +109,7 @@ const mockGenerationRequest = {
     copies: { linkedin: { text: 'Copy gerada', charCount: 12 } },
     cta: 'Comente abaixo!',
     headlines: ['Headline gerada'],
+    visualBriefs: ['Cena gerada'],
     artifacts: [{ position: 1, status: 'ready', imageStoragePath: 'brand-1/generated/img.png', error: null }],
   },
   error: null,

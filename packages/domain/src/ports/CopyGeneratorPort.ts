@@ -29,6 +29,12 @@ export interface CopyGenerationResult {
    * desenvolvimento → fechamento), não N variações do mesmo texto.
    */
   headlines: string[]
+  /**
+   * Uma cena/composição visual por artefato (`length === artifactCount`), derivada do
+   * headline correspondente — usada para gerar a imagem de fundo. Evita que a imagem
+   * nasça desconectada da mensagem (gerada só a partir da descrição crua do usuário).
+   */
+  visualBriefs: string[]
 }
 
 export interface CopyGeneratorPort {

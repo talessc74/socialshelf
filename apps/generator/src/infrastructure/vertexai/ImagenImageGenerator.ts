@@ -1,4 +1,5 @@
 import { GoogleAuth } from 'google-auth-library'
+import { TemplateStyle } from '@socialshelf/domain'
 import type { ImageGeneratorPort, ImagePrompt, GeneratedImage } from '@socialshelf/domain'
 
 export class ImagenImageGenerator implements ImageGeneratorPort {
@@ -62,10 +63,27 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
       prompt.totalArtifacts > 1
         ? ` Esta é a imagem ${prompt.position} de ${prompt.totalArtifacts} de um carrossel — manter coerência visual com as demais.`
         : ''
-    // O headline é desenhado depois por SharpTemplateRenderer; sem esta instrução o Imagen
-    // tenta "escrever" palavras do prompt na própria imagem, produzindo texto ilegível.
+    // O headline (quando existir) é desenhado depois por SharpTemplateRenderer, nunca pelo
+    // Imagen: modelos de imagem não renderizam texto em português de forma confiável (acentos,
+    // legibilidade) — instruir o Imagen a "escrever" produz texto ilegível ou alucinado.
     const noTextSection = ' Não incluir nenhum texto, palavra, letra, número ou tipografia na imagem — apenas elementos visuais (fotografia ou ilustração), sem nenhum tipo de escrita.'
+    const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle) : ''
 
-    return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}`
+    return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}${textZoneSection}`
+  }
+
+  // Uma barra de texto vetorial será sobreposta depois nesta zona — pedimos ao Imagen para
+  // compor a cena com uma área visualmente "calma" ali (sem elementos de foco), em vez de
+  // só proibir texto sem dar nenhuma direção de composição, o que deixava a barra com cara de
+  // remendo colado sobre a foto.
+  private textZoneInstruction(templateStyle: TemplateStyle): string {
+    switch (templateStyle) {
+      case TemplateStyle.BOLD_BOTTOM:
+        return ' Componha a cena deixando o terço inferior da imagem mais simples e com menos detalhe visual, pois uma barra de texto será sobreposta ali.'
+      case TemplateStyle.TOP_STRIP:
+        return ' Componha a cena deixando a faixa superior da imagem mais simples e com menos detalhe visual, pois uma barra de texto será sobreposta ali.'
+      case TemplateStyle.CENTERED_OVERLAY:
+        return ' Componha a cena com o centro da imagem visualmente mais calmo (menos detalhe, contraste suave), pois um texto será sobreposto centralizado ali.'
+    }
   }
 }

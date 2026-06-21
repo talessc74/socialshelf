@@ -47,14 +47,17 @@ export class EditArtifactUseCase {
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
 
     try {
+      const headline = request.outputs.headlines?.[artifact.position - 1] ?? ''
+      const visualBrief = request.outputs.visualBriefs?.[artifact.position - 1] ?? request.inputs.description
       const image = await this.imageGenerator.generateImage({
-        description: `${request.inputs.description}. Ajuste solicitado pelo usuário: ${input.instruction}`,
+        description: `${visualBrief}. Ajuste solicitado pelo usuário: ${input.instruction}`,
         brandTokens,
         position: artifact.position,
         totalArtifacts: request.inputs.artifactCount,
         aspectRatio: request.inputs.aspectRatio,
+        templateStyle: request.inputs.style,
+        hasTextOverlay: headline.trim().length > 0,
       })
-      const headline = request.outputs.headlines?.[artifact.position - 1] ?? ''
       const finalImage = await this.templateRenderer.render({
         backgroundImage: image,
         headline,

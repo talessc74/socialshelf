@@ -36,6 +36,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = 
           copies: { [Platform.LINKEDIN]: { text: 'Generated copy', charCount: 14 } },
           cta: 'Comente abaixo!',
           headlines: ['Headline gerada 1', 'Headline gerada 2', 'Headline gerada 3'],
+          visualBriefs: ['Cena gerada 1', 'Cena gerada 2', 'Cena gerada 3'],
         }),
   }
 

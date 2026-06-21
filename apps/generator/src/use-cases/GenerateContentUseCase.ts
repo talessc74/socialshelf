@@ -99,7 +99,13 @@ export class GenerateContentUseCase {
     request = {
       ...request,
       status: 'generating_image',
-      outputs: { copies: copyResult.copies, cta: copyResult.cta, headlines: copyResult.headlines, artifacts },
+      outputs: {
+        copies: copyResult.copies,
+        cta: copyResult.cta,
+        headlines: copyResult.headlines,
+        visualBriefs: copyResult.visualBriefs,
+        artifacts,
+      },
     }
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)
     await this.generationRequestRepo.updateStatus(request.id, 'generating_image')
@@ -124,19 +130,22 @@ export class GenerateContentUseCase {
     await Promise.all(
       artifacts.map(async (artifact) => {
         try {
+          const headline = copyResult.headlines[artifact.position - 1]!
           const uploadedPath = input.imageStoragePaths[artifact.position - 1]
           const image = uploadedPath
             ? await this.imageStorage.download(uploadedPath)
             : await this.imageGenerator.generateImage({
-                description: input.description,
+                description: copyResult.visualBriefs[artifact.position - 1]!,
                 brandTokens,
                 position: artifact.position,
                 totalArtifacts: input.artifactCount,
                 aspectRatio: input.aspectRatio,
+                templateStyle: input.style,
+                hasTextOverlay: headline.trim().length > 0,
               })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
-            headline: copyResult.headlines[artifact.position - 1]!,
+            headline,
             style: input.style,
             brandTokens,
             logoImage,

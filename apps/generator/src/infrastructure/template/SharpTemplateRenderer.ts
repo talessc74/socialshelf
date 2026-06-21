@@ -50,10 +50,14 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     const width = metadata.width ?? 1024
     const height = metadata.height ?? 1024
 
-    const svg = this.buildSvg(input, width, height)
-    const overlays: Array<{ input: Buffer; top: number; left: number }> = [
-      { input: Buffer.from(svg), top: 0, left: 0 },
-    ]
+    const overlays: Array<{ input: Buffer; top: number; left: number }> = []
+
+    // A barra de texto não é obrigatória: sem headline, não há nada para desenhar, e
+    // forçar a barra deixaria uma faixa colorida vazia sobre a foto sem propósito.
+    if (input.headline.trim().length > 0) {
+      const svg = this.buildSvg(input, width, height)
+      overlays.push({ input: Buffer.from(svg), top: 0, left: 0 })
+    }
 
     if (input.logoImage) {
       const logoBadge = await this.buildLogoBadge(input.logoImage, width, height)
