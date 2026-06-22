@@ -18,6 +18,22 @@
       ]
     },
     {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "performance_suggestions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "shelved", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "generation_requests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
