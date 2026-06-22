@@ -48,7 +48,10 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
     const raw = await this.tokenVault.retrieve(connection.tokenRef)
     const token: FacebookToken = JSON.parse(raw)
 
-    const fields = 'insights.metric(post_impressions),likes.summary(true),comments.summary(true),shares'
+    // Meta deprecated "post_impressions" (and related impressions metrics) for Page posts on
+    // Nov 15, 2025 — requesting it now fails the whole call with OAuthException #100.
+    // "post_media_view" is Meta's designated replacement.
+    const fields = 'insights.metric(post_media_view),likes.summary(true),comments.summary(true),shares'
     const params = new URLSearchParams({ fields, access_token: token.page_access_token })
 
     const response = await fetch(`${GRAPH}/${externalId}?${params.toString()}`)
