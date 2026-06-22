@@ -111,7 +111,7 @@ export default function PerformanceDashboardPage() {
         </div>
       ) : error ? (
         <div className="space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-          <p>
+          <p className="break-words">
             Não foi possível carregar as métricas de performance.
             {error instanceof Error && error.message ? ` [${error.message}]` : ''}
           </p>
@@ -175,7 +175,7 @@ export default function PerformanceDashboardPage() {
             </div>
 
             {selectedPlatform && errorsByPlatform.has(selectedPlatform) && (
-              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              <p className="break-words rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
                 Não foi possível carregar as métricas de {PLATFORM_LABELS[selectedPlatform]}: {' '}
                 {errorsByPlatform.get(selectedPlatform)}
               </p>
@@ -235,7 +235,7 @@ export default function PerformanceDashboardPage() {
                 </button>
               </div>
               {analyzeError && (
-                <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{analyzeError}</p>
+                <p className="break-words rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{analyzeError}</p>
               )}
               {diagnostic && (
                 <ProfileDiagnosticPanel

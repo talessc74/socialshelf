@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex bg-surface-operation-dots">
       <Sidebar onLogout={logout} />
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <header className="flex items-center justify-end border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
           <span className="truncate text-sm text-gray-500">{user.email}</span>
         </header>
