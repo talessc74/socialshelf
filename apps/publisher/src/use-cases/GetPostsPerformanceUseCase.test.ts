@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetPostsPerformanceUseCase } from './GetPostsPerformanceUseCase.js'
-import { Platform } from '@socialshelf/domain'
+import { ContentNotFoundError, Platform } from '@socialshelf/domain'
 import type { Post, OAuthConnection, OAuthRepository, PostRepository, AnalyticsReaderPort } from '@socialshelf/domain'
 
 function makePost(overrides: Partial<Post> = {}): Post {
@@ -147,5 +147,27 @@ describe('GetPostsPerformanceUseCase', () => {
     expect(result.errors).toHaveLength(1)
     expect(result.errors[0]!.platform).toBe(Platform.FACEBOOK)
     expect(result.errors[0]!.message).toBe('Meta token expired')
+  })
+
+  it('limpa o externalId e não reporta erro quando o conteúdo foi apagado na plataforma', async () => {
+    const igReader: AnalyticsReaderPort = {
+      fetchPostMetrics: vi.fn().mockRejectedValue(new ContentNotFoundError('Instagram media gone')),
+    }
+    const readers = new Map([[Platform.INSTAGRAM, igReader]])
+    useCase = new GetPostsPerformanceUseCase(postRepo, oauthRepo, readers)
+
+    const post = makePost({
+      externalIds: { [Platform.INSTAGRAM]: 'media-deleted' },
+      content: [{ platform: Platform.INSTAGRAM, text: 'Hello', charCount: 5 }],
+    })
+    vi.mocked(postRepo.findByBrand).mockResolvedValueOnce([post])
+
+    const result = await useCase.execute('brand-1')
+
+    expect(result.entries).toHaveLength(0)
+    expect(result.errors).toHaveLength(0)
+    expect(postRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ externalIds: {} }),
+    )
   })
 })

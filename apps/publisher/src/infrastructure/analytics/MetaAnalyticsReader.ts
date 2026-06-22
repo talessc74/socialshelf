@@ -1,7 +1,19 @@
-import { Platform } from '@socialshelf/domain'
+import { Platform, ContentNotFoundError } from '@socialshelf/domain'
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
+
+// Meta's signature for "this object was deleted or never existed" — e.g. the user
+// removed the post directly on Instagram/Facebook after we published it. Distinct
+// from auth/permission errors (code 10) or rate limiting, which are transient.
+function isContentDeletedError(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: number; error_subcode?: number } }
+    return parsed.error?.code === 100 && parsed.error?.error_subcode === 33
+  } catch {
+    return false
+  }
+}
 
 interface FacebookToken {
   page_access_token: string
@@ -43,6 +55,9 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
 
     if (!response.ok) {
       const err = await response.text()
+      if (isContentDeletedError(err)) {
+        throw new ContentNotFoundError(`Facebook post ${externalId} no longer exists`)
+      }
       throw new Error(`Facebook metrics fetch failed: ${response.status} ${err}`)
     }
 
@@ -71,6 +86,9 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
 
     if (!response.ok) {
       const err = await response.text()
+      if (isContentDeletedError(err)) {
+        throw new ContentNotFoundError(`Instagram media ${externalId} no longer exists`)
+      }
       throw new Error(`Instagram metrics fetch failed: ${response.status} ${err}`)
     }
 

@@ -61,6 +61,7 @@ export type {
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'
+export { ContentNotFoundError } from './ports/AnalyticsReaderPort.js'
 export type { AudienceSignalRepository } from './ports/AudienceSignalRepository.js'
 export type { NewsSourcePort } from './ports/NewsSourcePort.js'
 export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'

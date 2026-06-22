@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { MetaAnalyticsReader } from './MetaAnalyticsReader.js'
-import { Platform } from '@socialshelf/domain'
+import { ContentNotFoundError, Platform } from '@socialshelf/domain'
 import type { OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 function makeConnection(platform: Platform): OAuthConnection {
@@ -87,6 +87,24 @@ describe('MetaAnalyticsReader', () => {
         reader.fetchPostMetrics('page-999_post-111', makeConnection(Platform.FACEBOOK)),
       ).rejects.toThrow('Facebook metrics fetch failed: 400 Bad Request')
     })
+
+    it('throws ContentNotFoundError when the post was deleted on Facebook', async () => {
+      const vault = makeVault({ page_access_token: 'page-token' })
+      const reader = new MetaAnalyticsReader(vault)
+
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: { message: 'Unsupported get request.', code: 100, error_subcode: 33 },
+          }),
+      })
+
+      await expect(
+        reader.fetchPostMetrics('page-999_post-111', makeConnection(Platform.FACEBOOK)),
+      ).rejects.toThrow(ContentNotFoundError)
+    })
   })
 
   describe('Instagram', () => {
@@ -121,6 +139,28 @@ describe('MetaAnalyticsReader', () => {
       const result = await reader.fetchPostMetrics('media-888', makeConnection(Platform.INSTAGRAM))
 
       expect(result).toEqual({ impressions: 0, likes: 0, comments: 0, shares: 0 })
+    })
+
+    it('throws ContentNotFoundError when the media was deleted on Instagram', async () => {
+      const vault = makeVault({ page_access_token: 'page-token' })
+      const reader = new MetaAnalyticsReader(vault)
+
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              message: "Unsupported get request. Object with ID '184173924213147537' does not exist",
+              code: 100,
+              error_subcode: 33,
+            },
+          }),
+      })
+
+      await expect(
+        reader.fetchPostMetrics('media-888', makeConnection(Platform.INSTAGRAM)),
+      ).rejects.toThrow(ContentNotFoundError)
     })
   })
 })

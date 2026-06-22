@@ -1,3 +1,4 @@
+import { ContentNotFoundError } from '@socialshelf/domain'
 import type {
   Platform,
   PostRepository,
@@ -62,6 +63,14 @@ export class GetPostsPerformanceUseCase {
             publishedAt: (post.publishedAt ?? post.updatedAt).toISOString(),
           })
         } catch (err) {
+          if (err instanceof ContentNotFoundError) {
+            // Content was deleted directly on the platform — not an error to show the
+            // user, just a stale reference. Drop it so we stop trying to fetch it forever.
+            delete post.externalIds[platform]
+            await this.postRepo.save(post)
+            continue
+          }
+
           errors.push({
             platform,
             postId: post.id,
