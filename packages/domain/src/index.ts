@@ -24,6 +24,7 @@ export type { AudienceSignal } from './entities/AudienceSignal.js'
 export type { NewsItem } from './entities/NewsItem.js'
 export type { VerifiedNewsItem } from './entities/VerifiedNewsItem.js'
 export type { TopicSuggestion } from './entities/TopicSuggestion.js'
+export type { PerformanceSuggestion, PerformanceSuggestionFeedback } from './entities/PerformanceSuggestion.js'
 export {
   Platform,
   PLATFORM_CHARACTER_LIMITS,
@@ -65,6 +66,8 @@ export { ContentNotFoundError } from './ports/AnalyticsReaderPort.js'
 export type { AudienceSignalRepository } from './ports/AudienceSignalRepository.js'
 export type { NewsSourcePort } from './ports/NewsSourcePort.js'
 export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'
+export type { PerformanceSuggestionRepository } from './ports/PerformanceSuggestionRepository.js'
+export type { PerformanceSuggesterPort, PerformanceSuggestionDraft } from './ports/PerformanceSuggesterPort.js'
 export type {
   PatternAnalyzerPort,
   PostPerformanceSummary,

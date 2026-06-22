@@ -15,6 +15,7 @@ import {
 import { Stepper } from '../../../components/Stepper'
 import { RecommendationPanel } from '../../../components/RecommendationPanel'
 import { ScoreBadge } from '../../../components/ScoreBadge'
+import { PerformanceSuggestionsPanel } from '../../../components/PerformanceSuggestionsPanel'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -447,8 +448,10 @@ export default function GenerateContentPage() {
           ) : generating ? (
             <GeneratingView stages={stages} stageIndex={stageIndex} />
           ) : (
-            <FormView
-              description={description}
+            <>
+              <PerformanceSuggestionsPanel onUseSuggestion={setDescription} />
+              <FormView
+                description={description}
               setDescription={setDescription}
               textContent={textContent}
               setTextContent={setTextContent}
@@ -471,8 +474,9 @@ export default function GenerateContentPage() {
               error={error}
               canGenerate={canGenerate}
               onGenerate={handleGenerate}
-              onClear={handleClear}
-            />
+                onClear={handleClear}
+              />
+            </>
           )}
         </div>
 

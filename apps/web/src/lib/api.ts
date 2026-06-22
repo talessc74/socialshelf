@@ -102,6 +102,17 @@ export interface ApiTopicSuggestion {
   createdAt: string
 }
 
+export interface ApiPerformanceSuggestion {
+  id: string
+  brandId: string
+  headline: string
+  rationale: string
+  viralScore: number
+  basedOnThemes: string[]
+  feedback: 'helpful' | 'not_helpful' | null
+  createdAt: string
+}
+
 export interface ApiGenerationArtifact {
   position: number
   status: 'pending' | 'generating' | 'ready' | 'failed'
@@ -224,6 +235,18 @@ export const api = {
   async getTopicSuggestions(): Promise<ApiTopicSuggestion[]> {
     const data = await apiFetch<{ suggestions: ApiTopicSuggestion[] }>('/pauta-suggestions')
     return data.suggestions
+  },
+
+  async getPerformanceSuggestions(): Promise<ApiPerformanceSuggestion[]> {
+    const data = await apiFetch<{ suggestions: ApiPerformanceSuggestion[] }>('/performance-suggestions')
+    return data.suggestions
+  },
+
+  async submitPerformanceSuggestionFeedback(id: string, feedback: 'helpful' | 'not_helpful'): Promise<void> {
+    await apiFetch(`/performance-suggestions/${id}/feedback`, {
+      method: 'POST',
+      body: JSON.stringify({ feedback }),
+    })
   },
 
   async getBrandProfile(): Promise<ApiBrandProfile | null> {
