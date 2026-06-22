@@ -53,6 +53,11 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
   }
 
   async findShelvedByBrand(brandId: string): Promise<PerformanceSuggestion[]> {
+    // A single equality filter only needs Firestore's automatic single-field
+    // index, unlike where()+orderBy() on different fields, which needs a
+    // composite index the deployer SA can't currently create in production
+    // (see .github/workflows/deploy.yml — PERMISSION_DENIED, swallowed by
+    // `|| true`). Sorting here in memory avoids depending on that index.
     const snapshot = await db
       .collection('users')
       .doc(brandId)
@@ -60,10 +65,11 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       .doc(brandId)
       .collection('performance_suggestions')
       .where('shelved', '==', true)
-      .orderBy('createdAt', 'desc')
       .get()
 
-    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+    return snapshot.docs
+      .map((doc) => this.fromFirestore(doc.data()))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
   }
 
   private fromFirestore(data: FirebaseFirestore.DocumentData): PerformanceSuggestion {

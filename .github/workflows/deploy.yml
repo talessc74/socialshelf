@@ -127,13 +127,6 @@ jobs:
             --field-config field-path=scheduledAt,order=ascending \
             --project=${{ env.GCP_PROJECT_ID }} || true
 
-          gcloud firestore indexes composite create \
-            --collection-group=performance_suggestions \
-            --query-scope=COLLECTION \
-            --field-config field-path=shelved,order=ascending \
-            --field-config field-path=createdAt,order=descending \
-            --project=${{ env.GCP_PROJECT_ID }} || true
-
           gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }} || true
 
   deploy-api:
