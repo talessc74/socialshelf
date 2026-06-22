@@ -186,10 +186,10 @@ export default function PerformanceDashboardPage() {
                 {entriesByPlatform.get(selectedPlatform)!.map((entry) => (
                   <li
                     key={`${entry.postId}-${entry.platform}`}
-                    className="flex items-start justify-between gap-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60"
+                    className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-center gap-2">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
                         <ScoreBadge label="score" score={entry.score} />
                         <span className="text-xs text-gray-400">
                           {new Date(entry.publishedAt).toLocaleDateString('pt-BR')}
@@ -204,7 +204,7 @@ export default function PerformanceDashboardPage() {
                     </div>
                     <button
                       onClick={() => handleSeed(entry)}
-                      className="shrink-0 rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+                      className="shrink-0 self-start rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50"
                     >
                       🌱 Semear Criação
                     </button>

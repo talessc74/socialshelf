@@ -169,6 +169,13 @@ export interface ApiBrandProfile {
   createdAt: string
 }
 
+export interface ApiBrandProfileExtraction {
+  business?: { name?: string; segment?: string; description?: string }
+  identity?: { positioning?: string; values?: string[] }
+  voice?: { tone?: string; allowedVocabulary?: string[]; prohibitedVocabulary?: string[] }
+  narrative?: { recurringThemes?: string[] }
+}
+
 export interface ApiPostMetrics {
   impressions: number
   likes: number
@@ -303,6 +310,24 @@ export const api = {
     }
     const data = (await res.json()) as { path: string }
     return data.path
+  },
+
+  async uploadBrandDocument(file: File): Promise<ApiBrandProfileExtraction> {
+    const token = await getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${API_URL}/brand-profile/document`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+    const data = (await res.json()) as { extraction: ApiBrandProfileExtraction }
+    return data.extraction
   },
 
   async generateContent(input: GenerateContentInput): Promise<ApiGenerationRequest> {

@@ -6,7 +6,6 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Sparkles, Send, BarChart3, Tag } from 'lucide-react'
 import { api } from '../../lib/api'
-import { BrandIdentityCard } from '../../components/BrandIdentityCard'
 import { LogoImage } from '../../components/LogoImage'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -123,8 +122,6 @@ export default function DashboardPage() {
           ))}
         </div>
       </section>
-
-      {brandProfile && <BrandIdentityCard brandProfile={brandProfile} />}
     </div>
   )
 }
