@@ -15,7 +15,6 @@ const generateSchema = z.object({
   textContent: z.string().min(1).optional(),
   imageStoragePaths: z.array(z.string()).optional(),
   targetPlatforms: z.array(platformEnum).min(1),
-  artifactCount: z.number().int().min(1).max(10).optional(),
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).optional(),
   aspectRatio: z.nativeEnum(AspectRatio).optional(),

@@ -25,3 +25,9 @@ export const PLATFORM_MEDIA_SUPPORT: Record<Platform, PlatformMediaSupport> = {
 }
 
 export const ALL_PLATFORMS = Object.values(Platform)
+
+/**
+ * Teto técnico de artefatos (cards/slides) por post — alinhado ao limite real
+ * de carrossel do Instagram, a única plataforma que hoje publica múltiplas imagens.
+ */
+export const MAX_GENERATION_ARTIFACTS = 10

@@ -10,6 +10,7 @@ import {
   PLATFORM_MEDIA_SUPPORT,
   TemplateStyle,
   AspectRatio,
+  MAX_GENERATION_ARTIFACTS,
   type GenerationArtifact,
 } from '@socialshelf/domain'
 import { Stepper } from '../../../components/Stepper'
@@ -268,11 +269,13 @@ function Lightbox({
   )
 }
 
-function useGenerationProgress(active: boolean, totalArtifacts: number) {
+function useGenerationProgress(active: boolean, knownArtifactCount: number | null) {
   const stages = [
     'Lendo a voz da marca…',
-    'Escrevendo a copy para as plataformas escolhidas…',
-    ...Array.from({ length: totalArtifacts }, (_, i) => `Criando o card ${i + 1} de ${totalArtifacts}…`),
+    'Escrevendo a copy e decidindo a estrutura do post…',
+    ...(knownArtifactCount
+      ? Array.from({ length: knownArtifactCount }, (_, i) => `Criando o card ${i + 1} de ${knownArtifactCount}…`)
+      : ['Criando as imagens dos cards…']),
   ]
   const [stageIndex, setStageIndex] = useState(0)
 
@@ -297,7 +300,6 @@ type GenerateDraft = {
   description: string
   textContent: string
   selectedPlatforms: Platform[]
-  artifactCount: number
   style: TemplateStyle
   aspectRatio: AspectRatio
   topicSuggestionId: string
@@ -322,7 +324,6 @@ export default function GenerateContentPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(
     () => new Set(draft?.selectedPlatforms ?? []),
   )
-  const [artifactCount, setArtifactCount] = useState(() => draft?.artifactCount ?? 1)
   const [style, setStyle] = useState<TemplateStyle>(() => draft?.style ?? TemplateStyle.BOLD_BOTTOM)
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(() => draft?.aspectRatio ?? AspectRatio.SQUARE)
   const [topicSuggestionId, setTopicSuggestionId] = useState(() => draft?.topicSuggestionId ?? '')
@@ -336,13 +337,12 @@ export default function GenerateContentPage() {
       description,
       textContent,
       selectedPlatforms: [...selectedPlatforms],
-      artifactCount,
       style,
       aspectRatio,
       topicSuggestionId,
     }
     window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data))
-  }, [description, textContent, selectedPlatforms, artifactCount, style, aspectRatio, topicSuggestionId])
+  }, [description, textContent, selectedPlatforms, style, aspectRatio, topicSuggestionId])
 
   const { data: connections, isLoading: loadingConnections } = useQuery({
     queryKey: ['connections'],
@@ -359,17 +359,13 @@ export default function GenerateContentPage() {
     queryFn: () => api.getBrandProfile(),
   })
 
-  const { stages, stageIndex } = useGenerationProgress(generating, artifactCount)
+  const { stages, stageIndex } = useGenerationProgress(generating, photoFiles.length > 0 ? photoFiles.length : null)
 
   const validPlatforms = new Set(Object.values(Platform))
   const connectedPlatforms = connections
     ?.map((c) => c.platform)
     .filter((p) => validPlatforms.has(p)) ?? []
   const selectedSuggestion = suggestions?.find((s) => s.id === topicSuggestionId) ?? null
-
-  useEffect(() => {
-    setPhotoFiles((prev) => prev.slice(0, artifactCount))
-  }, [artifactCount])
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
@@ -383,7 +379,7 @@ export default function GenerateContentPage() {
   const canGenerate = description.trim().length > 0 && selectedPlatforms.size > 0 && !generating
 
   const handlePhotoFilesAdd = (files: File[]) => {
-    setPhotoFiles((prev) => [...prev, ...files].slice(0, artifactCount))
+    setPhotoFiles((prev) => [...prev, ...files].slice(0, MAX_GENERATION_ARTIFACTS))
   }
 
   const handlePhotoFileRemove = (index: number) => {
@@ -394,7 +390,6 @@ export default function GenerateContentPage() {
     setDescription('')
     setTextContent('')
     setSelectedPlatforms(new Set())
-    setArtifactCount(1)
     setStyle(TemplateStyle.BOLD_BOTTOM)
     setAspectRatio(AspectRatio.SQUARE)
     setTopicSuggestionId('')
@@ -413,7 +408,6 @@ export default function GenerateContentPage() {
         description: description.trim(),
         ...(textContent.trim() && { textContent: textContent.trim() }),
         targetPlatforms: [...selectedPlatforms],
-        artifactCount,
         style,
         aspectRatio,
         ...(topicSuggestionId && { topicSuggestionId }),
@@ -462,8 +456,6 @@ export default function GenerateContentPage() {
               connectedPlatforms={connectedPlatforms}
               selectedPlatforms={selectedPlatforms}
               togglePlatform={togglePlatform}
-              artifactCount={artifactCount}
-              setArtifactCount={setArtifactCount}
               style={style}
               setStyle={setStyle}
               aspectRatio={aspectRatio}
@@ -535,8 +527,6 @@ function FormView({
   connectedPlatforms,
   selectedPlatforms,
   togglePlatform,
-  artifactCount,
-  setArtifactCount,
   style,
   setStyle,
   aspectRatio,
@@ -560,8 +550,6 @@ function FormView({
   connectedPlatforms: Platform[]
   selectedPlatforms: Set<Platform>
   togglePlatform: (p: Platform) => void
-  artifactCount: number
-  setArtifactCount: (v: number) => void
   style: TemplateStyle
   setStyle: (v: TemplateStyle) => void
   aspectRatio: AspectRatio
@@ -687,52 +675,13 @@ function FormView({
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-700">
-            Quantidade de artefatos
-          </label>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center rounded-lg border border-gray-300">
-              <button
-                type="button"
-                onClick={() => setArtifactCount(Math.max(1, artifactCount - 1))}
-                disabled={artifactCount <= 1}
-                aria-label="Diminuir quantidade"
-                className="px-3 py-2 text-base font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30"
-              >
-                −
-              </button>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={10}
-                value={artifactCount}
-                onChange={(e) => setArtifactCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
-                className="w-12 border-x border-gray-300 px-2 py-2 text-center text-sm text-gray-800 [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-              />
-              <button
-                type="button"
-                onClick={() => setArtifactCount(Math.min(10, artifactCount + 1))}
-                disabled={artifactCount >= 10}
-                aria-label="Aumentar quantidade"
-                className="px-3 py-2 text-base font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-30"
-              >
-                +
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">
-              {artifactCount === 1 ? 'Post único' : `Carrossel com ${artifactCount} imagens`}
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
             Suas fotos (opcional)
           </label>
           <p className="mb-2 text-xs text-gray-400">
-            Envie até {artifactCount} foto{artifactCount > 1 ? 's' : ''} sua{artifactCount > 1 ? 's' : ''} para
-            usar como fundo dos cards — a IA só monta o template (texto e logo) sobre elas, sem gerar uma imagem
-            nova. Cards sem foto enviada continuam usando imagem gerada por IA. Válido apenas para Instagram e
+            A IA decide, a partir do que você descreveu, quantos cards o post precisa e gera as imagens de
+            fundo — você não escolhe a quantidade. Se preferir usar fotos próprias em vez de imagens geradas,
+            envie até {MAX_GENERATION_ARTIFACTS}: a quantidade enviada passa a ser exatamente a quantidade de
+            cards do post, e a IA só monta o template (texto e logo) sobre elas. Válido apenas para Instagram e
             Facebook — LinkedIn e X publicam somente o texto gerado.
           </p>
           <input
@@ -743,29 +692,35 @@ function FormView({
               onPhotoFilesAdd(Array.from(e.target.files ?? []))
               e.target.value = ''
             }}
-            disabled={photoFiles.length >= artifactCount}
+            disabled={photoFiles.length >= MAX_GENERATION_ARTIFACTS}
             className="block w-full text-sm text-gray-600"
           />
           {photoFiles.length > 0 && (
-            <ul className="mt-2 space-y-1">
-              {photoFiles.map((file, i) => (
-                <li
-                  key={`${file.name}-${i}`}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-600"
-                >
-                  <span className="truncate">
-                    #{i + 1} — {file.name}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onPhotoFileRemove(i)}
-                    className="ml-2 shrink-0 text-red-500 hover:text-red-700"
+            <>
+              <p className="mt-2 text-xs font-medium text-brand-600">
+                {photoFiles.length === 1 ? 'Post único' : `Carrossel com ${photoFiles.length} cards`} — definido
+                pela quantidade de fotos enviadas.
+              </p>
+              <ul className="mt-2 space-y-1">
+                {photoFiles.map((file, i) => (
+                  <li
+                    key={`${file.name}-${i}`}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-600"
                   >
-                    Remover
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    <span className="truncate">
+                      #{i + 1} — {file.name}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onPhotoFileRemove(i)}
+                      className="ml-2 shrink-0 text-red-500 hover:text-red-700"
+                    >
+                      Remover
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
 

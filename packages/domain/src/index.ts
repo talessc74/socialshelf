@@ -30,6 +30,7 @@ export {
   PLATFORM_CHARACTER_LIMITS,
   PLATFORM_MEDIA_SUPPORT,
   ALL_PLATFORMS,
+  MAX_GENERATION_ARTIFACTS,
 } from './entities/Platform.js'
 export type { PlatformMediaSupport } from './entities/Platform.js'
 export { TemplateStyle, ALL_TEMPLATE_STYLES } from './entities/TemplateStyle.js'
@@ -43,6 +44,7 @@ export type { PublisherPort, PublishResult } from './ports/PublisherPort.js'
 export type {
   CopyGeneratorPort,
   ContentInputs,
+  ArtifactPlan,
   PlatformCopies,
   PautaContext,
   CopyGenerationResult,
