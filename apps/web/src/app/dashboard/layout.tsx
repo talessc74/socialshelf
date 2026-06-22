@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex bg-surface-operation-dots">
       <Sidebar onLogout={logout} />
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
           <span className="text-sm font-bold text-gray-900">
             Social<span className="text-brand-600">Shelf</span>
