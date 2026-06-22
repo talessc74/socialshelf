@@ -119,7 +119,7 @@ describe('PublishPostUseCase', () => {
   it('marks post as published and sets publishedAt', async () => {
     await useCase.execute('post-1', 'brand-1')
 
-    const saved = vi.mocked(postRepo.save).mock.calls[0]![0]
+    const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.status).toBe('published')
     expect(saved.publishedAt).toBeInstanceOf(Date)
   })
@@ -131,9 +131,21 @@ describe('PublishPostUseCase', () => {
 
     await useCase.execute('post-1', 'brand-1')
 
-    const saved = vi.mocked(postRepo.save).mock.calls[0]![0]
+    const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.externalIds[Platform.LINKEDIN]).toBe('urn:li:ugcPost:111')
     expect(saved.externalIds[Platform.TWITTER]).toBe('tweet-999')
+  })
+
+  it('persists the post immediately after each successful platform publish, not only at the end', async () => {
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
+      makePost([Platform.LINKEDIN, Platform.TWITTER]),
+    )
+
+    await useCase.execute('post-1', 'brand-1')
+
+    const firstSave = vi.mocked(postRepo.save).mock.calls[0]![0]
+    expect(firstSave.externalIds[Platform.LINKEDIN]).toBe('urn:li:ugcPost:111')
+    expect(firstSave.status).toBe('published')
   })
 
   it('records failed platform without throwing when publisher errors', async () => {
@@ -151,7 +163,7 @@ describe('PublishPostUseCase', () => {
 
     await useCase.execute('post-1', 'brand-1')
 
-    const saved = vi.mocked(postRepo.save).mock.calls[0]![0]
+    const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.status).toBe('failed')
     expect(saved.publishedAt).toBeNull()
   })

@@ -57,6 +57,14 @@ export class PublishPostUseCase {
         const result: PublishResult = await publisher.publish(post, platform, connection)
         results.push({ platform, ...result })
         post.externalIds[platform] = result.externalId
+
+        // Persist right after each successful platform publish: a slow carousel on one
+        // platform (or the request being cut off, e.g. by a Cloud Run timeout) must not
+        // erase publishes that already went through on other platforms.
+        post.status = 'published'
+        post.publishedAt = post.publishedAt ?? new Date()
+        post.updatedAt = new Date()
+        await this.postRepo.save(post)
       } catch (err) {
         const reason = err instanceof Error ? err.message : String(err)
         failedPlatforms.push({ platform, reason })
@@ -64,10 +72,11 @@ export class PublishPostUseCase {
     }
 
     const allFailed = results.length === 0 && failedPlatforms.length > 0
-    post.status = allFailed ? 'failed' : 'published'
-    post.publishedAt = allFailed ? null : new Date()
+    if (allFailed) {
+      post.status = 'failed'
+      post.publishedAt = null
+    }
     post.updatedAt = new Date()
-
     await this.postRepo.save(post)
 
     return { postId, results, failedPlatforms }
