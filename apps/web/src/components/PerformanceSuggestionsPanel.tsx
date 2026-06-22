@@ -44,6 +44,16 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
     },
   })
 
+  const shelveMutation = useMutation({
+    mutationFn: (id: string) => api.setPerformanceSuggestionShelved(id, true),
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<typeof suggestions>(['performance-suggestions'], (prev) =>
+        prev?.map((s) => (s.id === id ? { ...s, shelved: true } : s)),
+      )
+      queryClient.invalidateQueries({ queryKey: ['shelved-performance-suggestions'] })
+    },
+  })
+
   if (isLoading) {
     return (
       <section className="space-y-2 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
@@ -72,6 +82,9 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-gray-800">{suggestion.headline}</p>
           <p className="text-xs text-gray-500">{suggestion.rationale}</p>
+          {suggestion.bestTimeToPost && (
+            <p className="text-xs font-medium text-brand-600">⏰ Melhor momento: {suggestion.bestTimeToPost}</p>
+          )}
           {suggestion.basedOnThemes.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
               {suggestion.basedOnThemes.map((theme) => (
@@ -102,6 +115,13 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
             Trocar sugestão
           </button>
         )}
+        <button
+          onClick={() => shelveMutation.mutate(suggestion.id)}
+          disabled={suggestion.shelved || shelveMutation.isPending}
+          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+        >
+          {suggestion.shelved ? '📌 Guardada' : 'Guardar na prateleira'}
+        </button>
 
         <span className="ml-auto flex items-center gap-1.5">
           <button

@@ -41,6 +41,31 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       .update({ feedback })
   }
 
+  async setShelved(brandId: string, id: string, shelved: boolean): Promise<void> {
+    await db
+      .collection('users')
+      .doc(brandId)
+      .collection('brands')
+      .doc(brandId)
+      .collection('performance_suggestions')
+      .doc(id)
+      .update({ shelved })
+  }
+
+  async findShelvedByBrand(brandId: string): Promise<PerformanceSuggestion[]> {
+    const snapshot = await db
+      .collection('users')
+      .doc(brandId)
+      .collection('brands')
+      .doc(brandId)
+      .collection('performance_suggestions')
+      .where('shelved', '==', true)
+      .orderBy('createdAt', 'desc')
+      .get()
+
+    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+  }
+
   private fromFirestore(data: FirebaseFirestore.DocumentData): PerformanceSuggestion {
     return {
       id: data['id'] as string,
@@ -50,6 +75,11 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       viralScore: data['viralScore'] as number,
       basedOnThemes: data['basedOnThemes'] as string[],
       feedback: (data['feedback'] as PerformanceSuggestionFeedback | undefined) ?? null,
+      bestTimeToPost: (data['bestTimeToPost'] as string | undefined) ?? '',
+      bestTimeWeekdays: (data['bestTimeWeekdays'] as number[] | undefined) ?? [],
+      bestTimeHourStart: (data['bestTimeHourStart'] as number | undefined) ?? 0,
+      bestTimeHourEnd: (data['bestTimeHourEnd'] as number | undefined) ?? 23,
+      shelved: (data['shelved'] as boolean | undefined) ?? false,
       createdAt: new Date(data['createdAt'] as string),
     }
   }

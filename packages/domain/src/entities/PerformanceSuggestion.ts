@@ -8,5 +8,10 @@ export interface PerformanceSuggestion {
   viralScore: number
   basedOnThemes: string[]
   feedback: PerformanceSuggestionFeedback | null
+  bestTimeToPost: string
+  bestTimeWeekdays: number[]
+  bestTimeHourStart: number
+  bestTimeHourEnd: number
+  shelved: boolean
   createdAt: Date
 }

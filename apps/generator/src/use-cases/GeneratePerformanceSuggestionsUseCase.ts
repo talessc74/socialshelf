@@ -23,6 +23,11 @@ export class GeneratePerformanceSuggestionsUseCase {
       viralScore: draft.viralScore,
       basedOnThemes: draft.basedOnThemes,
       feedback: null,
+      bestTimeToPost: draft.bestTimeToPost,
+      bestTimeWeekdays: draft.bestTimeWeekdays,
+      bestTimeHourStart: draft.bestTimeHourStart,
+      bestTimeHourEnd: draft.bestTimeHourEnd,
+      shelved: false,
       createdAt: new Date(),
     }))
 

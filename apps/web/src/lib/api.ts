@@ -110,6 +110,11 @@ export interface ApiPerformanceSuggestion {
   viralScore: number
   basedOnThemes: string[]
   feedback: 'helpful' | 'not_helpful' | null
+  bestTimeToPost: string
+  bestTimeWeekdays: number[]
+  bestTimeHourStart: number
+  bestTimeHourEnd: number
+  shelved: boolean
   createdAt: string
 }
 
@@ -247,6 +252,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ feedback }),
     })
+  },
+
+  async setPerformanceSuggestionShelved(id: string, shelved: boolean): Promise<void> {
+    await apiFetch(`/performance-suggestions/${id}/shelve`, {
+      method: 'POST',
+      body: JSON.stringify({ shelved }),
+    })
+  },
+
+  async getShelvedPerformanceSuggestions(): Promise<ApiPerformanceSuggestion[]> {
+    const data = await apiFetch<{ suggestions: ApiPerformanceSuggestion[] }>('/performance-suggestions/shelved')
+    return data.suggestions
   },
 
   async getBrandProfile(): Promise<ApiBrandProfile | null> {

@@ -5,6 +5,10 @@ export interface PerformanceSuggestionDraft {
   rationale: string
   viralScore: number
   basedOnThemes: string[]
+  bestTimeToPost: string
+  bestTimeWeekdays: number[]
+  bestTimeHourStart: number
+  bestTimeHourEnd: number
 }
 
 export interface PerformanceSuggesterPort {

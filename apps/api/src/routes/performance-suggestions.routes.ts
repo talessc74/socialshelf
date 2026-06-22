@@ -87,4 +87,49 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
       return reply.send(await res.json())
     },
   )
+
+  app.post(
+    '/performance-suggestions/:id/shelve',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const res = await fetchInternal(`${generatorUrl}/performance-suggestions/${id}/shelve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+        },
+        body: JSON.stringify({ brandId: request.userId, ...(request.body as object) }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
+  app.get(
+    '/performance-suggestions/shelved',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const res = await fetchInternal(
+        `${generatorUrl}/performance-suggestions/shelved?brandId=${encodeURIComponent(request.userId)}`,
+        {
+          headers: { 'X-Internal-Secret': internalSecret },
+        },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
 }

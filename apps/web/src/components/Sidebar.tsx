@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
   { href: '/dashboard/generate', label: 'Gerar com IA', icon: Sparkles },
   { href: '/dashboard/compose', label: 'Novo Post', icon: Send },
+  { href: '/dashboard/insights', label: 'Banco de Insights', icon: Lightbulb },
   { href: '/dashboard/performance', label: 'Performance', icon: BarChart3 },
   { href: '/dashboard/brand', label: 'Marca', icon: Tag },
 ]
