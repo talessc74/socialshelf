@@ -907,23 +907,51 @@ function ResultView({
   const [publishResult, setPublishResult] = useState<PublishResponse | null>(null)
   const [publishError, setPublishError] = useState('')
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [showScheduler, setShowScheduler] = useState(false)
+  const [scheduledAtInput, setScheduledAtInput] = useState('')
+  const [scheduling, setScheduling] = useState(false)
+  const [scheduleSuccess, setScheduleSuccess] = useState<Date | null>(null)
+
+  const buildContent = () => {
+    if (!result.outputs) return []
+    return Object.entries(result.outputs.copies).map(([platform, copy]) => ({
+      platform: platform as Platform,
+      text: copy!.text,
+    }))
+  }
 
   const handlePublish = async () => {
     if (!result.outputs) return
     setPublishError('')
     setPublishing(true)
     try {
-      const content = Object.entries(result.outputs.copies).map(([platform, copy]) => ({
-        platform: platform as Platform,
-        text: copy!.text,
-      }))
-      const post = await api.createPost(content, readyArtifacts.map((a) => a.imageStoragePath!))
+      const post = await api.createPost(buildContent(), readyArtifacts.map((a) => a.imageStoragePath!))
       const response = await api.publishPost(post.id)
       setPublishResult(response)
     } catch (err) {
       setPublishError(err instanceof Error ? err.message : 'Erro ao publicar.')
     } finally {
       setPublishing(false)
+    }
+  }
+
+  const handleSchedule = async () => {
+    if (!result.outputs || !scheduledAtInput) return
+    const scheduledAt = new Date(scheduledAtInput)
+    if (Number.isNaN(scheduledAt.getTime()) || scheduledAt.getTime() <= Date.now()) {
+      setPublishError('Escolha uma data e hora no futuro.')
+      return
+    }
+    setPublishError('')
+    setScheduling(true)
+    try {
+      await api.createPost(buildContent(), readyArtifacts.map((a) => a.imageStoragePath!), scheduledAt)
+      setScheduleSuccess(scheduledAt)
+      setShowScheduler(false)
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : 'Erro ao agendar.')
+    } finally {
+      setScheduling(false)
     }
   }
 
@@ -1028,19 +1056,52 @@ function ResultView({
             </div>
           )}
         </div>
+      ) : scheduleSuccess ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <p className="font-semibold text-green-800">
+            Post agendado para{' '}
+            {scheduleSuccess.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
+          </p>
+        </div>
       ) : (
         result.status === 'ready' && (
           <div className="space-y-2">
             {publishError && (
               <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{publishError}</p>
             )}
-            <button
-              onClick={handlePublish}
-              disabled={publishing}
-              className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
-            >
-              {publishing ? 'Publicando…' : 'Publicar Agora'}
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handlePublish}
+                disabled={publishing || scheduling}
+                className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+              >
+                {publishing ? 'Publicando…' : 'Publicar Agora'}
+              </button>
+              <button
+                onClick={() => setShowScheduler((v) => !v)}
+                disabled={publishing || scheduling}
+                className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              >
+                Agendar
+              </button>
+            </div>
+            {showScheduler && (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <input
+                  type="datetime-local"
+                  value={scheduledAtInput}
+                  onChange={(e) => setScheduledAtInput(e.target.value)}
+                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                />
+                <button
+                  onClick={handleSchedule}
+                  disabled={scheduling || !scheduledAtInput}
+                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                >
+                  {scheduling ? 'Agendando…' : 'Confirmar agendamento'}
+                </button>
+              </div>
+            )}
           </div>
         )
       )}

@@ -13,6 +13,7 @@ export interface CreatePostInput {
   brandId: string
   content: Array<{ platform: Platform; text: string }>
   imageStoragePaths?: string[]
+  scheduledAt?: Date
 }
 
 export class CreatePostUseCase {
@@ -41,8 +42,8 @@ export class CreatePostUseCase {
       brandProfileVersion: latestBrandProfile?.version ?? null,
       content: platformContent,
       imageStoragePaths: input.imageStoragePaths ?? [],
-      status: 'draft',
-      scheduledAt: null,
+      status: input.scheduledAt ? 'scheduled' : 'draft',
+      scheduledAt: input.scheduledAt ?? null,
       publishedAt: null,
       externalIds: {},
       createdAt: new Date(),

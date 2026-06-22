@@ -218,10 +218,18 @@ export const api = {
     return data.url
   },
 
-  async createPost(content: PostContent[], imageStoragePaths?: string[]): Promise<ApiPost> {
+  async createPost(
+    content: PostContent[],
+    imageStoragePaths?: string[],
+    scheduledAt?: Date,
+  ): Promise<ApiPost> {
     const data = await apiFetch<{ post: ApiPost }>('/posts', {
       method: 'POST',
-      body: JSON.stringify({ content, imageStoragePaths }),
+      body: JSON.stringify({
+        content,
+        imageStoragePaths,
+        ...(scheduledAt && { scheduledAt: scheduledAt.toISOString() }),
+      }),
     })
     return data.post
   },

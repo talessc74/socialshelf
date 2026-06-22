@@ -16,7 +16,7 @@ const bodySchema = z.object({
   brandId: z.string().min(1),
 })
 
-export async function publishRoutes(app: FastifyInstance) {
+export function buildPublishPostUseCase(): PublishPostUseCase {
   const postRepo = new FirestorePostRepository()
   const oauthRepo = new FirestoreOAuthRepository()
   const tokenVault = new FirestoreTokenVault()
@@ -50,7 +50,16 @@ export async function publishRoutes(app: FastifyInstance) {
     [Platform.TWITTER, new XPublisher(tokenVault)],
   ])
 
-  const useCase = new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)
+  return new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)
+}
+
+export async function publishRoutes(app: FastifyInstance) {
+  const internalSecret = process.env['INTERNAL_SECRET']
+  if (!internalSecret) {
+    throw new Error('INTERNAL_SECRET env var is required — set it before starting the publisher service')
+  }
+
+  const useCase = buildPublishPostUseCase()
 
   app.post('/publish', async (request, reply) => {
     const header = request.headers['x-internal-secret']
