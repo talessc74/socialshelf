@@ -25,7 +25,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="flex bg-surface-operation-dots">
       <Sidebar onLogout={logout} />
       <div className="flex-1">
-        <header className="flex items-center justify-end border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
+          <span className="text-sm font-bold text-gray-900">
+            Social<span className="text-brand-600">Shelf</span>
+          </span>
           <span className="truncate text-sm text-gray-500">{user.email}</span>
         </header>
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
