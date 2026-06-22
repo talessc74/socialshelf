@@ -76,6 +76,7 @@ export type {
   ProfileDiagnosticTheme,
   ProfileDiagnosticActionStep,
 } from './ports/PatternAnalyzerPort.js'
+export type { BrandDocumentExtractorPort, BrandProfileExtraction } from './ports/BrandDocumentExtractorPort.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

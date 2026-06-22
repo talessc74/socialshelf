@@ -54,6 +54,8 @@ export default function BrandSettingsPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [extracting, setExtracting] = useState(false)
+  const [extractionNotice, setExtractionNotice] = useState('')
 
   const { data: brandProfile, isLoading } = useQuery({
     queryKey: ['brand-profile'],
@@ -86,6 +88,65 @@ export default function BrandSettingsPage() {
       setError(err instanceof Error ? err.message : 'Erro ao enviar o logo.')
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleDocumentChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setError('')
+    setExtractionNotice('')
+    setExtracting(true)
+    try {
+      const extraction = await api.uploadBrandDocument(file)
+      const next: BrandProfileForm = {
+        ...form,
+        business: { ...form.business },
+        identity: { ...form.identity },
+        voice: { ...form.voice },
+        narrative: { ...form.narrative },
+      }
+      let filledCount = 0
+      const fillText = (current: string, incoming: string | undefined): string => {
+        if (current.trim() || !incoming) return current
+        filledCount++
+        return incoming
+      }
+      const fillList = (current: string[], incoming: string[] | undefined): string[] => {
+        if (current.length > 0 || !incoming?.length) return current
+        filledCount++
+        return incoming
+      }
+
+      if (extraction.business) {
+        next.business.name = fillText(next.business.name, extraction.business.name)
+        next.business.segment = fillText(next.business.segment, extraction.business.segment)
+        next.business.description = fillText(next.business.description, extraction.business.description)
+      }
+      if (extraction.identity) {
+        next.identity.positioning = fillText(next.identity.positioning, extraction.identity.positioning)
+        next.identity.values = fillList(next.identity.values, extraction.identity.values)
+      }
+      if (extraction.voice) {
+        next.voice.tone = fillText(next.voice.tone, extraction.voice.tone)
+        next.voice.allowedVocabulary = fillList(next.voice.allowedVocabulary, extraction.voice.allowedVocabulary)
+        next.voice.prohibitedVocabulary = fillList(next.voice.prohibitedVocabulary, extraction.voice.prohibitedVocabulary)
+      }
+      if (extraction.narrative) {
+        next.narrative.recurringThemes = fillList(next.narrative.recurringThemes, extraction.narrative.recurringThemes)
+      }
+
+      setForm(next)
+      setExtractionNotice(
+        filledCount > 0
+          ? `Preenchemos ${filledCount} campo(s) que estavam vazios com base no documento. Revise e salve quando estiver pronto.`
+          : 'O documento não trouxe informação nova para os campos que ainda estão vazios.',
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao processar o documento.')
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -135,6 +196,23 @@ export default function BrandSettingsPage() {
         Cada vez que você salva, é criada uma nova versão da marca — posts já criados continuam usando a
         versão da época em que foram gerados.
       </p>
+
+      <section className="space-y-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
+        <h2 className="text-sm font-semibold text-gray-700">Documento da marca</h2>
+        <p className="text-xs text-gray-400">
+          Opcional: suba um documento (PDF ou TXT) com detalhes da marca ou do produto. A IA lê e preenche
+          automaticamente os campos abaixo que ainda estiverem vazios — campos já preenchidos não são alterados.
+        </p>
+        <input
+          type="file"
+          accept="application/pdf,text/plain"
+          onChange={handleDocumentChange}
+          disabled={extracting}
+          className="block w-full text-sm text-gray-600"
+        />
+        {extracting && <p className="text-xs text-gray-400">Lendo documento…</p>}
+        {extractionNotice && <p className="text-xs font-medium text-brand-700">{extractionNotice}</p>}
+      </section>
 
       <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
         <h2 className="text-sm font-semibold text-gray-700">Negócio</h2>

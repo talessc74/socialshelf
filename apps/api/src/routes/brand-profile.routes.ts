@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { CreateBrandProfileVersionUseCase } from '../use-cases/brand-profile/CreateBrandProfileVersionUseCase.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { fetchInternal } from '../lib/serviceAuth.js'
 
 const autonomyLevelEnum = z.enum(['manual', 'semi-automatic', 'automatic'])
 
@@ -39,6 +40,8 @@ const brandProfileSchema = z.object({
 export async function brandProfileRoutes(app: FastifyInstance) {
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const createBrandProfileVersion = new CreateBrandProfileVersionUseCase(brandProfileRepo)
+  const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
+  const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
 
   app.get(
     '/brand-profile',
@@ -68,6 +71,42 @@ export async function brandProfileRoutes(app: FastifyInstance) {
       })
 
       return reply.status(201).send({ brandProfile: profile })
+    },
+  )
+
+  app.post(
+    '/brand-profile/document',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const file = await request.file()
+      if (!file) {
+        return reply.status(400).send({ error: 'No file provided' })
+      }
+      const allowedMimeTypes = ['application/pdf', 'text/plain']
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return reply.status(400).send({ error: 'Unsupported document type' })
+      }
+
+      const buffer = await file.toBuffer()
+      const res = await fetchInternal(`${generatorUrl}/brand-profile/extract`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+        },
+        body: JSON.stringify({
+          base64: buffer.toString('base64'),
+          mimeType: file.mimetype,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
     },
   )
 }
