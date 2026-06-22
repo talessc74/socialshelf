@@ -74,7 +74,6 @@ describe('POST /generation-requests', () => {
       payload: {
         description: 'Post sobre lançamento',
         targetPlatforms: ['linkedin'],
-        artifactCount: 1,
       },
       headers: { authorization: 'Bearer valid-token' },
     })

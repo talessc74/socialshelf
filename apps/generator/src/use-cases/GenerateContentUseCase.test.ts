@@ -28,15 +28,18 @@ const mockBrandProfile: BrandProfile = {
   createdAt: new Date(),
 }
 
-function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[] } = {}) {
+function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[]; headlineCount?: number } = {}) {
+  const headlineCount = overrides.headlineCount ?? 1
+  const headlines = Array.from({ length: headlineCount }, (_, i) => `Headline gerada ${i + 1}`)
+  const visualBriefs = Array.from({ length: headlineCount }, (_, i) => `Cena gerada ${i + 1}`)
   const copyGenerator: CopyGeneratorPort = {
     generateCopy: overrides.copyFails
       ? vi.fn().mockRejectedValue(new Error('copy generation failed'))
       : vi.fn().mockResolvedValue({
           copies: { [Platform.LINKEDIN]: { text: 'Generated copy', charCount: 14 } },
           cta: 'Comente abaixo!',
-          headlines: ['Headline gerada 1', 'Headline gerada 2', 'Headline gerada 3'],
-          visualBriefs: ['Cena gerada 1', 'Cena gerada 2', 'Cena gerada 3'],
+          headlines,
+          visualBriefs,
         }),
   }
 
@@ -108,7 +111,6 @@ function baseInput() {
     textContent: null,
     imageStoragePaths: [],
     targetPlatforms: [Platform.LINKEDIN],
-    artifactCount: 1,
     topicSuggestionId: null,
     style: TemplateStyle.BOLD_BOTTOM,
     aspectRatio: AspectRatio.SQUARE,
@@ -141,7 +143,7 @@ describe('GenerateContentUseCase', () => {
   })
 
   it('gera múltiplos artefatos (carrossel) sem bifurcação de lógica', async () => {
-    const deps = makeDeps()
+    const deps = makeDeps({ headlineCount: 3 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
@@ -153,7 +155,7 @@ describe('GenerateContentUseCase', () => {
       deps.topicSuggestionRepo,
     )
 
-    const result = await useCase.execute({ ...baseInput(), artifactCount: 3 })
+    const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('ready')
     expect(result.outputs?.artifacts).toHaveLength(3)
@@ -185,7 +187,7 @@ describe('GenerateContentUseCase', () => {
   })
 
   it('cria o post só com os artefatos que tiveram sucesso quando parte do carrossel falha', async () => {
-    const deps = makeDeps({ imageFailsAt: [2] })
+    const deps = makeDeps({ imageFailsAt: [2], headlineCount: 3 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
@@ -197,7 +199,7 @@ describe('GenerateContentUseCase', () => {
       deps.topicSuggestionRepo,
     )
 
-    const result = await useCase.execute({ ...baseInput(), artifactCount: 3 })
+    const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('ready')
     expect(result.outputs?.artifacts.filter((a) => a.status === 'ready')).toHaveLength(2)
@@ -207,7 +209,7 @@ describe('GenerateContentUseCase', () => {
   })
 
   it('marca a requisição como failed quando todos os artefatos falham', async () => {
-    const deps = makeDeps({ imageFailsAt: [1, 2] })
+    const deps = makeDeps({ imageFailsAt: [1, 2], headlineCount: 2 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.imageGenerator,
@@ -219,7 +221,7 @@ describe('GenerateContentUseCase', () => {
       deps.topicSuggestionRepo,
     )
 
-    const result = await useCase.execute({ ...baseInput(), artifactCount: 2 })
+    const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('failed')
     expect(result.error).toBe('All artifacts failed to generate')

@@ -33,7 +33,6 @@ export interface GenerationRequest {
     textContent: string | null
     imageStoragePaths: string[]
     targetPlatforms: Platform[]
-    artifactCount: number
     topicSuggestionId: string | null
     aspectRatio: AspectRatio
     style: TemplateStyle

@@ -100,7 +100,6 @@ const mockGenerationRequest = {
     textContent: null,
     imageStoragePaths: [],
     targetPlatforms: ['linkedin'],
-    artifactCount: 1,
     topicSuggestionId: null,
     aspectRatio: '1:1',
     style: 'bold-bottom',
@@ -162,7 +161,6 @@ describe('POST /generate', () => {
         brandId: 'brand-1',
         description: 'Post sobre lançamento',
         targetPlatforms: ['linkedin'],
-        artifactCount: 1,
       },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { TemplateStyle, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
+import { TemplateStyle, PLATFORM_CHARACTER_LIMITS, MAX_GENERATION_ARTIFACTS } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ImageGeneratorPort,
@@ -14,6 +14,7 @@ import type {
   Platform,
   PlatformContent,
   AspectRatio,
+  ArtifactPlan,
 } from '@socialshelf/domain'
 
 export interface GenerateContentInput {
@@ -23,7 +24,6 @@ export interface GenerateContentInput {
   textContent: string | null
   imageStoragePaths: string[]
   targetPlatforms: Platform[]
-  artifactCount: number
   topicSuggestionId: string | null
   style: TemplateStyle
   aspectRatio: AspectRatio
@@ -53,7 +53,6 @@ export class GenerateContentUseCase {
         textContent: input.textContent,
         imageStoragePaths: input.imageStoragePaths,
         targetPlatforms: input.targetPlatforms,
-        artifactCount: input.artifactCount,
         topicSuggestionId: input.topicSuggestionId,
         aspectRatio: input.aspectRatio,
         style: input.style,
@@ -71,6 +70,11 @@ export class GenerateContentUseCase {
     request.status = 'generating_copy'
     await this.generationRequestRepo.updateStatus(request.id, 'generating_copy')
 
+    const artifactPlan: ArtifactPlan =
+      input.imageStoragePaths.length > 0
+        ? { mode: 'fixed', count: input.imageStoragePaths.length }
+        : { mode: 'free', maxCount: MAX_GENERATION_ARTIFACTS }
+
     let copyResult
     try {
       copyResult = await this.copyGenerator.generateCopy({
@@ -78,8 +82,7 @@ export class GenerateContentUseCase {
         ...(input.textContent !== null && { textContent: input.textContent }),
         images: [],
         targetPlatforms: input.targetPlatforms,
-        format: input.artifactCount > 1 ? 'carousel' : 'single',
-        artifactCount: input.artifactCount,
+        artifactPlan,
         pautaContext,
         brandVoice: brandProfile?.voice ?? null,
       })
@@ -99,7 +102,7 @@ export class GenerateContentUseCase {
       }
     }
 
-    const artifacts: GenerationArtifact[] = Array.from({ length: input.artifactCount }, (_, i) => ({
+    const artifacts: GenerationArtifact[] = copyResult.headlines.map((_, i) => ({
       position: i + 1,
       status: 'pending',
       imageStoragePath: null,
@@ -148,7 +151,7 @@ export class GenerateContentUseCase {
                 description: copyResult.visualBriefs[artifact.position - 1]!,
                 brandTokens,
                 position: artifact.position,
-                totalArtifacts: input.artifactCount,
+                totalArtifacts: artifacts.length,
                 aspectRatio: input.aspectRatio,
                 templateStyle: input.style,
                 hasTextOverlay: input.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,

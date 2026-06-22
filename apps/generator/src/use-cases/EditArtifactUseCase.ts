@@ -54,7 +54,7 @@ export class EditArtifactUseCase {
         description: `${visualBrief}. Ajuste solicitado pelo usuário: ${input.instruction}`,
         brandTokens,
         position: artifact.position,
-        totalArtifacts: request.inputs.artifactCount,
+        totalArtifacts: request.outputs.artifacts.length,
         aspectRatio: request.inputs.aspectRatio,
         templateStyle: request.inputs.style,
         hasTextOverlay: request.inputs.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,

@@ -135,7 +135,6 @@ export interface ApiGenerationRequest {
     textContent: string | null
     imageStoragePaths: string[]
     targetPlatforms: Platform[]
-    artifactCount: number
     topicSuggestionId: string | null
     aspectRatio: AspectRatio
     style: TemplateStyle
@@ -208,7 +207,6 @@ export interface GenerateContentInput {
   textContent?: string
   imageStoragePaths?: string[]
   targetPlatforms: Platform[]
-  artifactCount?: number
   topicSuggestionId?: string
   style?: TemplateStyle
   aspectRatio?: AspectRatio
