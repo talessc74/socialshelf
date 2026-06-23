@@ -55,6 +55,13 @@ export type {
   GeneratedImage,
   BrandTokens,
 } from './ports/ImageGeneratorPort.js'
+export type {
+  ArtDirectorPort,
+  ArtDirectionInput,
+  ArtifactBrief,
+  ArtifactDirection,
+  ArtDirectionResult,
+} from './ports/ArtDirectorPort.js'
 export type { ImageStoragePort } from './ports/ImageStoragePort.js'
 export type {
   TemplateRendererPort,
