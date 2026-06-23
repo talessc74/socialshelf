@@ -9,7 +9,7 @@ interface ScoreBadgeProps {
  * valor cru, sem fração tipo "x/3", que sugeriria uma escala que não existe.
  */
 export function ScoreBadge({ label, score }: ScoreBadgeProps) {
-  const variant = score >= 2 ? 'bg-brand-500 text-white' : score >= 1 ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'
+  const variant = score >= 2 ? 'bg-brand-500 text-gray-900' : score >= 1 ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${variant}`}>

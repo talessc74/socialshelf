@@ -15,7 +15,7 @@ export function Stepper({ steps, currentStep }: StepperProps) {
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 ${
                   isCurrent
-                    ? 'bg-brand-500 text-white ring-4 ring-brand-100'
+                    ? 'bg-brand-500 text-gray-900 ring-4 ring-brand-100'
                     : isDone
                       ? 'bg-brand-200 text-brand-700'
                       : 'bg-gray-100 text-gray-400'

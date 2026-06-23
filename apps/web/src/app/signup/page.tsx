@@ -96,7 +96,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand-900/40 hover:bg-brand-600 disabled:opacity-50"
+            className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-gray-900 shadow-lg shadow-brand-900/40 hover:bg-brand-300 disabled:opacity-50"
           >
             {busy ? 'Criando conta…' : 'Criar conta'}
           </button>
