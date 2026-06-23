@@ -22,6 +22,10 @@ const createPostSchema = z.object({
   scheduledAt: z.string().datetime().optional(),
 })
 
+const listPostsQuerySchema = z.object({
+  status: z.enum(['draft', 'ai-draft', 'scheduled', 'published', 'failed']).optional(),
+})
+
 export async function postsRoutes(app: FastifyInstance) {
   const postRepo = new FirestorePostRepository()
   const oauthRepo = new FirestoreOAuthRepository()
@@ -39,6 +43,24 @@ export async function postsRoutes(app: FastifyInstance) {
       const connections = await oauthRepo.findByBrand(request.userId)
       const safe = connections.map(({ tokenRef: _tokenRef, ...rest }) => rest)
       return reply.send({ connections: safe })
+    },
+  )
+
+  // List posts for the current user/brand, optionally filtered by status
+  app.get(
+    '/posts',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = listPostsQuerySchema.safeParse(request.query)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
+      }
+
+      const posts = await postRepo.findByBrand(request.userId, parsed.data.status)
+      const sorted = [...posts].sort(
+        (a, b) => (a.scheduledAt ?? a.createdAt).getTime() - (b.scheduledAt ?? b.createdAt).getTime(),
+      )
+      return reply.send({ posts: sorted })
     },
   )
 

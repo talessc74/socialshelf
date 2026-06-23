@@ -7,11 +7,13 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: { verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }) },
 }))
 
+const mockFindByBrand = vi.fn().mockResolvedValue([])
+
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     findById: vi.fn().mockResolvedValue(null),
-    findByBrand: vi.fn().mockResolvedValue([]),
+    findByBrand: mockFindByBrand,
     findScheduledBefore: vi.fn().mockResolvedValue([]),
     delete: vi.fn().mockResolvedValue(undefined),
   })),
@@ -91,6 +93,66 @@ describe('Posts routes', () => {
     it('returns 401 without auth header', async () => {
       const response = await app.inject({ method: 'GET', url: '/connections' })
       expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('GET /posts', () => {
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({ method: 'GET', url: '/posts' })
+      expect(response.statusCode).toBe(401)
+    })
+
+    it('returns 400 for an invalid status filter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts?status=bogus',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns posts filtered by status, sorted by scheduledAt ascending', async () => {
+      mockFindByBrand.mockResolvedValueOnce([
+        {
+          id: 'p2',
+          userId: 'user-test-123',
+          brandId: 'user-test-123',
+          brandProfileVersion: null,
+          content: [],
+          imageStoragePaths: [],
+          status: 'scheduled',
+          scheduledAt: new Date('2026-07-01T10:00:00Z'),
+          publishedAt: null,
+          externalIds: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'p1',
+          userId: 'user-test-123',
+          brandId: 'user-test-123',
+          brandProfileVersion: null,
+          content: [],
+          imageStoragePaths: [],
+          status: 'scheduled',
+          scheduledAt: new Date('2026-06-25T10:00:00Z'),
+          publishedAt: null,
+          externalIds: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts?status=scheduled',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ posts: Array<{ id: string }> }>()
+      expect(body.posts.map((p) => p.id)).toEqual(['p1', 'p2'])
+      expect(mockFindByBrand).toHaveBeenCalledWith('user-test-123', 'scheduled')
     })
   })
 
