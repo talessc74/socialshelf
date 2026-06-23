@@ -88,6 +88,7 @@ export default function DashboardPage() {
   )
 
   const engagementRate = entries.length > 0 ? totals.engagements / Math.max(totals.impressions, 1) : 0
+  const impressionsUnavailable = entries.length > 0 && totals.impressions === 0
 
   const impressionsByWeekday = useMemo(() => {
     const buckets = new Array(7).fill(0)
@@ -172,17 +173,24 @@ export default function DashboardPage() {
             <p className="font-semibold text-gray-900">Impressões na semana</p>
             <span className="text-xs text-gray-400">por dia da publicação</span>
           </div>
-          <div className="flex h-32 items-end justify-between gap-2">
-            {impressionsByWeekday.map((bucket, i) => (
-              <div key={i} className="flex flex-1 flex-col items-center gap-2">
-                <div
-                  className={`w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`}
-                  style={{ height: `${Math.max(bucket.ratio * 100, 4)}%` }}
-                />
-                <span className="text-xs text-gray-400">{WEEKDAY_LABELS[i]}</span>
-              </div>
-            ))}
-          </div>
+          {impressionsUnavailable ? (
+            <div className="flex h-32 flex-col items-center justify-center gap-1 text-center">
+              <p className="text-xs text-gray-500">Nenhuma rede conectada reportou impressões para os posts medidos.</p>
+              <p className="text-xs text-gray-400">O LinkedIn não disponibiliza esse dado para perfis pessoais.</p>
+            </div>
+          ) : (
+            <div className="flex h-32 items-end justify-between gap-2">
+              {impressionsByWeekday.map((bucket, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-2">
+                  <div
+                    className={`w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`}
+                    style={{ height: `${Math.max(bucket.ratio * 100, 4)}%` }}
+                  />
+                  <span className="text-xs text-gray-400">{WEEKDAY_LABELS[i]}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -194,30 +202,32 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl bg-gray-900 p-5 text-white shadow-sm lg:col-span-1">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="font-semibold">Primeiros passos</p>
-            <span className="text-sm text-brand-300">{doneCount}/{checklist.length}</span>
+        {doneCount < checklist.length && (
+          <div className="rounded-2xl bg-gray-900 p-5 text-white shadow-sm lg:col-span-1">
+            <div className="mb-4 flex items-center justify-between">
+              <p className="font-semibold">Primeiros passos</p>
+              <span className="text-sm text-brand-300">{doneCount}/{checklist.length}</span>
+            </div>
+            <ul className="space-y-3">
+              {checklist.map((item) => (
+                <li key={item.label}>
+                  <Link href={item.href} className="flex items-center gap-3 text-sm">
+                    <span
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
+                        item.done ? 'bg-brand-400 text-gray-900' : 'bg-white/10 text-white/40'
+                      }`}
+                    >
+                      {item.done ? '✓' : ''}
+                    </span>
+                    <span className={item.done ? 'text-white/60 line-through' : 'text-white'}>{item.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-3">
-            {checklist.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} className="flex items-center gap-3 text-sm">
-                  <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                      item.done ? 'bg-brand-400 text-gray-900' : 'bg-white/10 text-white/40'
-                    }`}
-                  >
-                    {item.done ? '✓' : ''}
-                  </span>
-                  <span className={item.done ? 'text-white/60 line-through' : 'text-white'}>{item.label}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
+        <div className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm ${doneCount === checklist.length ? 'lg:col-span-3' : 'lg:col-span-2'}`}>
           <div className="mb-4 flex items-center justify-between">
             <p className="flex items-center gap-1.5 font-semibold text-gray-900">
               <Lightbulb className="h-4 w-4 text-brand-600" /> Sugestões para a próxima publicação

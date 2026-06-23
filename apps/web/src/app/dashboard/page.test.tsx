@@ -3,7 +3,14 @@ import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import DashboardPage from './page'
-import { api, type ApiPerformanceSuggestion, type ApiPost } from '../../lib/api'
+import {
+  api,
+  type ApiBrandProfile,
+  type ApiConnection,
+  type ApiPerformanceSuggestion,
+  type ApiPost,
+  type ApiPostPerformanceEntry,
+} from '../../lib/api'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
@@ -59,6 +66,50 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     publishedAt: null,
     createdAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     updatedAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
+    ...overrides,
+  }
+}
+
+function makeConnection(platform: Platform): ApiConnection {
+  return {
+    id: `conn-${platform}`,
+    userId: 'user-1',
+    brandId: 'user-1',
+    platform,
+    pairwiseId: 'pairwise-1',
+    tokenRef: 'token-ref',
+    scopes: [],
+    expiresAt: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
+function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandProfile {
+  return {
+    id: 'brand-1',
+    userId: 'user-1',
+    brandId: 'user-1',
+    version: 1,
+    business: { name: 'Minha Marca', segment: 'Tecnologia', description: '' },
+    identity: { positioning: '', values: [] },
+    visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
+    voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
+    narrative: { recurringThemes: [] },
+    operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
+
+function makeEntry(overrides: Partial<ApiPostPerformanceEntry> = {}): ApiPostPerformanceEntry {
+  return {
+    postId: 'post-1',
+    platform: Platform.LINKEDIN,
+    text: 'Post publicado',
+    metrics: { impressions: 0, likes: 10, comments: 2, shares: 1 },
+    score: 13,
+    publishedAt: new Date('2026-06-23T12:00:00.000Z').toISOString(),
     ...overrides,
   }
 }
@@ -163,10 +214,7 @@ describe('DashboardPage - badges dos Atalhos', () => {
   })
 
   it('mostra a contagem de redes conectadas no atalho de Central de Contas', async () => {
-    mockedApi.getConnections.mockResolvedValue([
-      { id: 'c1', userId: 'u', brandId: 'u', platform: Platform.LINKEDIN, pairwiseId: 'p', tokenRef: 't', scopes: [], expiresAt: null, createdAt: '', updatedAt: '' },
-      { id: 'c2', userId: 'u', brandId: 'u', platform: Platform.INSTAGRAM, pairwiseId: 'p', tokenRef: 't', scopes: [], expiresAt: null, createdAt: '', updatedAt: '' },
-    ])
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN), makeConnection(Platform.INSTAGRAM)])
 
     renderPage()
 
@@ -183,22 +231,68 @@ describe('DashboardPage - badges dos Atalhos', () => {
   })
 
   it('mostra badge "Configurada" no atalho de marca quando há perfil configurado', async () => {
-    mockedApi.getBrandProfile.mockResolvedValue({
-      id: 'brand-1',
-      userId: 'user-1',
-      brandId: 'user-1',
-      version: 1,
-      business: { name: 'Minha Marca', segment: 'Tecnologia', description: '' },
-      identity: { positioning: '', values: [] },
-      visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
-      voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
-      narrative: { recurringThemes: [] },
-      operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
-      createdAt: new Date().toISOString(),
-    })
+    mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile())
 
     renderPage()
 
     expect(await screen.findByText('Configurada')).toBeInTheDocument()
+  })
+})
+
+describe('DashboardPage - gráfico de Impressões na semana', () => {
+  it('mostra aviso de indisponibilidade em vez de gráfico vazio quando há posts medidos mas nenhuma rede reportou impressões', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue({
+      entries: [makeEntry({ metrics: { impressions: 0, likes: 10, comments: 2, shares: 1 } })],
+      errors: [],
+    })
+
+    renderPage()
+
+    expect(await screen.findByText(/Nenhuma rede conectada reportou impressões/)).toBeInTheDocument()
+  })
+
+  it('mostra as barras do gráfico normalmente quando há impressões reportadas', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue({
+      entries: [makeEntry({ metrics: { impressions: 500, likes: 10, comments: 2, shares: 1 } })],
+      errors: [],
+    })
+
+    renderPage()
+
+    await screen.findByText('Impressões na semana')
+    expect(screen.queryByText(/Nenhuma rede conectada reportou impressões/)).not.toBeInTheDocument()
+  })
+
+  it('não mostra aviso de indisponibilidade quando ainda não há nenhum post medido', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue({ entries: [], errors: [] })
+
+    renderPage()
+
+    await screen.findByText('Impressões na semana')
+    expect(screen.queryByText(/Nenhuma rede conectada reportou impressões/)).not.toBeInTheDocument()
+  })
+})
+
+describe('DashboardPage - card "Primeiros passos"', () => {
+  it('mostra o checklist enquanto a primeira etapa ainda não foi concluída', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Primeiros passos')).toBeInTheDocument()
+  })
+
+  it('esconde o card "Primeiros passos" quando todas as etapas já foram concluídas', async () => {
+    mockedApi.getConnections.mockResolvedValue([
+      makeConnection(Platform.LINKEDIN),
+      makeConnection(Platform.INSTAGRAM),
+      makeConnection(Platform.FACEBOOK),
+      makeConnection(Platform.TWITTER),
+    ])
+    mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile())
+    mockedApi.getPostsPerformance.mockResolvedValue({ entries: [makeEntry()], errors: [] })
+
+    renderPage()
+
+    await screen.findByText('4/4 conectadas')
+    expect(screen.queryByText('Primeiros passos')).not.toBeInTheDocument()
   })
 })
