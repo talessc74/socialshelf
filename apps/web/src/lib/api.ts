@@ -210,6 +210,7 @@ export interface GenerateContentInput {
   topicSuggestionId?: string
   style?: TemplateStyle
   aspectRatio?: AspectRatio
+  includeBodyText?: boolean
 }
 
 export const api = {

@@ -50,6 +50,8 @@ export class EditArtifactUseCase {
     try {
       const headline = request.outputs.headlines?.[artifact.position - 1] ?? ''
       const visualBrief = request.outputs.visualBriefs?.[artifact.position - 1] ?? request.inputs.description
+      const bodyText = request.outputs.bodyTexts?.[artifact.position - 1] ?? ''
+      const hasBodyOverlay = request.inputs.includeBodyText && bodyText.trim().length > 0
       const image = await this.imageGenerator.generateImage({
         description: `${visualBrief}. Ajuste solicitado pelo usuário: ${input.instruction}`,
         brandTokens,
@@ -58,10 +60,12 @@ export class EditArtifactUseCase {
         aspectRatio: request.inputs.aspectRatio,
         templateStyle: request.inputs.style,
         hasTextOverlay: request.inputs.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
+        hasBodyOverlay,
       })
       const finalImage = await this.templateRenderer.render({
         backgroundImage: image,
         headline,
+        body: hasBodyOverlay ? bodyText : null,
         style: request.inputs.style,
         brandTokens,
         logoImage,

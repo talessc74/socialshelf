@@ -32,7 +32,7 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
       throw new Error('Gemini returned invalid JSON for copy generation')
     }
 
-    return this.toCopyGenerationResult(parsed, inputs.artifactPlan)
+    return this.toCopyGenerationResult(parsed, inputs.artifactPlan, inputs.includeBodyText)
   }
 
   private buildPrompt(inputs: ContentInputs): string {
@@ -74,6 +74,16 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
 
     const visualBriefsSection = `Para cada headline, gere também uma "visualBrief": uma descrição de cena (1-2 frases, em inglês, para um gerador de imagens) que ilustre visualmente a ideia daquele headline especificamente — não a descrição genérica do post. Ex.: se o headline fala de "perder tempo com burocracia", a cena pode ser "a tired person buried in stacks of paperwork at a cluttered desk", não uma foto genérica de escritório. Nunca peça para incluir texto, palavras ou números na cena.`
 
+    const bodyTextsSection = inputs.includeBodyText
+      ? `\nPara cada headline, gere também um "bodyText": um parágrafo de apoio (1-3 frases) que será desenhado em texto menor, abaixo do headline, sobre a mesma imagem. Ele complementa o headline — nunca repete a mesma ideia com outras palavras. O headline é o gancho/título; o bodyText é o detalhe, contexto ou explicação que dá profundidade a ele.`
+      : ''
+
+    const jsonFormatExample = inputs.includeBodyText
+      ? `{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."], "visualBriefs": ["...", "..."], "bodyTexts": ["...", "..."]}`
+      : `{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."], "visualBriefs": ["...", "..."]}`
+
+    const arraysMencionados = inputs.includeBodyText ? '"headlines", "visualBriefs" e "bodyTexts"' : '"headlines" e "visualBriefs"'
+
     return `Gere texto de post para redes sociais a partir da descrição abaixo.
 
 Descrição: ${inputs.description}
@@ -88,15 +98,20 @@ ${platformLimits}
 ${headlinesSection}
 
 ${visualBriefsSection}
+${bodyTextsSection}
 
 Responda apenas com um JSON no formato:
-{"copies": {"<platform>": {"text": "...", "charCount": 0}}, "cta": "...", "headlines": ["...", "..."], "visualBriefs": ["...", "..."]}
-Os arrays "headlines" e "visualBriefs" devem ter o mesmo tamanho${
+${jsonFormatExample}
+Os arrays ${arraysMencionados} devem ter o mesmo tamanho${
       artifactPlan.mode === 'fixed' ? `, exatamente ${artifactPlan.count} ${artifactPlan.count > 1 ? 'itens cada' : 'item cada'}` : ` (entre 1 e ${artifactPlan.maxCount} itens cada)`
     }, na mesma ordem.`
   }
 
-  private toCopyGenerationResult(parsed: unknown, artifactPlan: ArtifactPlan): CopyGenerationResult {
+  private toCopyGenerationResult(
+    parsed: unknown,
+    artifactPlan: ArtifactPlan,
+    includeBodyText: boolean,
+  ): CopyGenerationResult {
     if (typeof parsed !== 'object' || parsed === null) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
@@ -105,6 +120,7 @@ Os arrays "headlines" e "visualBriefs" devem ter o mesmo tamanho${
     const cta = obj['cta']
     const headlines = obj['headlines']
     const visualBriefs = obj['visualBriefs']
+    const bodyTexts = obj['bodyTexts']
     const countIsValid =
       artifactPlan.mode === 'fixed'
         ? (n: number) => n === artifactPlan.count
@@ -118,7 +134,9 @@ Os arrays "headlines" e "visualBriefs" devem ter o mesmo tamanho${
       !headlines.every((h) => typeof h === 'string') ||
       !Array.isArray(visualBriefs) ||
       visualBriefs.length !== headlines.length ||
-      !visualBriefs.every((v) => typeof v === 'string')
+      !visualBriefs.every((v) => typeof v === 'string') ||
+      (includeBodyText &&
+        (!Array.isArray(bodyTexts) || bodyTexts.length !== headlines.length || !bodyTexts.every((b) => typeof b === 'string')))
     ) {
       throw new Error('Gemini returned malformed copy generation payload')
     }
@@ -127,6 +145,7 @@ Os arrays "headlines" e "visualBriefs" devem ter o mesmo tamanho${
       cta,
       headlines: headlines as string[],
       visualBriefs: visualBriefs as string[],
+      bodyTexts: includeBodyText ? (bodyTexts as string[]) : headlines.map(() => ''),
     }
   }
 }

@@ -3,6 +3,7 @@ import { TemplateStyle } from '@socialshelf/domain'
 import type { TemplateRendererPort, TemplateRenderInput, RenderedTemplateImage } from '@socialshelf/domain'
 
 const CHARS_PER_LINE = 32
+const CHARS_PER_LINE_BODY = 50
 const DEFAULT_DARK = '#1a1a1a'
 
 function escapeXml(text: string): string {
@@ -37,6 +38,28 @@ function buildTspans(lines: string[], fontSize: number): string {
   return lines
     .map((line, i) => `<tspan x="50%" dy="${i === 0 ? 0 : fontSize * 1.2}">${escapeXml(line)}</tspan>`)
     .join('')
+}
+
+// Posiciona dois blocos de texto (headline + body) empilhados e centralizados como uma unidade
+// em torno de `centerY`, preservando o truque de centralização vertical de buildTspans/dominant-baseline:
+// cada Y retornado é o centro do próprio bloco, não o topo.
+function stackedBlockYs(
+  centerY: number,
+  headlineLineCount: number,
+  bodyLineCount: number,
+  fontSize: number,
+  bodyFontSize: number,
+): { headlineY: number; bodyY: number } {
+  const lineHeight = fontSize * 1.2
+  const bodyLineHeight = bodyFontSize * 1.2
+  const headlineBlockHeight = headlineLineCount * lineHeight
+  const gap = bodyLineCount > 0 ? fontSize * 0.7 : 0
+  const bodyBlockHeight = bodyLineCount * bodyLineHeight
+  const topY = centerY - (headlineBlockHeight + gap + bodyBlockHeight) / 2
+  return {
+    headlineY: topY + lineHeight / 2,
+    bodyY: topY + headlineBlockHeight + gap + bodyLineHeight / 2,
+  }
 }
 
 const LOGO_MARGIN_RATIO = 0.04
@@ -99,22 +122,29 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
 
   private buildSvg(input: TemplateRenderInput, width: number, height: number): string {
     const fontSize = Math.round(width * 0.045)
+    const bodyFontSize = Math.round(fontSize * 0.55)
     const lines = wrapText(input.headline, CHARS_PER_LINE)
+    const bodyLines = input.body && input.body.trim().length > 0 ? wrapText(input.body, CHARS_PER_LINE_BODY) : []
     // Fontes customizadas são fase futura (conforme ADR) — sans-serif fixo por enquanto, mapeado para a fonte
     // disponível no container via fontconfig.
     const fontFamily = 'sans-serif'
 
     switch (input.style) {
       case TemplateStyle.BOLD_BOTTOM:
-        return this.boldBottom(input, width, height, fontSize, fontFamily, lines)
+        return this.boldBottom(input, width, height, fontSize, bodyFontSize, fontFamily, lines, bodyLines)
       case TemplateStyle.CENTERED_OVERLAY:
-        return this.centeredOverlay(input, width, height, fontSize, fontFamily, lines)
+        return this.centeredOverlay(input, width, height, fontSize, bodyFontSize, fontFamily, lines, bodyLines)
       case TemplateStyle.TOP_STRIP:
-        return this.topStrip(input, width, height, fontSize, fontFamily, lines)
+        return this.topStrip(input, width, height, fontSize, bodyFontSize, fontFamily, lines, bodyLines)
       case TemplateStyle.NO_TEXT:
         // Nunca chega aqui — render() já filtra NO_TEXT antes de chamar buildSvg().
         return ''
     }
+  }
+
+  private bodyTextElement(bodyLines: string[], bodyY: number, x: string, bodyFontSize: number, fontFamily: string): string {
+    if (bodyLines.length === 0) return ''
+    return `<text x="${x}" y="${bodyY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" fill-opacity="0.85" font-weight="normal" font-size="${bodyFontSize}" font-family="${fontFamily}">${buildTspans(bodyLines, bodyFontSize)}</text>`
   }
 
   private boldBottom(
@@ -122,17 +152,20 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     width: number,
     height: number,
     fontSize: number,
+    bodyFontSize: number,
     fontFamily: string,
     lines: string[],
+    bodyLines: string[],
   ): string {
-    const stripHeight = height * 0.25
+    const stripHeight = bodyLines.length > 0 ? height * 0.4 : height * 0.25
     const stripY = height - stripHeight
     const fill = input.brandTokens?.primaryColor ?? DEFAULT_DARK
-    const textY = stripY + stripHeight / 2 - ((lines.length - 1) * fontSize * 1.2) / 2
+    const { headlineY, bodyY } = stackedBlockYs(stripY + stripHeight / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="${stripY}" width="${width}" height="${stripHeight}" fill="${fill}" />
-      <text x="50%" y="${textY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      <text x="50%" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      ${this.bodyTextElement(bodyLines, bodyY, '50%', bodyFontSize, fontFamily)}
     </svg>`
   }
 
@@ -141,14 +174,17 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     width: number,
     height: number,
     fontSize: number,
+    bodyFontSize: number,
     fontFamily: string,
     lines: string[],
+    bodyLines: string[],
   ): string {
-    const textY = height / 2 - ((lines.length - 1) * fontSize * 1.2) / 2
+    const { headlineY, bodyY } = stackedBlockYs(height / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="${width}" height="${height}" fill="black" fill-opacity="0.45" />
-      <text x="50%" y="${textY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      <text x="50%" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      ${this.bodyTextElement(bodyLines, bodyY, '50%', bodyFontSize, fontFamily)}
     </svg>`
   }
 
@@ -157,12 +193,13 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     width: number,
     height: number,
     fontSize: number,
+    bodyFontSize: number,
     fontFamily: string,
     lines: string[],
+    bodyLines: string[],
   ): string {
-    const stripHeight = height * 0.2
+    const stripHeight = bodyLines.length > 0 ? height * 0.32 : height * 0.2
     const fill = input.brandTokens?.secondaryColor ?? DEFAULT_DARK
-    const textY = stripHeight / 2 - ((lines.length - 1) * fontSize * 1.2) / 2
 
     // O logo fica fixo no canto superior esquerdo (ver render()); reservamos essa faixa horizontal
     // para o texto, centralizado, não nascer atrás do selo do logo.
@@ -171,10 +208,12 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
       : 0
     const textAreaX = logoFootprint
     const textCenterX = textAreaX + (width - textAreaX) / 2
+    const { headlineY, bodyY } = stackedBlockYs(stripHeight / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <rect x="0" y="0" width="${width}" height="${stripHeight}" fill="${fill}" />
-      <text x="${textCenterX}" y="${textY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      <text x="${textCenterX}" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
+      ${this.bodyTextElement(bodyLines, bodyY, `${textCenterX}`, bodyFontSize, fontFamily)}
     </svg>`
   }
 }

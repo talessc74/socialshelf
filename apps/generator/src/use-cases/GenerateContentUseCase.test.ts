@@ -35,6 +35,7 @@ function makeDeps(
   const headlineCount = overrides.headlineCount ?? 1
   const headlines = Array.from({ length: headlineCount }, (_, i) => `Headline gerada ${i + 1}`)
   const visualBriefs = Array.from({ length: headlineCount }, (_, i) => `Cena gerada ${i + 1}`)
+  const bodyTexts = Array.from({ length: headlineCount }, (_, i) => `Corpo gerado ${i + 1}`)
   const copyGenerator: CopyGeneratorPort = {
     generateCopy: overrides.copyFails
       ? vi.fn().mockRejectedValue(new Error('copy generation failed'))
@@ -43,6 +44,7 @@ function makeDeps(
           cta: 'Comente abaixo!',
           headlines,
           visualBriefs,
+          bodyTexts,
         }),
   }
 
@@ -132,6 +134,7 @@ function baseInput() {
     topicSuggestionId: null,
     style: TemplateStyle.BOLD_BOTTOM,
     aspectRatio: AspectRatio.SQUARE,
+    includeBodyText: false,
   }
 }
 
@@ -316,6 +319,7 @@ describe('GenerateContentUseCase', () => {
       cta: 'Comente abaixo!',
       headlines: ['Headline gerada 1'],
       visualBriefs: ['Cena gerada 1'],
+      bodyTexts: [''],
     })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
@@ -435,5 +439,56 @@ describe('GenerateContentUseCase', () => {
 
     expect(deps.artDirector.direct).not.toHaveBeenCalled()
     expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
+  })
+
+  it('repassa includeBodyText para o gerador de copy e desenha o bodyText quando habilitado', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), includeBodyText: true })
+
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ includeBodyText: true }),
+    )
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ hasBodyOverlay: true }),
+    )
+    expect(deps.templateRenderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Corpo gerado 1' }),
+    )
+  })
+
+  it('não desenha bodyText quando includeBodyText está desabilitado, mesmo que a copy retorne um', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), includeBodyText: false })
+
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ hasBodyOverlay: false }),
+    )
+    expect(deps.templateRenderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ body: null }),
+    )
   })
 })
