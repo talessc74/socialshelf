@@ -29,6 +29,7 @@ const generateSchema = z.object({
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),
   aspectRatio: z.nativeEnum(AspectRatio).default(AspectRatio.SQUARE),
+  includeBodyText: z.boolean().default(false),
 })
 
 const editArtifactSchema = z.object({
@@ -107,6 +108,7 @@ export async function generationRoutes(app: FastifyInstance) {
         topicSuggestionId: parsed.data.topicSuggestionId ?? null,
         style: parsed.data.style,
         aspectRatio: parsed.data.aspectRatio,
+        includeBodyText: parsed.data.includeBodyText,
       })
       return reply.send({ generationRequest })
     } catch (err) {

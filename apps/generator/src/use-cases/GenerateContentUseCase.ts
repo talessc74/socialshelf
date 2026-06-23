@@ -28,6 +28,7 @@ export interface GenerateContentInput {
   topicSuggestionId: string | null
   style: TemplateStyle
   aspectRatio: AspectRatio
+  includeBodyText: boolean
 }
 
 export class GenerateContentUseCase {
@@ -58,6 +59,7 @@ export class GenerateContentUseCase {
         topicSuggestionId: input.topicSuggestionId,
         aspectRatio: input.aspectRatio,
         style: input.style,
+        includeBodyText: input.includeBodyText,
       },
       outputs: null,
       error: null,
@@ -87,6 +89,7 @@ export class GenerateContentUseCase {
         artifactPlan,
         pautaContext,
         brandVoice: brandProfile?.voice ?? null,
+        includeBodyText: input.includeBodyText,
       })
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err)
@@ -119,6 +122,7 @@ export class GenerateContentUseCase {
         cta: copyResult.cta,
         headlines: copyResult.headlines,
         visualBriefs: copyResult.visualBriefs,
+        bodyTexts: copyResult.bodyTexts,
         artifacts,
       },
     }
@@ -180,6 +184,8 @@ export class GenerateContentUseCase {
       artifacts.map(async (artifact) => {
         try {
           const headline = copyResult.headlines[artifact.position - 1]!
+          const bodyText = copyResult.bodyTexts[artifact.position - 1]!
+          const hasBodyOverlay = input.includeBodyText && bodyText.trim().length > 0
           const uploadedPath = input.imageStoragePaths[artifact.position - 1]
           const image = uploadedPath
             ? await this.imageStorage.download(uploadedPath)
@@ -194,10 +200,12 @@ export class GenerateContentUseCase {
                 aspectRatio: input.aspectRatio,
                 templateStyle: input.style,
                 hasTextOverlay: input.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
+                hasBodyOverlay,
               })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
             headline,
+            body: hasBodyOverlay ? bodyText : null,
             style: input.style,
             brandTokens,
             logoImage,

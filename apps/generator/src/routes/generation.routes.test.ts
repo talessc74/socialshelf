@@ -55,6 +55,7 @@ const mockGenerateCopy = vi.fn().mockResolvedValue({
   cta: 'Comente abaixo!',
   headlines: ['Headline gerada'],
   visualBriefs: ['Cena gerada'],
+  bodyTexts: ['Corpo gerado'],
 })
 
 vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({

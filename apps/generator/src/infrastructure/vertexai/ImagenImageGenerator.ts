@@ -74,7 +74,7 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
     // Imagen: modelos de imagem não renderizam texto em português de forma confiável (acentos,
     // legibilidade) — instruir o Imagen a "escrever" produz texto ilegível ou alucinado.
     const noTextSection = ' Não incluir nenhum texto, palavra, letra, número ou tipografia na imagem — apenas elementos visuais (fotografia ou ilustração), sem nenhum tipo de escrita.'
-    const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle) : ''
+    const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle, prompt.hasBodyOverlay ?? false) : ''
 
     return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}${textZoneSection}`
   }
@@ -84,12 +84,16 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
   // o faz associar a cena a uma peça publicitária e preencher essa área com texto fictício
   // ilegível — o próprio bug que estamos evitando. A direção é puramente fotográfica (tom
   // uniforme, baixo contraste, fora de foco) e nunca cita o propósito por trás dela.
-  private textZoneInstruction(templateStyle: TemplateStyle): string {
+  private textZoneInstruction(templateStyle: TemplateStyle, hasBodyOverlay: boolean): string {
     switch (templateStyle) {
       case TemplateStyle.BOLD_BOTTOM:
-        return ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+        return hasBodyOverlay
+          ? ' Os 40% inferiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          : ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.TOP_STRIP:
-        return ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+        return hasBodyOverlay
+          ? ' Os 35% superiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          : ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.CENTERED_OVERLAY:
         return ' O centro da composição deve ter tom mais uniforme e contraste suave, sem elementos de destaque ali.'
       case TemplateStyle.NO_TEXT:
