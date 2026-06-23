@@ -44,7 +44,7 @@ export default function AccountsPage() {
     try {
       const url = await api.getAuthorizeUrl(oauth)
       window.location.href = url
-    } catch (err) {
+    } catch {
       setNotice({ type: 'error', message: 'Não foi possível iniciar a autenticação.' })
     }
   }

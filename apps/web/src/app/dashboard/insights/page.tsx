@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiPerformanceSuggestion } from '../../../lib/api'
 
-const WEEKDAY_LABELS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
-
 function isGoodTimeNow(suggestion: ApiPerformanceSuggestion): boolean {
   const now = new Date()
   const weekday = now.getDay()

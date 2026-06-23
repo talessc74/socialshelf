@@ -55,6 +55,11 @@ export default function DashboardPage() {
     queryFn: () => api.getPerformanceSuggestions(),
   })
 
+  const { data: scheduledPosts } = useQuery({
+    queryKey: ['posts', 'scheduled'],
+    queryFn: () => api.getPosts('scheduled'),
+  })
+
   useEffect(() => {
     const connected = searchParams.get('connected')
     const error = searchParams.get('error')
@@ -70,8 +75,9 @@ export default function DashboardPage() {
     }
   }, [searchParams, router])
 
-  const entries = performance?.entries ?? []
+  const entries = useMemo(() => performance?.entries ?? [], [performance])
   const connectionsCount = connections?.length ?? 0
+  const freshSuggestionsCount = useMemo(() => suggestions?.filter((s) => !s.shelved).length ?? 0, [suggestions])
 
   const totals = entries.reduce(
     (acc, e) => ({
@@ -97,6 +103,13 @@ export default function DashboardPage() {
     { label: 'Conectar todas as redes', done: connectionsCount >= TOTAL_PLATFORMS, href: '/dashboard/accounts' },
   ]
   const doneCount = checklist.filter((c) => c.done).length
+
+  const shortcutBadges: Record<string, string> = {
+    '/dashboard/scheduled': scheduledPosts ? `${scheduledPosts.length} agendado${scheduledPosts.length === 1 ? '' : 's'}` : '',
+    '/dashboard/insights': freshSuggestionsCount > 0 ? `${freshSuggestionsCount} nova${freshSuggestionsCount === 1 ? '' : 's'}` : '',
+    '/dashboard/accounts': `${connectionsCount}/${TOTAL_PLATFORMS} conectadas`,
+    '/dashboard/brand': brandProfile ? 'Configurada' : 'Pendente',
+  }
 
   return (
     <div className="space-y-6">
@@ -236,21 +249,31 @@ export default function DashboardPage() {
       <section>
         <h2 className="mb-4 text-lg font-semibold text-gray-800">Atalhos</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SHORTCUTS.map(({ href, label, description, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              className="flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:border-brand-300 hover:shadow-brand-100/60"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="font-semibold text-gray-800">{label}</p>
-                <p className="text-xs text-gray-500">{description}</p>
-              </div>
-            </Link>
-          ))}
+          {SHORTCUTS.map(({ href, label, description, icon: Icon }) => {
+            const badge = shortcutBadges[href]
+            return (
+              <Link
+                key={href}
+                href={href}
+                className="flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:border-brand-300 hover:shadow-brand-100/60"
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  {badge && (
+                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                      {badge}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-800">{label}</p>
+                  <p className="text-xs text-gray-500">{description}</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
       </section>
     </div>

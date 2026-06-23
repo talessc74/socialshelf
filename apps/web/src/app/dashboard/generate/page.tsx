@@ -121,8 +121,8 @@ function LightboxImage({ path, aspectClass }: { path: string; aspectClass: strin
     )
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
   return (
+    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={url}
       alt="Artefato gerado"
