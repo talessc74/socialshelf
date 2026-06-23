@@ -99,7 +99,7 @@ async function main() {
     .collection('brands')
     .doc(USER_ID)
     .collection('oauth_connections')
-    .doc(connection.id)
+    .doc(connection.pairwiseId)
     .set(connection)
 
   console.log('Done! X connection injected successfully.')

@@ -76,7 +76,7 @@ export default function DashboardPage() {
   }, [searchParams, router])
 
   const entries = useMemo(() => performance?.entries ?? [], [performance])
-  const connectionsCount = connections?.length ?? 0
+  const connectionsCount = useMemo(() => new Set(connections?.map((c) => c.platform)).size, [connections])
   const freshSuggestionsCount = useMemo(() => suggestions?.filter((s) => !s.shelved).length ?? 0, [suggestions])
 
   const totals = entries.reduce(
@@ -181,7 +181,7 @@ export default function DashboardPage() {
           ) : (
             <div className="flex h-32 items-end justify-between gap-2">
               {impressionsByWeekday.map((bucket, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-2">
+                <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
                   <div
                     className={`w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`}
                     style={{ height: `${Math.max(bucket.ratio * 100, 4)}%` }}

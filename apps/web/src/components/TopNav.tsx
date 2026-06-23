@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -22,6 +23,13 @@ interface TopNavProps {
 
 export function TopNav({ email, onLogout }: TopNavProps) {
   const pathname = usePathname()
+  const mobileNavRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    mobileNavRef.current
+      ?.querySelector('[data-active="true"]')
+      ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
+  }, [pathname])
 
   return (
     <header className="sticky top-0 z-10 flex flex-col border-b border-brand-100/60 bg-white/80 backdrop-blur">
@@ -65,23 +73,27 @@ export function TopNav({ email, onLogout }: TopNavProps) {
       </div>
       </div>
 
-      <nav className="flex w-full items-center gap-1 overflow-x-auto border-t border-gray-100 bg-white px-3 py-2 lg:hidden">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
-                isActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              <Icon className="h-3.5 w-3.5" />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
+      <div className="relative w-full border-t border-gray-100 lg:hidden">
+        <nav ref={mobileNavRef} className="flex w-full items-center gap-1 overflow-x-auto bg-white px-3 py-2">
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
+            return (
+              <Link
+                key={href}
+                href={href}
+                data-active={isActive}
+                className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
+                  isActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </Link>
+            )
+          })}
+        </nav>
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+      </div>
     </header>
   )
 }

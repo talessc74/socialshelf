@@ -70,7 +70,7 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
   }
 }
 
-function makeConnection(platform: Platform): ApiConnection {
+function makeConnection(platform: Platform, overrides: Partial<ApiConnection> = {}): ApiConnection {
   return {
     id: `conn-${platform}`,
     userId: 'user-1',
@@ -82,6 +82,7 @@ function makeConnection(platform: Platform): ApiConnection {
     expiresAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ...overrides,
   }
 }
 
@@ -219,6 +220,20 @@ describe('DashboardPage - badges dos Atalhos', () => {
     renderPage()
 
     expect(await screen.findByText('2/4 conectadas')).toBeInTheDocument()
+  })
+
+  it('conta plataformas únicas, ignorando conexões duplicadas da mesma rede', async () => {
+    mockedApi.getConnections.mockResolvedValue([
+      makeConnection(Platform.LINKEDIN),
+      makeConnection(Platform.INSTAGRAM),
+      makeConnection(Platform.FACEBOOK),
+      makeConnection(Platform.TWITTER, { id: 'conn-twitter-legacy' }),
+      makeConnection(Platform.TWITTER, { id: 'conn-twitter-oauth' }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('4/4 conectadas')).toBeInTheDocument()
   })
 
   it('mostra badge "Pendente" no atalho de marca quando não há perfil configurado', async () => {
