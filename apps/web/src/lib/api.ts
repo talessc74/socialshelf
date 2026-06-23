@@ -244,6 +244,14 @@ export const api = {
     return apiFetch<PublishResponse>(`/posts/${postId}/publish`, { method: 'POST' })
   },
 
+  async updatePost(postId: string, content: PostContent[]): Promise<ApiPost> {
+    const data = await apiFetch<{ post: ApiPost }>(`/posts/${postId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ content }),
+    })
+    return data.post
+  },
+
   async getPosts(status?: PostStatus): Promise<ApiPost[]> {
     const query = status ? `?status=${status}` : ''
     const data = await apiFetch<{ posts: ApiPost[] }>(`/posts${query}`)
