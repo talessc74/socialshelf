@@ -141,7 +141,7 @@ Neste sistema específico, sua saída de engenharia de prompt (a "Ficha de Engen
     const voiceSection = input.brandVoice ? ` Tom de voz da marca: "${input.brandVoice.tone}".` : ''
 
     const brandSection = input.brandTokens
-      ? ` Referência tipográfica da marca: ${input.brandTokens.typography}. Cor primária da marca (usada na barra de texto): ${input.brandTokens.primaryColor}. Cor secundária: ${input.brandTokens.secondaryColor}.`
+      ? ` Referência de estilo da marca — use só como inspiração de paleta e peso visual; nunca escreva o nome da tipografia ou os códigos de cor como texto dentro da cena: tipografia "${input.brandTokens.typography}", cor primária ${input.brandTokens.primaryColor}, cor secundária ${input.brandTokens.secondaryColor}.`
       : ''
 
     const pautaSection = input.pautaContext
@@ -159,13 +159,18 @@ Descrição original: ${input.description}
 ${formatSection}${platformsSection}${voiceSection}${brandSection}${pautaSection}
 Estilo de moldura escolhido: ${input.style}. Proporção: ${input.aspectRatio}.
 
+Regras absolutas deste sistema (sempre, mesmo quando parecerem conflitar com a ideia de cena do roteirista):
+- O imagePrompt nunca deve instruir a cena a conter texto, palavras, letras, números, rótulos, legendas, placas ou qualquer tipografia. Isso vale mesmo quando o headline, o visualBrief ou a pauta descrevem uma comparação entre dois conceitos (ex.: "reclusão" vs. "detenção", "ação" vs. "processo") — resolva esse contraste inteiramente por meios visuais (forma, material, cor, luz, objeto, composição), nunca citando as palavras dos conceitos dentro da cena.
+- Nunca escreva o nome da tipografia da marca nem códigos de cor (ex.: "#0A0A0A") como texto a aparecer na imagem — eles são só referência de estilo para você, nunca conteúdo a ser desenhado.
+- No negativePrompt de cada artefato, inclua sempre, no mínimo: "text, words, letters, numbers, typography, captions, labels, signage, watermark, hex color codes, font names". Se o headline desta posição tiver termos que poderiam ser mal-interpretados como um rótulo a desenhar, inclua a tradução em inglês desses termos também no negativePrompt.
+
 Para cada posição abaixo, escreva sua Ficha de Engenharia de Prompt (imagePrompt + negativePrompt, em inglês) seguindo seu objetivo e instrucoesEspecificas. A ideia de cena do roteirista é só um ponto de partida — refine-a com sua direção de arte, não a copie literalmente.
 
 ${artifactsSection}
 
 Responda apenas com um JSON no formato:
 {"artifacts": [{"position": 0, "imagePrompt": "...", "negativePrompt": "..."}]}
-Inclua exatamente uma entrada para cada posição listada acima, nesta mesma ordem. "imagePrompt" é o Prompt da sua Ficha de Engenharia (em inglês). "negativePrompt" é o Negative Prompt da mesma ficha (em inglês, termos separados por vírgula) — use "" se não houver nada relevante a excluir além do que o sistema já bloqueia.`
+Inclua exatamente uma entrada para cada posição listada acima, nesta mesma ordem. "imagePrompt" é o Prompt da sua Ficha de Engenharia (em inglês). "negativePrompt" é o Negative Prompt da mesma ficha (em inglês, termos separados por vírgula), respeitando o mínimo exigido nas regras absolutas acima.`
   }
 
   private toArtDirectionResult(parsed: unknown, artifacts: ArtDirectionInput['artifacts']): ArtDirectionResult {
@@ -193,7 +198,7 @@ Inclua exatamente uma entrada para cada posição listada acima, nesta mesma ord
       ) {
         throw new Error('Gemini returned malformed art direction payload')
       }
-      directions.push({ position, imagePrompt, negativePrompt })
+      directions.push({ position, imagePrompt: this.stripHexColorCodes(imagePrompt), negativePrompt })
     }
 
     if (new Set(directions.map((d) => d.position)).size !== expectedPositions.size) {
@@ -201,5 +206,15 @@ Inclua exatamente uma entrada para cada posição listada acima, nesta mesma ord
     }
 
     return { artifacts: directions }
+  }
+
+  // Rede de segurança determinística: mesmo que o modelo ignore a instrução de nunca citar
+  // códigos de cor da marca, isso garante que eles nunca cheguem ao Imagen (que os renderiza
+  // como texto literal na imagem).
+  private stripHexColorCodes(text: string): string {
+    return text
+      .replace(/#[0-9a-fA-F]{3,8}\b/g, '')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim()
   }
 }
