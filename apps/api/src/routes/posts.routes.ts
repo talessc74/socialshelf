@@ -31,6 +31,8 @@ const updatePostSchema = z.object({
   content: z
     .array(z.object({ platform: platformEnum, text: z.string().min(1) }))
     .min(1),
+  imageStoragePaths: z.array(z.string()).optional(),
+  scheduledAt: z.string().datetime().nullable().optional(),
 })
 
 export async function postsRoutes(app: FastifyInstance) {
@@ -119,6 +121,10 @@ export async function postsRoutes(app: FastifyInstance) {
         const post = await updatePost.execute({
           post: existing,
           content: parsed.data.content as Array<{ platform: Platform; text: string }>,
+          ...(parsed.data.imageStoragePaths !== undefined && { imageStoragePaths: parsed.data.imageStoragePaths }),
+          ...(parsed.data.scheduledAt !== undefined && {
+            scheduledAt: parsed.data.scheduledAt === null ? null : new Date(parsed.data.scheduledAt),
+          }),
         })
         return reply.send({ post })
       } catch (err) {

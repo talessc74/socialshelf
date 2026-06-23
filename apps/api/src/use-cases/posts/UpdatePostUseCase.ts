@@ -5,6 +5,8 @@ import type { Platform } from '@socialshelf/domain'
 export interface UpdatePostInput {
   post: Post
   content: Array<{ platform: Platform; text: string }>
+  imageStoragePaths?: string[]
+  scheduledAt?: Date | null
 }
 
 export class UpdatePostUseCase {
@@ -21,9 +23,15 @@ export class UpdatePostUseCase {
       return { platform: c.platform, text: c.text, charCount: c.text.length }
     })
 
+    const scheduledAt = input.scheduledAt !== undefined ? input.scheduledAt : input.post.scheduledAt
+    const status = input.scheduledAt !== undefined ? (input.scheduledAt ? 'scheduled' : 'draft') : input.post.status
+
     const updated: Post = {
       ...input.post,
       content: platformContent,
+      imageStoragePaths: input.imageStoragePaths ?? input.post.imageStoragePaths,
+      scheduledAt,
+      status,
       updatedAt: new Date(),
     }
 

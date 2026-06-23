@@ -244,10 +244,19 @@ export const api = {
     return apiFetch<PublishResponse>(`/posts/${postId}/publish`, { method: 'POST' })
   },
 
-  async updatePost(postId: string, content: PostContent[]): Promise<ApiPost> {
+  async updatePost(
+    postId: string,
+    content: PostContent[],
+    imageStoragePaths?: string[],
+    scheduledAt?: Date | null,
+  ): Promise<ApiPost> {
     const data = await apiFetch<{ post: ApiPost }>(`/posts/${postId}`, {
       method: 'PUT',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({
+        content,
+        ...(imageStoragePaths !== undefined && { imageStoragePaths }),
+        ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? scheduledAt.toISOString() : null }),
+      }),
     })
     return data.post
   },
