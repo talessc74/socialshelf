@@ -27,6 +27,8 @@ export interface ArtifactDirection {
   position: number
   /** Instrução de imagem (em inglês) que substitui o visualBrief cru ao chamar o ImageGeneratorPort. */
   imagePrompt: string
+  /** Elementos visuais (em inglês) a evitar nesta cena — complementa, nunca substitui, o negativePrompt técnico do ImageGeneratorPort. */
+  negativePrompt: string
 }
 
 export interface ArtDirectionResult {

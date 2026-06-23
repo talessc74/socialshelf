@@ -51,7 +51,11 @@ function makeDeps(
       ? vi.fn().mockRejectedValue(new Error('art direction failed'))
       : vi.fn().mockImplementation((input: { artifacts: Array<{ position: number; visualBrief: string }> }) =>
           Promise.resolve({
-            artifacts: input.artifacts.map((a) => ({ position: a.position, imagePrompt: `${a.visualBrief} (direcionado)` })),
+            artifacts: input.artifacts.map((a) => ({
+              position: a.position,
+              imagePrompt: `${a.visualBrief} (direcionado)`,
+              negativePrompt: 'cluttered background, busy patterns',
+            })),
           }),
         ),
   }
@@ -384,10 +388,10 @@ describe('GenerateContentUseCase', () => {
       }),
     )
     expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
-      expect.objectContaining({ description: 'Cena gerada 1 (direcionado)' }),
+      expect.objectContaining({ description: 'Cena gerada 1 (direcionado)', negativePrompt: 'cluttered background, busy patterns' }),
     )
     expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
-      expect.objectContaining({ description: 'Cena gerada 2 (direcionado)' }),
+      expect.objectContaining({ description: 'Cena gerada 2 (direcionado)', negativePrompt: 'cluttered background, busy patterns' }),
     )
   })
 

@@ -143,6 +143,7 @@ export class GenerateContentUseCase {
     const imagePromptsByPosition = new Map<number, string>(
       artifacts.map((artifact) => [artifact.position, copyResult.visualBriefs[artifact.position - 1]!]),
     )
+    const negativePromptsByPosition = new Map<number, string>()
     if (input.imageStoragePaths.length === 0) {
       try {
         const direction = await this.artDirector.direct({
@@ -161,6 +162,9 @@ export class GenerateContentUseCase {
         })
         for (const artifactDirection of direction.artifacts) {
           imagePromptsByPosition.set(artifactDirection.position, artifactDirection.imagePrompt)
+          if (artifactDirection.negativePrompt.trim().length > 0) {
+            negativePromptsByPosition.set(artifactDirection.position, artifactDirection.negativePrompt)
+          }
         }
       } catch {
         // Falha na direção de arte não deve travar a geração — seguimos com o visualBrief cru.
@@ -181,6 +185,9 @@ export class GenerateContentUseCase {
             ? await this.imageStorage.download(uploadedPath)
             : await this.imageGenerator.generateImage({
                 description: imagePromptsByPosition.get(artifact.position)!,
+                ...(negativePromptsByPosition.has(artifact.position) && {
+                  negativePrompt: negativePromptsByPosition.get(artifact.position)!,
+                }),
                 brandTokens,
                 position: artifact.position,
                 totalArtifacts: artifacts.length,
