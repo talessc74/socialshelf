@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import ScheduledPostsPage from './page'
@@ -13,6 +14,8 @@ vi.mock('../../../lib/api', () => ({
   api: {
     getPosts: vi.fn(),
     getImageUrl: vi.fn(),
+    updatePost: vi.fn(),
+    publishPost: vi.fn(),
   },
 }))
 
@@ -74,5 +77,72 @@ describe('ScheduledPostsPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Não foi possível carregar os posts agendados/)).toBeInTheDocument()
+  })
+
+  it('permite editar o texto de um post e salvar', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+    mockedApi.updatePost.mockResolvedValue(makePost({ content: [{ platform: Platform.LINKEDIN, text: 'Texto revisado' }] }))
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    const textarea = screen.getByDisplayValue('Texto agendado para o LinkedIn')
+    await user.clear(textarea)
+    await user.type(textarea, 'Texto revisado')
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => {
+      expect(mockedApi.updatePost).toHaveBeenCalledWith('post-1', [
+        { platform: Platform.LINKEDIN, text: 'Texto revisado' },
+      ])
+    })
+  })
+
+  it('permite cancelar a edição sem salvar', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    expect(mockedApi.updatePost).not.toHaveBeenCalled()
+    expect(screen.getByText('Texto agendado para o LinkedIn')).toBeInTheDocument()
+  })
+
+  it('permite publicar um post agendado agora', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+    mockedApi.publishPost.mockResolvedValue({
+      postId: 'post-1',
+      results: [{ platform: Platform.LINKEDIN, externalId: 'urn:li:ugcPost:1', publishedAt: new Date().toISOString() }],
+      failedPlatforms: [],
+    })
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Publicar agora' }))
+
+    await waitFor(() => {
+      expect(mockedApi.publishPost).toHaveBeenCalledWith('post-1')
+    })
+  })
+
+  it('mostra erro quando a publicação imediata falha', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+    mockedApi.publishPost.mockRejectedValue(new Error('Publisher indisponível'))
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Publicar agora' }))
+
+    expect(await screen.findByText('Publisher indisponível')).toBeInTheDocument()
   })
 })

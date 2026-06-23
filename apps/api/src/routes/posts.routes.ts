@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
 import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
+import { UpdatePostUseCase } from '../use-cases/posts/UpdatePostUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
@@ -26,11 +27,18 @@ const listPostsQuerySchema = z.object({
   status: z.enum(['draft', 'ai-draft', 'scheduled', 'published', 'failed']).optional(),
 })
 
+const updatePostSchema = z.object({
+  content: z
+    .array(z.object({ platform: platformEnum, text: z.string().min(1) }))
+    .min(1),
+})
+
 export async function postsRoutes(app: FastifyInstance) {
   const postRepo = new FirestorePostRepository()
   const oauthRepo = new FirestoreOAuthRepository()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const createPost = new CreatePostUseCase(postRepo, brandProfileRepo)
+  const updatePost = new UpdatePostUseCase(postRepo)
 
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -83,6 +91,36 @@ export async function postsRoutes(app: FastifyInstance) {
           ...(parsed.data.scheduledAt !== undefined && { scheduledAt: new Date(parsed.data.scheduledAt) }),
         })
         return reply.status(201).send({ post })
+      } catch (err) {
+        if (err instanceof Error && err.message.includes('exceeds')) {
+          return reply.status(422).send({ error: err.message })
+        }
+        app.log.error(err)
+        return reply.status(500).send({ error: 'Internal error' })
+      }
+    },
+  )
+
+  // Update a post's content
+  app.put(
+    '/posts/:id',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const parsed = updatePostSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      if (!existing) return reply.status(404).send({ error: 'Post not found' })
+
+      try {
+        const post = await updatePost.execute({
+          post: existing,
+          content: parsed.data.content as Array<{ platform: Platform; text: string }>,
+        })
+        return reply.send({ post })
       } catch (err) {
         if (err instanceof Error && err.message.includes('exceeds')) {
           return reply.status(422).send({ error: err.message })
