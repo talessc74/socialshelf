@@ -4,8 +4,11 @@
 
 .bg-surface-operation-dots {
   background-color: theme('colors.surface.operation');
-  background-image: radial-gradient(circle, theme('colors.brand.200') 1px, transparent 1px);
-  background-size: 20px 20px;
+  background-image:
+    radial-gradient(circle at 8% 8%, theme('colors.brand.200') 0%, transparent 38%),
+    radial-gradient(circle at 95% 0%, theme('colors.brand.300') 0%, transparent 42%),
+    radial-gradient(circle, theme('colors.brand.200') 1px, transparent 1px);
+  background-size: auto, auto, 22px 22px;
 }
 
 .bg-surface-diagnostic-gradient {

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../contexts/AuthContext'
-import { Sidebar } from '../../components/Sidebar'
+import { TopNav } from '../../components/TopNav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth()
@@ -22,17 +22,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex bg-surface-operation-dots">
-      <Sidebar onLogout={logout} />
-      <div className="min-w-0 flex-1">
-        <header className="flex items-center justify-between border-b border-gray-200 bg-white/80 px-4 py-3 backdrop-blur sm:px-6">
-          <span className="text-sm font-bold text-gray-900">
-            Social<span className="text-brand-600">Shelf</span>
-          </span>
-          <span className="truncate text-sm text-gray-500">{user.email}</span>
-        </header>
-        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
-      </div>
+    <div className="min-h-screen bg-surface-operation-dots">
+      <TopNav email={user.email ?? ''} onLogout={logout} />
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   )
 }
