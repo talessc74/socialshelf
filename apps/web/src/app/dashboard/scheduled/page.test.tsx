@@ -16,6 +16,7 @@ vi.mock('../../../lib/api', () => ({
     getImageUrl: vi.fn(),
     updatePost: vi.fn(),
     publishPost: vi.fn(),
+    uploadImage: vi.fn(),
   },
 }))
 
@@ -94,10 +95,81 @@ describe('ScheduledPostsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Salvar' }))
 
     await waitFor(() => {
-      expect(mockedApi.updatePost).toHaveBeenCalledWith('post-1', [
-        { platform: Platform.LINKEDIN, text: 'Texto revisado' },
-      ])
+      expect(mockedApi.updatePost).toHaveBeenCalledWith(
+        'post-1',
+        [{ platform: Platform.LINKEDIN, text: 'Texto revisado' }],
+        [],
+        new Date('2026-07-01T12:00:00.000Z'),
+      )
     })
+  })
+
+  it('permite trocar a foto de um post ao editar', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost({ imageStoragePaths: ['old-photo.jpg'] })])
+    mockedApi.getImageUrl.mockResolvedValue('https://example.com/old-photo.jpg')
+    mockedApi.uploadImage.mockResolvedValue('new-photo.jpg')
+    mockedApi.updatePost.mockResolvedValue(makePost({ imageStoragePaths: ['new-photo.jpg'] }))
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    await user.click(await screen.findByRole('button', { name: 'Remover foto' }))
+
+    const file = new File(['conteudo'], 'foto.jpg', { type: 'image/jpeg' })
+    await user.upload(screen.getByLabelText('Adicionar foto'), file)
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => {
+      expect(mockedApi.uploadImage).toHaveBeenCalledWith(file)
+      expect(mockedApi.updatePost).toHaveBeenCalledWith(
+        'post-1',
+        [{ platform: Platform.LINKEDIN, text: 'Texto agendado para o LinkedIn' }],
+        ['new-photo.jpg'],
+        new Date('2026-07-01T12:00:00.000Z'),
+      )
+    })
+  })
+
+  it('permite alterar a data de publicação ao editar', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+    mockedApi.updatePost.mockResolvedValue(makePost())
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    const dateInput = screen.getByLabelText('Data de publicação')
+    await user.clear(dateInput)
+    await user.type(dateInput, '2026-08-15T09:30')
+    await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() => {
+      expect(mockedApi.updatePost).toHaveBeenCalledWith(
+        'post-1',
+        [{ platform: Platform.LINKEDIN, text: 'Texto agendado para o LinkedIn' }],
+        [],
+        new Date('2026-08-15T09:30'),
+      )
+    })
+  })
+
+  it('impede salvar quando a data de publicação está no passado', async () => {
+    const user = userEvent.setup()
+    mockedApi.getPosts.mockResolvedValue([makePost()])
+
+    renderPage()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    const dateInput = screen.getByLabelText('Data de publicação')
+    await user.clear(dateInput)
+    await user.type(dateInput, '2020-01-01T09:30')
+
+    expect(screen.getByText('A data de publicação deve ser no futuro.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled()
   })
 
   it('permite cancelar a edição sem salvar', async () => {

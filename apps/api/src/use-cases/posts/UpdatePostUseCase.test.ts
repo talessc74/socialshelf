@@ -98,4 +98,46 @@ describe('UpdatePostUseCase', () => {
 
     expect(updated.content).toHaveLength(2)
   })
+
+  it('updates imageStoragePaths when provided', async () => {
+    const updated = await useCase.execute({
+      post: makePost({ imageStoragePaths: ['old.jpg'] }),
+      content: [{ platform: Platform.LINKEDIN, text: 'New text' }],
+      imageStoragePaths: ['new-1.jpg', 'new-2.jpg'],
+    })
+
+    expect(updated.imageStoragePaths).toEqual(['new-1.jpg', 'new-2.jpg'])
+  })
+
+  it('preserves imageStoragePaths when not provided', async () => {
+    const updated = await useCase.execute({
+      post: makePost({ imageStoragePaths: ['kept.jpg'] }),
+      content: [{ platform: Platform.LINKEDIN, text: 'New text' }],
+    })
+
+    expect(updated.imageStoragePaths).toEqual(['kept.jpg'])
+  })
+
+  it('updates scheduledAt when provided', async () => {
+    const newDate = new Date('2026-08-01T15:00:00.000Z')
+    const updated = await useCase.execute({
+      post: makePost(),
+      content: [{ platform: Platform.LINKEDIN, text: 'New text' }],
+      scheduledAt: newDate,
+    })
+
+    expect(updated.scheduledAt).toEqual(newDate)
+    expect(updated.status).toBe('scheduled')
+  })
+
+  it('clears scheduledAt and status when scheduledAt is set to null', async () => {
+    const updated = await useCase.execute({
+      post: makePost(),
+      content: [{ platform: Platform.LINKEDIN, text: 'New text' }],
+      scheduledAt: null,
+    })
+
+    expect(updated.scheduledAt).toBeNull()
+    expect(updated.status).toBe('draft')
+  })
 })
