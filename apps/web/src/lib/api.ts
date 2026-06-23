@@ -2,7 +2,7 @@
 
 import { auth } from './firebase'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
-import type { ProfileDiagnostic } from '@socialshelf/domain'
+import type { ProfileDiagnostic, PostStatus } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'
 
@@ -242,6 +242,12 @@ export const api = {
 
   async publishPost(postId: string): Promise<PublishResponse> {
     return apiFetch<PublishResponse>(`/posts/${postId}/publish`, { method: 'POST' })
+  },
+
+  async getPosts(status?: PostStatus): Promise<ApiPost[]> {
+    const query = status ? `?status=${status}` : ''
+    const data = await apiFetch<{ posts: ApiPost[] }>(`/posts${query}`)
+    return data.posts
   },
 
   async getAudienceSignal(platform: Platform): Promise<ApiAudienceSignal> {
