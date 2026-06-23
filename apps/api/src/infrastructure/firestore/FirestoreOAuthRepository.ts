@@ -92,7 +92,7 @@ export class FirestoreOAuthRepository implements OAuthRepository {
       id: data['id'] as string,
       userId: data['userId'] as string,
       brandId: data['brandId'] as string,
-      platform: data['platform'] as Platform,
+      platform: (data['platform'] as string).toLowerCase() as Platform,
       pairwiseId: data['pairwiseId'] as string,
       tokenRef: data['tokenRef'] as string,
       scopes: data['scopes'] as string[],
