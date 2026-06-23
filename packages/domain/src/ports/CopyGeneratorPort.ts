@@ -25,6 +25,8 @@ export interface ContentInputs {
   artifactPlan: ArtifactPlan
   pautaContext: PautaContext | null
   brandVoice: BrandProfileVoice | null
+  /** Se true, gera também um `bodyTexts` por artefato — um parágrafo de apoio desenhado abaixo do headline na imagem. */
+  includeBodyText: boolean
 }
 
 export type PlatformCopies = Partial<Record<Platform, PlatformCopy>>
@@ -45,6 +47,12 @@ export interface CopyGenerationResult {
    * nasça desconectada da mensagem (gerada só a partir da descrição crua do usuário).
    */
   visualBriefs: string[]
+  /**
+   * Um parágrafo de apoio (1-3 frases) por artefato, mesmo `length` de `headlines`. Vazio
+   * quando `includeBodyText` do input era false. Desenhado como texto menor, abaixo do
+   * headline, sobre a mesma imagem — complementa, nunca repete, o headline.
+   */
+  bodyTexts: string[]
 }
 
 export interface CopyGeneratorPort {

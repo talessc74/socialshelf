@@ -4,6 +4,7 @@ import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { EditArtifactUseCase } from '../use-cases/EditArtifactUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
+import { GeminiArtDirector } from '../infrastructure/vertexai/GeminiArtDirector.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
 import { SharpTemplateRenderer } from '../infrastructure/template/SharpTemplateRenderer.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
@@ -28,6 +29,7 @@ const generateSchema = z.object({
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),
   aspectRatio: z.nativeEnum(AspectRatio).default(AspectRatio.SQUARE),
+  includeBodyText: z.boolean().default(false),
 })
 
 const editArtifactSchema = z.object({
@@ -50,6 +52,7 @@ export async function generationRoutes(app: FastifyInstance) {
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
 
   const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel)
+  const artDirector = new GeminiArtDirector(projectId, geminiLocation, geminiModel)
   const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel)
   const templateRenderer = new SharpTemplateRenderer()
   const imageStorage = new GcsImageStorage(generatedBucket)
@@ -60,6 +63,7 @@ export async function generationRoutes(app: FastifyInstance) {
 
   const useCase = new GenerateContentUseCase(
     copyGenerator,
+    artDirector,
     imageGenerator,
     templateRenderer,
     imageStorage,
@@ -104,6 +108,7 @@ export async function generationRoutes(app: FastifyInstance) {
         topicSuggestionId: parsed.data.topicSuggestionId ?? null,
         style: parsed.data.style,
         aspectRatio: parsed.data.aspectRatio,
+        includeBodyText: parsed.data.includeBodyText,
       })
       return reply.send({ generationRequest })
     } catch (err) {

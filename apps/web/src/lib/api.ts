@@ -2,7 +2,7 @@
 
 import { auth } from './firebase'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
-import type { ProfileDiagnostic } from '@socialshelf/domain'
+import type { ProfileDiagnostic, PostStatus } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'
 
@@ -210,6 +210,7 @@ export interface GenerateContentInput {
   topicSuggestionId?: string
   style?: TemplateStyle
   aspectRatio?: AspectRatio
+  includeBodyText?: boolean
 }
 
 export const api = {
@@ -241,6 +242,29 @@ export const api = {
 
   async publishPost(postId: string): Promise<PublishResponse> {
     return apiFetch<PublishResponse>(`/posts/${postId}/publish`, { method: 'POST' })
+  },
+
+  async updatePost(
+    postId: string,
+    content: PostContent[],
+    imageStoragePaths?: string[],
+    scheduledAt?: Date | null,
+  ): Promise<ApiPost> {
+    const data = await apiFetch<{ post: ApiPost }>(`/posts/${postId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        content,
+        ...(imageStoragePaths !== undefined && { imageStoragePaths }),
+        ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? scheduledAt.toISOString() : null }),
+      }),
+    })
+    return data.post
+  },
+
+  async getPosts(status?: PostStatus): Promise<ApiPost[]> {
+    const query = status ? `?status=${status}` : ''
+    const data = await apiFetch<{ posts: ApiPost[] }>(`/posts${query}`)
+    return data.posts
   },
 
   async getAudienceSignal(platform: Platform): Promise<ApiAudienceSignal> {

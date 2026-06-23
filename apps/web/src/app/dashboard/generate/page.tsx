@@ -303,6 +303,7 @@ type GenerateDraft = {
   style: TemplateStyle
   aspectRatio: AspectRatio
   topicSuggestionId: string
+  includeBodyText: boolean
 }
 
 function loadDraft(): GenerateDraft | null {
@@ -327,6 +328,7 @@ export default function GenerateContentPage() {
   const [style, setStyle] = useState<TemplateStyle>(() => draft?.style ?? TemplateStyle.BOLD_BOTTOM)
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(() => draft?.aspectRatio ?? AspectRatio.SQUARE)
   const [topicSuggestionId, setTopicSuggestionId] = useState(() => draft?.topicSuggestionId ?? '')
+  const [includeBodyText, setIncludeBodyText] = useState(() => draft?.includeBodyText ?? false)
   const [photoFiles, setPhotoFiles] = useState<File[]>([])
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
@@ -340,9 +342,10 @@ export default function GenerateContentPage() {
       style,
       aspectRatio,
       topicSuggestionId,
+      includeBodyText,
     }
     window.sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data))
-  }, [description, textContent, selectedPlatforms, style, aspectRatio, topicSuggestionId])
+  }, [description, textContent, selectedPlatforms, style, aspectRatio, topicSuggestionId, includeBodyText])
 
   const { data: connections, isLoading: loadingConnections } = useQuery({
     queryKey: ['connections'],
@@ -393,6 +396,7 @@ export default function GenerateContentPage() {
     setStyle(TemplateStyle.BOLD_BOTTOM)
     setAspectRatio(AspectRatio.SQUARE)
     setTopicSuggestionId('')
+    setIncludeBodyText(false)
     setPhotoFiles([])
     setError('')
     window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
@@ -412,6 +416,7 @@ export default function GenerateContentPage() {
         aspectRatio,
         ...(topicSuggestionId && { topicSuggestionId }),
         ...(imageStoragePaths && { imageStoragePaths }),
+        ...(includeBodyText && { includeBodyText }),
       })
       setResult(generationRequest)
       window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
@@ -460,6 +465,8 @@ export default function GenerateContentPage() {
               setStyle={setStyle}
               aspectRatio={aspectRatio}
               setAspectRatio={setAspectRatio}
+              includeBodyText={includeBodyText}
+              setIncludeBodyText={setIncludeBodyText}
               photoFiles={photoFiles}
               onPhotoFilesAdd={handlePhotoFilesAdd}
               onPhotoFileRemove={handlePhotoFileRemove}
@@ -531,6 +538,8 @@ function FormView({
   setStyle,
   aspectRatio,
   setAspectRatio,
+  includeBodyText,
+  setIncludeBodyText,
   photoFiles,
   onPhotoFilesAdd,
   onPhotoFileRemove,
@@ -554,6 +563,8 @@ function FormView({
   setStyle: (v: TemplateStyle) => void
   aspectRatio: AspectRatio
   setAspectRatio: (v: AspectRatio) => void
+  includeBodyText: boolean
+  setIncludeBodyText: (v: boolean) => void
   photoFiles: File[]
   onPhotoFilesAdd: (files: File[]) => void
   onPhotoFileRemove: (index: number) => void
@@ -765,6 +776,20 @@ function FormView({
             ))}
           </div>
         </div>
+
+        {style !== TemplateStyle.NO_TEXT && (
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input
+                type="checkbox"
+                checked={includeBodyText}
+                onChange={(e) => setIncludeBodyText(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+              />
+              Incluir texto de apoio (parágrafo curto abaixo do headline)
+            </label>
+          </div>
+        )}
 
         <div>
           <label className="mb-1.5 block text-sm font-semibold text-gray-700">

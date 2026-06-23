@@ -240,6 +240,34 @@ describe('GenerateContentPage', () => {
     expect(screen.queryByText('LinkedIn')).not.toBeInTheDocument()
   })
 
+  it('envia includeBodyText quando o checkbox de texto de apoio é marcado', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
+    mockedApi.generateContent.mockReturnValue(new Promise(() => {}))
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByText('Incluir texto de apoio (parágrafo curto abaixo do headline)'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+
+    expect(mockedApi.generateContent).toHaveBeenCalledWith(
+      expect.objectContaining({ includeBodyText: true }),
+    )
+  })
+
+  it('não mostra o checkbox de texto de apoio quando o estilo "Sem texto" está selecionado', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.click(await screen.findByText('Sem texto'))
+
+    expect(screen.queryByText('Incluir texto de apoio (parágrafo curto abaixo do headline)')).not.toBeInTheDocument()
+  })
+
   it('mostra mensagem de erro quando a chamada de geração falha', async () => {
     mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
     mockedApi.generateContent.mockRejectedValue(new Error('Generator error'))

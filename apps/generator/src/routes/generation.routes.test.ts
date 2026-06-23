@@ -55,11 +55,20 @@ const mockGenerateCopy = vi.fn().mockResolvedValue({
   cta: 'Comente abaixo!',
   headlines: ['Headline gerada'],
   visualBriefs: ['Cena gerada'],
+  bodyTexts: ['Corpo gerado'],
 })
 
 vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({
   GeminiCopyGenerator: vi.fn().mockImplementation(() => ({
     generateCopy: mockGenerateCopy,
+  })),
+}))
+
+const mockDirect = vi.fn().mockResolvedValue({ artifacts: [{ position: 1, imagePrompt: 'Cena direcionada', negativePrompt: '' }] })
+
+vi.mock('../infrastructure/vertexai/GeminiArtDirector.js', () => ({
+  GeminiArtDirector: vi.fn().mockImplementation(() => ({
+    direct: mockDirect,
   })),
 }))
 

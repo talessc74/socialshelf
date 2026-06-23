@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { TemplateStyle, PLATFORM_CHARACTER_LIMITS, MAX_GENERATION_ARTIFACTS } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
+  ArtDirectorPort,
   ImageGeneratorPort,
   ImageStoragePort,
   TemplateRendererPort,
@@ -27,11 +28,13 @@ export interface GenerateContentInput {
   topicSuggestionId: string | null
   style: TemplateStyle
   aspectRatio: AspectRatio
+  includeBodyText: boolean
 }
 
 export class GenerateContentUseCase {
   constructor(
     private readonly copyGenerator: CopyGeneratorPort,
+    private readonly artDirector: ArtDirectorPort,
     private readonly imageGenerator: ImageGeneratorPort,
     private readonly templateRenderer: TemplateRendererPort,
     private readonly imageStorage: ImageStoragePort,
@@ -56,6 +59,7 @@ export class GenerateContentUseCase {
         topicSuggestionId: input.topicSuggestionId,
         aspectRatio: input.aspectRatio,
         style: input.style,
+        includeBodyText: input.includeBodyText,
       },
       outputs: null,
       error: null,
@@ -85,6 +89,7 @@ export class GenerateContentUseCase {
         artifactPlan,
         pautaContext,
         brandVoice: brandProfile?.voice ?? null,
+        includeBodyText: input.includeBodyText,
       })
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err)
@@ -117,6 +122,7 @@ export class GenerateContentUseCase {
         cta: copyResult.cta,
         headlines: copyResult.headlines,
         visualBriefs: copyResult.visualBriefs,
+        bodyTexts: copyResult.bodyTexts,
         artifacts,
       },
     }
@@ -135,6 +141,40 @@ export class GenerateContentUseCase {
       ? await this.imageStorage.download(brandProfile.visual.logoStoragePath)
       : null
 
+    // Direção de arte só importa quando alguma imagem será gerada por IA — em modo `fixed`
+    // (fotos próprias enviadas), todo artefato usa a foto do usuário e o ImageGeneratorPort
+    // nunca é chamado, então pedi-la aqui seria uma chamada de IA desperdiçada.
+    const imagePromptsByPosition = new Map<number, string>(
+      artifacts.map((artifact) => [artifact.position, copyResult.visualBriefs[artifact.position - 1]!]),
+    )
+    const negativePromptsByPosition = new Map<number, string>()
+    if (input.imageStoragePaths.length === 0) {
+      try {
+        const direction = await this.artDirector.direct({
+          description: input.description,
+          targetPlatforms: input.targetPlatforms,
+          artifacts: artifacts.map((artifact) => ({
+            position: artifact.position,
+            headline: copyResult.headlines[artifact.position - 1]!,
+            visualBrief: copyResult.visualBriefs[artifact.position - 1]!,
+          })),
+          style: input.style,
+          aspectRatio: input.aspectRatio,
+          brandVoice: brandProfile?.voice ?? null,
+          brandTokens,
+          pautaContext,
+        })
+        for (const artifactDirection of direction.artifacts) {
+          imagePromptsByPosition.set(artifactDirection.position, artifactDirection.imagePrompt)
+          if (artifactDirection.negativePrompt.trim().length > 0) {
+            negativePromptsByPosition.set(artifactDirection.position, artifactDirection.negativePrompt)
+          }
+        }
+      } catch {
+        // Falha na direção de arte não deve travar a geração — seguimos com o visualBrief cru.
+      }
+    }
+
     for (const artifact of artifacts) {
       artifact.status = 'generating'
     }
@@ -144,21 +184,28 @@ export class GenerateContentUseCase {
       artifacts.map(async (artifact) => {
         try {
           const headline = copyResult.headlines[artifact.position - 1]!
+          const bodyText = copyResult.bodyTexts[artifact.position - 1]!
+          const hasBodyOverlay = input.includeBodyText && bodyText.trim().length > 0
           const uploadedPath = input.imageStoragePaths[artifact.position - 1]
           const image = uploadedPath
             ? await this.imageStorage.download(uploadedPath)
             : await this.imageGenerator.generateImage({
-                description: copyResult.visualBriefs[artifact.position - 1]!,
+                description: imagePromptsByPosition.get(artifact.position)!,
+                ...(negativePromptsByPosition.has(artifact.position) && {
+                  negativePrompt: negativePromptsByPosition.get(artifact.position)!,
+                }),
                 brandTokens,
                 position: artifact.position,
                 totalArtifacts: artifacts.length,
                 aspectRatio: input.aspectRatio,
                 templateStyle: input.style,
                 hasTextOverlay: input.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
+                hasBodyOverlay,
               })
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
             headline,
+            body: hasBodyOverlay ? bodyText : null,
             style: input.style,
             brandTokens,
             logoImage,

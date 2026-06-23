@@ -3,6 +3,7 @@ import { GenerateContentUseCase } from './GenerateContentUseCase.js'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
+  ArtDirectorPort,
   ImageGeneratorPort,
   TemplateRendererPort,
   ImageStoragePort,
@@ -28,10 +29,13 @@ const mockBrandProfile: BrandProfile = {
   createdAt: new Date(),
 }
 
-function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[]; headlineCount?: number } = {}) {
+function makeDeps(
+  overrides: { copyFails?: boolean; imageFailsAt?: number[]; headlineCount?: number; artDirectionFails?: boolean } = {},
+) {
   const headlineCount = overrides.headlineCount ?? 1
   const headlines = Array.from({ length: headlineCount }, (_, i) => `Headline gerada ${i + 1}`)
   const visualBriefs = Array.from({ length: headlineCount }, (_, i) => `Cena gerada ${i + 1}`)
+  const bodyTexts = Array.from({ length: headlineCount }, (_, i) => `Corpo gerado ${i + 1}`)
   const copyGenerator: CopyGeneratorPort = {
     generateCopy: overrides.copyFails
       ? vi.fn().mockRejectedValue(new Error('copy generation failed'))
@@ -40,7 +44,22 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[]; hea
           cta: 'Comente abaixo!',
           headlines,
           visualBriefs,
+          bodyTexts,
         }),
+  }
+
+  const artDirector: ArtDirectorPort = {
+    direct: overrides.artDirectionFails
+      ? vi.fn().mockRejectedValue(new Error('art direction failed'))
+      : vi.fn().mockImplementation((input: { artifacts: Array<{ position: number; visualBrief: string }> }) =>
+          Promise.resolve({
+            artifacts: input.artifacts.map((a) => ({
+              position: a.position,
+              imagePrompt: `${a.visualBrief} (direcionado)`,
+              negativePrompt: 'cluttered background, busy patterns',
+            })),
+          }),
+        ),
   }
 
   const failPositions = new Set(overrides.imageFailsAt ?? [])
@@ -93,6 +112,7 @@ function makeDeps(overrides: { copyFails?: boolean; imageFailsAt?: number[]; hea
 
   return {
     copyGenerator,
+    artDirector,
     imageGenerator,
     templateRenderer,
     imageStorage,
@@ -114,6 +134,7 @@ function baseInput() {
     topicSuggestionId: null,
     style: TemplateStyle.BOLD_BOTTOM,
     aspectRatio: AspectRatio.SQUARE,
+    includeBodyText: false,
   }
 }
 
@@ -122,6 +143,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps()
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -146,6 +168,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps({ headlineCount: 3 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -169,6 +192,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps({ copyFails: true })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -190,6 +214,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps({ imageFailsAt: [2], headlineCount: 3 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -212,6 +237,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps({ imageFailsAt: [1, 2], headlineCount: 2 })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -245,6 +271,7 @@ describe('GenerateContentUseCase', () => {
 
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -267,6 +294,7 @@ describe('GenerateContentUseCase', () => {
     const deps = makeDeps()
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -291,9 +319,11 @@ describe('GenerateContentUseCase', () => {
       cta: 'Comente abaixo!',
       headlines: ['Headline gerada 1'],
       visualBriefs: ['Cena gerada 1'],
+      bodyTexts: [''],
     })
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -318,6 +348,7 @@ describe('GenerateContentUseCase', () => {
     ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue(null)
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
+      deps.artDirector,
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
@@ -331,6 +362,133 @@ describe('GenerateContentUseCase', () => {
 
     expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
       expect.objectContaining({ brandVoice: null }),
+    )
+  })
+
+  it('usa o imagePrompt do diretor de arte em vez do visualBrief cru ao gerar a imagem', async () => {
+    const deps = makeDeps({ headlineCount: 2 })
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute(baseInput())
+
+    expect(deps.artDirector.direct).toHaveBeenCalledTimes(1)
+    expect(deps.artDirector.direct).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: baseInput().description,
+        artifacts: [
+          { position: 1, headline: 'Headline gerada 1', visualBrief: 'Cena gerada 1' },
+          { position: 2, headline: 'Headline gerada 2', visualBrief: 'Cena gerada 2' },
+        ],
+      }),
+    )
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'Cena gerada 1 (direcionado)', negativePrompt: 'cluttered background, busy patterns' }),
+    )
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'Cena gerada 2 (direcionado)', negativePrompt: 'cluttered background, busy patterns' }),
+    )
+  })
+
+  it('usa o visualBrief cru quando o diretor de arte falha, sem travar a geração', async () => {
+    const deps = makeDeps({ artDirectionFails: true })
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.status).toBe('ready')
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ description: 'Cena gerada 1' }),
+    )
+  })
+
+  it('não chama o diretor de arte quando o usuário envia as próprias fotos', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), imageStoragePaths: ['brand-1/uploads/foto.png'] })
+
+    expect(deps.artDirector.direct).not.toHaveBeenCalled()
+    expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
+  })
+
+  it('repassa includeBodyText para o gerador de copy e desenha o bodyText quando habilitado', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), includeBodyText: true })
+
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ includeBodyText: true }),
+    )
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ hasBodyOverlay: true }),
+    )
+    expect(deps.templateRenderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Corpo gerado 1' }),
+    )
+  })
+
+  it('não desenha bodyText quando includeBodyText está desabilitado, mesmo que a copy retorne um', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), includeBodyText: false })
+
+    expect(deps.imageGenerator.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ hasBodyOverlay: false }),
+    )
+    expect(deps.templateRenderer.render).toHaveBeenCalledWith(
+      expect.objectContaining({ body: null }),
     )
   })
 })

@@ -34,8 +34,11 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
           // Termos de "placeholder"/lorem ipsum são necessários porque o Imagen, ao receber qualquer
           // instrução de composição que reserve uma área da imagem, tende a interpretar isso como
           // "anúncio com espaço para legenda" e preenche essa área com texto fictício ilegível.
-          negativePrompt:
-            'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy',
+          // O negativePrompt criativo do ArtDirectorPort (quando houver) é somado a este, nunca o substitui.
+          negativePrompt: [
+            'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy, hex color codes, color codes, font name labels, diagram labels, comparison labels, infographic captions',
+            ...(prompt.negativePrompt ? [prompt.negativePrompt] : []),
+          ].join(', '),
         },
       }),
     })
@@ -71,7 +74,7 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
     // Imagen: modelos de imagem não renderizam texto em português de forma confiável (acentos,
     // legibilidade) — instruir o Imagen a "escrever" produz texto ilegível ou alucinado.
     const noTextSection = ' Não incluir nenhum texto, palavra, letra, número ou tipografia na imagem — apenas elementos visuais (fotografia ou ilustração), sem nenhum tipo de escrita.'
-    const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle) : ''
+    const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle, prompt.hasBodyOverlay ?? false) : ''
 
     return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}${textZoneSection}`
   }
@@ -81,12 +84,16 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
   // o faz associar a cena a uma peça publicitária e preencher essa área com texto fictício
   // ilegível — o próprio bug que estamos evitando. A direção é puramente fotográfica (tom
   // uniforme, baixo contraste, fora de foco) e nunca cita o propósito por trás dela.
-  private textZoneInstruction(templateStyle: TemplateStyle): string {
+  private textZoneInstruction(templateStyle: TemplateStyle, hasBodyOverlay: boolean): string {
     switch (templateStyle) {
       case TemplateStyle.BOLD_BOTTOM:
-        return ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+        return hasBodyOverlay
+          ? ' Os 40% inferiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          : ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.TOP_STRIP:
-        return ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+        return hasBodyOverlay
+          ? ' Os 35% superiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          : ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
       case TemplateStyle.CENTERED_OVERLAY:
         return ' O centro da composição deve ter tom mais uniforme e contraste suave, sem elementos de destaque ali.'
       case TemplateStyle.NO_TEXT:

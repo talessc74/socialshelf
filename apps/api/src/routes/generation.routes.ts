@@ -18,6 +18,7 @@ const generateSchema = z.object({
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).optional(),
   aspectRatio: z.nativeEnum(AspectRatio).optional(),
+  includeBodyText: z.boolean().optional(),
 })
 
 const editArtifactSchema = z.object({

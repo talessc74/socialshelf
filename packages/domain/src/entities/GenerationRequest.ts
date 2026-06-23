@@ -36,12 +36,14 @@ export interface GenerationRequest {
     topicSuggestionId: string | null
     aspectRatio: AspectRatio
     style: TemplateStyle
+    includeBodyText: boolean
   }
   outputs: {
     copies: Partial<Record<Platform, PlatformCopy>>
     cta: string | null
     headlines: string[] | null
     visualBriefs: string[] | null
+    bodyTexts: string[] | null
     artifacts: GenerationArtifact[]
   } | null
   error: string | null

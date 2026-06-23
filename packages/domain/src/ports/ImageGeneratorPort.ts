@@ -22,6 +22,10 @@ export interface ImagePrompt {
    * e não deve reservar zona alguma.
    */
   hasTextOverlay: boolean
+  /** Se true, a zona reservada por `hasTextOverlay` deve ser maior — headline e parágrafo de apoio ocupam mais espaço que o headline isolado. Ignorado quando `hasTextOverlay` é false. */
+  hasBodyOverlay?: boolean
+  /** Negative prompt criativo opcional vindo do ArtDirectorPort — some-se ao negativePrompt técnico fixo do adapter, nunca o substitui. */
+  negativePrompt?: string
 }
 
 export interface GeneratedImage {

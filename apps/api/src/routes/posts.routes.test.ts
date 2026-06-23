@@ -7,11 +7,16 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: { verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }) },
 }))
 
+const mockFindByBrand = vi.fn().mockResolvedValue([])
+const mockFindByIdAndBrand = vi.fn().mockResolvedValue(null)
+const mockSave = vi.fn().mockResolvedValue(undefined)
+
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
-    save: vi.fn().mockResolvedValue(undefined),
+    save: mockSave,
     findById: vi.fn().mockResolvedValue(null),
-    findByBrand: vi.fn().mockResolvedValue([]),
+    findByIdAndBrand: mockFindByIdAndBrand,
+    findByBrand: mockFindByBrand,
     findScheduledBefore: vi.fn().mockResolvedValue([]),
     delete: vi.fn().mockResolvedValue(undefined),
   })),
@@ -94,6 +99,66 @@ describe('Posts routes', () => {
     })
   })
 
+  describe('GET /posts', () => {
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({ method: 'GET', url: '/posts' })
+      expect(response.statusCode).toBe(401)
+    })
+
+    it('returns 400 for an invalid status filter', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts?status=bogus',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns posts filtered by status, sorted by scheduledAt ascending', async () => {
+      mockFindByBrand.mockResolvedValueOnce([
+        {
+          id: 'p2',
+          userId: 'user-test-123',
+          brandId: 'user-test-123',
+          brandProfileVersion: null,
+          content: [],
+          imageStoragePaths: [],
+          status: 'scheduled',
+          scheduledAt: new Date('2026-07-01T10:00:00Z'),
+          publishedAt: null,
+          externalIds: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: 'p1',
+          userId: 'user-test-123',
+          brandId: 'user-test-123',
+          brandProfileVersion: null,
+          content: [],
+          imageStoragePaths: [],
+          status: 'scheduled',
+          scheduledAt: new Date('2026-06-25T10:00:00Z'),
+          publishedAt: null,
+          externalIds: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts?status=scheduled',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ posts: Array<{ id: string }> }>()
+      expect(body.posts.map((p) => p.id)).toEqual(['p1', 'p2'])
+      expect(mockFindByBrand).toHaveBeenCalledWith('user-test-123', 'scheduled')
+    })
+  })
+
   describe('POST /posts', () => {
     it('creates a post and returns 201', async () => {
       const response = await app.inject({
@@ -140,6 +205,103 @@ describe('Posts routes', () => {
         method: 'POST',
         url: '/posts',
         payload: { content: [{ platform: 'linkedin', text: 'Hello' }] },
+      })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('PUT /posts/:id', () => {
+    it('updates the post content and returns 200', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce({
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        brandProfileVersion: null,
+        content: [{ platform: 'linkedin', text: 'Old text', charCount: 8 }],
+        imageStoragePaths: [],
+        status: 'scheduled',
+        scheduledAt: new Date('2026-07-01T10:00:00Z'),
+        publishedAt: null,
+        externalIds: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/posts/post-1',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {
+          content: [{ platform: 'linkedin', text: 'Updated text' }],
+        },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ post: { id: string; content: Array<{ text: string }> } }>()
+      expect(body.post.id).toBe('post-1')
+      expect(body.post.content[0]!.text).toBe('Updated text')
+      expect(mockSave).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'post-1', content: [{ platform: 'linkedin', text: 'Updated text', charCount: 12 }] }),
+      )
+    })
+
+    it('returns 404 when the post does not exist for this brand', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/posts/missing',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { content: [{ platform: 'linkedin', text: 'Updated text' }] },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 400 when content is missing', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/posts/post-1',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {},
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 422 when text exceeds character limit', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce({
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        brandProfileVersion: null,
+        content: [{ platform: 'twitter', text: 'Old text', charCount: 8 }],
+        imageStoragePaths: [],
+        status: 'scheduled',
+        scheduledAt: new Date('2026-07-01T10:00:00Z'),
+        publishedAt: null,
+        externalIds: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/posts/post-1',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {
+          content: [{ platform: 'twitter', text: 'a'.repeat(281) }],
+        },
+      })
+
+      expect(response.statusCode).toBe(422)
+    })
+
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/posts/post-1',
+        payload: { content: [{ platform: 'linkedin', text: 'Updated text' }] },
       })
       expect(response.statusCode).toBe(401)
     })
