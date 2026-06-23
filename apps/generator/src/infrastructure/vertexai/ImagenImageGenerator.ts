@@ -34,8 +34,11 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
           // Termos de "placeholder"/lorem ipsum são necessários porque o Imagen, ao receber qualquer
           // instrução de composição que reserve uma área da imagem, tende a interpretar isso como
           // "anúncio com espaço para legenda" e preenche essa área com texto fictício ilegível.
-          negativePrompt:
+          // O negativePrompt criativo do ArtDirectorPort (quando houver) é somado a este, nunca o substitui.
+          negativePrompt: [
             'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy',
+            ...(prompt.negativePrompt ? [prompt.negativePrompt] : []),
+          ].join(', '),
         },
       }),
     })

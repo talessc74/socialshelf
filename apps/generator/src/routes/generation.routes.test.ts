@@ -63,6 +63,14 @@ vi.mock('../infrastructure/vertexai/GeminiCopyGenerator.js', () => ({
   })),
 }))
 
+const mockDirect = vi.fn().mockResolvedValue({ artifacts: [{ position: 1, imagePrompt: 'Cena direcionada', negativePrompt: '' }] })
+
+vi.mock('../infrastructure/vertexai/GeminiArtDirector.js', () => ({
+  GeminiArtDirector: vi.fn().mockImplementation(() => ({
+    direct: mockDirect,
+  })),
+}))
+
 const mockGenerateImage = vi.fn().mockResolvedValue({ base64: 'YmFzZTY0', mimeType: 'image/png' })
 
 vi.mock('../infrastructure/vertexai/ImagenImageGenerator.js', () => ({

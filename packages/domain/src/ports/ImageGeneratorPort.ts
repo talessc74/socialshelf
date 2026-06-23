@@ -22,6 +22,8 @@ export interface ImagePrompt {
    * e não deve reservar zona alguma.
    */
   hasTextOverlay: boolean
+  /** Negative prompt criativo opcional vindo do ArtDirectorPort — some-se ao negativePrompt técnico fixo do adapter, nunca o substitui. */
+  negativePrompt?: string
 }
 
 export interface GeneratedImage {
