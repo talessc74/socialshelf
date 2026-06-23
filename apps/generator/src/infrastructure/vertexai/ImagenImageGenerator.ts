@@ -36,7 +36,7 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
           // "anúncio com espaço para legenda" e preenche essa área com texto fictício ilegível.
           // O negativePrompt criativo do ArtDirectorPort (quando houver) é somado a este, nunca o substitui.
           negativePrompt: [
-            'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy',
+            'text, words, letters, numbers, typography, writing, captions, watermark, signage, lorem ipsum, placeholder text, gibberish text, fake subtitles, advertisement copy, hex color codes, color codes, font name labels, diagram labels, comparison labels, infographic captions',
             ...(prompt.negativePrompt ? [prompt.negativePrompt] : []),
           ].join(', '),
         },
