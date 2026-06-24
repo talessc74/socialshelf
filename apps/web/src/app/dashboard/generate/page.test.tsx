@@ -249,6 +249,8 @@ describe('GenerateContentPage', () => {
 
     await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
     await user.click(await screen.findByText('LinkedIn'))
+    // O checkbox de texto de apoio só aparece em estilos com barra de texto; "Sem texto" é o default.
+    await user.click(screen.getByText('Faixa inferior'))
     await user.click(screen.getByText('Incluir texto de apoio (parágrafo curto abaixo do headline)'))
     await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
 

@@ -74,9 +74,14 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
     // Imagen: modelos de imagem não renderizam texto em português de forma confiável (acentos,
     // legibilidade) — instruir o Imagen a "escrever" produz texto ilegível ou alucinado.
     const noTextSection = ' Não incluir nenhum texto, palavra, letra, número ou tipografia na imagem — apenas elementos visuais (fotografia ou ilustração), sem nenhum tipo de escrita.'
+    // Âncora de densidade/qualidade: por política de produto (BDR-006) a direção visual é densa
+    // e calorosa, nunca minimalista. Sem isto o Imagen tende ao lugar-comum de um sujeito isolado
+    // sobre fundo liso — exatamente o que deixava os cards sem graça.
+    const richnessSection =
+      ' A imagem deve ser rica e envolvente: composição em camadas com profundidade (primeiro plano, plano médio e fundo), contexto ambiental concreto com objetos de apoio relevantes, luz natural e calorosa, materiais e texturas reais, qualidade de fotografia editorial — nunca um sujeito isolado sobre fundo vazio, liso ou neutro.'
     const textZoneSection = prompt.hasTextOverlay ? this.textZoneInstruction(prompt.templateStyle, prompt.hasBodyOverlay ?? false) : ''
 
-    return `${prompt.description}${styleSection}${brandSection}${seriesSection}${noTextSection}${textZoneSection}`
+    return `${prompt.description}${styleSection}${brandSection}${richnessSection}${seriesSection}${noTextSection}${textZoneSection}`
   }
 
   // Uma barra de texto vetorial será sobreposta depois nesta zona, mas a instrução abaixo nunca
@@ -85,17 +90,21 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
   // ilegível — o próprio bug que estamos evitando. A direção é puramente fotográfica (tom
   // uniforme, baixo contraste, fora de foco) e nunca cita o propósito por trás dela.
   private textZoneInstruction(templateStyle: TemplateStyle, hasBodyOverlay: boolean): string {
+    // A zona é apenas mais calma (luz suave, contraste mais baixo, menos pontos focais), nunca
+    // vazia: o scrim em gradiente do SharpTemplateRenderer garante a legibilidade do texto, então
+    // a foto pode permanecer rica também aqui — só evitamos um detalhe gritante exatamente atrás
+    // do texto. Frações menores que antes, para deixar mais da cena rica em foco.
     switch (templateStyle) {
       case TemplateStyle.BOLD_BOTTOM:
         return hasBodyOverlay
-          ? ' Os 40% inferiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
-          : ' O terço inferior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          ? ' A faixa inferior (cerca de 30% da altura) deve ter luz mais suave, contraste mais baixo e menos pontos focais, sem ficar vazia.'
+          : ' O terço inferior da composição deve ter luz mais suave, contraste mais baixo e menos pontos focais, sem ficar vazio.'
       case TemplateStyle.TOP_STRIP:
         return hasBodyOverlay
-          ? ' Os 35% superiores da composição devem ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
-          : ' A faixa superior da composição deve ter tom mais uniforme, contraste suave e estar fora de foco, sem elementos de destaque.'
+          ? ' A faixa superior (cerca de 28% da altura) deve ter luz mais suave, contraste mais baixo e menos pontos focais, sem ficar vazia.'
+          : ' A faixa superior da composição deve ter luz mais suave, contraste mais baixo e menos pontos focais, sem ficar vazia.'
       case TemplateStyle.CENTERED_OVERLAY:
-        return ' O centro da composição deve ter tom mais uniforme e contraste suave, sem elementos de destaque ali.'
+        return ' O centro da composição deve ter luz mais suave e contraste mais baixo, com menos pontos focais ali, sem ficar vazio.'
       case TemplateStyle.NO_TEXT:
         // Nunca chega aqui — hasTextOverlay é sempre false para NO_TEXT (decidido pelo use-case).
         return ''

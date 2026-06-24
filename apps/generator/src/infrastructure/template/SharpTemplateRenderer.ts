@@ -63,7 +63,7 @@ function stackedBlockYs(
 }
 
 const LOGO_MARGIN_RATIO = 0.04
-const LOGO_SIZE_RATIO = 0.09
+const LOGO_SIZE_RATIO = 0.06
 
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {
@@ -162,8 +162,19 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     const fill = input.brandTokens?.primaryColor ?? DEFAULT_DARK
     const { headlineY, bodyY } = stackedBlockYs(stripY + stripHeight / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
+    // Gradiente em vez de retângulo chapado: a faixa começa transparente no topo e ganha
+    // opacidade até a base, deixando a foto vazar por trás do texto em vez de ser amputada
+    // por um bloco sólido. O texto fica centralizado na metade de baixo, onde a cor já está
+    // densa o suficiente para garantir contraste com o branco.
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="${stripY}" width="${width}" height="${stripHeight}" fill="${fill}" />
+      <defs>
+        <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${fill}" stop-opacity="0" />
+          <stop offset="32%" stop-color="${fill}" stop-opacity="0.85" />
+          <stop offset="100%" stop-color="${fill}" stop-opacity="0.96" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="${stripY}" width="${width}" height="${stripHeight}" fill="url(#scrim)" />
       <text x="50%" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
       ${this.bodyTextElement(bodyLines, bodyY, '50%', bodyFontSize, fontFamily)}
     </svg>`
@@ -181,8 +192,26 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
   ): string {
     const { headlineY, bodyY } = stackedBlockYs(height / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
+    // Em vez de escurecer a imagem inteira (o que matava a foto), desenhamos só uma faixa
+    // contida atrás do bloco de texto, com bordas suavizadas (feather) por gradiente. A foto
+    // fica totalmente visível acima e abaixo do texto.
+    const lineHeight = fontSize * 1.2
+    const bodyLineHeight = bodyFontSize * 1.2
+    const gap = bodyLines.length > 0 ? fontSize * 0.7 : 0
+    const blockHeight = lines.length * lineHeight + gap + bodyLines.length * bodyLineHeight
+    const bandHeight = blockHeight + fontSize * 2.8
+    const bandY = height / 2 - bandHeight / 2
+
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="${width}" height="${height}" fill="black" fill-opacity="0.45" />
+      <defs>
+        <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#000000" stop-opacity="0" />
+          <stop offset="22%" stop-color="#000000" stop-opacity="0.55" />
+          <stop offset="78%" stop-color="#000000" stop-opacity="0.55" />
+          <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="${bandY}" width="${width}" height="${bandHeight}" fill="url(#scrim)" />
       <text x="50%" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
       ${this.bodyTextElement(bodyLines, bodyY, '50%', bodyFontSize, fontFamily)}
     </svg>`
@@ -200,6 +229,8 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
   ): string {
     const stripHeight = bodyLines.length > 0 ? height * 0.32 : height * 0.2
     const fill = input.brandTokens?.secondaryColor ?? DEFAULT_DARK
+    // Gradiente descendente: opaco no topo, dissolvendo na foto na base — a imagem vaza por
+    // baixo do texto em vez de ser cortada por uma faixa sólida.
 
     // O logo fica fixo no canto superior esquerdo (ver render()); reservamos essa faixa horizontal
     // para o texto, centralizado, não nascer atrás do selo do logo.
@@ -211,7 +242,14 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
     const { headlineY, bodyY } = stackedBlockYs(stripHeight / 2, lines.length, bodyLines.length, fontSize, bodyFontSize)
 
     return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <rect x="0" y="0" width="${width}" height="${stripHeight}" fill="${fill}" />
+      <defs>
+        <linearGradient id="scrim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${fill}" stop-opacity="0.96" />
+          <stop offset="68%" stop-color="${fill}" stop-opacity="0.85" />
+          <stop offset="100%" stop-color="${fill}" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <rect x="0" y="0" width="${width}" height="${stripHeight}" fill="url(#scrim)" />
       <text x="${textCenterX}" y="${headlineY}" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-weight="bold" font-size="${fontSize}" font-family="${fontFamily}">${buildTspans(lines, fontSize)}</text>
       ${this.bodyTextElement(bodyLines, bodyY, `${textCenterX}`, bodyFontSize, fontFamily)}
     </svg>`
