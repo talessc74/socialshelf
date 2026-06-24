@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -36,7 +36,111 @@ function PostThumbnail({ path }: { path: string }) {
   return <img src={url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
 }
 
-function PostCard({ post }: { post: ApiPost }) {
+const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
+}
+
+function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost: (postId: string) => void }) {
+  const [month, setMonth] = useState(() => {
+    const now = new Date()
+    return new Date(now.getFullYear(), now.getMonth(), 1)
+  })
+
+  const postsByDay = new Map<string, ApiPost[]>()
+  for (const post of posts) {
+    if (!post.scheduledAt) continue
+    const key = dayKey(new Date(post.scheduledAt))
+    postsByDay.set(key, [...(postsByDay.get(key) ?? []), post])
+  }
+
+  const startOffset = month.getDay()
+  const gridStart = new Date(month.getFullYear(), month.getMonth(), 1 - startOffset)
+  const days = Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(gridStart)
+    d.setDate(gridStart.getDate() + i)
+    return d
+  })
+  const today = dayKey(new Date())
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+          aria-label="Mês anterior"
+          className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          ←
+        </button>
+        <p className="text-sm font-semibold text-gray-900">
+          {(() => {
+            const label = month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+            return label.charAt(0).toUpperCase() + label.slice(1)
+          })()}
+        </p>
+        <button
+          type="button"
+          onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+          aria-label="Mês seguinte"
+          className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+        >
+          →
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase text-gray-400">
+        {WEEKDAY_LABELS.map((w) => (
+          <span key={w}>{w}</span>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day) => {
+          const inMonth = day.getMonth() === month.getMonth()
+          const key = dayKey(day)
+          const dayPosts = postsByDay.get(key) ?? []
+          return (
+            <div
+              key={key}
+              className={`min-h-[88px] rounded-lg border p-1.5 ${
+                inMonth ? 'border-gray-100 bg-white' : 'border-transparent bg-gray-50'
+              } ${key === today ? 'ring-2 ring-brand-500' : ''}`}
+            >
+              <span className={`text-xs ${inMonth ? 'text-gray-700' : 'text-gray-300'}`}>{day.getDate()}</span>
+              <ul className="mt-1 space-y-0.5">
+                {dayPosts.slice(0, 2).map((post) => (
+                  <li key={post.id}>
+                    <button
+                      type="button"
+                      onClick={() => onSelectPost(post.id)}
+                      title={post.content[0]?.text}
+                      className="block w-full truncate rounded bg-brand-50 px-1 py-0.5 text-left text-[10px] font-medium text-brand-700 hover:bg-brand-100"
+                    >
+                      {post.scheduledAt &&
+                        new Date(post.scheduledAt).toLocaleTimeString('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                      {post.content[0]?.text}
+                    </button>
+                  </li>
+                ))}
+                {dayPosts.length > 2 && (
+                  <li className="px-1 text-[10px] text-gray-400">+{dayPosts.length - 2} mais</li>
+                )}
+              </ul>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }) {
   const queryClient = useQueryClient()
   const firstImage = post.imageStoragePaths[0]
 
@@ -102,7 +206,12 @@ function PostCard({ post }: { post: ApiPost }) {
   }
 
   return (
-    <li className="flex gap-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
+    <li
+      id={`post-${post.id}`}
+      className={`flex gap-4 rounded-2xl border bg-white p-5 shadow-sm shadow-brand-100/60 ${
+        highlighted ? 'border-brand-500 ring-2 ring-brand-500 ring-offset-2' : 'border-brand-100'
+      }`}
+    >
       {!isEditing && firstImage && <PostThumbnail path={firstImage} />}
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -269,6 +378,8 @@ function PostCard({ post }: { post: ApiPost }) {
 
 export default function ScheduledPostsPage() {
   const router = useRouter()
+  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['posts', 'scheduled'],
@@ -276,6 +387,13 @@ export default function ScheduledPostsPage() {
   })
 
   const posts = data ?? []
+
+  useEffect(() => {
+    if (!highlightedPostId) return
+    document.getElementById(`post-${highlightedPostId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timeout = setTimeout(() => setHighlightedPostId(null), 3000)
+    return () => clearTimeout(timeout)
+  }, [highlightedPostId])
 
   return (
     <div className="space-y-6">
@@ -286,6 +404,24 @@ export default function ScheduledPostsPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
           <h1 className="text-2xl font-bold text-gray-900">Posts Agendados</h1>
+        </div>
+        <div className="ml-auto flex gap-2 rounded-lg border border-gray-200 p-1">
+          <button
+            onClick={() => setView('list')}
+            className={`rounded-md px-3 py-1 text-xs font-medium ${
+              view === 'list' ? 'bg-brand-600 text-white' : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            Lista
+          </button>
+          <button
+            onClick={() => setView('calendar')}
+            className={`rounded-md px-3 py-1 text-xs font-medium ${
+              view === 'calendar' ? 'bg-brand-600 text-white' : 'text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            Calendário
+          </button>
         </div>
       </div>
 
@@ -305,10 +441,18 @@ export default function ScheduledPostsPage() {
         <p className="text-sm text-gray-500">
           Nenhum post agendado ainda. Gere ou componha um post e escolha uma data para publicação.
         </p>
+      ) : view === 'calendar' ? (
+        <CalendarView
+          posts={posts}
+          onSelectPost={(postId) => {
+            setView('list')
+            setHighlightedPostId(postId)
+          }}
+        />
       ) : (
         <ul className="space-y-3">
           {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} />
           ))}
         </ul>
       )}

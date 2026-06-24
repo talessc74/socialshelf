@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -216,5 +216,61 @@ describe('ScheduledPostsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Publicar agora' }))
 
     expect(await screen.findByText('Publisher indisponível')).toBeInTheDocument()
+  })
+
+  describe('visão de calendário', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(new Date('2026-07-01T08:00:00.000Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('mostra o post agendado no dia certo do mês exibido', async () => {
+      const user = userEvent.setup()
+      mockedApi.getPosts.mockResolvedValue([makePost()])
+
+      renderPage()
+      await screen.findByText('Texto agendado para o LinkedIn')
+
+      await user.click(screen.getByRole('button', { name: 'Calendário' }))
+
+      expect(screen.getByText('Julho de 2026')).toBeInTheDocument()
+      expect(screen.getByText(/Texto agendado para o LinkedIn/)).toBeInTheDocument()
+    })
+
+    it('permite navegar entre os meses do calendário', async () => {
+      const user = userEvent.setup()
+      mockedApi.getPosts.mockResolvedValue([makePost()])
+
+      renderPage()
+      await screen.findByText('Texto agendado para o LinkedIn')
+      await user.click(screen.getByRole('button', { name: 'Calendário' }))
+
+      await user.click(screen.getByRole('button', { name: 'Mês seguinte' }))
+      expect(screen.getByText('Agosto de 2026')).toBeInTheDocument()
+      expect(screen.queryByText(/Texto agendado para o LinkedIn/)).not.toBeInTheDocument()
+
+      await user.click(screen.getByRole('button', { name: 'Mês anterior' }))
+      await user.click(screen.getByRole('button', { name: 'Mês anterior' }))
+      expect(screen.getByText('Junho de 2026')).toBeInTheDocument()
+    })
+
+    it('ao clicar em um post no calendário, volta para a lista e o destaca', async () => {
+      const user = userEvent.setup()
+      mockedApi.getPosts.mockResolvedValue([makePost()])
+
+      renderPage()
+      await screen.findByText('Texto agendado para o LinkedIn')
+      await user.click(screen.getByRole('button', { name: 'Calendário' }))
+
+      await user.click(screen.getByText(/Texto agendado para o LinkedIn/))
+
+      expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-brand-600')
+      const card = screen.getByText('Texto agendado para o LinkedIn').closest('li')
+      expect(card).toHaveClass('ring-2')
+    })
   })
 })
