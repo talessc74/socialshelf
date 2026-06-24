@@ -49,7 +49,12 @@ export function NewsSearch() {
       {searchMutation.isPending ? (
         <p className="text-sm text-gray-400">Buscando notícias…</p>
       ) : searchMutation.isError ? (
-        <p className="text-sm text-amber-600">Não foi possível buscar agora. Tente novamente.</p>
+        <p className="text-sm text-amber-600">
+          Não foi possível buscar agora. Tente novamente.
+          {searchMutation.error instanceof Error && (
+            <span className="mt-1 block text-xs text-gray-400">{searchMutation.error.message}</span>
+          )}
+        </p>
       ) : searchMutation.isSuccess && searchMutation.data.length === 0 ? (
         <p className="text-sm text-gray-500">
           Nenhuma notícia verificada encontrada para esse assunto. Tente outros termos.
