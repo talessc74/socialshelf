@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
+  { href: '/dashboard/news', label: 'Notícias', icon: Newspaper },
   { href: '/dashboard/generate', label: 'Gerar com IA', icon: Sparkles },
   { href: '/dashboard/compose', label: 'Novo Post', icon: Send },
   { href: '/dashboard/scheduled', label: 'Agendados', icon: Clock },
@@ -51,7 +52,8 @@ export function TopNav({ email, onLogout }: TopNavProps) {
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
       <Link
         href="/dashboard"
-        className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-sm"
+        title="Ir para o início"
+        className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
       >
         Social<span className="text-brand-600">Shelf</span>
       </Link>
