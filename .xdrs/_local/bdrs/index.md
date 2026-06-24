@@ -12,7 +12,7 @@ Princípios de negócio transversais.
 ### design
 Decisões de identidade visual, tokens e componentes-padrão.
 
-- [_local-bdr-policy-005-design-tokens-identidade-visual](design/001-tokens-identidade-visual.md) - Paleta magenta + dois contextos de fundo, tom de copy conversacional, stepper/painel-recomendação/badge-de-score como componentes-padrão
+- [_local-bdr-policy-005-design-tokens-identidade-visual](design/001-tokens-identidade-visual.md) - Paleta azul + dois contextos de fundo, tom de copy conversacional, stepper/painel-recomendação/badge-de-score como componentes-padrão
 
 ### product
 Decisões de produto, roadmap e plataformas suportadas.

@@ -8,6 +8,7 @@ import { Sparkles, Send, Clock, Lightbulb, BarChart3, Share2, Tag } from 'lucide
 import { Platform } from '@socialshelf/domain'
 import { api } from '../../lib/api'
 import { LogoImage } from '../../components/LogoImage'
+import { NewsCarousel } from '../../components/NewsCarousel'
 import { useAuth } from '../../contexts/AuthContext'
 
 const TOTAL_PLATFORMS = 4
@@ -308,6 +309,8 @@ export default function DashboardPage() {
           )}
         </div>
       </section>
+
+      <NewsCarousel />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-gray-800">Atalhos</h2>

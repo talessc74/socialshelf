@@ -11,21 +11,21 @@ valid-from: 2026-06-19
 
 O SocialShelf tinha apenas um token de cor (`brand`, azul-céu genérico) sem relação com nenhuma referência de produto, tom de voz ou padrão de componente. Toda tela nova era construída com Tailwind genérico, sem direção visual — o que produzia telas funcionalmente corretas mas sem identidade, validando apenas funcionalidade, nunca desejabilidade.
 
-A referência de produto "Farol" (ia.masinegocios.com.br), compartilhada pelo usuário como inspiração direta, implementa visualmente o mesmo loop conceitual do roadmap F0–F5 do SocialShelf (`_local-bdr-plan-002-roadmap-equipe-marketing-autonoma`), com linguagem visual e tom de voz já validados em produto real.
+A decisão original desta policy (2026-06-19) adotou paleta magenta, com referência de produto "Farol" (ia.masinegocios.com.br) como inspiração direta. Desde então a paleta passou por duas trocas nunca refletidas aqui: uma fase intermediária dourada, e a paleta azul atual (referência "Antimetal"), entregue junto com a correção de `bg-brand-400`, que nunca tinha tido cor definida. Esta revisão atualiza a policy para o estado real do código.
 
 Quais tokens de paleta, tom de copy e componentes-padrão devem governar toda interface nova ou revisada do SocialShelf?
 
 ## Decision Outcome
 
-**Paleta accent magenta + dois contextos de fundo, tom de copy conversacional em primeira pessoa, três componentes-padrão reutilizáveis (stepper numerado, painel de recomendação, badge de score/categoria)**
+**Paleta accent azul + dois contextos de fundo, tom de copy conversacional em primeira pessoa, três componentes-padrão reutilizáveis (stepper numerado, painel de recomendação, badge de score/categoria)**
 
-Token novo substitui o `brand.*` azul-céu genérico em `apps/web/tailwind.config.ts`.
+Token `brand.*` em `apps/web/tailwind.config.ts` usa a escala azul abaixo (referência "Antimetal"), substituindo tanto o azul-céu genérico original quanto as paletas magenta e dourada que circularam entre essa policy e a entrega atual sem nunca serem registradas.
 
 ### Details
 
 **Paleta**
 
-- Accent primário: magenta/rosa (faixa `#E91E8C`), substitui o sky-blue atual em todo CTA primário, ícone ativo e destaque de marca.
+- Accent primário: azul (`brand.500 #0ea5e9`, escala 50–900), usado em todo CTA primário, ícone ativo e destaque de marca.
 - Contexto "diagnóstico/onboarding": fundo escuro com gradiente orgânico (blobs), usado em momentos de primeira impressão e fluxos de configuração inicial (ex.: dial de autonomia da Fase 0, configuração de CTA da Fase 3).
 - Contexto "operação diária": fundo claro com padrão sutil de pontos, cards brancos/creme com cantos arredondados grandes e sombra suave — usado no dashboard e nas telas de trabalho recorrente (geração, kanban, calendário).
 - Não são dois temas (claro/escuro) intercambiáveis pelo usuário — são dois contextos fixos por tipo de tela.
