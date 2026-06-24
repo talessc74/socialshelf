@@ -10,6 +10,7 @@ import {
   type ApiPerformanceSuggestion,
   type ApiPost,
   type ApiPostPerformanceEntry,
+  type ApiTopicSuggestion,
 } from '../../lib/api'
 
 vi.mock('next/navigation', () => ({
@@ -28,6 +29,7 @@ vi.mock('../../lib/api', () => ({
     getPostsPerformance: vi.fn(),
     getPerformanceSuggestions: vi.fn(),
     getPosts: vi.fn(),
+    getTopicSuggestions: vi.fn(),
   },
 }))
 
@@ -103,6 +105,21 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
   }
 }
 
+function makeTopicSuggestion(overrides: Partial<ApiTopicSuggestion> = {}): ApiTopicSuggestion {
+  return {
+    id: 'topic-1',
+    brandId: 'user-1',
+    headline: 'Notícia relevante para o nicho',
+    summary: 'Resumo da notícia.',
+    sourceUrl: 'https://example.com/noticia',
+    sourceDomain: 'example.com',
+    rationale: 'rationale',
+    audienceFitScore: 1.8,
+    createdAt: new Date().toISOString(),
+    ...overrides,
+  }
+}
+
 function makeEntry(overrides: Partial<ApiPostPerformanceEntry> = {}): ApiPostPerformanceEntry {
   return {
     postId: 'post-1',
@@ -131,6 +148,7 @@ beforeEach(() => {
   mockedApi.getPostsPerformance.mockResolvedValue({ entries: [], errors: [] })
   mockedApi.getPerformanceSuggestions.mockResolvedValue([])
   mockedApi.getPosts.mockResolvedValue([])
+  mockedApi.getTopicSuggestions.mockResolvedValue([])
 })
 
 describe('DashboardPage - badges dos Atalhos', () => {
@@ -309,5 +327,49 @@ describe('DashboardPage - card "Primeiros passos"', () => {
 
     await screen.findByText('4/4 conectadas')
     expect(screen.queryByText('Primeiros passos')).not.toBeInTheDocument()
+  })
+})
+
+describe('DashboardPage - carrossel de notícias para pauta', () => {
+  it('mostra estado vazio quando não há notícia sugerida', async () => {
+    mockedApi.getTopicSuggestions.mockResolvedValue([])
+
+    renderPage()
+
+    expect(await screen.findByText('Notícias para pauta')).toBeInTheDocument()
+    expect(await screen.findByText(/Nenhuma notícia disponível ainda/)).toBeInTheDocument()
+  })
+
+  it('mostra manchete, domínio da fonte e score de aderência de cada notícia sugerida', async () => {
+    mockedApi.getTopicSuggestions.mockResolvedValue([
+      makeTopicSuggestion({ headline: 'IA muda o mercado de pequenos negócios', sourceDomain: 'g1.globo.com', audienceFitScore: 2.4 }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('IA muda o mercado de pequenos negócios')).toBeInTheDocument()
+    expect(screen.getByText('g1.globo.com')).toBeInTheDocument()
+    expect(screen.getByText('2.4')).toBeInTheDocument()
+  })
+
+  it('mostra múltiplas notícias lado a lado, uma por card', async () => {
+    mockedApi.getTopicSuggestions.mockResolvedValue([
+      makeTopicSuggestion({ id: 'topic-1', headline: 'Notícia 1' }),
+      makeTopicSuggestion({ id: 'topic-2', headline: 'Notícia 2' }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Notícia 1')).toBeInTheDocument()
+    expect(screen.getByText('Notícia 2')).toBeInTheDocument()
+  })
+
+  it('o botão "Criar post disso" leva para o gerador com a manchete pré-preenchida', async () => {
+    mockedApi.getTopicSuggestions.mockResolvedValue([makeTopicSuggestion({ headline: 'Manchete de teste' })])
+
+    renderPage()
+
+    const cta = await screen.findByRole('link', { name: 'Criar post disso' })
+    expect(cta).toHaveAttribute('href', '/dashboard/generate?seed=Manchete%20de%20teste')
   })
 })
