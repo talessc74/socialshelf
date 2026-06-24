@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -24,12 +24,27 @@ interface TopNavProps {
 export function TopNav({ email, onLogout }: TopNavProps) {
   const pathname = usePathname()
   const mobileNavRef = useRef<HTMLElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
+
+  const updateScrollAffordance = useCallback(() => {
+    const nav = mobileNavRef.current
+    if (!nav) return
+    setCanScrollLeft(nav.scrollLeft > 0)
+    setCanScrollRight(nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1)
+  }, [])
 
   useEffect(() => {
     mobileNavRef.current
       ?.querySelector('[data-active="true"]')
       ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [pathname])
+
+  useEffect(() => {
+    updateScrollAffordance()
+    window.addEventListener('resize', updateScrollAffordance)
+    return () => window.removeEventListener('resize', updateScrollAffordance)
+  }, [updateScrollAffordance])
 
   return (
     <header className="sticky top-0 z-10 flex flex-col border-b border-brand-100/60 bg-white/80 backdrop-blur">
@@ -74,7 +89,11 @@ export function TopNav({ email, onLogout }: TopNavProps) {
       </div>
 
       <div className="relative w-full border-t border-gray-100 lg:hidden">
-        <nav ref={mobileNavRef} className="flex w-full items-center gap-1 overflow-x-auto bg-white px-3 py-2">
+        <nav
+          ref={mobileNavRef}
+          onScroll={updateScrollAffordance}
+          className="flex w-full items-center gap-1 overflow-x-auto bg-white px-3 py-2"
+        >
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
             return (
@@ -92,7 +111,12 @@ export function TopNav({ email, onLogout }: TopNavProps) {
             )
           })}
         </nav>
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+        {canScrollLeft && (
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-white to-transparent" />
+        )}
+        {canScrollRight && (
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-white to-transparent" />
+        )}
       </div>
     </header>
   )
