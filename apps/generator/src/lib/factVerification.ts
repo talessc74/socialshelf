@@ -4,28 +4,62 @@ import type { NewsItem, VerifiedNewsItem } from '@socialshelf/domain'
 // estas fontes efetivamente aparecem nos resultados; a manchete é traduzida depois para o usuário.
 // Sobrescrevível por TRUSTED_NEWS_DOMAINS.
 const DEFAULT_TRUSTED_DOMAINS = [
+  // Agências e generalistas
   'reuters.com',
   'apnews.com',
+  'afp.com',
   'bbc.com',
+  'bbc.co.uk',
   'theguardian.com',
   'nytimes.com',
   'washingtonpost.com',
+  'usatoday.com',
+  'latimes.com',
+  'independent.co.uk',
+  'telegraph.co.uk',
+  'news.sky.com',
+  'abcnews.go.com',
+  'cbsnews.com',
+  'nbcnews.com',
+  'pbs.org',
+  'npr.org',
+  // Internacional / fora dos EUA-Reino Unido
+  'aljazeera.com',
+  'dw.com',
+  'france24.com',
+  'euronews.com',
+  'scmp.com',
+  'japantimes.co.jp',
+  'abc.net.au',
+  'cbc.ca',
+  // Negócios e economia
   'wsj.com',
   'ft.com',
   'bloomberg.com',
   'cnbc.com',
   'cnn.com',
   'forbes.com',
+  'fortune.com',
   'businessinsider.com',
   'axios.com',
-  'npr.org',
   'economist.com',
-  'aljazeera.com',
+  'politico.com',
+  // Revistas e opinião
+  'time.com',
+  'newsweek.com',
+  'vox.com',
+  'propublica.org',
+  // Tecnologia
   'techcrunch.com',
   'theverge.com',
   'wired.com',
   'arstechnica.com',
   'engadget.com',
+  // Ciência
+  'nature.com',
+  'science.org',
+  'scientificamerican.com',
+  'newscientist.com',
 ]
 
 export function getTrustedDomains(): string[] {
