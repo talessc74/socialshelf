@@ -48,10 +48,10 @@ const PLATFORM_MEDIA_NOTE: Record<Platform, string> = Object.fromEntries(
 ) as Record<Platform, string>
 
 const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
+  { value: TemplateStyle.NO_TEXT, label: 'Sem texto' },
   { value: TemplateStyle.BOLD_BOTTOM, label: 'Faixa inferior' },
   { value: TemplateStyle.CENTERED_OVERLAY, label: 'Overlay escuro' },
   { value: TemplateStyle.TOP_STRIP, label: 'Faixa superior' },
-  { value: TemplateStyle.NO_TEXT, label: 'Sem texto' },
 ]
 
 // "Stories" (9:16) is intentionally not offered: the publisher only posts to
@@ -325,7 +325,7 @@ export default function GenerateContentPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(
     () => new Set(draft?.selectedPlatforms ?? []),
   )
-  const [style, setStyle] = useState<TemplateStyle>(() => draft?.style ?? TemplateStyle.BOLD_BOTTOM)
+  const [style, setStyle] = useState<TemplateStyle>(() => draft?.style ?? TemplateStyle.NO_TEXT)
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>(() => draft?.aspectRatio ?? AspectRatio.SQUARE)
   const [topicSuggestionId, setTopicSuggestionId] = useState(() => draft?.topicSuggestionId ?? '')
   const [includeBodyText, setIncludeBodyText] = useState(() => draft?.includeBodyText ?? false)
@@ -393,7 +393,7 @@ export default function GenerateContentPage() {
     setDescription('')
     setTextContent('')
     setSelectedPlatforms(new Set())
-    setStyle(TemplateStyle.BOLD_BOTTOM)
+    setStyle(TemplateStyle.NO_TEXT)
     setAspectRatio(AspectRatio.SQUARE)
     setTopicSuggestionId('')
     setIncludeBodyText(false)
@@ -753,16 +753,17 @@ function FormView({
               >
                 <div className="flex aspect-square w-full flex-col overflow-hidden rounded bg-gray-200">
                   {option.value === TemplateStyle.TOP_STRIP && (
-                    <div className="h-1/5 w-full bg-brand-300" />
+                    <div className="h-1/3 w-full bg-gradient-to-b from-brand-400 to-transparent" />
                   )}
                   {option.value === TemplateStyle.CENTERED_OVERLAY && (
-                    <div className="flex h-full w-full items-center justify-center bg-black/40">
-                      <div className="h-1/4 w-2/3 rounded bg-white/70" />
+                    <div className="flex h-full w-full items-center justify-center">
+                      <div className="flex h-1/3 w-full items-center justify-center bg-black/40">
+                        <div className="h-1/3 w-2/3 rounded bg-white/70" />
+                      </div>
                     </div>
                   )}
-                  {option.value === TemplateStyle.BOLD_BOTTOM && <div className="flex-1" />}
                   {option.value === TemplateStyle.BOLD_BOTTOM && (
-                    <div className="h-1/4 w-full bg-brand-300" />
+                    <div className="mt-auto h-1/3 w-full bg-gradient-to-t from-brand-400 to-transparent" />
                   )}
                 </div>
                 <p

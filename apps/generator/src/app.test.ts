@@ -29,8 +29,8 @@ vi.mock('./infrastructure/firestore/FirestoreTopicSuggestionRepository.js', () =
   })),
 }))
 
-vi.mock('./infrastructure/news/NewsApiOrgReader.js', () => ({
-  NewsApiOrgReader: vi.fn().mockImplementation(() => ({
+vi.mock('./infrastructure/news/GoogleNewsRssReader.js', () => ({
+  GoogleNewsRssReader: vi.fn().mockImplementation(() => ({
     fetchNews: vi.fn(),
   })),
 }))
