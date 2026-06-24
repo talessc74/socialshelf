@@ -183,9 +183,14 @@ export default function DashboardPage() {
               {impressionsByWeekday.map((bucket, i) => (
                 <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-2">
                   <div
-                    className={`w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`}
-                    style={{ height: `${Math.max(bucket.ratio * 100, 4)}%` }}
-                  />
+                    className="relative w-full"
+                    style={{ height: `${Math.max(bucket.ratio * 88, 4)}%` }}
+                  >
+                    <span className="absolute -top-4 left-0 right-0 text-center text-[11px] font-medium text-gray-500">
+                      {bucket.value}
+                    </span>
+                    <div className={`h-full w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`} />
+                  </div>
                   <span className="text-xs text-gray-400">{WEEKDAY_LABELS[i]}</span>
                 </div>
               ))}

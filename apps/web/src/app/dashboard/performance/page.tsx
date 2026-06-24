@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
@@ -18,6 +19,12 @@ const PLATFORM_LABELS: Record<Platform, string> = {
 }
 
 const ALL_PLATFORMS = [Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER]
+
+// Erros de permissão/OAuth do Graph API vêm como JSON crú da Meta — não são
+// acionáveis para o usuário, então tratamos como "precisa reconectar a conta".
+function isPermissionError(message: string): boolean {
+  return /OAuthException|pages_read_engagement|Page Public Content Access/i.test(message)
+}
 
 export default function PerformanceDashboardPage() {
   const router = useRouter()
@@ -54,6 +61,9 @@ export default function PerformanceDashboardPage() {
   const selectedPlatform = activePlatform && platformsToShow.includes(activePlatform)
     ? activePlatform
     : platformsToShow[0] ?? null
+
+  const selectedError = selectedPlatform ? errorsByPlatform.get(selectedPlatform) : undefined
+  const selectedErrorIsPermission = selectedError ? isPermissionError(selectedError) : false
 
   const totals = entries.reduce(
     (acc, e) => ({
@@ -174,11 +184,30 @@ export default function PerformanceDashboardPage() {
               })}
             </div>
 
-            {selectedPlatform && errorsByPlatform.has(selectedPlatform) && (
-              <p className="break-words rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-                Não foi possível carregar as métricas de {PLATFORM_LABELS[selectedPlatform]}: {' '}
-                {errorsByPlatform.get(selectedPlatform)}
-              </p>
+            {selectedPlatform && selectedError && (
+              <div className="space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                <p className="break-words">
+                  {selectedErrorIsPermission ? (
+                    `A conexão com ${PLATFORM_LABELS[selectedPlatform]} perdeu uma permissão necessária para ler as métricas. Reconecte a conta para voltar a acompanhar os resultados.`
+                  ) : (
+                    <>Não foi possível carregar as métricas de {PLATFORM_LABELS[selectedPlatform]}: {selectedError}</>
+                  )}
+                </p>
+                {selectedErrorIsPermission && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href="/dashboard/accounts"
+                      className="rounded-md border border-red-300 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                    >
+                      🔄 Reconectar conta
+                    </Link>
+                    <details className="text-xs text-red-600">
+                      <summary className="cursor-pointer select-none">Detalhes técnicos</summary>
+                      <p className="mt-1 break-words">{selectedError}</p>
+                    </details>
+                  </div>
+                )}
+              </div>
             )}
 
             {selectedPlatform && (entriesByPlatform.get(selectedPlatform)?.length ?? 0) > 0 && (

@@ -109,6 +109,41 @@ describe('PerformanceDashboardPage', () => {
     expect(screen.queryByText('Texto do post de melhor desempenho')).not.toBeInTheDocument()
   })
 
+  it('mostra mensagem amigável e link para reconectar quando o erro é de permissão do Facebook', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.LINKEDIN })],
+        errors: [
+          {
+            platform: Platform.FACEBOOK,
+            postId: 'post-2',
+            message:
+              'Facebook metrics fetch failed: 400 {"error":{"message":"(#10) This endpoint requires the \'pages_read_engagement\' permission or the \'Page Public Content Access\' feature.","type":"OAuthException","code":10,"fbtrace_id":"AcGnZX7PqK_isiwwGjzJYAY"}}',
+          },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    const facebookTab = screen.getByRole('button', { name: /Facebook/ })
+
+    await user.click(facebookTab)
+
+    expect(
+      await screen.findByText(/perdeu uma permissão necessária para ler as métricas/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Reconectar conta/ })).toHaveAttribute(
+      'href',
+      '/dashboard/accounts',
+    )
+    const technicalDetails = screen.getByText(/OAuthException/).closest('details')
+    expect(technicalDetails).not.toBeNull()
+    expect(technicalDetails).not.toHaveAttribute('open')
+  })
+
   it('mostra o diagnóstico ao clicar em "Gerar Diagnóstico"', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
     mockedApi.getPerformanceInsights.mockResolvedValue(makeDiagnostic())
