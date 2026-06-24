@@ -35,7 +35,13 @@ export class SuggestTopicsUseCase {
     if (!brandProfile) throw new Error(`No brand profile for brand ${brandId}`)
 
     const queries = await this.planQueries(brandProfile)
-    const rawNewsLists = await Promise.all(queries.map((query) => this.newsSource.fetchNews(query)))
+    // allSettled, não all: cada categoria busca em paralelo, mas o Google News pode falhar (rate
+    // limit, timeout) numa categoria isolada — isso não deve derrubar a pauta inteira quando as
+    // outras categorias trouxeram notícia.
+    const newsResults = await Promise.allSettled(queries.map((query) => this.newsSource.fetchNews(query)))
+    const rawNewsLists = newsResults
+      .filter((result): result is PromiseFulfilledResult<NewsItem[]> => result.status === 'fulfilled')
+      .map((result) => result.value)
     const rawNews = dedupeByUrl(rawNewsLists.flat())
     const verifiedNews = rawNews
       .map((item) => verifyNewsItem(item, this.trustedDomains))
