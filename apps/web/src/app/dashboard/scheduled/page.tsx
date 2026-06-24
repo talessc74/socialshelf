@@ -180,6 +180,13 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
     },
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => api.deletePost(post.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
+    },
+  })
+
   const scheduledDate = scheduledAtInput ? new Date(scheduledAtInput) : null
   const scheduledAtValid =
     scheduledDate !== null && !Number.isNaN(scheduledDate.getTime()) && scheduledDate.getTime() > Date.now()
@@ -367,6 +374,17 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                 className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
               >
                 {publishMutation.isPending ? 'Publicando…' : 'Publicar agora'}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('Tem certeza que deseja cancelar este agendamento? O post será deletado.')) {
+                    deleteMutation.mutate()
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+              >
+                {deleteMutation.isPending ? 'Cancelando…' : 'Cancelar agendamento'}
               </button>
             </div>
           </>

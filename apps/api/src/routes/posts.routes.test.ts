@@ -349,4 +349,51 @@ describe('Posts routes', () => {
       expect(response.statusCode).toBe(401)
     })
   })
+
+  describe('DELETE /posts/:id', () => {
+    it('deletes the post and returns 204', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce({
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        brandProfileVersion: null,
+        content: [{ platform: 'linkedin', text: 'Text', charCount: 4 }],
+        imageStoragePaths: [],
+        status: 'scheduled',
+        scheduledAt: new Date('2026-07-01T10:00:00Z'),
+        publishedAt: null,
+        externalIds: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/posts/post-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(204)
+    })
+
+    it('returns 404 when the post does not exist for this brand', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/posts/missing',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/posts/post-1',
+      })
+      expect(response.statusCode).toBe(401)
+    })
+  })
 })

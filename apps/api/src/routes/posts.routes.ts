@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
 import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
 import { UpdatePostUseCase } from '../use-cases/posts/UpdatePostUseCase.js'
+import { DeletePostUseCase } from '../use-cases/posts/DeletePostUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
@@ -41,6 +42,7 @@ export async function postsRoutes(app: FastifyInstance) {
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const createPost = new CreatePostUseCase(postRepo, brandProfileRepo)
   const updatePost = new UpdatePostUseCase(postRepo)
+  const deletePost = new DeletePostUseCase(postRepo)
 
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -161,6 +163,26 @@ export async function postsRoutes(app: FastifyInstance) {
       }
 
       return reply.send(await res.json())
+    },
+  )
+
+  // Delete a post
+  app.delete(
+    '/posts/:id',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+
+      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      if (!existing) return reply.status(404).send({ error: 'Post not found' })
+
+      try {
+        await deletePost.execute(id)
+        return reply.status(204).send()
+      } catch (err) {
+        app.log.error(err)
+        return reply.status(500).send({ error: 'Internal error' })
+      }
     },
   )
 }
