@@ -37,6 +37,21 @@ export class MetaPublisher implements PublisherPort {
 
     const text = post.content.find((c) => c.platform === Platform.FACEBOOK)?.text ?? ''
 
+    // Sem imagem: post de texto puro no feed (comportamento original).
+    if (post.imageStoragePaths.length === 0) {
+      return this.publishFacebookText(token, text)
+    }
+
+    // Uma imagem: post de foto única já publicado, com a legenda no próprio /photos.
+    if (post.imageStoragePaths.length === 1) {
+      return this.publishFacebookSinglePhoto(token, post.imageStoragePaths[0]!, text)
+    }
+
+    // Várias imagens: sobe cada foto como não-publicada e anexa todas a um único post de feed.
+    return this.publishFacebookMultiPhoto(token, post.imageStoragePaths, text)
+  }
+
+  private async publishFacebookText(token: FacebookToken, text: string): Promise<PublishResult> {
     const params = new URLSearchParams({
       message: text,
       access_token: token.page_access_token,
@@ -55,6 +70,92 @@ export class MetaPublisher implements PublisherPort {
 
     const data = (await response.json()) as { id: string }
     return { externalId: data.id, publishedAt: new Date() }
+  }
+
+  private async publishFacebookSinglePhoto(
+    token: FacebookToken,
+    imagePath: string,
+    caption: string,
+  ): Promise<PublishResult> {
+    const imageUrl = await this.resolveImageUrl(imagePath)
+    const params = new URLSearchParams({
+      url: imageUrl,
+      caption,
+      access_token: token.page_access_token,
+    })
+
+    const response = await fetch(`${GRAPH}/${token.page_id}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Facebook publish failed: ${response.status} ${err}`)
+    }
+
+    // /photos devolve { id, post_id }: post_id é o post no feed; id é só a foto. Preferimos o post_id.
+    const data = (await response.json()) as { id: string; post_id?: string }
+    return { externalId: data.post_id ?? data.id, publishedAt: new Date() }
+  }
+
+  private async publishFacebookMultiPhoto(
+    token: FacebookToken,
+    imagePaths: string[],
+    text: string,
+  ): Promise<PublishResult> {
+    const mediaFbids: string[] = []
+    for (const imagePath of imagePaths) {
+      mediaFbids.push(await this.uploadUnpublishedPhoto(token, imagePath))
+    }
+
+    const params = new URLSearchParams({
+      message: text,
+      access_token: token.page_access_token,
+    })
+    // attached_media[n]={"media_fbid":"<id>"} liga cada foto não-publicada ao post de feed.
+    mediaFbids.forEach((fbid, i) => {
+      params.append(`attached_media[${i}]`, JSON.stringify({ media_fbid: fbid }))
+    })
+
+    const response = await fetch(`${GRAPH}/${token.page_id}/feed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Facebook publish failed: ${response.status} ${err}`)
+    }
+
+    const data = (await response.json()) as { id: string }
+    return { externalId: data.id, publishedAt: new Date() }
+  }
+
+  private async uploadUnpublishedPhoto(token: FacebookToken, imagePath: string): Promise<string> {
+    const imageUrl = await this.resolveImageUrl(imagePath)
+    const params = new URLSearchParams({
+      url: imageUrl,
+      // published=false: a foto é carregada mas não vira post — só será exibida quando anexada ao feed.
+      published: 'false',
+      access_token: token.page_access_token,
+    })
+
+    const response = await fetch(`${GRAPH}/${token.page_id}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    })
+
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Facebook photo upload failed: ${response.status} ${err}`)
+    }
+
+    const { id } = (await response.json()) as { id: string }
+    return id
   }
 
   private async publishInstagram(post: Post, connection: OAuthConnection): Promise<PublishResult> {
