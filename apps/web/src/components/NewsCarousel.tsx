@@ -10,6 +10,7 @@ export function NewsCarousel() {
     data: suggestions,
     isLoading,
     isError,
+    error,
   } = useQuery({
     queryKey: ['topic-suggestions'],
     queryFn: () => api.getTopicSuggestions(),
@@ -29,6 +30,7 @@ export function NewsCarousel() {
       ) : isError ? (
         <p className="text-sm text-amber-600">
           Não foi possível buscar as notícias agora. Tente recarregar em instantes.
+          {error instanceof Error && <span className="mt-1 block text-xs text-gray-400">{error.message}</span>}
         </p>
       ) : !suggestions || suggestions.length === 0 ? (
         <p className="text-sm text-gray-500">
