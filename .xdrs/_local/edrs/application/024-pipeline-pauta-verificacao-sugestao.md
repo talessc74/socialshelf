@@ -29,7 +29,7 @@ const suggestions = verifiedNews.map((item) => this.buildSuggestion(brandId, ite
 
 **Ingestão segue o mesmo padrão hexagonal da Fase 1**
 
-`NewsSourcePort.fetchNews(segment): Promise<NewsItem[]>` é a porta (domain); `NewsApiOrgReader` é o único adapter hoje, em `apps/generator/src/infrastructure/news/`, paralelo a `infrastructure/analytics/` da Fase 1 — uma chamada HTTP real a uma API de notícia, mockada via `vi.stubGlobal('fetch', ...)` nos testes, sem token OAuth de usuário envolvido.
+`NewsSourcePort.fetchNews(segment): Promise<NewsItem[]>` é a porta (domain); `GoogleNewsRssReader` é o único adapter hoje, em `apps/generator/src/infrastructure/news/`, paralelo a `infrastructure/analytics/` da Fase 1 — consulta o feed RSS público de busca do Google News (`news.google.com/rss/search`, sem API key), mockada via `vi.stubGlobal('fetch', ...)` nos testes, sem token OAuth de usuário envolvido. O atributo `url` da tag `<source>` de cada item do feed (o domínio real do publisher, não o link de redirecionamento do Google) é o que alimenta `NewsItem.sourceUrl` — é essa URL que `verifyNewsItem()` valida contra `trustedDomains`; itens sem essa tag são descartados na ingestão por não ser possível derivar um domínio confiável.
 
 **Verificação é uma função pura, não um serviço com estado**
 

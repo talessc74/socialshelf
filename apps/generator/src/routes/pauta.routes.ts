@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { SuggestTopicsUseCase } from '../use-cases/SuggestTopicsUseCase.js'
-import { NewsApiOrgReader } from '../infrastructure/news/NewsApiOrgReader.js'
+import { GoogleNewsRssReader } from '../infrastructure/news/GoogleNewsRssReader.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
@@ -10,8 +10,7 @@ import { getTrustedDomains } from '../lib/factVerification.js'
 const bodySchema = z.object({ brandId: z.string().min(1) })
 
 export async function pautaRoutes(app: FastifyInstance) {
-  const newsApiKey = process.env['NEWS_API_KEY'] ?? ''
-  const newsSource = new NewsApiOrgReader(newsApiKey)
+  const newsSource = new GoogleNewsRssReader()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const audienceSignalRepo = new FirestoreAudienceSignalRepository()
   const topicSuggestionRepo = new FirestoreTopicSuggestionRepository()
