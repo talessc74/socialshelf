@@ -1,15 +1,18 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { SuggestTopicsUseCase } from '../use-cases/SuggestTopicsUseCase.js'
+import { SearchNewsUseCase } from '../use-cases/SearchNewsUseCase.js'
 import { GoogleNewsRssReader } from '../infrastructure/news/GoogleNewsRssReader.js'
 import { OgImageThumbnailFetcher } from '../infrastructure/news/OgImageThumbnailFetcher.js'
 import { GeminiTranslator } from '../infrastructure/vertexai/GeminiTranslator.js'
+import { GeminiTopicQueryPlanner } from '../infrastructure/vertexai/GeminiTopicQueryPlanner.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
 import { getTrustedDomains } from '../lib/factVerification.js'
 
 const bodySchema = z.object({ brandId: z.string().min(1) })
+const searchBodySchema = z.object({ brandId: z.string().min(1), query: z.string().min(1) })
 
 export async function pautaRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
@@ -17,6 +20,7 @@ export async function pautaRoutes(app: FastifyInstance) {
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
   const newsSource = new GoogleNewsRssReader()
+  const queryPlanner = new GeminiTopicQueryPlanner(projectId, geminiLocation, geminiModel)
   const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel)
   const thumbnailFetcher = new OgImageThumbnailFetcher()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
@@ -25,11 +29,20 @@ export async function pautaRoutes(app: FastifyInstance) {
 
   const useCase = new SuggestTopicsUseCase(
     newsSource,
+    queryPlanner,
     translator,
     thumbnailFetcher,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,
+    getTrustedDomains(),
+  )
+  const searchNewsUseCase = new SearchNewsUseCase(
+    newsSource,
+    translator,
+    thumbnailFetcher,
+    brandProfileRepo,
+    audienceSignalRepo,
     getTrustedDomains(),
   )
   const internalSecret = process.env['INTERNAL_SECRET']
@@ -58,6 +71,30 @@ export async function pautaRoutes(app: FastifyInstance) {
       }
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'suggest topics use-case failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.post('/pauta/search', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = searchBodySchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body' })
+    }
+
+    try {
+      const suggestions = await searchNewsUseCase.execute(parsed.data.brandId, parsed.data.query)
+      return reply.send({ suggestions })
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('No brand profile')) {
+        return reply.status(404).send({ error: err.message })
+      }
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'search news use-case failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

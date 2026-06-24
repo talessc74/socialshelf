@@ -280,6 +280,14 @@ export const api = {
     return data.suggestions
   },
 
+  async searchNews(query: string): Promise<ApiTopicSuggestion[]> {
+    const data = await apiFetch<{ suggestions: ApiTopicSuggestion[] }>('/pauta-search', {
+      method: 'POST',
+      body: JSON.stringify({ query }),
+    })
+    return data.suggestions
+  },
+
   async getPerformanceSuggestions(): Promise<ApiPerformanceSuggestion[]> {
     const data = await apiFetch<{ suggestions: ApiPerformanceSuggestion[] }>('/performance-suggestions')
     return data.suggestions

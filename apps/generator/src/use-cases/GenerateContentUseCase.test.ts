@@ -312,6 +312,27 @@ describe('GenerateContentUseCase', () => {
     )
   })
 
+  it('passa a identidade do negócio carregada para a geração de copy', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    await useCase.execute(baseInput())
+
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ brandBusiness: mockBrandProfile.business }),
+    )
+  })
+
   it('trunca a copy para o limite da plataforma quando a IA ignora o limite informado no prompt', async () => {
     const deps = makeDeps()
     const oversizedText = 'a'.repeat(2433)
@@ -362,7 +383,7 @@ describe('GenerateContentUseCase', () => {
     await useCase.execute(baseInput())
 
     expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
-      expect.objectContaining({ brandVoice: null }),
+      expect.objectContaining({ brandVoice: null, brandBusiness: null }),
     )
   })
 

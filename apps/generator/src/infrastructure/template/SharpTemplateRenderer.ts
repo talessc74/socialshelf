@@ -62,8 +62,8 @@ function stackedBlockYs(
   }
 }
 
-const LOGO_MARGIN_RATIO = 0.04
-const LOGO_SIZE_RATIO = 0.06
+const LOGO_MARGIN_RATIO = 0.03
+const LOGO_SIZE_RATIO = 0.045
 
 export class SharpTemplateRenderer implements TemplateRendererPort {
   async render(input: TemplateRenderInput): Promise<RenderedTemplateImage> {

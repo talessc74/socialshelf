@@ -44,6 +44,12 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
       ? `\nPauta de referência (notícia verificada): "${inputs.pautaContext.headline}". Relevância: ${inputs.pautaContext.rationale}`
       : ''
 
+    const brandSection = inputs.brandBusiness
+      ? `\nMarca: este post é para "${inputs.brandBusiness.name}"${
+          inputs.brandBusiness.description ? `, ${inputs.brandBusiness.description}` : ''
+        }. Sempre que for citar a empresa no texto, em CTAs ou em hashtags, use o nome "${inputs.brandBusiness.name}" — nunca use o segmento de mercado ("${inputs.brandBusiness.segment}") como se fosse o nome da marca, nem como hashtag principal. O segmento é apenas contexto de mercado, não a identidade da marca.`
+      : ''
+
     const voiceSection = inputs.brandVoice
       ? `\nVoz da marca — escreva seguindo estritamente este tom: ${inputs.brandVoice.tone}.${
           inputs.brandVoice.allowedVocabulary.length > 0
@@ -89,6 +95,7 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
 Descrição: ${inputs.description}
 ${inputs.textContent ? `Texto de referência fornecido pelo usuário: ${inputs.textContent}` : ''}
 ${pautaSection}
+${brandSection}
 ${voiceSection}
 ${formatSection}
 
