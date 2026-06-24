@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Newspaper } from 'lucide-react'
+import { ExternalLink, Newspaper } from 'lucide-react'
 import type { ApiTopicSuggestion } from '../lib/api'
 import { ScoreBadge } from './ScoreBadge'
 
@@ -10,7 +10,15 @@ export function NewsCard({ suggestion: s }: { suggestion: ApiTopicSuggestion }) 
     <article className="flex w-[80%] max-w-xs shrink-0 snap-start flex-col overflow-hidden rounded-xl border border-gray-100 sm:w-72">
       <NewsThumbnail thumbnailUrl={s.thumbnailUrl} sourceDomain={s.sourceDomain} />
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-xs font-medium text-gray-400">{s.sourceDomain}</span>
+        <a
+          href={s.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-brand-600 hover:underline"
+        >
+          {s.sourceDomain}
+          <ExternalLink className="h-3 w-3" />
+        </a>
         <p className="line-clamp-2 text-sm font-medium text-gray-800">{s.headline}</p>
         <p className="line-clamp-2 text-xs text-gray-500">{s.summary}</p>
         <div className="mt-auto flex items-center justify-between gap-2 pt-1">
