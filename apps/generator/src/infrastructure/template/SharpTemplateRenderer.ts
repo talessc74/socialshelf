@@ -122,7 +122,7 @@ export class SharpTemplateRenderer implements TemplateRendererPort {
 
   private buildSvg(input: TemplateRenderInput, width: number, height: number): string {
     const fontSize = Math.round(width * 0.045)
-    const bodyFontSize = Math.round(fontSize * 0.55)
+    const bodyFontSize = Math.round(fontSize * 0.7)
     const lines = wrapText(input.headline, CHARS_PER_LINE)
     const bodyLines = input.body && input.body.trim().length > 0 ? wrapText(input.body, CHARS_PER_LINE_BODY) : []
     // Fontes customizadas são fase futura (conforme ADR) — sans-serif fixo por enquanto, mapeado para a fonte
