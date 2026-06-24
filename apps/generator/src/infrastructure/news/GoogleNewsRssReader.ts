@@ -2,6 +2,7 @@ import { XMLParser } from 'fast-xml-parser'
 import type { NewsSourcePort, NewsItem } from '@socialshelf/domain'
 
 const GOOGLE_NEWS_RSS = 'https://news.google.com/rss/search'
+const TIMEOUT_MS = 8000
 
 interface GoogleNewsRssSource {
   '#text'?: string
@@ -51,7 +52,19 @@ export class GoogleNewsRssReader implements NewsSourcePort {
     // (Reuters, AP, BBC, TechCrunch…) que casam com a allowlist de fontes confiáveis. A tradução
     // para o idioma do usuário acontece depois, no SuggestTopicsUseCase.
     const url = `${GOOGLE_NEWS_RSS}?q=${encodeURIComponent(segment)}&hl=en-US&gl=US&ceid=US:en`
-    const response = await fetch(url)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+    let response: Response
+    try {
+      response = await fetch(url, {
+        signal: controller.signal,
+        // Sem UA de navegador, o Google serve uma página de bloqueio/captcha (ou nega a requisição)
+        // a clientes que parecem automação — mesmo tratamento já aplicado ao scraping de og:image.
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SocialShelfBot/1.0; +https://socialshelf.app)' },
+      })
+    } finally {
+      clearTimeout(timer)
+    }
 
     if (!response.ok) {
       const err = await response.text()

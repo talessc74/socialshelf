@@ -132,4 +132,31 @@ describe('GoogleNewsRssReader', () => {
 
     await expect(reader.fetchNews('tecnologia')).rejects.toThrow('Google News RSS fetch failed: 429 Rate limited')
   })
+
+  it('sends a browser user-agent, since Google blocks requests that look automated', async () => {
+    const reader = new GoogleNewsRssReader()
+    fetchMock.mockResolvedValueOnce({ ok: true, text: async () => rssFeed('') })
+
+    await reader.fetchNews('tecnologia')
+
+    const options = fetchMock.mock.calls[0]![1] as RequestInit
+    expect((options.headers as Record<string, string>)['User-Agent']).toMatch(/Mozilla/)
+  })
+
+  it('aborts the request once it hangs past the timeout, instead of stalling forever', async () => {
+    vi.useFakeTimers()
+    const reader = new GoogleNewsRssReader()
+    fetchMock.mockImplementationOnce(
+      (_url: string, options: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          options.signal?.addEventListener('abort', () => reject(new Error('AbortError')))
+        }),
+    )
+
+    const promise = reader.fetchNews('tecnologia')
+    const assertion = expect(promise).rejects.toThrow('AbortError')
+    await vi.advanceTimersByTimeAsync(8000)
+    await assertion
+    vi.useRealTimers()
+  })
 })
