@@ -376,14 +376,17 @@ function BigStat({ icon: Icon, value, label }: { icon: typeof Sparkles; value: n
 }
 
 function EngagementGauge({ segments }: { segments: Array<{ share: number; color: string }> }) {
+  const active = segments.filter((s) => s.share > 0)
+  const gapDeg = active.length > 1 ? 6 : 0
   let acc = 0
-  const stops = segments
-    .filter((s) => s.share > 0)
-    .map((s) => {
-      const start = acc * 360
-      acc += s.share
-      return `${s.color} ${start}deg ${acc * 360}deg`
-    })
+  const stops: string[] = []
+  for (const s of active) {
+    const start = acc * 360
+    acc += s.share
+    const end = acc * 360
+    if (gapDeg > 0 && stops.length > 0) stops.push(`white ${start}deg ${start + gapDeg}deg`)
+    stops.push(`${s.color} ${start + gapDeg}deg ${end}deg`)
+  }
   const background = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : '#f3f4f6'
   return (
     <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background }}>
