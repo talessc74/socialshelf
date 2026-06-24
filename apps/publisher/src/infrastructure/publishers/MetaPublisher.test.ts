@@ -81,7 +81,7 @@ describe('MetaPublisher', () => {
       publisher = new MetaPublisher(mockTokenVault, resolveImageUrl)
     })
 
-    it('posts to page feed and returns externalId', async () => {
+    it('posts to page feed and returns externalId when there are no images', async () => {
       fetchMock.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 'page-999_post-111' }),
@@ -104,6 +104,51 @@ describe('MetaPublisher', () => {
 
       const body = fetchMock.mock.calls[0]![1]!.body as string
       expect(new URLSearchParams(body).get('message')).toBe('Hello Facebook!')
+    })
+
+    it('posts a single image to /photos with the text as caption, returning the feed post_id', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'photo-222', post_id: 'page-999_post-333' }),
+      })
+
+      const storagePath = 'user-1/brand-1/cover.jpg'
+      const post = makePost({ imageStoragePaths: [storagePath] })
+      const result = await publisher.publish(post, Platform.FACEBOOK, makeConnection(Platform.FACEBOOK, 'ref-fb'))
+
+      expect(result.externalId).toBe('page-999_post-333')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+      expect(fetchMock.mock.calls[0]![0]).toContain('/page-999/photos')
+
+      expect(resolveImageUrl).toHaveBeenCalledWith(storagePath)
+      const params = new URLSearchParams(fetchMock.mock.calls[0]![1]!.body as string)
+      expect(params.get('url')).toBe(`https://signed.example.com/${storagePath}`)
+      expect(params.get('caption')).toBe('Hello Facebook!')
+    })
+
+    it('uploads each image unpublished then attaches all to one feed post when there are multiple images', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'photo-1' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'photo-2' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'page-999_post-444' }) })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img1.jpg', 'user-1/brand-1/img2.jpg'] })
+      const result = await publisher.publish(post, Platform.FACEBOOK, makeConnection(Platform.FACEBOOK, 'ref-fb'))
+
+      expect(result.externalId).toBe('page-999_post-444')
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+      expect(fetchMock.mock.calls[0]![0]).toContain('/page-999/photos')
+      expect(fetchMock.mock.calls[1]![0]).toContain('/page-999/photos')
+      expect(fetchMock.mock.calls[2]![0]).toContain('/page-999/feed')
+
+      // Cada upload de foto deve ser não-publicado.
+      expect(new URLSearchParams(fetchMock.mock.calls[0]![1]!.body as string).get('published')).toBe('false')
+
+      // O post final anexa as duas fotos e leva a legenda.
+      const feedParams = new URLSearchParams(fetchMock.mock.calls[2]![1]!.body as string)
+      expect(feedParams.get('message')).toBe('Hello Facebook!')
+      expect(feedParams.get('attached_media[0]')).toBe(JSON.stringify({ media_fbid: 'photo-1' }))
+      expect(feedParams.get('attached_media[1]')).toBe(JSON.stringify({ media_fbid: 'photo-2' }))
     })
 
     it('throws when Graph API returns error', async () => {
