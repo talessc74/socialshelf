@@ -18,6 +18,8 @@ jobs:
       id-token: write
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -99,33 +101,20 @@ jobs:
 
       - name: Deploy Firestore indexes
         run: |
-          gcloud firestore indexes composite create \
-            --collection-group=generation_requests \
-            --query-scope=COLLECTION_GROUP \
-            --field-config field-path=id,order=ascending \
-            --project=${{ env.GCP_PROJECT_ID }} || true
-
-          gcloud firestore indexes composite create \
-            --collection-group=generation_requests \
-            --query-scope=COLLECTION_GROUP \
-            --field-config field-path=brandId,order=ascending \
-            --field-config field-path=createdAt,order=descending \
-            --project=${{ env.GCP_PROJECT_ID }} || true
-
-          gcloud firestore indexes composite create \
-            --collection-group=posts \
-            --query-scope=COLLECTION_GROUP \
-            --field-config field-path=brandId,order=ascending \
-            --field-config field-path=status,order=ascending \
-            --field-config field-path=createdAt,order=descending \
-            --project=${{ env.GCP_PROJECT_ID }} || true
-
-          gcloud firestore indexes composite create \
-            --collection-group=posts \
-            --query-scope=COLLECTION_GROUP \
-            --field-config field-path=status,order=ascending \
-            --field-config field-path=scheduledAt,order=ascending \
-            --project=${{ env.GCP_PROJECT_ID }} || true
+          # Drives off firestore.indexes.json directly so this step can never drift from
+          # the declared indexes again — a hardcoded gcloud call per index went stale
+          # repeatedly (newly added indexes, e.g. audience_signals, were never created here).
+          jq -c '.indexes[]' firestore.indexes.json | while IFS= read -r idx; do
+            collection=$(jq -r '.collectionGroup' <<<"$idx")
+            scope=$(jq -r '.queryScope' <<<"$idx")
+            mapfile -t field_args < <(jq -r '.fields[] | "--field-config=field-path=\(.fieldPath),order=" + (.order | ascii_downcase)' <<<"$idx")
+            echo "Creating index: collection-group=$collection query-scope=$scope ${field_args[*]}"
+            gcloud firestore indexes composite create \
+              --collection-group="$collection" \
+              --query-scope="$scope" \
+              "${field_args[@]}" \
+              --project=${{ env.GCP_PROJECT_ID }} || true
+          done
 
           gcloud firestore indexes composite list --project=${{ env.GCP_PROJECT_ID }} || true
 
