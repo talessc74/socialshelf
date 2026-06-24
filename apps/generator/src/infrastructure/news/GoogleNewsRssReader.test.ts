@@ -133,14 +133,17 @@ describe('GoogleNewsRssReader', () => {
     await expect(reader.fetchNews('tecnologia')).rejects.toThrow('Google News RSS fetch failed: 429 Rate limited')
   })
 
-  it('sends a browser user-agent, since Google blocks requests that look automated', async () => {
+  it('sends a real browser user-agent, since Google blocks requests that look automated', async () => {
     const reader = new GoogleNewsRssReader()
     fetchMock.mockResolvedValueOnce({ ok: true, text: async () => rssFeed('') })
 
     await reader.fetchNews('tecnologia')
 
     const options = fetchMock.mock.calls[0]![1] as RequestInit
-    expect((options.headers as Record<string, string>)['User-Agent']).toMatch(/Mozilla/)
+    const userAgent = (options.headers as Record<string, string>)['User-Agent']
+    expect(userAgent).toMatch(/Mozilla/)
+    // Uma UA que se autodeclara bot (ex.: "SocialShelfBot") é o próprio padrão que o Google bloqueia.
+    expect(userAgent).not.toMatch(/bot/i)
   })
 
   it('aborts the request once it hangs past the timeout, instead of stalling forever', async () => {

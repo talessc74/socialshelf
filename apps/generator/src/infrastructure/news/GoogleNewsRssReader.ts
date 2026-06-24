@@ -58,9 +58,9 @@ export class GoogleNewsRssReader implements NewsSourcePort {
     try {
       response = await fetch(url, {
         signal: controller.signal,
-        // Sem UA de navegador, o Google serve uma página de bloqueio/captcha (ou nega a requisição)
-        // a clientes que parecem automação — mesmo tratamento já aplicado ao scraping de og:image.
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SocialShelfBot/1.0; +https://socialshelf.app)' },
+        // Precisa ser uma UA de navegador real: uma UA que se autodeclara bot (ex.: "...Bot/1.0...")
+        // é exatamente o padrão que o anti-scraping do Google bloqueia, mesmo formatada como Mozilla/5.0.
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
       })
     } finally {
       clearTimeout(timer)

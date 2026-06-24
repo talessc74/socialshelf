@@ -20,8 +20,9 @@ export class OgImageThumbnailFetcher implements ThumbnailFetcherPort {
       const response = await fetch(url, {
         signal: controller.signal,
         redirect: 'follow',
-        // UA de navegador: alguns veículos servem HTML mínimo (ou bloqueiam) para clientes sem UA.
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SocialShelfBot/1.0; +https://socialshelf.app)' },
+        // UA de navegador real: alguns veículos servem HTML mínimo (ou bloqueiam) para clientes sem
+        // UA — e uma UA que se autodeclara bot (ex.: "...Bot/1.0...") sofre o mesmo bloqueio.
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36' },
       })
       if (!response.ok) return null
 
