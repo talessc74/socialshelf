@@ -9,7 +9,7 @@ function ViralScoreGauge({ score }: { score: number }) {
     <div
       className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full"
       style={{
-        background: `conic-gradient(#a16207 ${score}%, #fef08a ${score}%)`,
+        background: `conic-gradient(#0369a1 ${score}%, #bae6fd ${score}%)`,
       }}
     >
       <div className="flex h-12 w-12 flex-col items-center justify-center rounded-full bg-white">

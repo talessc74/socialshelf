@@ -37,7 +37,7 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
       <div className="flex items-start gap-3">
         <div
           className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-          style={{ background: `conic-gradient(#a16207 ${suggestion.viralScore}%, #fef08a ${suggestion.viralScore}%)` }}
+          style={{ background: `conic-gradient(#0369a1 ${suggestion.viralScore}%, #bae6fd ${suggestion.viralScore}%)` }}
         >
           <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full bg-white">
             <span className="text-xs font-bold text-brand-700">{Math.round(suggestion.viralScore)}</span>

@@ -5,12 +5,27 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { Sparkles, Send, Clock, Lightbulb, BarChart3, Share2, Tag } from 'lucide-react'
+import { Platform } from '@socialshelf/domain'
 import { api } from '../../lib/api'
 import { LogoImage } from '../../components/LogoImage'
 import { useAuth } from '../../contexts/AuthContext'
 
 const TOTAL_PLATFORMS = 4
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+
+const PLATFORM_LABELS: Record<Platform, string> = {
+  [Platform.LINKEDIN]: 'LinkedIn',
+  [Platform.FACEBOOK]: 'Facebook',
+  [Platform.INSTAGRAM]: 'Instagram',
+  [Platform.TWITTER]: 'X (Twitter)',
+}
+
+const PLATFORM_COLORS: Record<Platform, string> = {
+  [Platform.LINKEDIN]: '#0c4a6e',
+  [Platform.FACEBOOK]: '#0369a1',
+  [Platform.INSTAGRAM]: '#38bdf8',
+  [Platform.TWITTER]: '#bae6fd',
+}
 
 const SHORTCUTS = [
   { href: '/dashboard/generate', label: 'Gerar com IA', description: 'Crie posts com inteligência artificial', icon: Sparkles },
@@ -89,6 +104,21 @@ export default function DashboardPage() {
 
   const engagementRate = entries.length > 0 ? totals.engagements / Math.max(totals.impressions, 1) : 0
   const impressionsUnavailable = entries.length > 0 && totals.impressions === 0
+
+  const engagementByPlatform = useMemo(() => {
+    const map = new Map<Platform, number>()
+    for (const e of entries) {
+      map.set(e.platform, (map.get(e.platform) ?? 0) + e.metrics.likes + e.metrics.comments + e.metrics.shares)
+    }
+    const totalEngagements = [...map.values()].reduce((sum, v) => sum + v, 0)
+    return [...map.entries()]
+      .map(([platform, engagements]) => ({
+        platform,
+        engagements,
+        share: totalEngagements > 0 ? engagements / totalEngagements : 0,
+      }))
+      .sort((a, b) => b.engagements - a.engagements)
+  }, [entries])
 
   const impressionsByWeekday = useMemo(() => {
     const buckets = new Array(7).fill(0)
@@ -198,11 +228,29 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
           <p className="self-start font-semibold text-gray-900">Taxa de engajamento</p>
-          <EngagementGauge ratio={Math.min(engagementRate * 5, 1)} />
+          <EngagementGauge
+            segments={engagementByPlatform.map((p) => ({ share: p.share, color: PLATFORM_COLORS[p.platform] }))}
+          />
           <p className="text-2xl font-bold text-gray-900">{(engagementRate * 100).toFixed(1)}%</p>
           <p className="text-xs text-gray-400">média dos posts medidos</p>
+          {engagementByPlatform.length > 1 && (
+            <ul className="mt-1 w-full space-y-1 self-stretch">
+              {engagementByPlatform.map((p) => (
+                <li key={p.platform} className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: PLATFORM_COLORS[p.platform] }}
+                    />
+                    {PLATFORM_LABELS[p.platform]}
+                  </span>
+                  <span className="font-semibold text-gray-700">{(p.share * 100).toFixed(0)}%</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 
@@ -324,13 +372,18 @@ function BigStat({ icon: Icon, value, label }: { icon: typeof Sparkles; value: n
   )
 }
 
-function EngagementGauge({ ratio }: { ratio: number }) {
-  const deg = Math.max(Math.min(ratio, 1), 0) * 360
+function EngagementGauge({ segments }: { segments: Array<{ share: number; color: string }> }) {
+  let acc = 0
+  const stops = segments
+    .filter((s) => s.share > 0)
+    .map((s) => {
+      const start = acc * 360
+      acc += s.share
+      return `${s.color} ${start}deg ${acc * 360}deg`
+    })
+  const background = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : '#f3f4f6'
   return (
-    <div
-      className="flex h-24 w-24 items-center justify-center rounded-full"
-      style={{ background: `conic-gradient(#a16207 ${deg}deg, #f3f4f6 ${deg}deg)` }}
-    >
+    <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background }}>
       <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white" />
     </div>
   )
