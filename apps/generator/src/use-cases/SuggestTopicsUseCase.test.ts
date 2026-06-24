@@ -288,6 +288,22 @@ describe('SuggestTopicsUseCase', () => {
     expect(result).toHaveLength(1)
   })
 
+  it('keeps suggestions from categories that succeeded when another category fails to fetch news', async () => {
+    const { useCase, newsSource } = makeUseCase({
+      queries: ['legal tech', 'artificial intelligence'],
+      fetchNewsImpl: async (query) => {
+        if (query === 'legal tech') throw new Error('Google News RSS fetch failed: 429 rate limited')
+        return [makeNewsItem({ sourceUrl: 'https://www.reuters.com/article/1' })]
+      },
+      avgEngagementRate: 0.1,
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(newsSource.fetchNews).toHaveBeenCalledTimes(2)
+    expect(result).toHaveLength(1)
+  })
+
   it('falls back to the brand segment when the query planner fails, without dropping the suggestion flow', async () => {
     const { useCase, newsSource } = makeUseCase({
       planQueriesImpl: async () => {
