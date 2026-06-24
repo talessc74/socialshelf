@@ -262,6 +262,10 @@ export const api = {
     return data.post
   },
 
+  async deletePost(postId: string): Promise<void> {
+    await apiFetch(`/posts/${postId}`, { method: 'DELETE' })
+  },
+
   async getPosts(status?: PostStatus): Promise<ApiPost[]> {
     const query = status ? `?status=${status}` : ''
     const data = await apiFetch<{ posts: ApiPost[] }>(`/posts${query}`)
