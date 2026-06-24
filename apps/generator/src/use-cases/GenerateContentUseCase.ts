@@ -88,6 +88,7 @@ export class GenerateContentUseCase {
         targetPlatforms: input.targetPlatforms,
         artifactPlan,
         pautaContext,
+        brandBusiness: brandProfile?.business ?? null,
         brandVoice: brandProfile?.voice ?? null,
         includeBodyText: input.includeBodyText,
       })

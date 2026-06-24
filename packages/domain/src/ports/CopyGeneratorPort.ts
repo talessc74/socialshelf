@@ -1,6 +1,6 @@
 import type { Platform } from '../entities/Platform.js'
 import type { PlatformCopy } from '../entities/GenerationRequest.js'
-import type { BrandProfileVoice } from '../entities/BrandProfile.js'
+import type { BrandProfileBusiness, BrandProfileVoice } from '../entities/BrandProfile.js'
 
 export interface PautaContext {
   headline: string
@@ -24,6 +24,8 @@ export interface ContentInputs {
   targetPlatforms: Platform[]
   artifactPlan: ArtifactPlan
   pautaContext: PautaContext | null
+  /** Identidade do negócio (nome, segmento, descrição) — para a copy citar a marca pelo nome, não pelo segmento. */
+  brandBusiness: BrandProfileBusiness | null
   brandVoice: BrandProfileVoice | null
   /** Se true, gera também um `bodyTexts` por artefato — um parágrafo de apoio desenhado abaixo do headline na imagem. */
   includeBodyText: boolean

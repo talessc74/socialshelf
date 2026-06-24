@@ -69,6 +69,12 @@ vi.mock('../infrastructure/vertexai/GeminiTranslator.js', () => ({
   })),
 }))
 
+vi.mock('../infrastructure/vertexai/GeminiTopicQueryPlanner.js', () => ({
+  GeminiTopicQueryPlanner: vi.fn().mockImplementation(() => ({
+    planQueries: vi.fn(async () => ['tecnologia']),
+  })),
+}))
+
 vi.mock('../infrastructure/news/OgImageThumbnailFetcher.js', () => ({
   OgImageThumbnailFetcher: vi.fn().mockImplementation(() => ({
     fetchThumbnail: vi.fn(async () => null),
@@ -132,6 +138,70 @@ describe('POST /pauta/suggest', () => {
       method: 'POST',
       url: '/pauta/suggest',
       payload: { brandId: 'brand-1' },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
+describe('POST /pauta/search', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with topic suggestions for the typed query', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/search',
+      payload: { brandId: 'brand-1', query: 'inteligência artificial no varejo' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ suggestions: Array<{ sourceDomain: string }> }>()
+    expect(body.suggestions).toHaveLength(1)
+    expect(body.suggestions[0]?.sourceDomain).toBe('reuters.com')
+    expect(mockFetchNews).toHaveBeenCalledWith('inteligência artificial no varejo')
+  })
+
+  it('returns 400 when body is missing required fields', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/search',
+      payload: { brandId: 'brand-1' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 404 when there is no brand profile', async () => {
+    mockFindLatestByBrand.mockResolvedValueOnce(null)
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/search',
+      payload: { brandId: 'brand-1', query: 'inteligência artificial' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('returns 401 when INTERNAL_SECRET header is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/search',
+      payload: { brandId: 'brand-1', query: 'inteligência artificial' },
     })
 
     expect(response.statusCode).toBe(401)

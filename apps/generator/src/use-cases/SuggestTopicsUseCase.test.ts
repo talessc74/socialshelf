@@ -3,6 +3,7 @@ import { SuggestTopicsUseCase } from './SuggestTopicsUseCase.js'
 import { Platform } from '@socialshelf/domain'
 import type {
   NewsSourcePort,
+  TopicQueryPlannerPort,
   TranslatorPort,
   ThumbnailFetcherPort,
   BrandProfileRepository,
@@ -54,13 +55,21 @@ function makeAudienceSignal(avgEngagementRate: number): AudienceSignal {
 
 function makeUseCase(opts: {
   newsItems?: NewsItem[]
+  fetchNewsImpl?: NewsSourcePort['fetchNews']
+  queries?: string[]
+  planQueriesImpl?: TopicQueryPlannerPort['planQueries']
   brandProfile?: BrandProfile | null
   avgEngagementRate?: number | null
   translate?: TranslatorPort['translate']
   fetchThumbnail?: ThumbnailFetcherPort['fetchThumbnail']
 }) {
   const newsSource: NewsSourcePort = {
-    fetchNews: vi.fn().mockResolvedValue(opts.newsItems ?? [makeNewsItem()]),
+    fetchNews: vi.fn(opts.fetchNewsImpl ?? (async () => opts.newsItems ?? [makeNewsItem()])),
+  }
+  // Planejador identidade por padrão: uma única query, então o comportamento de busca por
+  // segmento literal (pré-existente) continua valendo nos testes que não exercitam o planejador.
+  const queryPlanner: TopicQueryPlannerPort = {
+    planQueries: vi.fn(opts.planQueriesImpl ?? (async () => opts.queries ?? ['tecnologia'])),
   }
   // Tradutor identidade por padrão: o texto de teste já está em português, então o match de temas
   // continua válido sem precisar de um tradutor real.
@@ -91,6 +100,7 @@ function makeUseCase(opts: {
 
   const useCase = new SuggestTopicsUseCase(
     newsSource,
+    queryPlanner,
     translator,
     thumbnailFetcher,
     brandProfileRepo,
@@ -99,7 +109,16 @@ function makeUseCase(opts: {
     ['reuters.com'],
   )
 
-  return { useCase, newsSource, translator, thumbnailFetcher, brandProfileRepo, audienceSignalRepo, topicSuggestionRepo }
+  return {
+    useCase,
+    newsSource,
+    queryPlanner,
+    translator,
+    thumbnailFetcher,
+    brandProfileRepo,
+    audienceSignalRepo,
+    topicSuggestionRepo,
+  }
 }
 
 describe('SuggestTopicsUseCase', () => {
@@ -235,5 +254,52 @@ describe('SuggestTopicsUseCase', () => {
     const result = await useCase.execute('brand-1')
 
     expect(result[0]?.audienceFitScore).toBeGreaterThanOrEqual(result[1]?.audienceFitScore ?? 0)
+  })
+
+  it('fetches news for every category planned by the query planner, not just the literal segment', async () => {
+    const { useCase, newsSource, queryPlanner } = makeUseCase({
+      queries: ['legal tech', 'artificial intelligence', 'startups'],
+      fetchNewsImpl: async (query) => [makeNewsItem({ title: `Notícia sobre ${query}`, sourceUrl: `https://www.reuters.com/${query}` })],
+      avgEngagementRate: 0.1,
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(queryPlanner.planQueries).toHaveBeenCalledWith(
+      expect.objectContaining({ business: mockBrandProfile.business, recurringThemes: mockBrandProfile.narrative.recurringThemes }),
+    )
+    expect(newsSource.fetchNews).toHaveBeenCalledTimes(3)
+    expect(newsSource.fetchNews).toHaveBeenCalledWith('legal tech')
+    expect(newsSource.fetchNews).toHaveBeenCalledWith('artificial intelligence')
+    expect(newsSource.fetchNews).toHaveBeenCalledWith('startups')
+    expect(result).toHaveLength(3)
+  })
+
+  it('deduplicates the same article returned by more than one planned category', async () => {
+    const { useCase, newsSource } = makeUseCase({
+      queries: ['legal tech', 'artificial intelligence'],
+      fetchNewsImpl: async () => [makeNewsItem({ sourceUrl: 'https://www.reuters.com/article/1' })],
+      avgEngagementRate: 0.1,
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(newsSource.fetchNews).toHaveBeenCalledTimes(2)
+    expect(result).toHaveLength(1)
+  })
+
+  it('falls back to the brand segment when the query planner fails, without dropping the suggestion flow', async () => {
+    const { useCase, newsSource } = makeUseCase({
+      planQueriesImpl: async () => {
+        throw new Error('Vertex unavailable')
+      },
+      avgEngagementRate: 0.1,
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(newsSource.fetchNews).toHaveBeenCalledTimes(1)
+    expect(newsSource.fetchNews).toHaveBeenCalledWith(mockBrandProfile.business.segment)
+    expect(result).toHaveLength(1)
   })
 })
