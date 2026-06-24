@@ -47,6 +47,7 @@ describe('GoogleNewsRssReader', () => {
         title: 'Manchete de teste',
         summary: 'Resumo da notícia.',
         sourceUrl: 'https://www.reuters.com',
+        articleUrl: 'https://news.google.com/rss/articles/some-id',
         sourceName: 'Reuters',
         publishedAt: new Date('Mon, 01 Jun 2026 12:00:00 GMT'),
       },
@@ -92,7 +93,7 @@ describe('GoogleNewsRssReader', () => {
     expect(result).toEqual([])
   })
 
-  it('includes the segment and pt-BR locale params in the request', async () => {
+  it('includes the segment and global (en-US) locale params in the request', async () => {
     const reader = new GoogleNewsRssReader()
     fetchMock.mockResolvedValueOnce({ ok: true, text: async () => rssFeed('') })
 
@@ -101,8 +102,28 @@ describe('GoogleNewsRssReader', () => {
     const calledUrl = fetchMock.mock.calls[0]![0] as string
     expect(calledUrl).toContain('https://news.google.com/rss/search')
     expect(calledUrl).toContain(encodeURIComponent('marketing digital'))
-    expect(calledUrl).toContain('hl=pt-BR')
-    expect(calledUrl).toContain('gl=BR')
+    expect(calledUrl).toContain('hl=en-US')
+    expect(calledUrl).toContain('gl=US')
+  })
+
+  it('falls back to the source root url as articleUrl when <link> is missing', async () => {
+    const reader = new GoogleNewsRssReader()
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      text: async () =>
+        rssFeed(`
+          <item>
+            <title>Sem link de artigo - Reuters</title>
+            <pubDate>Mon, 01 Jun 2026 12:00:00 GMT</pubDate>
+            <source url="https://www.reuters.com">Reuters</source>
+          </item>
+        `),
+    })
+
+    const result = await reader.fetchNews('tecnologia')
+
+    expect(result[0]?.articleUrl).toBe('https://www.reuters.com')
   })
 
   it('throws when Google News RSS returns an error', async () => {

@@ -307,7 +307,7 @@ jobs:
           VARS="${VARS}#IMAGEN_MODEL=imagen-4.0-generate-001"
           VARS="${VARS}#GCS_BUCKET_GENERATED=socialshelf-generated"
           VARS="${VARS}#INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
-          VARS="${VARS}#TRUSTED_NEWS_DOMAINS=reuters.com,apnews.com,bbc.com,agenciabrasil.ebc.com.br"
+          VARS="${VARS}#TRUSTED_NEWS_DOMAINS=reuters.com,apnews.com,bbc.com,theguardian.com,nytimes.com,washingtonpost.com,wsj.com,ft.com,bloomberg.com,cnbc.com,cnn.com,forbes.com,businessinsider.com,axios.com,npr.org,economist.com,aljazeera.com,techcrunch.com,theverge.com,wired.com,arstechnica.com,engadget.com"
           gcloud run deploy generator-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/generator:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \

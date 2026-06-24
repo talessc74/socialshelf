@@ -99,6 +99,7 @@ export interface ApiTopicSuggestion {
   sourceDomain: string
   rationale: string
   audienceFitScore: number
+  thumbnailUrl: string | null
   createdAt: string
 }
 

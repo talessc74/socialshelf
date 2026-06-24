@@ -10,6 +10,7 @@ interface GoogleNewsRssSource {
 
 interface GoogleNewsRssItem {
   title?: string
+  link?: string
   description?: string
   pubDate?: string
   source?: GoogleNewsRssSource
@@ -46,7 +47,10 @@ function stripSourceSuffix(title: string, sourceName: string): string {
 
 export class GoogleNewsRssReader implements NewsSourcePort {
   async fetchNews(segment: string): Promise<NewsItem[]> {
-    const url = `${GOOGLE_NEWS_RSS}?q=${encodeURIComponent(segment)}&hl=pt-BR&gl=BR&ceid=BR:pt-BR`
+    // Busca global em inglês: o Google Notícias devolve veículos internacionais de credibilidade
+    // (Reuters, AP, BBC, TechCrunch…) que casam com a allowlist de fontes confiáveis. A tradução
+    // para o idioma do usuário acontece depois, no SuggestTopicsUseCase.
+    const url = `${GOOGLE_NEWS_RSS}?q=${encodeURIComponent(segment)}&hl=en-US&gl=US&ceid=US:en`
     const response = await fetch(url)
 
     if (!response.ok) {
@@ -68,6 +72,9 @@ export class GoogleNewsRssReader implements NewsSourcePort {
           title: stripSourceSuffix(item.title ?? '', sourceName),
           summary: item.description ? stripHtml(item.description) : '',
           sourceUrl,
+          // O <link> do Google News é um redirect para o artigo; usamos como melhor esforço para o
+          // thumbnail. Quando ausente, caímos na raiz do veículo (sourceUrl).
+          articleUrl: item.link ?? sourceUrl,
           sourceName,
           publishedAt: new Date(item.pubDate ?? ''),
         }

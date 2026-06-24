@@ -7,6 +7,7 @@ function makeItem(sourceUrl: string): NewsItem {
     title: 'Headline',
     summary: 'Summary',
     sourceUrl,
+    articleUrl: sourceUrl,
     sourceName: 'Source',
     publishedAt: new Date('2026-06-01T00:00:00Z'),
   }

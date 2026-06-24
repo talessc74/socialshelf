@@ -50,6 +50,7 @@ const mockFetchNews = vi.fn().mockResolvedValue([
     title: 'Inteligência artificial avança no setor',
     summary: 'Resumo',
     sourceUrl: 'https://www.reuters.com/article/1',
+    articleUrl: 'https://news.google.com/rss/articles/abc',
     sourceName: 'Reuters',
     publishedAt: new Date('2026-06-01T00:00:00Z'),
   },
@@ -58,6 +59,19 @@ const mockFetchNews = vi.fn().mockResolvedValue([
 vi.mock('../infrastructure/news/GoogleNewsRssReader.js', () => ({
   GoogleNewsRssReader: vi.fn().mockImplementation(() => ({
     fetchNews: mockFetchNews,
+  })),
+}))
+
+// Tradutor identidade e thumbnail nulo: o teste de integração não deve tocar Vertex AI nem a rede.
+vi.mock('../infrastructure/vertexai/GeminiTranslator.js', () => ({
+  GeminiTranslator: vi.fn().mockImplementation(() => ({
+    translate: vi.fn(async ({ texts }: { texts: string[] }) => texts),
+  })),
+}))
+
+vi.mock('../infrastructure/news/OgImageThumbnailFetcher.js', () => ({
+  OgImageThumbnailFetcher: vi.fn().mockImplementation(() => ({
+    fetchThumbnail: vi.fn(async () => null),
   })),
 }))
 

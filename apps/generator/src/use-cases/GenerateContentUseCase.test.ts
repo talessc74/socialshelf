@@ -265,6 +265,7 @@ describe('GenerateContentUseCase', () => {
       sourceDomain: 'reuters.com',
       rationale: 'Casa com tema recorrente',
       audienceFitScore: 2,
+      thumbnailUrl: null,
       createdAt: new Date(),
     }
     ;(deps.topicSuggestionRepo.findById as ReturnType<typeof vi.fn>).mockResolvedValue(suggestion)

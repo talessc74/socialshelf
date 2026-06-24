@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { SuggestTopicsUseCase } from '../use-cases/SuggestTopicsUseCase.js'
 import { GoogleNewsRssReader } from '../infrastructure/news/GoogleNewsRssReader.js'
+import { OgImageThumbnailFetcher } from '../infrastructure/news/OgImageThumbnailFetcher.js'
+import { GeminiTranslator } from '../infrastructure/vertexai/GeminiTranslator.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
@@ -10,13 +12,21 @@ import { getTrustedDomains } from '../lib/factVerification.js'
 const bodySchema = z.object({ brandId: z.string().min(1) })
 
 export async function pautaRoutes(app: FastifyInstance) {
+  const projectId = process.env['GCP_PROJECT_ID'] ?? ''
+  const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
+  const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
+
   const newsSource = new GoogleNewsRssReader()
+  const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel)
+  const thumbnailFetcher = new OgImageThumbnailFetcher()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const audienceSignalRepo = new FirestoreAudienceSignalRepository()
   const topicSuggestionRepo = new FirestoreTopicSuggestionRepository()
 
   const useCase = new SuggestTopicsUseCase(
     newsSource,
+    translator,
+    thumbnailFetcher,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,

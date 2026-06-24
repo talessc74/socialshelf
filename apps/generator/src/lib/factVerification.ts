@@ -1,6 +1,32 @@
 import type { NewsItem, VerifiedNewsItem } from '@socialshelf/domain'
 
-const DEFAULT_TRUSTED_DOMAINS = ['reuters.com', 'apnews.com', 'bbc.com', 'agenciabrasil.ebc.com.br']
+// Veículos internacionais de credibilidade reconhecida. A busca de notícia é global/inglês, então
+// estas fontes efetivamente aparecem nos resultados; a manchete é traduzida depois para o usuário.
+// Sobrescrevível por TRUSTED_NEWS_DOMAINS.
+const DEFAULT_TRUSTED_DOMAINS = [
+  'reuters.com',
+  'apnews.com',
+  'bbc.com',
+  'theguardian.com',
+  'nytimes.com',
+  'washingtonpost.com',
+  'wsj.com',
+  'ft.com',
+  'bloomberg.com',
+  'cnbc.com',
+  'cnn.com',
+  'forbes.com',
+  'businessinsider.com',
+  'axios.com',
+  'npr.org',
+  'economist.com',
+  'aljazeera.com',
+  'techcrunch.com',
+  'theverge.com',
+  'wired.com',
+  'arstechnica.com',
+  'engadget.com',
+]
 
 export function getTrustedDomains(): string[] {
   const env = process.env['TRUSTED_NEWS_DOMAINS']

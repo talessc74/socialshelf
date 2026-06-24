@@ -115,6 +115,7 @@ function makeTopicSuggestion(overrides: Partial<ApiTopicSuggestion> = {}): ApiTo
     sourceDomain: 'example.com',
     rationale: 'rationale',
     audienceFitScore: 1.8,
+    thumbnailUrl: null,
     createdAt: new Date().toISOString(),
     ...overrides,
   }
@@ -362,6 +363,17 @@ describe('DashboardPage - carrossel de notícias para pauta', () => {
 
     expect(await screen.findByText('Notícia 1')).toBeInTheDocument()
     expect(screen.getByText('Notícia 2')).toBeInTheDocument()
+  })
+
+  it('mostra o thumbnail da notícia quando há imagem de capa', async () => {
+    mockedApi.getTopicSuggestions.mockResolvedValue([
+      makeTopicSuggestion({ headline: 'Com capa', thumbnailUrl: 'https://cdn.exemplo.com/capa.jpg' }),
+    ])
+
+    renderPage()
+
+    const img = (await screen.findByAltText(/Imagem da notícia/)) as HTMLImageElement
+    expect(img).toHaveAttribute('src', 'https://cdn.exemplo.com/capa.jpg')
   })
 
   it('o botão "Criar post disso" leva para o gerador com a manchete pré-preenchida', async () => {

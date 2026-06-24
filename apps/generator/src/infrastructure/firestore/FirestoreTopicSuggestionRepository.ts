@@ -54,6 +54,7 @@ export class FirestoreTopicSuggestionRepository implements TopicSuggestionReposi
       sourceDomain: data['sourceDomain'] as string,
       rationale: data['rationale'] as string,
       audienceFitScore: data['audienceFitScore'] as number,
+      thumbnailUrl: (data['thumbnailUrl'] as string | null | undefined) ?? null,
       createdAt: new Date(data['createdAt'] as string),
     }
   }

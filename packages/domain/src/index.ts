@@ -74,6 +74,8 @@ export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPo
 export { ContentNotFoundError } from './ports/AnalyticsReaderPort.js'
 export type { AudienceSignalRepository } from './ports/AudienceSignalRepository.js'
 export type { NewsSourcePort } from './ports/NewsSourcePort.js'
+export type { TranslatorPort, TranslateInput } from './ports/TranslatorPort.js'
+export type { ThumbnailFetcherPort } from './ports/ThumbnailFetcherPort.js'
 export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'
 export type { PerformanceSuggestionRepository } from './ports/PerformanceSuggestionRepository.js'
 export type { PerformanceSuggesterPort, PerformanceSuggestionDraft } from './ports/PerformanceSuggesterPort.js'

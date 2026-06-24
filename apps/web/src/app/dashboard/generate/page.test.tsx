@@ -100,6 +100,7 @@ describe('GenerateContentPage', () => {
       sourceDomain: 'example.com',
       rationale: 'rationale',
       audienceFitScore: 0.8,
+      thumbnailUrl: null,
       createdAt: new Date().toISOString(),
     }
     mockedApi.getTopicSuggestions.mockResolvedValue([suggestion])

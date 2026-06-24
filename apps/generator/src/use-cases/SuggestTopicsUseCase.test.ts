@@ -3,6 +3,8 @@ import { SuggestTopicsUseCase } from './SuggestTopicsUseCase.js'
 import { Platform } from '@socialshelf/domain'
 import type {
   NewsSourcePort,
+  TranslatorPort,
+  ThumbnailFetcherPort,
   BrandProfileRepository,
   AudienceSignalRepository,
   TopicSuggestionRepository,
@@ -30,6 +32,7 @@ function makeNewsItem(overrides: Partial<NewsItem> = {}): NewsItem {
     title: 'Avanço em inteligência artificial muda o mercado',
     summary: 'Resumo da notícia',
     sourceUrl: 'https://www.reuters.com/article/1',
+    articleUrl: 'https://news.google.com/rss/articles/abc',
     sourceName: 'Reuters',
     publishedAt: new Date('2026-06-01T00:00:00Z'),
     ...overrides,
@@ -53,9 +56,19 @@ function makeUseCase(opts: {
   newsItems?: NewsItem[]
   brandProfile?: BrandProfile | null
   avgEngagementRate?: number | null
+  translate?: TranslatorPort['translate']
+  fetchThumbnail?: ThumbnailFetcherPort['fetchThumbnail']
 }) {
   const newsSource: NewsSourcePort = {
     fetchNews: vi.fn().mockResolvedValue(opts.newsItems ?? [makeNewsItem()]),
+  }
+  // Tradutor identidade por padrão: o texto de teste já está em português, então o match de temas
+  // continua válido sem precisar de um tradutor real.
+  const translator: TranslatorPort = {
+    translate: vi.fn(opts.translate ?? (async ({ texts }) => texts)),
+  }
+  const thumbnailFetcher: ThumbnailFetcherPort = {
+    fetchThumbnail: vi.fn(opts.fetchThumbnail ?? (async () => null)),
   }
   const brandProfileRepo: BrandProfileRepository = {
     save: vi.fn(),
@@ -78,13 +91,15 @@ function makeUseCase(opts: {
 
   const useCase = new SuggestTopicsUseCase(
     newsSource,
+    translator,
+    thumbnailFetcher,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,
     ['reuters.com'],
   )
 
-  return { useCase, newsSource, brandProfileRepo, audienceSignalRepo, topicSuggestionRepo }
+  return { useCase, newsSource, translator, thumbnailFetcher, brandProfileRepo, audienceSignalRepo, topicSuggestionRepo }
 }
 
 describe('SuggestTopicsUseCase', () => {
@@ -144,6 +159,68 @@ describe('SuggestTopicsUseCase', () => {
     await useCase.execute('brand-1')
 
     expect(topicSuggestionRepo.save).toHaveBeenCalledTimes(1)
+  })
+
+  it('translates headline and summary, scoring themes against the translated text', async () => {
+    const { useCase, translator } = makeUseCase({
+      newsItems: [
+        makeNewsItem({ title: 'Artificial intelligence reshapes the market', summary: 'English summary' }),
+      ],
+      avgEngagementRate: 0.1,
+      // Tradutor que devolve português, casando com o tema recorrente "inteligência artificial".
+      translate: async ({ texts }) =>
+        texts.map((t) =>
+          t === 'Artificial intelligence reshapes the market'
+            ? 'Inteligência artificial transforma o mercado'
+            : 'Resumo em português',
+        ),
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(translator.translate).toHaveBeenCalledOnce()
+    expect(result[0]?.headline).toBe('Inteligência artificial transforma o mercado')
+    expect(result[0]?.summary).toBe('Resumo em português')
+    expect(result[0]?.audienceFitScore).toBeGreaterThan(0)
+    expect(result[0]?.rationale).toContain('inteligência artificial')
+  })
+
+  it('falls back to the original text when translation fails, never dropping the news', async () => {
+    const { useCase } = makeUseCase({
+      newsItems: [makeNewsItem({ title: 'Inteligência artificial avança', summary: 'Resumo' })],
+      avgEngagementRate: 0.1,
+      translate: async () => {
+        throw new Error('Vertex unavailable')
+      },
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.headline).toBe('Inteligência artificial avança')
+  })
+
+  it('attaches the fetched thumbnail url to the suggestion', async () => {
+    const { useCase, thumbnailFetcher } = makeUseCase({
+      avgEngagementRate: 0.1,
+      fetchThumbnail: async () => 'https://cdn.reuters.com/cover.jpg',
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(thumbnailFetcher.fetchThumbnail).toHaveBeenCalledWith(
+      'https://news.google.com/rss/articles/abc',
+      'https://www.reuters.com/article/1',
+    )
+    expect(result[0]?.thumbnailUrl).toBe('https://cdn.reuters.com/cover.jpg')
+  })
+
+  it('leaves thumbnailUrl null when no image can be resolved', async () => {
+    const { useCase } = makeUseCase({ avgEngagementRate: 0.1, fetchThumbnail: async () => null })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(result[0]?.thumbnailUrl).toBeNull()
   })
 
   it('sorts suggestions by audienceFitScore descending', async () => {
