@@ -9,9 +9,7 @@ export class HandleLinkedInCallbackUseCase {
     private readonly tokenVault: TokenVaultPort,
   ) {}
 
-  async execute(code: string, brandId: string): Promise<OAuthConnection> {
-    const userId = brandId
-
+  async execute(code: string, userId: string, brandId: string): Promise<OAuthConnection> {
     const redirectUri = process.env['LINKEDIN_REDIRECT_URI'] ?? ''
     const tokenResponse = await exchangeCodeForToken(code, redirectUri)
 

@@ -9,7 +9,6 @@ import { FirestoreTokenVault } from '../../infrastructure/firestore/FirestoreTok
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
-  brandId: z.string().optional(),
 })
 
 export async function xOAuthRoutes(app: FastifyInstance) {
@@ -24,7 +23,7 @@ export async function xOAuthRoutes(app: FastifyInstance) {
     '/oauth/x/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId)
+      const { url } = generateUrl.execute(request.userId, request.brandId)
       return reply.send({ url })
     },
   )
@@ -38,11 +37,13 @@ export async function xOAuthRoutes(app: FastifyInstance) {
     const { code, state } = result.data
 
     let userId: string
+    let brandId: string
     let codeVerifier: string
 
     try {
       const validated = validateState(state)
       userId = validated.userId
+      brandId = validated.brandId
       if (!validated.codeVerifier) {
         app.log.error('codeVerifier missing from state')
         return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=no_verifier`)
@@ -53,13 +54,8 @@ export async function xOAuthRoutes(app: FastifyInstance) {
       return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=bad_state`)
     }
 
-    const brandId = result.data.brandId ?? userId
-    if (brandId !== userId) {
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=brand_mismatch`)
-    }
-
     try {
-      await handleCallback.execute(code, codeVerifier, brandId)
+      await handleCallback.execute(code, codeVerifier, userId, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=twitter`)
     } catch (err) {
       const msg = err instanceof Error ? err.message.slice(0, 120) : String(err).slice(0, 120)
