@@ -44,7 +44,7 @@ export async function generationRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, ...parsed.data }),
+        body: JSON.stringify({ brandId: request.brandId, ...parsed.data }),
       })
 
       if (!res.ok) {
@@ -133,7 +133,7 @@ export async function generationRoutes(app: FastifyInstance) {
         },
         body: JSON.stringify({
           userId: request.userId,
-          brandId: request.userId,
+          brandId: request.brandId,
           base64: buffer.toString('base64'),
           mimeType: file.mimetype,
         }),

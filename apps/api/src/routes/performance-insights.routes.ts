@@ -16,7 +16,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId }),
+        body: JSON.stringify({ brandId: request.brandId }),
       })
 
       if (!performanceRes.ok) {
@@ -33,7 +33,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, entries }),
+        body: JSON.stringify({ brandId: request.brandId, entries }),
       })
 
       if (!insightsRes.ok) {
@@ -52,7 +52,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (request, reply) => {
       const res = await fetchInternal(
-        `${generatorUrl}/performance-insights/latest?brandId=${encodeURIComponent(request.userId)}`,
+        `${generatorUrl}/performance-insights/latest?brandId=${encodeURIComponent(request.brandId)}`,
         { headers: { 'X-Internal-Secret': internalSecret } },
       )
 

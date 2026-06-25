@@ -18,8 +18,8 @@ export async function pautaRoutes(app: FastifyInstance) {
 
   // Anexa, a cada sugestão, em quais redes a notícia (pelo articleUrl) já gerou um post publicado —
   // permite à UI marcar "essa notícia já foi usada" sem o gerador precisar conhecer posts.
-  async function attachPublishedPlatforms(brandId: string, suggestions: RawTopicSuggestion[]) {
-    const publishedPosts = await postRepo.findByBrand(brandId, brandId, 'published')
+  async function attachPublishedPlatforms(userId: string, brandId: string, suggestions: RawTopicSuggestion[]) {
+    const publishedPosts = await postRepo.findByBrand(userId, brandId, 'published')
     const platformsByArticleUrl = new Map<string, Set<Platform>>()
     for (const post of publishedPosts) {
       if (!post.sourceArticleUrl) continue
@@ -43,7 +43,7 @@ export async function pautaRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId }),
+        body: JSON.stringify({ brandId: request.brandId }),
       })
 
       if (!res.ok) {
@@ -54,7 +54,7 @@ export async function pautaRoutes(app: FastifyInstance) {
       }
 
       const body = (await res.json()) as { suggestions: RawTopicSuggestion[] }
-      const suggestions = await attachPublishedPlatforms(request.userId, body.suggestions)
+      const suggestions = await attachPublishedPlatforms(request.userId, request.brandId, body.suggestions)
       return reply.send({ suggestions })
     },
   )
@@ -74,7 +74,7 @@ export async function pautaRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, query: parsed.data.query }),
+        body: JSON.stringify({ brandId: request.brandId, query: parsed.data.query }),
       })
 
       if (!res.ok) {
@@ -85,7 +85,7 @@ export async function pautaRoutes(app: FastifyInstance) {
       }
 
       const body = (await res.json()) as { suggestions: RawTopicSuggestion[] }
-      const suggestions = await attachPublishedPlatforms(request.userId, body.suggestions)
+      const suggestions = await attachPublishedPlatforms(request.userId, request.brandId, body.suggestions)
       return reply.send({ suggestions })
     },
   )
