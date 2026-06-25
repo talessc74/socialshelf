@@ -109,7 +109,7 @@ describe('PerformanceDashboardPage', () => {
     expect(screen.queryByText('Texto do post de melhor desempenho')).not.toBeInTheDocument()
   })
 
-  it('mostra mensagem amigável e link para reconectar quando o erro é de permissão do Facebook', async () => {
+  it('mostra aviso de seguidores mínimos (não "reconectar") quando o erro de permissão é do Facebook', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(
       makeResult({
         entries: [makeEntry({ platform: Platform.LINKEDIN })],
@@ -131,6 +131,36 @@ describe('PerformanceDashboardPage', () => {
     const facebookTab = screen.getByRole('button', { name: /Facebook/ })
 
     await user.click(facebookTab)
+
+    expect(await screen.findByText(/100 seguidores/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Reconectar conta/ })).not.toBeInTheDocument()
+    const technicalDetails = screen.getByText(/OAuthException/).closest('details')
+    expect(technicalDetails).not.toBeNull()
+    expect(technicalDetails).not.toHaveAttribute('open')
+  })
+
+  it('mostra mensagem amigável e link para reconectar quando o erro de permissão é de outra rede', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.LINKEDIN })],
+        errors: [
+          {
+            platform: Platform.INSTAGRAM,
+            postId: 'post-2',
+            message:
+              'Instagram metrics fetch failed: 400 {"error":{"message":"(#10) OAuthException","type":"OAuthException","code":10,"fbtrace_id":"AcGnZX7PqK_isiwwGjzJYAY"}}',
+          },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    const instagramTab = screen.getByRole('button', { name: /Instagram/ })
+
+    await user.click(instagramTab)
 
     expect(
       await screen.findByText(/perdeu uma permissão necessária para ler as métricas/),

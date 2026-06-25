@@ -26,6 +26,14 @@ function isPermissionError(message: string): boolean {
   return /OAuthException|pages_read_engagement|Page Public Content Access/i.test(message)
 }
 
+// A Meta só libera dados de Insights de Página (e dos posts dela) para Páginas com pelo
+// menos 100 seguidores — abaixo disso ela retorna o mesmo erro genérico de permissão acima,
+// mesmo com a permissão concedida e a conexão saudável (publicar continua funcionando).
+// Reconectar a conta não resolve esse caso: é uma trava da própria Meta pelo tamanho da Página.
+function isFacebookFollowerThresholdError(platform: Platform, message: string): boolean {
+  return platform === Platform.FACEBOOK && isPermissionError(message)
+}
+
 export default function PerformanceDashboardPage() {
   const router = useRouter()
 
@@ -64,6 +72,8 @@ export default function PerformanceDashboardPage() {
 
   const selectedError = selectedPlatform ? errorsByPlatform.get(selectedPlatform) : undefined
   const selectedErrorIsPermission = selectedError ? isPermissionError(selectedError) : false
+  const selectedErrorIsFollowerThreshold =
+    selectedPlatform && selectedError ? isFacebookFollowerThresholdError(selectedPlatform, selectedError) : false
 
   const totals = entries.reduce(
     (acc, e) => ({
@@ -184,7 +194,22 @@ export default function PerformanceDashboardPage() {
               })}
             </div>
 
-            {selectedPlatform && selectedError && (
+            {selectedPlatform && selectedError && selectedErrorIsFollowerThreshold && (
+              <div className="space-y-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                <p className="break-words">
+                  As métricas do Facebook só ficam disponíveis quando a Página atinge pelo menos{' '}
+                  <strong>100 seguidores</strong> — é uma exigência da própria Meta para liberar dados de
+                  Insights, não um problema de conexão. Continue publicando para crescer a Página; assim que
+                  atingir esse número, as métricas aparecem aqui automaticamente.
+                </p>
+                <details className="text-xs text-amber-700">
+                  <summary className="cursor-pointer select-none">Detalhes técnicos</summary>
+                  <p className="mt-1 break-words">{selectedError}</p>
+                </details>
+              </div>
+            )}
+
+            {selectedPlatform && selectedError && !selectedErrorIsFollowerThreshold && (
               <div className="space-y-2 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
                 <p className="break-words">
                   {selectedErrorIsPermission ? (
