@@ -6,6 +6,12 @@ import type { ProfileDiagnostic, PostStatus } from '@socialshelf/domain'
 
 const API_URL = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001'
 
+let activeBrandId: string | null = null
+
+export function setActiveBrandId(brandId: string | null): void {
+  activeBrandId = brandId
+}
+
 async function getToken(): Promise<string> {
   const user = auth.currentUser
   if (!user) throw new Error('Not authenticated')
@@ -20,6 +26,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     headers: {
       ...(options?.body ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${token}`,
+      ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
       ...options?.headers,
     },
   })
@@ -32,6 +39,13 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   return res.json() as Promise<T>
+}
+
+export interface ApiBrand {
+  id: string
+  name: string
+  slug: string
+  platforms: Platform[]
 }
 
 export interface ApiConnection {
@@ -225,6 +239,11 @@ export interface GenerateContentInput {
 }
 
 export const api = {
+  async getBrands(): Promise<ApiBrand[]> {
+    const data = await apiFetch<{ brands: ApiBrand[] }>('/brands')
+    return data.brands
+  },
+
   async getConnections(): Promise<ApiConnection[]> {
     const data = await apiFetch<{ connections: ApiConnection[] }>('/connections')
     return data.connections
@@ -348,7 +367,10 @@ export const api = {
     const res = await fetch(`${API_URL}/images/upload`, {
       method: 'POST',
       credentials: 'include',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
+      },
       body: formData,
     })
     if (!res.ok) {
@@ -366,7 +388,10 @@ export const api = {
     const res = await fetch(`${API_URL}/brand-profile/document`, {
       method: 'POST',
       credentials: 'include',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
+      },
       body: formData,
     })
     if (!res.ok) {
