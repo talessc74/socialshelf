@@ -97,9 +97,11 @@ export interface ApiTopicSuggestion {
   summary: string
   sourceUrl: string
   sourceDomain: string
+  articleUrl: string
   rationale: string
   audienceFitScore: number
   thumbnailUrl: string | null
+  publishedPlatforms: Platform[]
   createdAt: string
 }
 
@@ -237,6 +239,7 @@ export const api = {
     content: PostContent[],
     imageStoragePaths?: string[],
     scheduledAt?: Date,
+    sourceArticleUrl?: string | null,
   ): Promise<ApiPost> {
     const data = await apiFetch<{ post: ApiPost }>('/posts', {
       method: 'POST',
@@ -244,6 +247,7 @@ export const api = {
         content,
         imageStoragePaths,
         ...(scheduledAt && { scheduledAt: scheduledAt.toISOString() }),
+        ...(sourceArticleUrl !== undefined && { sourceArticleUrl }),
       }),
     })
     return data.post

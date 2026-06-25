@@ -4,14 +4,8 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import { Platform } from '@socialshelf/domain'
-
-const PLATFORM_META = {
-  [Platform.LINKEDIN]: { label: 'LinkedIn', emoji: '💼', color: 'bg-blue-600', oauth: 'linkedin' as const },
-  [Platform.FACEBOOK]: { label: 'Facebook', emoji: '👥', color: 'bg-blue-500', oauth: 'meta' as const },
-  [Platform.INSTAGRAM]: { label: 'Instagram', emoji: '📸', color: 'bg-pink-500', oauth: 'meta' as const },
-  [Platform.TWITTER]: { label: 'X (Twitter)', emoji: '🐦', color: 'bg-black', oauth: 'x' as const },
-}
+import type { Platform } from '@socialshelf/domain'
+import { PLATFORM_META } from '../../../lib/platformMeta'
 
 export default function AccountsPage() {
   const searchParams = useSearchParams()

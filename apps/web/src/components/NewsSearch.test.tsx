@@ -21,9 +21,11 @@ function makeTopicSuggestion(overrides: Partial<ApiTopicSuggestion> = {}): ApiTo
     summary: 'Resumo da notícia.',
     sourceUrl: 'https://example.com/noticia',
     sourceDomain: 'example.com',
+    articleUrl: 'https://news.google.com/rss/articles/abc',
     rationale: 'rationale',
     audienceFitScore: 1.8,
     thumbnailUrl: null,
+    publishedPlatforms: [],
     createdAt: new Date().toISOString(),
     ...overrides,
   }

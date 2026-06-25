@@ -22,6 +22,7 @@ function makePost(externalId: string | undefined): Post {
     scheduledAt: null,
     publishedAt: new Date(),
     externalIds: externalId ? { [Platform.LINKEDIN]: externalId } : {},
+    sourceArticleUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }

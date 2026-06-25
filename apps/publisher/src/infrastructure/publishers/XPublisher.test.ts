@@ -14,6 +14,7 @@ const mockPost: Post = {
   scheduledAt: null,
   publishedAt: null,
   externalIds: {},
+  sourceArticleUrl: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 }

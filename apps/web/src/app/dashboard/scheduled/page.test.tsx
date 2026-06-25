@@ -49,6 +49,15 @@ function renderPage() {
   )
 }
 
+// A view padrão da página é o calendário — testes que exercitam o cartão de post em lista
+// (editar, publicar agora, etc.) precisam alternar para a lista primeiro.
+async function renderListView() {
+  const user = userEvent.setup()
+  renderPage()
+  await user.click(screen.getByRole('button', { name: 'Lista' }))
+  return user
+}
+
 beforeEach(() => {
   vi.clearAllMocks()
 })
@@ -57,7 +66,7 @@ describe('ScheduledPostsPage', () => {
   it('mostra os posts agendados com data, plataforma e prévia do texto', async () => {
     mockedApi.getPosts.mockResolvedValue([makePost()])
 
-    renderPage()
+    await renderListView()
 
     expect(await screen.findByText('Texto agendado para o LinkedIn')).toBeInTheDocument()
     expect(screen.getByText('LinkedIn')).toBeInTheDocument()
@@ -81,11 +90,10 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('permite editar o texto de um post e salvar', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
     mockedApi.updatePost.mockResolvedValue(makePost({ content: [{ platform: Platform.LINKEDIN, text: 'Texto revisado' }] }))
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -105,13 +113,12 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('permite trocar a foto de um post ao editar', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost({ imageStoragePaths: ['old-photo.jpg'] })])
     mockedApi.getImageUrl.mockResolvedValue('https://example.com/old-photo.jpg')
     mockedApi.uploadImage.mockResolvedValue('new-photo.jpg')
     mockedApi.updatePost.mockResolvedValue(makePost({ imageStoragePaths: ['new-photo.jpg'] }))
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -133,11 +140,10 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('permite alterar a data de publicação ao editar', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
     mockedApi.updatePost.mockResolvedValue(makePost())
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -157,10 +163,9 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('impede salvar quando a data de publicação está no passado', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -173,10 +178,9 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('permite cancelar a edição sem salvar', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Editar' }))
@@ -187,7 +191,6 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('permite publicar um post agendado agora', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
     mockedApi.publishPost.mockResolvedValue({
       postId: 'post-1',
@@ -195,7 +198,7 @@ describe('ScheduledPostsPage', () => {
       failedPlatforms: [],
     })
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Publicar agora' }))
@@ -206,11 +209,10 @@ describe('ScheduledPostsPage', () => {
   })
 
   it('mostra erro quando a publicação imediata falha', async () => {
-    const user = userEvent.setup()
     mockedApi.getPosts.mockResolvedValue([makePost()])
     mockedApi.publishPost.mockRejectedValue(new Error('Publisher indisponível'))
 
-    renderPage()
+    const user = await renderListView()
     await screen.findByText('Texto agendado para o LinkedIn')
 
     await user.click(screen.getByRole('button', { name: 'Publicar agora' }))
@@ -229,15 +231,11 @@ describe('ScheduledPostsPage', () => {
     })
 
     it('mostra o post agendado no dia certo do mês exibido', async () => {
-      const user = userEvent.setup()
       mockedApi.getPosts.mockResolvedValue([makePost()])
 
       renderPage()
-      await screen.findByText('Texto agendado para o LinkedIn')
 
-      await user.click(screen.getByRole('button', { name: 'Calendário' }))
-
-      expect(screen.getByText('Julho de 2026')).toBeInTheDocument()
+      expect(await screen.findByText('Julho de 2026')).toBeInTheDocument()
       expect(screen.getByText(/Texto agendado para o LinkedIn/)).toBeInTheDocument()
     })
 
@@ -246,8 +244,7 @@ describe('ScheduledPostsPage', () => {
       mockedApi.getPosts.mockResolvedValue([makePost()])
 
       renderPage()
-      await screen.findByText('Texto agendado para o LinkedIn')
-      await user.click(screen.getByRole('button', { name: 'Calendário' }))
+      await screen.findByText(/Texto agendado para o LinkedIn/)
 
       await user.click(screen.getByRole('button', { name: 'Mês seguinte' }))
       expect(screen.getByText('Agosto de 2026')).toBeInTheDocument()
@@ -263,8 +260,7 @@ describe('ScheduledPostsPage', () => {
       mockedApi.getPosts.mockResolvedValue([makePost()])
 
       renderPage()
-      await screen.findByText('Texto agendado para o LinkedIn')
-      await user.click(screen.getByRole('button', { name: 'Calendário' }))
+      await screen.findByText(/Texto agendado para o LinkedIn/)
 
       await user.click(screen.getByText(/Texto agendado para o LinkedIn/))
 

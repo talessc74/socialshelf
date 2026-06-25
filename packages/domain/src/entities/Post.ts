@@ -19,6 +19,9 @@ export interface Post {
   scheduledAt: Date | null
   publishedAt: Date | null
   externalIds: Partial<Record<Platform, string>>
+  // URL do artigo de notícia que originou este post, quando criado a partir de uma sugestão de
+  // pauta. Usado para marcar, na tela de notícias, que esse artigo já gerou um post publicado.
+  sourceArticleUrl: string | null
   createdAt: Date
   updatedAt: Date
 }

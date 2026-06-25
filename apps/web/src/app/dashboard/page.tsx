@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { Sparkles, Send, Clock, Lightbulb, BarChart3, Share2, Tag } from 'lucide-react'
+import { Sparkles, Send, Clock, Lightbulb, BarChart3, Share2, Tag, Newspaper } from 'lucide-react'
 import { Platform } from '@socialshelf/domain'
 import { api } from '../../lib/api'
 import { LogoImage } from '../../components/LogoImage'
@@ -33,6 +33,7 @@ const SHORTCUTS = [
   { href: '/dashboard/compose', label: 'Novo Post', description: 'Escreva e publique manualmente', icon: Send },
   { href: '/dashboard/scheduled', label: 'Posts Agendados', description: 'Veja e edite os posts programados', icon: Clock },
   { href: '/dashboard/insights', label: 'Banco de Insights', description: 'Ideias de posts sugeridas pela IA', icon: Lightbulb },
+  { href: '/dashboard/insights?tab=news', label: 'Notícias', description: 'Veja notícias para criar pautas', icon: Newspaper },
   { href: '/dashboard/performance', label: 'Performance', description: 'Veja o que está funcionando', icon: BarChart3 },
   { href: '/dashboard/accounts', label: 'Central de Contas', description: 'Gerencie as redes sociais conectadas', icon: Share2 },
   { href: '/dashboard/brand', label: 'Marca', description: 'Identidade e voz da marca', icon: Tag },

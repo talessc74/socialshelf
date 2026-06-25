@@ -443,7 +443,12 @@ export default function GenerateContentPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div className="space-y-6">
           {result ? (
-            <ResultView result={result} onResultUpdate={setResult} onBack={() => router.push('/dashboard')} />
+            <ResultView
+              result={result}
+              onResultUpdate={setResult}
+              onBack={() => router.push('/dashboard')}
+              sourceArticleUrl={selectedSuggestion?.articleUrl ?? null}
+            />
           ) : generating ? (
             <GeneratingView stages={stages} stageIndex={stageIndex} />
           ) : (
@@ -876,10 +881,12 @@ function ResultView({
   result,
   onResultUpdate,
   onBack,
+  sourceArticleUrl,
 }: {
   result: ApiGenerationRequest
   onResultUpdate: (r: ApiGenerationRequest) => void
   onBack: () => void
+  sourceArticleUrl: string | null
 }) {
   const aspectClass = ASPECT_RATIO_CLASS[result.inputs.aspectRatio]
   const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
@@ -906,7 +913,12 @@ function ResultView({
     setPublishError('')
     setPublishing(true)
     try {
-      const post = await api.createPost(buildContent(), readyArtifacts.map((a) => a.imageStoragePath!))
+      const post = await api.createPost(
+        buildContent(),
+        readyArtifacts.map((a) => a.imageStoragePath!),
+        undefined,
+        sourceArticleUrl,
+      )
       const response = await api.publishPost(post.id)
       setPublishResult(response)
     } catch (err) {
@@ -926,7 +938,7 @@ function ResultView({
     setPublishError('')
     setScheduling(true)
     try {
-      await api.createPost(buildContent(), readyArtifacts.map((a) => a.imageStoragePath!), scheduledAt)
+      await api.createPost(buildContent(), readyArtifacts.map((a) => a.imageStoragePath!), scheduledAt, sourceArticleUrl)
       setScheduleSuccess(scheduledAt)
       setShowScheduler(false)
     } catch (err) {

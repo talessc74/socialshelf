@@ -16,6 +16,7 @@ import type {
   PlatformContent,
   AspectRatio,
   ArtifactPlan,
+  TopicSuggestion,
 } from '@socialshelf/domain'
 
 export interface GenerateContentInput {
@@ -69,7 +70,10 @@ export class GenerateContentUseCase {
     await this.generationRequestRepo.save(request)
 
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.brandId)
-    const pautaContext = await this.resolvePautaContext(input.brandId, input.topicSuggestionId)
+    const topicSuggestion = await this.resolveTopicSuggestion(input.brandId, input.topicSuggestionId)
+    const pautaContext = topicSuggestion
+      ? { headline: topicSuggestion.headline, rationale: topicSuggestion.rationale }
+      : null
 
     request.status = 'generating_copy'
     await this.generationRequestRepo.updateStatus(request.id, 'generating_copy')
@@ -256,6 +260,7 @@ export class GenerateContentUseCase {
       scheduledAt: null,
       publishedAt: null,
       externalIds: {},
+      sourceArticleUrl: topicSuggestion?.articleUrl ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     })
@@ -263,14 +268,12 @@ export class GenerateContentUseCase {
     return request
   }
 
-  private async resolvePautaContext(
+  private async resolveTopicSuggestion(
     brandId: string,
     topicSuggestionId: string | null,
-  ): Promise<{ headline: string; rationale: string } | null> {
+  ): Promise<TopicSuggestion | null> {
     if (!topicSuggestionId) return null
-    const suggestion = await this.topicSuggestionRepo.findById(brandId, topicSuggestionId)
-    if (!suggestion) return null
-    return { headline: suggestion.headline, rationale: suggestion.rationale }
+    return this.topicSuggestionRepo.findById(brandId, topicSuggestionId)
   }
 }
 

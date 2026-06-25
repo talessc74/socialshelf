@@ -86,6 +86,7 @@ export class FirestorePostRepository implements PostRepository {
       scheduledAt: data['scheduledAt'] ? new Date(data['scheduledAt'] as string) : null,
       publishedAt: data['publishedAt'] ? new Date(data['publishedAt'] as string) : null,
       externalIds: (data['externalIds'] as Partial<Record<Platform, string>>) ?? {},
+      sourceArticleUrl: (data['sourceArticleUrl'] as string | null | undefined) ?? null,
       createdAt: new Date(data['createdAt'] as string),
       updatedAt: new Date(data['updatedAt'] as string),
     }

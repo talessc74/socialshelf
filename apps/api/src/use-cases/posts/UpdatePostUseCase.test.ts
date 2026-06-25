@@ -15,6 +15,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     scheduledAt: new Date('2026-07-01T12:00:00.000Z'),
     publishedAt: null,
     externalIds: {},
+    sourceArticleUrl: null,
     createdAt: new Date('2026-06-20T00:00:00.000Z'),
     updatedAt: new Date('2026-06-20T00:00:00.000Z'),
     ...overrides,
