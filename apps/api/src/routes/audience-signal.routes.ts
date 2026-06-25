@@ -31,7 +31,7 @@ export async function audienceSignalRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, platform: parsed.data.platform }),
+        body: JSON.stringify({ brandId: request.brandId, platform: parsed.data.platform }),
       })
 
       if (!res.ok) {

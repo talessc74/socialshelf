@@ -10,9 +10,11 @@ vi.mock('../../infrastructure/firebase-admin.js', () => ({
   },
 }))
 
+const { saveSpy } = vi.hoisted(() => ({ saveSpy: vi.fn().mockResolvedValue(undefined) }))
+
 vi.mock('../../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({
-    save: vi.fn().mockResolvedValue(undefined),
+    save: saveSpy,
   })),
 }))
 
@@ -82,20 +84,37 @@ describe('LinkedIn OAuth routes', () => {
 
   describe('GET /oauth/linkedin/callback', () => {
     it('redirects to dashboard with connected=linkedin on success', async () => {
-      const state = generateState('user-test-123')
+      const state = generateState('user-test-123', 'user-test-123')
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
+        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state)}`,
       })
 
       expect(response.statusCode).toBe(302)
       expect(response.headers['location']).toContain('connected=linkedin')
     })
 
+    it('ignores an unsigned brandId query param and saves using the brandId embedded in state', async () => {
+      const state = generateState('user-test-123', 'brand-456')
+      const callsBefore = saveSpy.mock.calls.length
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state)}&brandId=attacker-brand-999`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      const newCalls = saveSpy.mock.calls.slice(callsBefore) as Array<[{ brandId: string }]>
+      expect(newCalls.length).toBeGreaterThan(0)
+      for (const [connection] of newCalls) {
+        expect(connection.brandId).toBe('brand-456')
+      }
+    })
+
     it('redirects to dashboard with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/oauth/linkedin/callback?code=valid-code&state=invalid.tampered&brandId=user-test-123',
+        url: '/oauth/linkedin/callback?code=valid-code&state=invalid.tampered',
       })
 
       expect(response.statusCode).toBe(302)

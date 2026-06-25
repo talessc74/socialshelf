@@ -11,7 +11,6 @@ const callbackQuerySchema = z.object({
   error: z.string().optional(),
   error_description: z.string().optional(),
   state: z.string().min(1),
-  brandId: z.string().optional(),
 })
 
 export async function linkedinOAuthRoutes(app: FastifyInstance) {
@@ -26,7 +25,7 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
     '/oauth/linkedin/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId)
+      const { url } = generateUrl.execute(request.userId, request.brandId)
       app.log.info({ url }, 'LinkedIn auth URL generated')
       return reply.send({ url })
     },
@@ -46,12 +45,8 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
     }
 
     try {
-      const { userId } = validateState(state)
-      const brandId = result.data.brandId ?? userId
-      if (brandId !== userId) {
-        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
-      }
-      await handleCallback.execute(code, brandId)
+      const { userId, brandId } = validateState(state)
+      await handleCallback.execute(code, userId, brandId)
       return reply.redirect(`${webUrl}/dashboard?connected=linkedin`)
     } catch (err) {
       app.log.error(err)

@@ -4,6 +4,6 @@ export class SetPerformanceSuggestionShelvedUseCase {
   constructor(private readonly suggestionRepo: PerformanceSuggestionRepository) {}
 
   async execute(brandId: string, id: string, shelved: boolean): Promise<void> {
-    await this.suggestionRepo.setShelved(brandId, id, shelved)
+    await this.suggestionRepo.setShelved(brandId, brandId, id, shelved)
   }
 }

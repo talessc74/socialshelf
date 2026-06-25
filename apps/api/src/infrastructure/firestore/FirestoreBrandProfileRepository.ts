@@ -16,10 +16,10 @@ export class FirestoreBrandProfileRepository implements BrandProfileRepository {
       })
   }
 
-  async findLatestByBrand(brandId: string): Promise<BrandProfile | null> {
+  async findLatestByBrand(userId: string, brandId: string): Promise<BrandProfile | null> {
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('brand_profiles')
@@ -31,10 +31,10 @@ export class FirestoreBrandProfileRepository implements BrandProfileRepository {
     return this.fromFirestore(snapshot.docs[0]!.data())
   }
 
-  async findByBrandAndVersion(brandId: string, version: number): Promise<BrandProfile | null> {
+  async findByBrandAndVersion(userId: string, brandId: string, version: number): Promise<BrandProfile | null> {
     const doc = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('brand_profiles')

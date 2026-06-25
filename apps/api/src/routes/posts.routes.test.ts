@@ -155,7 +155,7 @@ describe('Posts routes', () => {
       expect(response.statusCode).toBe(200)
       const body = response.json<{ posts: Array<{ id: string }> }>()
       expect(body.posts.map((p) => p.id)).toEqual(['p1', 'p2'])
-      expect(mockFindByBrand).toHaveBeenCalledWith('user-test-123', 'scheduled')
+      expect(mockFindByBrand).toHaveBeenCalledWith('user-test-123', 'user-test-123', 'scheduled')
     })
   })
 

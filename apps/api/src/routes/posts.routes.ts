@@ -48,12 +48,12 @@ export async function postsRoutes(app: FastifyInstance) {
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
 
-  // List OAuth connections for current user (brandId = userId for Sprint 1)
+  // List OAuth connections for the active brand
   app.get(
     '/connections',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const connections = await oauthRepo.findByBrand(request.userId)
+      const connections = await oauthRepo.findByBrand(request.userId, request.brandId)
       const safe = connections.map(({ tokenRef: _tokenRef, ...rest }) => rest)
       return reply.send({ connections: safe })
     },
@@ -69,7 +69,7 @@ export async function postsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
       }
 
-      const posts = await postRepo.findByBrand(request.userId, parsed.data.status)
+      const posts = await postRepo.findByBrand(request.userId, request.brandId, parsed.data.status)
       const sorted = [...posts].sort(
         (a, b) => (a.scheduledAt ?? a.createdAt).getTime() - (b.scheduledAt ?? b.createdAt).getTime(),
       )
@@ -90,7 +90,7 @@ export async function postsRoutes(app: FastifyInstance) {
       try {
         const post = await createPost.execute({
           userId: request.userId,
-          brandId: request.userId,
+          brandId: request.brandId,
           content: parsed.data.content as Array<{ platform: Platform; text: string }>,
           ...(parsed.data.imageStoragePaths !== undefined && { imageStoragePaths: parsed.data.imageStoragePaths }),
           ...(parsed.data.scheduledAt !== undefined && { scheduledAt: new Date(parsed.data.scheduledAt) }),
@@ -118,7 +118,7 @@ export async function postsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
       }
 
-      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      const existing = await postRepo.findByIdAndBrand(id, request.userId, request.brandId)
       if (!existing) return reply.status(404).send({ error: 'Post not found' })
 
       try {
@@ -154,7 +154,7 @@ export async function postsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ postId: id, brandId: request.userId }),
+        body: JSON.stringify({ postId: id, brandId: request.brandId }),
       })
 
       if (!res.ok) {
@@ -175,7 +175,7 @@ export async function postsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
-      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      const existing = await postRepo.findByIdAndBrand(id, request.userId, request.brandId)
       if (!existing) return reply.status(404).send({ error: 'Post not found' })
 
       try {

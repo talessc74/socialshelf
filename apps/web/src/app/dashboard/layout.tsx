@@ -3,10 +3,12 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../contexts/AuthContext'
+import { useBrand } from '../../contexts/BrandContext'
 import { TopNav } from '../../components/TopNav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth()
+  const { brands, activeBrandId, setActiveBrandId } = useBrand()
   const router = useRouter()
 
   useEffect(() => {
@@ -23,7 +25,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-surface-operation-dots">
-      <TopNav email={user.email ?? ''} onLogout={logout} />
+      <TopNav
+        email={user.email ?? ''}
+        onLogout={logout}
+        brands={brands}
+        activeBrandId={activeBrandId}
+        onBrandChange={setActiveBrandId}
+      />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
     </div>
   )

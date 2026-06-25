@@ -10,9 +10,11 @@ vi.mock('../../infrastructure/firebase-admin.js', () => ({
   },
 }))
 
+const { saveSpy } = vi.hoisted(() => ({ saveSpy: vi.fn().mockResolvedValue(undefined) }))
+
 vi.mock('../../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({
-    save: vi.fn().mockResolvedValue(undefined),
+    save: saveSpy,
   })),
 }))
 
@@ -90,23 +92,40 @@ describe('X OAuth routes', () => {
 
   describe('GET /oauth/x/callback', () => {
     it('redirects with connected=twitter on valid state with embedded codeVerifier', async () => {
-      const state = generateState('user-test-123', 'test-verifier-32-bytes-base64url')
+      const state = generateState('user-test-123', 'user-test-123', 'test-verifier-32-bytes-base64url')
 
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}`,
       })
 
       expect(response.statusCode).toBe(302)
       expect(response.headers['location']).toContain('connected=twitter')
     })
 
-    it('redirects with error=oauth_failed when state has no embedded codeVerifier', async () => {
-      const state = generateState('user-test-123')
+    it('ignores an unsigned brandId query param and saves using the brandId embedded in state', async () => {
+      const state = generateState('user-test-123', 'brand-456', 'test-verifier-32-bytes-base64url')
+      const callsBefore = saveSpy.mock.calls.length
 
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}&brandId=attacker-brand-999`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      const newCalls = saveSpy.mock.calls.slice(callsBefore) as Array<[{ brandId: string }]>
+      expect(newCalls.length).toBeGreaterThan(0)
+      for (const [connection] of newCalls) {
+        expect(connection.brandId).toBe('brand-456')
+      }
+    })
+
+    it('redirects with error=oauth_failed when state has no embedded codeVerifier', async () => {
+      const state = generateState('user-test-123', 'user-test-123')
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state)}`,
       })
 
       expect(response.statusCode).toBe(302)
@@ -116,7 +135,7 @@ describe('X OAuth routes', () => {
     it('redirects with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/x/callback?code=x-code&state=invalid.tampered&brandId=user-test-123`,
+        url: `/oauth/x/callback?code=x-code&state=invalid.tampered`,
       })
 
       expect(response.statusCode).toBe(302)

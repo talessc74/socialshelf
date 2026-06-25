@@ -2,10 +2,10 @@ import { db } from '../firebase-admin.js'
 import type { AudienceSignalRepository, AudienceSignal, Platform } from '@socialshelf/domain'
 
 export class FirestoreAudienceSignalRepository implements AudienceSignalRepository {
-  async save(signal: AudienceSignal): Promise<void> {
+  async save(userId: string, signal: AudienceSignal): Promise<void> {
     await db
       .collection('users')
-      .doc(signal.brandId)
+      .doc(userId)
       .collection('brands')
       .doc(signal.brandId)
       .collection('audience_signals')
@@ -16,10 +16,10 @@ export class FirestoreAudienceSignalRepository implements AudienceSignalReposito
       })
   }
 
-  async findLatestByBrandAndPlatform(brandId: string, platform: Platform): Promise<AudienceSignal | null> {
+  async findLatestByBrandAndPlatform(userId: string, brandId: string, platform: Platform): Promise<AudienceSignal | null> {
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('audience_signals')

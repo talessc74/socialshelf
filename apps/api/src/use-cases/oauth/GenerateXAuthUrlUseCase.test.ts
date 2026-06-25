@@ -21,24 +21,24 @@ describe('GenerateXAuthUrlUseCase', () => {
   })
 
   it('returns a URL containing x.com', () => {
-    const { url } = useCase.execute('user-abc')
+    const { url } = useCase.execute('user-abc', 'brand-abc')
     expect(url).toContain('x.com')
   })
 
   it('embeds codeVerifier in the state JWT', () => {
-    const { state } = useCase.execute('user-abc')
+    const { state } = useCase.execute('user-abc', 'brand-abc')
     const { codeVerifier } = validateState(state)
     expect(codeVerifier).toBe('mock-verifier-32-bytes-base64url-ok')
   })
 
   it('returns a signed state string', () => {
-    const { state } = useCase.execute('user-abc')
+    const { state } = useCase.execute('user-abc', 'brand-abc')
     expect(state).toMatch(/^[^.]+\.[^.]+$/)
   })
 
   it('produces different states for different users', () => {
-    const result1 = useCase.execute('user-1')
-    const result2 = useCase.execute('user-2')
+    const result1 = useCase.execute('user-1', 'brand-1')
+    const result2 = useCase.execute('user-2', 'brand-2')
     expect(result1.state).not.toBe(result2.state)
   })
 })

@@ -10,9 +10,11 @@ vi.mock('../../infrastructure/firebase-admin.js', () => ({
   },
 }))
 
+const { saveSpy } = vi.hoisted(() => ({ saveSpy: vi.fn().mockResolvedValue(undefined) }))
+
 vi.mock('../../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({
-    save: vi.fn().mockResolvedValue(undefined),
+    save: saveSpy,
   })),
 }))
 
@@ -84,10 +86,10 @@ describe('Meta OAuth routes', () => {
 
   describe('GET /oauth/meta/callback', () => {
     it('redirects with connected=facebook,instagram when both are linked', async () => {
-      const state = generateState('user-test-123')
+      const state = generateState('user-test-123', 'user-test-123')
       const response = await app.inject({
         method: 'GET',
-        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}&brandId=user-test-123`,
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}`,
       })
 
       expect(response.statusCode).toBe(302)
@@ -99,7 +101,7 @@ describe('Meta OAuth routes', () => {
     it('redirects with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/oauth/meta/callback?code=meta-code&state=bad.state&brandId=user-test-123',
+        url: '/oauth/meta/callback?code=meta-code&state=bad.state',
       })
 
       expect(response.statusCode).toBe(302)
@@ -113,6 +115,23 @@ describe('Meta OAuth routes', () => {
       })
 
       expect(response.statusCode).toBe(400)
+    })
+
+    it('ignores an unsigned brandId query param and saves using the brandId embedded in state', async () => {
+      const state = generateState('user-test-123', 'brand-456')
+      const callsBefore = saveSpy.mock.calls.length
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}&brandId=attacker-brand-999`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      const newCalls = saveSpy.mock.calls.slice(callsBefore) as Array<[{ brandId: string }]>
+      expect(newCalls.length).toBeGreaterThan(0)
+      for (const [connection] of newCalls) {
+        expect(connection.brandId).toBe('brand-456')
+      }
     })
 
     it('redirects with error=oauth_denied when the user denies permissions', async () => {

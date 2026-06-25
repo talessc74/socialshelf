@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, ChevronDown } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
@@ -17,16 +17,40 @@ const NAV_ITEMS = [
   { href: '/dashboard/brand', label: 'Marca', icon: Tag },
 ]
 
+interface TopNavBrand {
+  id: string
+  name: string
+}
+
 interface TopNavProps {
   email: string
   onLogout: () => void
+  brands?: TopNavBrand[]
+  activeBrandId?: string | null
+  onBrandChange?: (brandId: string) => void
 }
 
-export function TopNav({ email, onLogout }: TopNavProps) {
+export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }: TopNavProps) {
   const pathname = usePathname()
   const mobileNavRef = useRef<HTMLElement>(null)
+  const brandMenuRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [brandMenuOpen, setBrandMenuOpen] = useState(false)
+
+  const showBrandSwitcher = (brands?.length ?? 0) > 1
+  const activeBrand = brands?.find((b) => b.id === activeBrandId) ?? null
+
+  useEffect(() => {
+    if (!brandMenuOpen) return
+    function handleClickOutside(event: MouseEvent) {
+      if (!brandMenuRef.current?.contains(event.target as Node)) {
+        setBrandMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [brandMenuOpen])
 
   const updateScrollAffordance = useCallback(() => {
     const nav = mobileNavRef.current
@@ -57,6 +81,47 @@ export function TopNav({ email, onLogout }: TopNavProps) {
       >
         Social<span className="text-brand-600">Shelf</span>
       </Link>
+
+      {showBrandSwitcher && (
+        <div ref={brandMenuRef} className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setBrandMenuOpen((open) => !open)}
+            aria-haspopup="listbox"
+            aria-expanded={brandMenuOpen}
+            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
+          >
+            <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{activeBrand?.name ?? 'Marca'}</span>
+            <ChevronDown className="h-4 w-4 text-gray-400" />
+          </button>
+          {brandMenuOpen && (
+            <div
+              role="listbox"
+              className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+            >
+              {brands?.map((brand) => (
+                <button
+                  key={brand.id}
+                  type="button"
+                  role="option"
+                  aria-selected={brand.id === activeBrandId}
+                  onClick={() => {
+                    onBrandChange?.(brand.id)
+                    setBrandMenuOpen(false)
+                  }}
+                  className={`flex w-full items-center px-3 py-2 text-left text-sm ${
+                    brand.id === activeBrandId
+                      ? 'bg-gray-100 font-medium text-gray-900'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  {brand.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <nav className="hidden flex-1 items-center justify-center gap-1 rounded-full bg-gray-100 p-1 lg:flex">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -114,10 +179,10 @@ export function TopNav({ email, onLogout }: TopNavProps) {
           })}
         </nav>
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-gray-900/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-white via-white/70 to-transparent" />
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-gray-900/10 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/70 to-transparent" />
         )}
       </div>
     </header>

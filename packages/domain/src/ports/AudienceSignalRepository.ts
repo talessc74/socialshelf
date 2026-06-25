@@ -2,6 +2,6 @@ import type { AudienceSignal } from '../entities/AudienceSignal.js'
 import type { Platform } from '../entities/Platform.js'
 
 export interface AudienceSignalRepository {
-  save(signal: AudienceSignal): Promise<void>
-  findLatestByBrandAndPlatform(brandId: string, platform: Platform): Promise<AudienceSignal | null>
+  save(userId: string, signal: AudienceSignal): Promise<void>
+  findLatestByBrandAndPlatform(userId: string, brandId: string, platform: Platform): Promise<AudienceSignal | null>
 }

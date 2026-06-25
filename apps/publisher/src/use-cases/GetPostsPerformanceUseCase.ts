@@ -35,7 +35,7 @@ export class GetPostsPerformanceUseCase {
   ) {}
 
   async execute(brandId: string): Promise<PostsPerformanceResult> {
-    const publishedPosts = await this.postRepo.findByBrand(brandId, 'published')
+    const publishedPosts = await this.postRepo.findByBrand(brandId, brandId, 'published')
     const entries: PostPerformanceEntry[] = []
     const errors: PostPerformanceError[] = []
 
@@ -48,7 +48,7 @@ export class GetPostsPerformanceUseCase {
         // Cada plataforma é isolada: uma falha de token expirado/API indisponível em
         // uma rede não pode impedir a exibição das métricas das demais redes.
         try {
-          const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, platform)
+          const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, brandId, platform)
           if (!connection) continue
 
           const metrics = await reader.fetchPostMetrics(externalId, connection)
