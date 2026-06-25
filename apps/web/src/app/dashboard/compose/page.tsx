@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type PublishResponse } from '../../../lib/api'
-import { Platform, PLATFORM_CHARACTER_LIMITS, PLATFORM_MEDIA_SUPPORT, TemplateStyle } from '@socialshelf/domain'
+import {
+  MAX_GENERATION_ARTIFACTS,
+  Platform,
+  PLATFORM_CHARACTER_LIMITS,
+  PLATFORM_MEDIA_SUPPORT,
+  TemplateStyle,
+} from '@socialshelf/domain'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -137,6 +143,7 @@ export default function ComposePage() {
     .filter((p) => validPlatforms.has(p)) ?? []
 
   const hasImages = existingImagePaths.length > 0 || cards.length > 0
+  const totalImageCount = existingImagePaths.length + cards.length
   const blockedForNoImage = hasImages ? new Set<Platform>() : IMAGE_REQUIRED_PLATFORMS
   const unavailablePlatforms = new Set<Platform>([...COMING_SOON_PLATFORMS, ...blockedForNoImage])
 
@@ -182,24 +189,40 @@ export default function ComposePage() {
 
   const handleAddImages = (files: FileList | null) => {
     if (!files || files.length === 0) return
-    const newCards: ComposeCard[] = Array.from(files).map((file) => ({
-      id: crypto.randomUUID(),
-      file,
-      previewUrl: URL.createObjectURL(file),
-      style: TemplateStyle.BOLD_BOTTOM,
-      headline: '',
-      body: '',
-      uploadedPath: null,
-      renderedPath: null,
-      renderedFor: null,
-      rendering: false,
-      error: null,
-    }))
+    const remainingSlots = MAX_GENERATION_ARTIFACTS - existingImagePaths.length - cards.length
+    if (remainingSlots <= 0) return
+    const newCards: ComposeCard[] = Array.from(files)
+      .slice(0, remainingSlots)
+      .map((file) => ({
+        id: crypto.randomUUID(),
+        file,
+        previewUrl: URL.createObjectURL(file),
+        style: TemplateStyle.BOLD_BOTTOM,
+        headline: '',
+        body: '',
+        uploadedPath: null,
+        renderedPath: null,
+        renderedFor: null,
+        rendering: false,
+        error: null,
+      }))
     setCards((prev) => [...prev, ...newCards])
   }
 
   const updateCard = (id: string, patch: Partial<ComposeCard>) => {
     setCards((prev) => prev.map((c) => (c.id === id ? { ...c, ...patch } : c)))
+  }
+
+  const moveCard = (id: string, direction: -1 | 1) => {
+    setCards((prev) => {
+      const index = prev.findIndex((c) => c.id === id)
+      const newIndex = index + direction
+      if (index === -1 || newIndex < 0 || newIndex >= prev.length) return prev
+      const next = [...prev]
+      const [moved] = next.splice(index, 1)
+      next.splice(newIndex, 0, moved!)
+      return next
+    })
   }
 
   const removeCard = (id: string) => {
@@ -441,17 +464,33 @@ export default function ComposePage() {
       <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-700">🖼 Imagens</h2>
-          <label className="cursor-pointer rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <label
+            className={`cursor-pointer rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+              totalImageCount >= MAX_GENERATION_ARTIFACTS ? 'pointer-events-none opacity-40' : ''
+            }`}
+          >
             + Anexar imagem
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp"
               multiple
+              disabled={totalImageCount >= MAX_GENERATION_ARTIFACTS}
               onChange={(e) => { handleAddImages(e.target.files); e.target.value = '' }}
               className="hidden"
             />
           </label>
         </div>
+
+        <p className="mb-3 text-xs text-gray-400">
+          Anexe 1 imagem para um post único, ou 2 ou mais para criar um carrossel no Instagram (na ordem mostrada
+          abaixo, até {MAX_GENERATION_ARTIFACTS} imagens).
+        </p>
+
+        {totalImageCount > 0 && (
+          <p className="mb-3 text-xs font-medium text-brand-600">
+            {totalImageCount === 1 ? 'Post único' : `Carrossel com ${totalImageCount} imagens — nesta ordem`}
+          </p>
+        )}
 
         {existingImagePaths.length === 0 && cards.length === 0 ? (
           <p className="text-sm text-gray-500">
@@ -476,10 +515,35 @@ export default function ComposePage() {
               </div>
             )}
 
-            {cards.map((card) => (
+            {cards.map((card, index) => (
               <div key={card.id} className="rounded-xl border border-gray-200 p-4">
                 <div className="flex gap-4">
                   <div className="w-28 shrink-0 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-400">
+                        #{existingImagePaths.length + index + 1}
+                      </span>
+                      {cards.length > 1 && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => moveCard(card.id, -1)}
+                            disabled={index === 0}
+                            title="Mover para antes"
+                            className="rounded border border-gray-300 px-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                          >
+                            ←
+                          </button>
+                          <button
+                            onClick={() => moveCard(card.id, 1)}
+                            disabled={index === cards.length - 1}
+                            title="Mover para depois"
+                            className="rounded border border-gray-300 px-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                          >
+                            →
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={card.previewUrl} alt="Foto anexada" className="aspect-square w-full rounded-lg object-cover" />
                     {card.renderedPath && card.renderedFor === cardSnapshot(card) && (
