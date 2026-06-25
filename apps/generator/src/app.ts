@@ -11,6 +11,10 @@ import { brandProfileRoutes } from './routes/brand-profile.routes.js'
 export async function buildApp() {
   const app = Fastify({
     logger: { level: process.env['LOG_LEVEL'] ?? 'info' },
+    // Imagens chegam em /images/upload como JSON com o arquivo em base64 (não multipart),
+    // então precisam superar o limite padrão de 1MB do Fastify — base64 infla o arquivo
+    // original em ~33%, então isso precisa acompanhar o fileSize de 20MB do multipart abaixo.
+    bodyLimit: 30 * 1024 * 1024,
   })
 
   await app.register(helmet)
