@@ -25,6 +25,13 @@ const editArtifactSchema = z.object({
   instruction: z.string().min(1),
 })
 
+const renderCardSchema = z.object({
+  imageStoragePath: z.string().min(1),
+  headline: z.string().optional(),
+  body: z.string().nullable().optional(),
+  style: z.nativeEnum(TemplateStyle),
+})
+
 export async function generationRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -103,6 +110,38 @@ export async function generationRoutes(app: FastifyInstance) {
       if (!res.ok) {
         const body = await res.text()
         if (res.status === 404) return reply.status(404).send({ error: 'Generation request or artifact not found' })
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
+  app.post(
+    '/cards/render',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = renderCardSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const res = await fetchInternal(`${generatorUrl}/cards/render`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+        },
+        body: JSON.stringify({
+          userId: request.userId,
+          brandId: request.brandId,
+          ...parsed.data,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
         app.log.error(`Generator error ${res.status}: ${body}`)
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }

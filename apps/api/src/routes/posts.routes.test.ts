@@ -159,6 +159,52 @@ describe('Posts routes', () => {
     })
   })
 
+  describe('GET /posts/:id', () => {
+    it('returns the post when found for this brand', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce({
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        brandProfileVersion: null,
+        content: [{ platform: 'linkedin', text: 'Old text', charCount: 8 }],
+        imageStoragePaths: [],
+        status: 'published',
+        scheduledAt: null,
+        publishedAt: new Date('2026-06-20T10:00:00Z'),
+        externalIds: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts/post-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ post: { id: string } }>()
+      expect(body.post.id).toBe('post-1')
+    })
+
+    it('returns 404 when the post does not exist for this brand', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts/missing',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({ method: 'GET', url: '/posts/post-1' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
   describe('POST /posts', () => {
     it('creates a post and returns 201', async () => {
       const response = await app.inject({

@@ -223,6 +223,66 @@ describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
   })
 })
 
+describe('POST /cards/render', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['CSRF_SECRET'] = 'test-secret-64-chars-long-enough-for-hmac-sha256-signing'
+    process.env['WEB_URL'] = 'http://localhost:3000'
+    process.env['GENERATOR_URL'] = 'http://localhost:3003'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('proxies to generator and returns the rendered image path', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ imageStoragePath: 'user-test-123/generated/card.png' }),
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: {
+        imageStoragePath: 'user-test-123/generated/upload.png',
+        headline: 'Minha headline',
+        body: 'Meu corpo',
+        style: 'bold-bottom',
+      },
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ imageStoragePath: string }>()
+    expect(body.imageStoragePath).toBe('user-test-123/generated/card.png')
+  })
+
+  it('returns 400 when body is missing required fields', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: {},
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without auth header', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: { imageStoragePath: 'user-test-123/generated/upload.png', style: 'bold-bottom' },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
 describe('GET /generation-requests/:id', () => {
   let app: FastifyInstance
 

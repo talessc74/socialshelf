@@ -303,6 +303,11 @@ export const api = {
     return data.posts
   },
 
+  async getPost(postId: string): Promise<ApiPost> {
+    const data = await apiFetch<{ post: ApiPost }>(`/posts/${postId}`)
+    return data.post
+  },
+
   async getAudienceSignal(platform: Platform): Promise<ApiAudienceSignal> {
     const data = await apiFetch<{ audienceSignal: ApiAudienceSignal }>(
       `/audience-signal?platform=${platform}`,
@@ -446,5 +451,18 @@ export const api = {
       `/generation-images/signed-url?path=${encodeURIComponent(path)}`,
     )
     return data.url
+  },
+
+  async renderCard(
+    imageStoragePath: string,
+    headline: string,
+    body: string | null,
+    style: TemplateStyle,
+  ): Promise<string> {
+    const data = await apiFetch<{ imageStoragePath: string }>('/cards/render', {
+      method: 'POST',
+      body: JSON.stringify({ imageStoragePath, headline, body, style }),
+    })
+    return data.imageStoragePath
   },
 }
