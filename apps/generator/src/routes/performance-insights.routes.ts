@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
 import { AnalyzePerformancePatternsUseCase } from '../use-cases/AnalyzePerformancePatternsUseCase.js'
 import { GeminiPatternAnalyzer } from '../infrastructure/vertexai/GeminiPatternAnalyzer.js'
+import { FirestoreProfileDiagnosticRepository } from '../infrastructure/firestore/FirestoreProfileDiagnosticRepository.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -12,6 +13,7 @@ const platformEnum = z.enum([
 ])
 
 const bodySchema = z.object({
+  brandId: z.string().min(1),
   entries: z.array(
     z.object({
       platform: platformEnum,
@@ -27,13 +29,16 @@ const bodySchema = z.object({
   ),
 })
 
+const latestQuerySchema = z.object({ brandId: z.string().min(1) })
+
 export async function performanceInsightsRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
   const patternAnalyzer = new GeminiPatternAnalyzer(projectId, geminiLocation, geminiModel)
-  const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer)
+  const diagnosticRepo = new FirestoreProfileDiagnosticRepository()
+  const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer, diagnosticRepo)
 
   const internalSecret = process.env['INTERNAL_SECRET']
   if (!internalSecret) {
@@ -52,7 +57,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
     }
 
     try {
-      const insights = await useCase.execute(parsed.data.entries)
+      const insights = await useCase.execute(parsed.data.brandId, parsed.data.entries)
       return reply.send({ insights })
     } catch (err) {
       if (err instanceof Error && err.message === 'No published posts with metrics to analyze') {
@@ -60,6 +65,27 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
       }
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'analyze performance patterns use-case failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.get('/performance-insights/latest', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = latestQuerySchema.safeParse(request.query)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid query params', details: parsed.error.flatten() })
+    }
+
+    try {
+      const record = await diagnosticRepo.findLatestByBrand(parsed.data.brandId)
+      return reply.send({ record })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'find latest profile diagnostic failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

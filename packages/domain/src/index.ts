@@ -95,6 +95,7 @@ export type {
   ProfileDiagnosticActionStep,
 } from './ports/PatternAnalyzerPort.js'
 export type { BrandDocumentExtractorPort, BrandProfileExtraction } from './ports/BrandDocumentExtractorPort.js'
+export type { ProfileDiagnosticRepository, ProfileDiagnosticRecord } from './ports/ProfileDiagnosticRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

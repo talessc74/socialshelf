@@ -33,7 +33,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ entries }),
+        body: JSON.stringify({ brandId: request.userId, entries }),
       })
 
       if (!insightsRes.ok) {
@@ -44,6 +44,25 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
       }
 
       return reply.send(await insightsRes.json())
+    },
+  )
+
+  app.get(
+    '/performance-insights/latest',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const res = await fetchInternal(
+        `${generatorUrl}/performance-insights/latest?brandId=${encodeURIComponent(request.userId)}`,
+        { headers: { 'X-Internal-Secret': internalSecret } },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
     },
   )
 }

@@ -1,7 +1,12 @@
 import { describe, it, expect, vi } from 'vitest'
 import { AnalyzePerformancePatternsUseCase } from './AnalyzePerformancePatternsUseCase.js'
 import { Platform } from '@socialshelf/domain'
-import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic } from '@socialshelf/domain'
+import type {
+  PatternAnalyzerPort,
+  PostPerformanceSummary,
+  ProfileDiagnostic,
+  ProfileDiagnosticRepository,
+} from '@socialshelf/domain'
 
 function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerformanceSummary {
   return {
@@ -28,25 +33,55 @@ function makeDiagnostic(overrides: Partial<ProfileDiagnostic> = {}): ProfileDiag
   }
 }
 
+function makeDiagnosticRepo(): ProfileDiagnosticRepository {
+  return {
+    save: vi.fn(),
+    findLatestByBrand: vi.fn(),
+  }
+}
+
 describe('AnalyzePerformancePatternsUseCase', () => {
   it('retorna o diagnóstico gerado pelo analisador', async () => {
     const diagnostic = makeDiagnostic()
     const patternAnalyzer: PatternAnalyzerPort = {
       analyzePatterns: vi.fn().mockResolvedValue(diagnostic),
     }
-    const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer)
+    const diagnosticRepo = makeDiagnosticRepo()
+    const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer, diagnosticRepo)
 
-    const result = await useCase.execute([makeEntry()])
+    const result = await useCase.execute('brand-1', [makeEntry()])
 
     expect(result).toEqual(diagnostic)
     expect(patternAnalyzer.analyzePatterns).toHaveBeenCalledWith([makeEntry()])
   })
 
+  it('persiste o diagnóstico com a marca, a contagem de posts e o horário do cálculo', async () => {
+    const diagnostic = makeDiagnostic()
+    const patternAnalyzer: PatternAnalyzerPort = {
+      analyzePatterns: vi.fn().mockResolvedValue(diagnostic),
+    }
+    const diagnosticRepo = makeDiagnosticRepo()
+    const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer, diagnosticRepo)
+
+    await useCase.execute('brand-1', [makeEntry(), makeEntry()])
+
+    expect(diagnosticRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-1',
+        postsAnalyzed: 2,
+        diagnostic,
+        computedAt: expect.any(Date),
+      }),
+    )
+  })
+
   it('lança erro quando não há posts para analisar', async () => {
     const patternAnalyzer: PatternAnalyzerPort = { analyzePatterns: vi.fn() }
-    const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer)
+    const diagnosticRepo = makeDiagnosticRepo()
+    const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer, diagnosticRepo)
 
-    await expect(useCase.execute([])).rejects.toThrow('No published posts with metrics to analyze')
+    await expect(useCase.execute('brand-1', [])).rejects.toThrow('No published posts with metrics to analyze')
     expect(patternAnalyzer.analyzePatterns).not.toHaveBeenCalled()
+    expect(diagnosticRepo.save).not.toHaveBeenCalled()
   })
 })
