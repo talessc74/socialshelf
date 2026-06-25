@@ -69,6 +69,7 @@ export type {
   RenderedTemplateImage,
 } from './ports/TemplateRendererPort.js'
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
+export type { BrandRepository } from './ports/BrandRepository.js'
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'
 export { ContentNotFoundError } from './ports/AnalyticsReaderPort.js'
