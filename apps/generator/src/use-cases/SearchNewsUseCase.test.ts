@@ -5,12 +5,22 @@ import type {
   NewsSourcePort,
   TranslatorPort,
   ThumbnailFetcherPort,
+  AudienceFitScorerPort,
   BrandProfileRepository,
   AudienceSignalRepository,
   BrandProfile,
   NewsItem,
   AudienceSignal,
 } from '@socialshelf/domain'
+
+// Reproduz o comportamento de correspondência de substring usado antes da IA semântica, para que
+// os testes que não exercitam a IA continuem estáveis.
+const defaultScoreAudienceFit: AudienceFitScorerPort['score'] = async ({ recurringThemes, items }) =>
+  items.map((item) => {
+    const text = `${item.headline} ${item.summary}`.toLowerCase()
+    const matchedThemes = recurringThemes.filter((theme) => text.includes(theme.toLowerCase()))
+    return { matchedThemes, relevanceStrength: matchedThemes.length }
+  })
 
 const mockBrandProfile: BrandProfile = {
   id: 'profile-1',
@@ -58,6 +68,7 @@ function makeUseCase(opts: {
   avgEngagementRate?: number | null
   translate?: TranslatorPort['translate']
   fetchThumbnail?: ThumbnailFetcherPort['fetchThumbnail']
+  scoreAudienceFit?: AudienceFitScorerPort['score']
 }) {
   const newsSource: NewsSourcePort = {
     fetchNews: vi.fn(opts.fetchNewsImpl ?? (async () => opts.newsItems ?? [makeNewsItem()])),
@@ -67,6 +78,11 @@ function makeUseCase(opts: {
   }
   const thumbnailFetcher: ThumbnailFetcherPort = {
     fetchThumbnail: vi.fn(opts.fetchThumbnail ?? (async () => null)),
+  }
+  // Scorer literal por padrão: reproduz o comportamento de correspondência de substring usado
+  // antes da IA semântica, para que os testes que não exercitam a IA continuem estáveis.
+  const audienceFitScorer: AudienceFitScorerPort = {
+    score: vi.fn(opts.scoreAudienceFit ?? defaultScoreAudienceFit),
   }
   const brandProfileRepo: BrandProfileRepository = {
     save: vi.fn(),
@@ -86,12 +102,13 @@ function makeUseCase(opts: {
     newsSource,
     translator,
     thumbnailFetcher,
+    audienceFitScorer,
     brandProfileRepo,
     audienceSignalRepo,
     ['reuters.com'],
   )
 
-  return { useCase, newsSource, translator, thumbnailFetcher, brandProfileRepo, audienceSignalRepo }
+  return { useCase, newsSource, translator, thumbnailFetcher, audienceFitScorer, brandProfileRepo, audienceSignalRepo }
 }
 
 describe('SearchNewsUseCase', () => {

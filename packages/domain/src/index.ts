@@ -77,6 +77,12 @@ export type { NewsSourcePort } from './ports/NewsSourcePort.js'
 export type { TopicQueryPlannerPort, TopicQueryPlannerInput } from './ports/TopicQueryPlannerPort.js'
 export type { TranslatorPort, TranslateInput } from './ports/TranslatorPort.js'
 export type { ThumbnailFetcherPort } from './ports/ThumbnailFetcherPort.js'
+export type {
+  AudienceFitScorerPort,
+  AudienceFitScorerInput,
+  AudienceFitScorerItem,
+  AudienceFitResult,
+} from './ports/AudienceFitScorerPort.js'
 export type { TopicSuggestionRepository } from './ports/TopicSuggestionRepository.js'
 export type { PerformanceSuggestionRepository } from './ports/PerformanceSuggestionRepository.js'
 export type { PerformanceSuggesterPort, PerformanceSuggestionDraft } from './ports/PerformanceSuggesterPort.js'
