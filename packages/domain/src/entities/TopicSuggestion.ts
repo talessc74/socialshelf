@@ -5,6 +5,9 @@ export interface TopicSuggestion {
   summary: string
   sourceUrl: string
   sourceDomain: string
+  // URL do artigo em si (não o domínio raiz do veículo) — chave estável usada para detectar se
+  // esta notícia já gerou um post publicado.
+  articleUrl: string
   rationale: string
   audienceFitScore: number
   // Imagem de capa (og:image do artigo, melhor esforço). null quando o veículo não expõe imagem —

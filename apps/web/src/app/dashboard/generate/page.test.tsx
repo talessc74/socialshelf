@@ -98,9 +98,11 @@ describe('GenerateContentPage', () => {
       summary: 'resumo',
       sourceUrl: 'https://example.com',
       sourceDomain: 'example.com',
+      articleUrl: 'https://news.google.com/rss/articles/abc',
       rationale: 'rationale',
       audienceFitScore: 0.8,
       thumbnailUrl: null,
+      publishedPlatforms: [],
       createdAt: new Date().toISOString(),
     }
     mockedApi.getTopicSuggestions.mockResolvedValue([suggestion])
@@ -227,6 +229,8 @@ describe('GenerateContentPage', () => {
     expect(mockedApi.createPost).toHaveBeenCalledWith(
       [{ platform: Platform.LINKEDIN, text: 'Copy gerada para o LinkedIn' }],
       ['user-1/generated/img.png'],
+      undefined,
+      null,
     )
     expect(mockedApi.publishPost).toHaveBeenCalledWith('post-1')
   })

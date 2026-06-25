@@ -88,6 +88,7 @@ export async function buildTopicSuggestion(
     summary: translated.summary,
     sourceUrl: item.sourceUrl,
     sourceDomain: item.sourceDomain,
+    articleUrl: item.articleUrl,
     rationale: buildRationale(fit, avgEngagementRate),
     audienceFitScore,
     thumbnailUrl,

@@ -1,12 +1,37 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import type { Platform } from '@socialshelf/domain'
 import { fetchInternal } from '../lib/serviceAuth.js'
+import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 
 const searchSchema = z.object({ query: z.string().min(1) })
+
+interface RawTopicSuggestion {
+  articleUrl: string
+  [key: string]: unknown
+}
 
 export async function pautaRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
+  const postRepo = new FirestorePostRepository()
+
+  // Anexa, a cada sugestão, em quais redes a notícia (pelo articleUrl) já gerou um post publicado —
+  // permite à UI marcar "essa notícia já foi usada" sem o gerador precisar conhecer posts.
+  async function attachPublishedPlatforms(brandId: string, suggestions: RawTopicSuggestion[]) {
+    const publishedPosts = await postRepo.findByBrand(brandId, 'published')
+    const platformsByArticleUrl = new Map<string, Set<Platform>>()
+    for (const post of publishedPosts) {
+      if (!post.sourceArticleUrl) continue
+      const platforms = platformsByArticleUrl.get(post.sourceArticleUrl) ?? new Set<Platform>()
+      for (const c of post.content) platforms.add(c.platform)
+      platformsByArticleUrl.set(post.sourceArticleUrl, platforms)
+    }
+    return suggestions.map((s) => ({
+      ...s,
+      publishedPlatforms: [...(platformsByArticleUrl.get(s.articleUrl) ?? [])],
+    }))
+  }
 
   app.get(
     '/pauta-suggestions',
@@ -28,7 +53,9 @@ export async function pautaRoutes(app: FastifyInstance) {
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }
 
-      return reply.send(await res.json())
+      const body = (await res.json()) as { suggestions: RawTopicSuggestion[] }
+      const suggestions = await attachPublishedPlatforms(request.userId, body.suggestions)
+      return reply.send({ suggestions })
     },
   )
 
@@ -57,7 +84,9 @@ export async function pautaRoutes(app: FastifyInstance) {
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }
 
-      return reply.send(await res.json())
+      const body = (await res.json()) as { suggestions: RawTopicSuggestion[] }
+      const suggestions = await attachPublishedPlatforms(request.userId, body.suggestions)
+      return reply.send({ suggestions })
     },
   )
 }

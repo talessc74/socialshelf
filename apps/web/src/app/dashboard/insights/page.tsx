@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiPerformanceSuggestion } from '../../../lib/api'
 import { NewsCarousel } from '../../../components/NewsCarousel'
@@ -89,7 +89,10 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
 
 export default function InsightsBankPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<'shelved' | 'fresh' | 'news'>('shelved')
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState<'shelved' | 'fresh' | 'news'>(
+    searchParams.get('tab') === 'news' ? 'news' : 'shelved',
+  )
 
   const { data: shelved, isLoading: loadingShelved } = useQuery({
     queryKey: ['shelved-performance-suggestions'],

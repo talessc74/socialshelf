@@ -22,6 +22,7 @@ const createPostSchema = z.object({
     .min(1),
   imageStoragePaths: z.array(z.string()).optional(),
   scheduledAt: z.string().datetime().optional(),
+  sourceArticleUrl: z.string().nullable().optional(),
 })
 
 const listPostsQuerySchema = z.object({
@@ -93,6 +94,7 @@ export async function postsRoutes(app: FastifyInstance) {
           content: parsed.data.content as Array<{ platform: Platform; text: string }>,
           ...(parsed.data.imageStoragePaths !== undefined && { imageStoragePaths: parsed.data.imageStoragePaths }),
           ...(parsed.data.scheduledAt !== undefined && { scheduledAt: new Date(parsed.data.scheduledAt) }),
+          ...(parsed.data.sourceArticleUrl !== undefined && { sourceArticleUrl: parsed.data.sourceArticleUrl }),
         })
         return reply.status(201).send({ post })
       } catch (err) {

@@ -396,7 +396,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
 
 export default function ScheduledPostsPage() {
   const router = useRouter()
-  const [view, setView] = useState<'list' | 'calendar'>('list')
+  const [view, setView] = useState<'list' | 'calendar'>('calendar')
   const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
 
   const { data, isLoading, error } = useQuery({

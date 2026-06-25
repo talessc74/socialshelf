@@ -15,6 +15,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     scheduledAt: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     externalIds: { [Platform.LINKEDIN]: 'urn:li:share:1' },
+    sourceArticleUrl: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

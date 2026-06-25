@@ -7,11 +7,13 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: { verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }) },
 }))
 
+const mockFindByBrand = vi.fn().mockResolvedValue([])
+
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     findById: vi.fn().mockResolvedValue(null),
-    findByBrand: vi.fn().mockResolvedValue([]),
+    findByBrand: mockFindByBrand,
     findScheduledBefore: vi.fn().mockResolvedValue([]),
     delete: vi.fn().mockResolvedValue(undefined),
   })),
@@ -74,6 +76,7 @@ describe('GET /pauta-suggestions', () => {
             summary: 'Summary',
             sourceUrl: 'https://www.reuters.com/article/1',
             sourceDomain: 'reuters.com',
+            articleUrl: 'https://news.google.com/rss/articles/abc',
             rationale: 'Casa com os temas recorrentes',
             audienceFitScore: 1.1,
             createdAt: new Date().toISOString(),
@@ -91,6 +94,48 @@ describe('GET /pauta-suggestions', () => {
     expect(response.statusCode).toBe(200)
     const body = response.json<{ suggestions: Array<{ sourceDomain: string }> }>()
     expect(body.suggestions[0]?.sourceDomain).toBe('reuters.com')
+  })
+
+  it('marca a sugestão com as plataformas em que já foi publicada', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        suggestions: [
+          {
+            id: 'suggestion-1',
+            brandId: 'user-test-123',
+            headline: 'Headline',
+            summary: 'Summary',
+            sourceUrl: 'https://www.reuters.com/article/1',
+            sourceDomain: 'reuters.com',
+            articleUrl: 'https://news.google.com/rss/articles/abc',
+            rationale: 'Casa com os temas recorrentes',
+            audienceFitScore: 1.1,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      }),
+    })
+    mockFindByBrand.mockResolvedValueOnce([
+      {
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        content: [{ platform: 'instagram', text: 'Texto', charCount: 5 }],
+        status: 'published',
+        sourceArticleUrl: 'https://news.google.com/rss/articles/abc',
+      },
+    ])
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/pauta-suggestions',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ suggestions: Array<{ publishedPlatforms: string[] }> }>()
+    expect(body.suggestions[0]?.publishedPlatforms).toEqual(['instagram'])
   })
 
   it('returns 404 when generator returns 404', async () => {
@@ -142,6 +187,7 @@ describe('POST /pauta-search', () => {
             summary: 'Summary',
             sourceUrl: 'https://www.reuters.com/article/1',
             sourceDomain: 'reuters.com',
+            articleUrl: 'https://news.google.com/rss/articles/abc',
             rationale: 'Casa com os temas recorrentes',
             audienceFitScore: 1.1,
             createdAt: new Date().toISOString(),

@@ -14,6 +14,7 @@ export interface CreatePostInput {
   content: Array<{ platform: Platform; text: string }>
   imageStoragePaths?: string[]
   scheduledAt?: Date
+  sourceArticleUrl?: string | null
 }
 
 export class CreatePostUseCase {
@@ -46,6 +47,7 @@ export class CreatePostUseCase {
       scheduledAt: input.scheduledAt ?? null,
       publishedAt: null,
       externalIds: {},
+      sourceArticleUrl: input.sourceArticleUrl ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

@@ -263,6 +263,7 @@ describe('GenerateContentUseCase', () => {
       summary: 'Resumo',
       sourceUrl: 'https://reuters.com/article',
       sourceDomain: 'reuters.com',
+      articleUrl: 'https://news.google.com/rss/articles/abc',
       rationale: 'Casa com tema recorrente',
       audienceFitScore: 2,
       thumbnailUrl: null,
