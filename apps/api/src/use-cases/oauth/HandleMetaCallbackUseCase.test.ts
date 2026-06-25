@@ -52,7 +52,7 @@ describe('HandleMetaCallbackUseCase', () => {
   })
 
   it('returns both Facebook and Instagram connections when page has Instagram linked', async () => {
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook).not.toBeNull()
@@ -67,7 +67,7 @@ describe('HandleMetaCallbackUseCase', () => {
       { id: 'page-111', name: 'Page', access_token: 'token' },
     ])
 
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook).not.toBeNull()
@@ -86,7 +86,7 @@ describe('HandleMetaCallbackUseCase', () => {
       },
     ])
 
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook).not.toBeNull()
@@ -102,7 +102,7 @@ describe('HandleMetaCallbackUseCase', () => {
     const { getUserPages } = await import('../../lib/meta-client.js')
     vi.mocked(getUserPages).mockResolvedValueOnce([])
 
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook).toBeNull()
@@ -110,7 +110,7 @@ describe('HandleMetaCallbackUseCase', () => {
   })
 
   it('derives correct pairwise IDs for each platform', async () => {
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook!.pairwiseId).toBe(derivePairwiseId('user-123', Platform.FACEBOOK))
@@ -118,7 +118,7 @@ describe('HandleMetaCallbackUseCase', () => {
   })
 
   it('stores page access token and Instagram account ID in vault', async () => {
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     await useCase.execute('meta-code', state, 'brand-456')
 
     expect(mockTokenVault.store).toHaveBeenCalledWith(
@@ -133,14 +133,14 @@ describe('HandleMetaCallbackUseCase', () => {
 
   it('exchanges short-lived token for long-lived before saving', async () => {
     const { exchangeShortForLongLived } = await import('../../lib/meta-client.js')
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     await useCase.execute('meta-code', state, 'brand-456')
 
     expect(vi.mocked(exchangeShortForLongLived)).toHaveBeenCalledWith('short-lived-token')
   })
 
   it('saves both connections with correct userId and brandId', async () => {
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     await useCase.execute('meta-code', state, 'brand-456')
 
     expect(mockOAuthRepo.save).toHaveBeenCalledTimes(2)
@@ -158,7 +158,7 @@ describe('HandleMetaCallbackUseCase', () => {
       token_type: 'bearer',
     } as never)
 
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook!.expiresAt).toBeInstanceOf(Date)
@@ -173,7 +173,7 @@ describe('HandleMetaCallbackUseCase', () => {
       expires_in: Number.MAX_SAFE_INTEGER,
     })
 
-    const state = generateState('user-123')
+    const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
     expect(result.facebook!.expiresAt).toBeInstanceOf(Date)

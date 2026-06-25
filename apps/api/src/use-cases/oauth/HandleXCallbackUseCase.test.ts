@@ -42,21 +42,21 @@ describe('HandleXCallbackUseCase', () => {
   })
 
   it('returns an OAuthConnection with TWITTER platform', async () => {
-    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123')
+    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123', 'brand-456')
 
     expect(result.platform).toBe(Platform.TWITTER)
     expect(result.userId).toBe('user-123')
-    expect(result.brandId).toBe('user-123')
+    expect(result.brandId).toBe('brand-456')
   })
 
   it('derives correct pairwise ID for Twitter', async () => {
-    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123')
+    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123', 'brand-456')
 
     expect(result.pairwiseId).toBe(derivePairwiseId('user-123', Platform.TWITTER))
   })
 
   it('stores access and refresh tokens in vault', async () => {
-    await useCase.execute('x-code', 'verifier-abc', 'user-123')
+    await useCase.execute('x-code', 'verifier-abc', 'user-123', 'brand-456')
 
     expect(mockTokenVault.store).toHaveBeenCalledWith(
       expect.stringContaining('oauth-token-'),
@@ -69,24 +69,24 @@ describe('HandleXCallbackUseCase', () => {
   })
 
   it('saves the connection to the repository', async () => {
-    await useCase.execute('x-code', 'verifier-abc', 'user-123')
+    await useCase.execute('x-code', 'verifier-abc', 'user-123', 'brand-456')
 
     expect(mockOAuthRepo.save).toHaveBeenCalledTimes(1)
     const saved = vi.mocked(mockOAuthRepo.save).mock.calls[0]![0]
     expect(saved.userId).toBe('user-123')
-    expect(saved.brandId).toBe('user-123')
+    expect(saved.brandId).toBe('brand-456')
     expect(saved.platform).toBe(Platform.TWITTER)
   })
 
   it('parses scopes from space-separated string', async () => {
-    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123')
+    const result = await useCase.execute('x-code', 'verifier-abc', 'user-123', 'brand-456')
 
     expect(result.scopes).toEqual(['tweet.read', 'tweet.write', 'users.read', 'offline.access'])
   })
 
   it('passes codeVerifier to token exchange', async () => {
     const { exchangeCodeForXToken } = await import('../../lib/x-client.js')
-    await useCase.execute('x-code', 'my-verifier', 'user-123')
+    await useCase.execute('x-code', 'my-verifier', 'user-123', 'brand-456')
 
     expect(vi.mocked(exchangeCodeForXToken)).toHaveBeenCalledWith('x-code', 'my-verifier')
   })

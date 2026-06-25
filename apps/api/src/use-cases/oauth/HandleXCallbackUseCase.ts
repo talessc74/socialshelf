@@ -12,10 +12,9 @@ export class HandleXCallbackUseCase {
   async execute(
     code: string,
     codeVerifier: string,
+    userId: string,
     brandId: string,
   ): Promise<OAuthConnection> {
-    const userId = brandId
-
     const tokenResponse = await exchangeCodeForXToken(code, codeVerifier)
 
     const pairwiseId = derivePairwiseId(userId, Platform.TWITTER)

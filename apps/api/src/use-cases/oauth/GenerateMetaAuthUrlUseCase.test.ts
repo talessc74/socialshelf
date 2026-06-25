@@ -13,14 +13,14 @@ describe('GenerateMetaAuthUrlUseCase', () => {
   })
 
   it('returns a Facebook OAuth authorization URL', () => {
-    const { url } = useCase.execute('user-123')
+    const { url } = useCase.execute('user-123', 'brand-123')
     expect(url).toContain('https://www.facebook.com/dialog/oauth')
     expect(url).toContain('client_id=test-meta-app-id')
     expect(url).toContain('response_type=code')
   })
 
   it('includes all required scopes for Instagram and Facebook', () => {
-    const { url } = useCase.execute('user-123')
+    const { url } = useCase.execute('user-123', 'brand-123')
     const decoded = decodeURIComponent(url)
     expect(decoded).toContain('pages_manage_posts')
     expect(decoded).toContain('instagram_content_publish')
@@ -28,15 +28,15 @@ describe('GenerateMetaAuthUrlUseCase', () => {
   })
 
   it('embeds a verifiable state with the userId', () => {
-    const { url, state } = useCase.execute('user-123')
+    const { url, state } = useCase.execute('user-123', 'brand-123')
     expect(url).toContain(encodeURIComponent(state))
     const { userId } = validateState(state)
     expect(userId).toBe('user-123')
   })
 
   it('generates a unique state on each call', () => {
-    const { state: s1 } = useCase.execute('user-123')
-    const { state: s2 } = useCase.execute('user-123')
+    const { state: s1 } = useCase.execute('user-123', 'brand-123')
+    const { state: s2 } = useCase.execute('user-123', 'brand-123')
     expect(s1).not.toBe(s2)
   })
 })

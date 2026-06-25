@@ -38,17 +38,17 @@ describe('HandleLinkedInCallbackUseCase', () => {
     useCase = new HandleLinkedInCallbackUseCase(mockOAuthRepo, mockTokenVault)
   })
 
-  it('saves OAuth connection with correct platform and userId', async () => {
-    const connection = await useCase.execute('auth-code', 'brand-456')
+  it('saves OAuth connection with correct platform, userId and brandId', async () => {
+    const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
 
     expect(connection.platform).toBe(Platform.LINKEDIN)
-    expect(connection.userId).toBe('brand-456')
+    expect(connection.userId).toBe('user-123')
     expect(connection.brandId).toBe('brand-456')
     expect(mockOAuthRepo.save).toHaveBeenCalledWith(connection)
   })
 
   it('stores encrypted token in vault with pairwise ref', async () => {
-    const connection = await useCase.execute('auth-code', 'brand-456')
+    const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
 
     expect(mockTokenVault.store).toHaveBeenCalledWith(
       `oauth-token-${connection.pairwiseId}`,
@@ -57,23 +57,23 @@ describe('HandleLinkedInCallbackUseCase', () => {
   })
 
   it('derives pairwise ID from userId and platform', async () => {
-    const connection = await useCase.execute('auth-code', 'brand-456')
+    const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
 
-    const expectedPairwiseId = derivePairwiseId('brand-456', Platform.LINKEDIN)
+    const expectedPairwiseId = derivePairwiseId('user-123', Platform.LINKEDIN)
     expect(connection.pairwiseId).toBe(expectedPairwiseId)
     expect(connection.tokenRef).toBe(`oauth-token-${expectedPairwiseId}`)
   })
 
   it('includes correct scopes from token response', async () => {
-    const connection = await useCase.execute('auth-code', 'brand-456')
+    const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
 
     expect(connection.scopes).toContain('w_member_social')
     expect(connection.scopes).toContain('openid')
   })
 
   it('assigns a unique ID to each connection', async () => {
-    const c1 = await useCase.execute('code-1', 'brand-456')
-    const c2 = await useCase.execute('code-2', 'brand-456')
+    const c1 = await useCase.execute('code-1', 'user-123', 'brand-456')
+    const c2 = await useCase.execute('code-2', 'user-123', 'brand-456')
     expect(c1.id).not.toBe(c2.id)
   })
 })

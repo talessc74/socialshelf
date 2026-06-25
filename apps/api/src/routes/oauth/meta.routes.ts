@@ -9,7 +9,6 @@ import { FirestoreTokenVault } from '../../infrastructure/firestore/FirestoreTok
 const callbackQuerySchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
-  brandId: z.string().optional(),
 })
 
 const callbackErrorQuerySchema = z.object({
@@ -29,7 +28,7 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
     '/oauth/meta/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId)
+      const { url } = generateUrl.execute(request.userId, request.brandId)
       return reply.send({ url })
     },
   )
@@ -50,11 +49,7 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
     const { code, state } = result.data
 
     try {
-      const { userId } = validateState(state)
-      const brandId = result.data.brandId ?? userId
-      if (brandId !== userId) {
-        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
-      }
+      const { brandId } = validateState(state)
       const { facebook, instagram } = await handleCallback.execute(code, state, brandId)
       const connected = [
         facebook ? 'facebook' : null,
