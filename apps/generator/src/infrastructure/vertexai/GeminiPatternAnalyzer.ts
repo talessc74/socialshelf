@@ -2,14 +2,21 @@ import { VertexAI } from '@google-cloud/vertexai'
 import { z } from 'zod'
 import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic } from '@socialshelf/domain'
 
+// Gemini ocasionalmente devolve um campo de lista como uma única string (ex.: "08:00, 14:00")
+// em vez de array — normaliza para array antes de validar, em vez de rejeitar o diagnóstico inteiro.
+const stringArray = z.preprocess(
+  (val) => (typeof val === 'string' ? val.split(',').map((s) => s.trim()).filter(Boolean) : val),
+  z.array(z.string()),
+)
+
 const profileDiagnosticSchema = z.object({
   niche: z.string(),
   diagnosisSummary: z.string(),
   viralPotential: z.number().min(0).max(100),
   whatWorks: z.array(z.object({ title: z.string(), description: z.string() })),
   engagingThemes: z.array(z.object({ label: z.string(), strength: z.number().min(0).max(100) })),
-  topFormats: z.array(z.string()),
-  bestTimes: z.array(z.string()),
+  topFormats: stringArray,
+  bestTimes: stringArray,
   engagementAnalysis: z.string(),
   actionPlan: z.array(z.object({ title: z.string(), description: z.string() })),
 })
