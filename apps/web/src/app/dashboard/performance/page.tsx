@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
@@ -10,6 +10,7 @@ import type { ProfileDiagnostic } from '@socialshelf/domain'
 import type { ApiPostPerformanceEntry } from '../../../lib/api'
 import { ScoreBadge } from '../../../components/ScoreBadge'
 import { ProfileDiagnosticPanel } from '../../../components/ProfileDiagnosticPanel'
+import { EngagementOverTimeChart } from '../../../components/EngagementOverTimeChart'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -65,10 +66,20 @@ export default function PerformanceDashboardPage() {
     (p) => entriesByPlatform.has(p) || errorsByPlatform.has(p),
   )
 
+  // Default inteligente: prioriza o Instagram e, na falta dele, qualquer rede com dado real —
+  // só cai numa rede com erro (ex.: Facebook abaixo de 100 seguidores) se for a única disponível.
+  const defaultPlatform =
+    (platformsToShow.includes(Platform.INSTAGRAM) && entriesByPlatform.has(Platform.INSTAGRAM)
+      ? Platform.INSTAGRAM
+      : null) ??
+    platformsToShow.find((p) => entriesByPlatform.has(p)) ??
+    platformsToShow[0] ??
+    null
+
   const [activePlatform, setActivePlatform] = useState<Platform | null>(null)
   const selectedPlatform = activePlatform && platformsToShow.includes(activePlatform)
     ? activePlatform
-    : platformsToShow[0] ?? null
+    : defaultPlatform
 
   const selectedError = selectedPlatform ? errorsByPlatform.get(selectedPlatform) : undefined
   const selectedErrorIsPermission = selectedError ? isPermissionError(selectedError) : false
@@ -91,21 +102,47 @@ export default function PerformanceDashboardPage() {
   }
 
   const [diagnostic, setDiagnostic] = useState<ProfileDiagnostic | null>(null)
+  const [diagnosticComputedAt, setDiagnosticComputedAt] = useState<Date | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeError, setAnalyzeError] = useState('')
+  const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false)
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = useCallback(async () => {
     setAnalyzeError('')
     setAnalyzing(true)
     try {
       const result = await api.getPerformanceInsights()
       setDiagnostic(result)
+      setDiagnosticComputedAt(new Date())
     } catch (err) {
       setAnalyzeError(err instanceof Error ? err.message : 'Erro ao gerar o diagnóstico.')
     } finally {
       setAnalyzing(false)
     }
-  }
+  }, [])
+
+  // Mostra a última análise salva (com data/hora) enquanto a análise automática roda,
+  // em vez de deixar a tela vazia até a IA responder.
+  useEffect(() => {
+    api
+      .getLatestPerformanceInsights()
+      .then((record) => {
+        if (record) {
+          setDiagnostic(record.diagnostic)
+          setDiagnosticComputedAt(new Date(record.computedAt))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  // Gera o diagnóstico automaticamente ao entrar na tela, uma única vez por sessão —
+  // o botão continua disponível pra refazer a análise manualmente.
+  useEffect(() => {
+    if (entries.length > 0 && !hasAutoAnalyzed) {
+      setHasAutoAnalyzed(true)
+      handleAnalyze()
+    }
+  }, [entries.length, hasAutoAnalyzed, handleAnalyze])
 
   return (
     <div className="space-y-6">
@@ -152,7 +189,7 @@ export default function PerformanceDashboardPage() {
       ) : (
         <>
           {entries.length > 0 && (
-            <section className="grid gap-4 sm:grid-cols-3">
+            <section className="grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
                 <p className="text-xs font-medium text-gray-500">📈 Impressões totais</p>
                 <p className="text-2xl font-bold text-gray-900">{totals.impressions.toLocaleString('pt-BR')}</p>
@@ -161,13 +198,11 @@ export default function PerformanceDashboardPage() {
                 <p className="text-xs font-medium text-gray-500">💬 Engajamentos totais</p>
                 <p className="text-2xl font-bold text-gray-900">{totals.engagements.toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-                <p className="text-xs font-medium text-gray-500">⚡ Taxa de engajamento média</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {avgEngagementRate !== null ? `${(avgEngagementRate * 100).toFixed(1)}%` : '—'}
-                </p>
-              </div>
             </section>
+          )}
+
+          {entries.length > 0 && (
+            <EngagementOverTimeChart entries={entries} avgEngagementRate={avgEngagementRate} />
           )}
 
           <section className="space-y-3">
@@ -279,7 +314,15 @@ export default function PerformanceDashboardPage() {
           {entries.length > 0 && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-700">Diagnóstico do Perfil</h2>
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-700">Diagnóstico do Perfil</h2>
+                  {diagnosticComputedAt && (
+                    <p className="text-xs text-gray-400">
+                      Última análise: {diagnosticComputedAt.toLocaleDateString('pt-BR')} às{' '}
+                      {diagnosticComputedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={handleAnalyze}
                   disabled={analyzing}

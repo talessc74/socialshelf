@@ -203,6 +203,14 @@ export interface ApiPostsPerformanceResult {
   errors: ApiPostPerformanceError[]
 }
 
+export interface ApiProfileDiagnosticRecord {
+  id: string
+  brandId: string
+  postsAnalyzed: number
+  diagnostic: ProfileDiagnostic
+  computedAt: string
+}
+
 export interface GenerateContentInput {
   description: string
   textContent?: string
@@ -397,6 +405,11 @@ export const api = {
   async getPerformanceInsights(): Promise<ProfileDiagnostic> {
     const data = await apiFetch<{ insights: ProfileDiagnostic }>('/performance-insights')
     return data.insights
+  },
+
+  async getLatestPerformanceInsights(): Promise<ApiProfileDiagnosticRecord | null> {
+    const data = await apiFetch<{ record: ApiProfileDiagnosticRecord | null }>('/performance-insights/latest')
+    return data.record
   },
 
   async getImageUrl(path: string): Promise<string> {

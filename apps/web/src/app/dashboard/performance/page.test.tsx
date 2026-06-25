@@ -17,6 +17,7 @@ vi.mock('../../../lib/api', () => ({
   api: {
     getPostsPerformance: vi.fn(),
     getPerformanceInsights: vi.fn(),
+    getLatestPerformanceInsights: vi.fn().mockResolvedValue(null),
   },
 }))
 
@@ -174,17 +175,73 @@ describe('PerformanceDashboardPage', () => {
     expect(technicalDetails).not.toHaveAttribute('open')
   })
 
-  it('mostra o diagnóstico ao clicar em "Gerar Diagnóstico"', async () => {
+  it('gera o diagnóstico automaticamente ao entrar na tela, sem precisar clicar', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
     mockedApi.getPerformanceInsights.mockResolvedValue(makeDiagnostic())
+
+    renderPage()
+
+    expect(await screen.findByText('Tecnologia Jurídica')).toBeInTheDocument()
+    expect(screen.getByText('Crie CTAs para comentários')).toBeInTheDocument()
+    expect(mockedApi.getPerformanceInsights).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('button', { name: '↻ Refazer análise' })).toBeInTheDocument()
+  })
+
+  it('permite refazer a análise manualmente após a análise automática terminar', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
+    mockedApi.getPerformanceInsights
+      .mockResolvedValueOnce(makeDiagnostic())
+      .mockResolvedValueOnce(makeDiagnostic({ niche: 'Novo Nicho' }))
     const user = userEvent.setup()
 
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: '✨ Gerar Diagnóstico' }))
-
     expect(await screen.findByText('Tecnologia Jurídica')).toBeInTheDocument()
-    expect(screen.getByText('Crie CTAs para comentários')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '↻ Refazer análise' }))
+
+    expect(await screen.findByText('Novo Nicho')).toBeInTheDocument()
+    expect(mockedApi.getPerformanceInsights).toHaveBeenCalledTimes(2)
+  })
+
+  it('usa o Instagram como rede padrão quando o Facebook só tem erro de seguidores', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.INSTAGRAM })],
+        errors: [
+          {
+            platform: Platform.FACEBOOK,
+            postId: 'post-2',
+            message:
+              'Facebook metrics fetch failed: 400 {"error":{"message":"(#10) This endpoint requires the \'pages_read_engagement\' permission or the \'Page Public Content Access\' feature.","type":"OAuthException","code":10}}',
+          },
+        ],
+      }),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Instagram/ })).toHaveClass('bg-brand-600')
+    expect(screen.queryByText(/100 seguidores/)).not.toBeInTheDocument()
+  })
+
+  it('mostra a última análise salva com data/hora enquanto a análise automática roda', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
+    mockedApi.getLatestPerformanceInsights.mockResolvedValue({
+      id: 'diag-1',
+      brandId: 'brand-1',
+      postsAnalyzed: 3,
+      diagnostic: makeDiagnostic({ niche: 'Diagnóstico Salvo' }),
+      computedAt: '2026-06-20T14:30:00.000Z',
+    })
+    // Nunca resolve: simula a análise fresca ainda em andamento.
+    mockedApi.getPerformanceInsights.mockReturnValue(new Promise(() => {}))
+
+    renderPage()
+
+    expect(await screen.findByText('Diagnóstico Salvo')).toBeInTheDocument()
+    expect(screen.getByText(/Última análise:/)).toBeInTheDocument()
   })
 
   it('navega para a geração com o texto do post ao clicar em "Semear Criação"', async () => {
