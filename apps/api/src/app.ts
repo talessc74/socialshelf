@@ -8,6 +8,7 @@ import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
 import { metaOAuthRoutes } from './routes/oauth/meta.routes.js'
 import { xOAuthRoutes } from './routes/oauth/x.routes.js'
 import { postsRoutes } from './routes/posts.routes.js'
+import { brandsRoutes } from './routes/brands.routes.js'
 import { brandProfileRoutes } from './routes/brand-profile.routes.js'
 import { audienceSignalRoutes } from './routes/audience-signal.routes.js'
 import { postsPerformanceRoutes } from './routes/posts-performance.routes.js'
@@ -44,6 +45,7 @@ export async function buildApp() {
   await app.register(metaOAuthRoutes)
   await app.register(xOAuthRoutes)
   await app.register(postsRoutes)
+  await app.register(brandsRoutes)
   await app.register(brandProfileRoutes)
   await app.register(audienceSignalRoutes)
   await app.register(postsPerformanceRoutes)

@@ -47,7 +47,7 @@ export async function brandProfileRoutes(app: FastifyInstance) {
     '/brand-profile',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const profile = await brandProfileRepo.findLatestByBrand(request.userId, request.userId)
+      const profile = await brandProfileRepo.findLatestByBrand(request.userId, request.brandId)
       return reply.send({ brandProfile: profile })
     },
   )
@@ -66,7 +66,7 @@ export async function brandProfileRoutes(app: FastifyInstance) {
 
       const profile = await createBrandProfileVersion.execute({
         userId: request.userId,
-        brandId: request.userId,
+        brandId: request.brandId,
         ...parsed.data,
       })
 

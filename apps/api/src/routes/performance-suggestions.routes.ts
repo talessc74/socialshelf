@@ -16,7 +16,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId }),
+        body: JSON.stringify({ brandId: request.brandId }),
       })
 
       if (!performanceRes.ok) {
@@ -51,7 +51,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, diagnostic: insights }),
+        body: JSON.stringify({ brandId: request.brandId, diagnostic: insights }),
       })
 
       if (!suggestionsRes.ok) {
@@ -75,7 +75,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, ...(request.body as object) }),
+        body: JSON.stringify({ brandId: request.brandId, ...(request.body as object) }),
       })
 
       if (!res.ok) {
@@ -99,7 +99,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.userId, ...(request.body as object) }),
+        body: JSON.stringify({ brandId: request.brandId, ...(request.body as object) }),
       })
 
       if (!res.ok) {
@@ -117,7 +117,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate] },
     async (request, reply) => {
       const res = await fetchInternal(
-        `${generatorUrl}/performance-suggestions/shelved?brandId=${encodeURIComponent(request.userId)}`,
+        `${generatorUrl}/performance-suggestions/shelved?brandId=${encodeURIComponent(request.brandId)}`,
         {
           headers: { 'X-Internal-Secret': internalSecret },
         },
