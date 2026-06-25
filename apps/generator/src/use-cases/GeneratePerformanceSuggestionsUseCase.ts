@@ -32,7 +32,7 @@ export class GeneratePerformanceSuggestionsUseCase {
     }))
 
     for (const suggestion of suggestions) {
-      await this.suggestionRepo.save(suggestion)
+      await this.suggestionRepo.save(brandId, suggestion)
     }
 
     return suggestions

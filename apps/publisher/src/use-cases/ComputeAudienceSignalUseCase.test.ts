@@ -138,13 +138,13 @@ describe('ComputeAudienceSignalUseCase', () => {
     const result = await useCase.execute('brand-1', Platform.LINKEDIN)
 
     expect(audienceSignalRepo.save).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(audienceSignalRepo.save).mock.calls[0]![0]).toEqual(result)
+    expect(vi.mocked(audienceSignalRepo.save).mock.calls[0]![1]).toEqual(result)
   })
 
   it('never persists raw per-post metrics — only the aggregate', async () => {
     await useCase.execute('brand-1', Platform.LINKEDIN)
 
-    const saved = vi.mocked(audienceSignalRepo.save).mock.calls[0]![0]
+    const saved = vi.mocked(audienceSignalRepo.save).mock.calls[0]![1]
     expect(saved).not.toHaveProperty('posts')
     expect(saved).not.toHaveProperty('rawMetrics')
   })

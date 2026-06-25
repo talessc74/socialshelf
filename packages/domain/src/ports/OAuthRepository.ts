@@ -6,9 +6,10 @@ export interface OAuthRepository {
   findById(id: string): Promise<OAuthConnection | null>
   findByPairwise(pairwiseId: string): Promise<OAuthConnection | null>
   findByBrandAndPlatform(
+    userId: string,
     brandId: string,
     platform: Platform,
   ): Promise<OAuthConnection | null>
-  findByBrand(brandId: string): Promise<OAuthConnection[]>
+  findByBrand(userId: string, brandId: string): Promise<OAuthConnection[]>
   delete(id: string): Promise<void>
 }

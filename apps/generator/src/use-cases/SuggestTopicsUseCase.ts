@@ -38,7 +38,7 @@ export class SuggestTopicsUseCase {
   ) {}
 
   async execute(brandId: string): Promise<TopicSuggestion[]> {
-    const brandProfile = await this.brandProfileRepo.findLatestByBrand(brandId)
+    const brandProfile = await this.brandProfileRepo.findLatestByBrand(brandId, brandId)
     if (!brandProfile) throw new Error(`No brand profile for brand ${brandId}`)
 
     const queries = await this.planQueries(brandProfile)
@@ -54,7 +54,7 @@ export class SuggestTopicsUseCase {
       .map((item) => verifyNewsItem(item, this.trustedDomains))
       .filter((item): item is VerifiedNewsItem => item !== null)
 
-    const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId)
+    const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId, brandId)
 
     // Traduzimos antes de pontuar: os temas recorrentes da marca estão no idioma do usuário, mas a
     // notícia chega em inglês — a aderência precisa ser avaliada sobre o texto já traduzido.
@@ -75,7 +75,7 @@ export class SuggestTopicsUseCase {
     suggestions.sort((a, b) => b.audienceFitScore - a.audienceFitScore)
 
     for (const suggestion of suggestions) {
-      await this.topicSuggestionRepo.save(suggestion)
+      await this.topicSuggestionRepo.save(brandId, suggestion)
     }
 
     return suggestions

@@ -25,7 +25,7 @@ export class CreateBrandProfileVersionUseCase {
   constructor(private readonly brandProfileRepo: BrandProfileRepository) {}
 
   async execute(input: CreateBrandProfileVersionInput): Promise<BrandProfile> {
-    const latest = await this.brandProfileRepo.findLatestByBrand(input.brandId)
+    const latest = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
     const nextVersion = (latest?.version ?? 0) + 1
 
     const profile: BrandProfile = {

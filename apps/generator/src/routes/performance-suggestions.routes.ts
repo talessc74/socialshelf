@@ -130,7 +130,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
     }
 
     try {
-      const suggestions = await suggestionRepo.findShelvedByBrand(parsed.data.brandId)
+      const suggestions = await suggestionRepo.findShelvedByBrand(parsed.data.brandId, parsed.data.brandId)
       return reply.send({ suggestions })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)

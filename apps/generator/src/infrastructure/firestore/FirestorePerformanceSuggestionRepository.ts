@@ -2,10 +2,10 @@ import { db } from '../firebase-admin.js'
 import type { PerformanceSuggestionRepository, PerformanceSuggestion, PerformanceSuggestionFeedback } from '@socialshelf/domain'
 
 export class FirestorePerformanceSuggestionRepository implements PerformanceSuggestionRepository {
-  async save(suggestion: PerformanceSuggestion): Promise<void> {
+  async save(userId: string, suggestion: PerformanceSuggestion): Promise<void> {
     await db
       .collection('users')
-      .doc(suggestion.brandId)
+      .doc(userId)
       .collection('brands')
       .doc(suggestion.brandId)
       .collection('performance_suggestions')
@@ -16,10 +16,10 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       })
   }
 
-  async findLatestByBrand(brandId: string): Promise<PerformanceSuggestion[]> {
+  async findLatestByBrand(userId: string, brandId: string): Promise<PerformanceSuggestion[]> {
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('performance_suggestions')
@@ -30,10 +30,10 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
-  async recordFeedback(brandId: string, id: string, feedback: PerformanceSuggestionFeedback): Promise<void> {
+  async recordFeedback(userId: string, brandId: string, id: string, feedback: PerformanceSuggestionFeedback): Promise<void> {
     await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('performance_suggestions')
@@ -41,10 +41,10 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       .update({ feedback })
   }
 
-  async setShelved(brandId: string, id: string, shelved: boolean): Promise<void> {
+  async setShelved(userId: string, brandId: string, id: string, shelved: boolean): Promise<void> {
     await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('performance_suggestions')
@@ -52,7 +52,7 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
       .update({ shelved })
   }
 
-  async findShelvedByBrand(brandId: string): Promise<PerformanceSuggestion[]> {
+  async findShelvedByBrand(userId: string, brandId: string): Promise<PerformanceSuggestion[]> {
     // A single equality filter only needs Firestore's automatic single-field
     // index, unlike where()+orderBy() on different fields, which needs a
     // composite index the deployer SA can't currently create in production
@@ -60,7 +60,7 @@ export class FirestorePerformanceSuggestionRepository implements PerformanceSugg
     // `|| true`). Sorting here in memory avoids depending on that index.
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('performance_suggestions')

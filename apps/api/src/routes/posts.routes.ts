@@ -53,7 +53,7 @@ export async function postsRoutes(app: FastifyInstance) {
     '/connections',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const connections = await oauthRepo.findByBrand(request.userId)
+      const connections = await oauthRepo.findByBrand(request.userId, request.userId)
       const safe = connections.map(({ tokenRef: _tokenRef, ...rest }) => rest)
       return reply.send({ connections: safe })
     },
@@ -69,7 +69,7 @@ export async function postsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
       }
 
-      const posts = await postRepo.findByBrand(request.userId, parsed.data.status)
+      const posts = await postRepo.findByBrand(request.userId, request.userId, parsed.data.status)
       const sorted = [...posts].sort(
         (a, b) => (a.scheduledAt ?? a.createdAt).getTime() - (b.scheduledAt ?? b.createdAt).getTime(),
       )
@@ -118,7 +118,7 @@ export async function postsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
       }
 
-      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      const existing = await postRepo.findByIdAndBrand(id, request.userId, request.userId)
       if (!existing) return reply.status(404).send({ error: 'Post not found' })
 
       try {
@@ -175,7 +175,7 @@ export async function postsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { id } = request.params as { id: string }
 
-      const existing = await postRepo.findByIdAndBrand(id, request.userId)
+      const existing = await postRepo.findByIdAndBrand(id, request.userId, request.userId)
       if (!existing) return reply.status(404).send({ error: 'Post not found' })
 
       try {

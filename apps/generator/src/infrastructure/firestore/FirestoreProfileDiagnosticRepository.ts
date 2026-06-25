@@ -2,10 +2,10 @@ import { db } from '../firebase-admin.js'
 import type { ProfileDiagnosticRepository, ProfileDiagnosticRecord } from '@socialshelf/domain'
 
 export class FirestoreProfileDiagnosticRepository implements ProfileDiagnosticRepository {
-  async save(record: ProfileDiagnosticRecord): Promise<void> {
+  async save(userId: string, record: ProfileDiagnosticRecord): Promise<void> {
     await db
       .collection('users')
-      .doc(record.brandId)
+      .doc(userId)
       .collection('brands')
       .doc(record.brandId)
       .collection('profile_diagnostics')
@@ -16,10 +16,10 @@ export class FirestoreProfileDiagnosticRepository implements ProfileDiagnosticRe
       })
   }
 
-  async findLatestByBrand(brandId: string): Promise<ProfileDiagnosticRecord | null> {
+  async findLatestByBrand(userId: string, brandId: string): Promise<ProfileDiagnosticRecord | null> {
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('profile_diagnostics')

@@ -34,7 +34,7 @@ export class CreatePostUseCase {
       return { platform: c.platform, text: c.text, charCount: c.text.length }
     })
 
-    const latestBrandProfile = await this.brandProfileRepo.findLatestByBrand(input.brandId)
+    const latestBrandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
 
     const post: Post = {
       id: randomUUID(),

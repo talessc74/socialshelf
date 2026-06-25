@@ -81,7 +81,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
     }
 
     try {
-      const record = await diagnosticRepo.findLatestByBrand(parsed.data.brandId)
+      const record = await diagnosticRepo.findLatestByBrand(parsed.data.brandId, parsed.data.brandId)
       return reply.send({ record })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)

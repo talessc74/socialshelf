@@ -19,7 +19,7 @@ export class AnalyzePerformancePatternsUseCase {
 
     const diagnostic = await this.patternAnalyzer.analyzePatterns(entries)
 
-    await this.diagnosticRepo.save({
+    await this.diagnosticRepo.save(brandId, {
       id: randomUUID(),
       brandId,
       postsAnalyzed: entries.length,
