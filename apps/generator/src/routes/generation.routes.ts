@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { EditArtifactUseCase } from '../use-cases/EditArtifactUseCase.js'
+import { RenderCardUseCase } from '../use-cases/RenderCardUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { GeminiArtDirector } from '../infrastructure/vertexai/GeminiArtDirector.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
@@ -43,6 +44,15 @@ const uploadImageSchema = z.object({
   mimeType: z.string().min(1),
 })
 
+const renderCardSchema = z.object({
+  userId: z.string().min(1),
+  brandId: z.string().min(1),
+  imageStoragePath: z.string().min(1),
+  headline: z.string().default(''),
+  body: z.string().nullable().default(null),
+  style: z.nativeEnum(TemplateStyle),
+})
+
 export async function generationRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
@@ -80,6 +90,8 @@ export async function generationRoutes(app: FastifyInstance) {
     generationRequestRepo,
     brandProfileRepo,
   )
+
+  const renderCardUseCase = new RenderCardUseCase(templateRenderer, imageStorage, brandProfileRepo)
 
   const internalSecret = process.env['INTERNAL_SECRET']
   if (!internalSecret) {
@@ -182,6 +194,27 @@ export async function generationRoutes(app: FastifyInstance) {
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'image upload failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.post('/cards/render', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = renderCardSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const result = await renderCardUseCase.execute(parsed.data)
+      return reply.send(result)
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'render card use-case failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

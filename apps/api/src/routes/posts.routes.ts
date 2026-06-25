@@ -77,6 +77,18 @@ export async function postsRoutes(app: FastifyInstance) {
     },
   )
 
+  // Get a single post by id
+  app.get(
+    '/posts/:id',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const post = await postRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      if (!post) return reply.status(404).send({ error: 'Post not found' })
+      return reply.send({ post })
+    },
+  )
+
   // Create a post
   app.post(
     '/posts',

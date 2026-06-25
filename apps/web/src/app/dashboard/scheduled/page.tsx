@@ -42,6 +42,11 @@ function dayKey(date: Date): string {
   return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`
 }
 
+function postWhen(post: ApiPost): Date | null {
+  const iso = post.scheduledAt ?? post.publishedAt
+  return iso ? new Date(iso) : null
+}
+
 function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost: (postId: string) => void }) {
   const [month, setMonth] = useState(() => {
     const now = new Date()
@@ -50,8 +55,9 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
 
   const postsByDay = new Map<string, ApiPost[]>()
   for (const post of posts) {
-    if (!post.scheduledAt) continue
-    const key = dayKey(new Date(post.scheduledAt))
+    const when = postWhen(post)
+    if (!when) continue
+    const key = dayKey(when)
     postsByDay.set(key, [...(postsByDay.get(key) ?? []), post])
   }
 
@@ -111,23 +117,30 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
             >
               <span className={`text-xs ${inMonth ? 'text-gray-700' : 'text-gray-300'}`}>{day.getDate()}</span>
               <ul className="mt-1 space-y-0.5">
-                {dayPosts.slice(0, 2).map((post) => (
-                  <li key={post.id}>
-                    <button
-                      type="button"
-                      onClick={() => onSelectPost(post.id)}
-                      title={post.content[0]?.text}
-                      className="block w-full truncate rounded bg-brand-50 px-1 py-0.5 text-left text-[10px] font-medium text-brand-700 hover:bg-brand-100"
-                    >
-                      {post.scheduledAt &&
-                        new Date(post.scheduledAt).toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
-                      {post.content[0]?.text}
-                    </button>
-                  </li>
-                ))}
+                {dayPosts.slice(0, 2).map((post) => {
+                  const when = postWhen(post)
+                  const isPublished = post.status === 'published'
+                  return (
+                    <li key={post.id}>
+                      <button
+                        type="button"
+                        onClick={() => onSelectPost(post.id)}
+                        title={post.content[0]?.text}
+                        className={`block w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium hover:opacity-80 ${
+                          isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-brand-50 text-brand-700'
+                        }`}
+                      >
+                        {isPublished ? '✓ ' : ''}
+                        {when &&
+                          when.toLocaleTimeString('pt-BR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}{' '}
+                        {post.content[0]?.text}
+                      </button>
+                    </li>
+                  )
+                })}
                 {dayPosts.length > 2 && (
                   <li className="px-1 text-[10px] text-gray-400">+{dayPosts.length - 2} mais</li>
                 )}
@@ -177,6 +190,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
     mutationFn: () => api.publishPost(post.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
+      queryClient.invalidateQueries({ queryKey: ['posts', 'published'] })
     },
   })
 
@@ -394,17 +408,66 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   )
 }
 
+function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }) {
+  const router = useRouter()
+  const firstImage = post.imageStoragePaths[0]
+
+  return (
+    <li
+      id={`post-${post.id}`}
+      className={`flex gap-4 rounded-2xl border bg-white p-5 shadow-sm shadow-brand-100/60 ${
+        highlighted ? 'border-brand-500 ring-2 ring-brand-500 ring-offset-2' : 'border-gray-100'
+      }`}
+    >
+      {firstImage && <PostThumbnail path={firstImage} />}
+      <div className="min-w-0 flex-1 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+            ✓ Publicado
+            {post.publishedAt
+              ? ` em ${new Date(post.publishedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+              : ''}
+          </span>
+          {post.content.map((c) => (
+            <span key={c.platform} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+              {PLATFORM_LABELS[c.platform]}
+            </span>
+          ))}
+        </div>
+        <p className="truncate text-sm text-gray-800">{post.content[0]?.text}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => router.push(`/dashboard/compose?repostFrom=${post.id}`)}
+            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+          >
+            Repostar
+          </button>
+        </div>
+      </div>
+    </li>
+  )
+}
+
 export default function ScheduledPostsPage() {
   const router = useRouter()
   const [view, setView] = useState<'list' | 'calendar'>('calendar')
   const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
 
-  const { data, isLoading, error } = useQuery({
+  const scheduledQuery = useQuery({
     queryKey: ['posts', 'scheduled'],
     queryFn: () => api.getPosts('scheduled'),
   })
+  const publishedQuery = useQuery({
+    queryKey: ['posts', 'published'],
+    queryFn: () => api.getPosts('published'),
+  })
 
-  const posts = data ?? []
+  const scheduledPosts = (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled')
+  const publishedPosts = (publishedQuery.data ?? []).filter((p) => p.status === 'published')
+  const calendarPosts = [...scheduledPosts, ...publishedPosts]
+  const isLoading = scheduledQuery.isLoading || publishedQuery.isLoading
+  const error = scheduledQuery.error ?? publishedQuery.error
+  const isEmpty = scheduledPosts.length === 0 && publishedPosts.length === 0
 
   useEffect(() => {
     if (!highlightedPostId) return
@@ -455,24 +518,38 @@ export default function ScheduledPostsPage() {
             {error instanceof Error && error.message ? ` [${error.message}]` : ''}
           </p>
         </div>
-      ) : posts.length === 0 ? (
+      ) : isEmpty ? (
         <p className="text-sm text-gray-500">
           Nenhum post agendado ainda. Gere ou componha um post e escolha uma data para publicação.
         </p>
       ) : view === 'calendar' ? (
         <CalendarView
-          posts={posts}
+          posts={calendarPosts}
           onSelectPost={(postId) => {
             setView('list')
             setHighlightedPostId(postId)
           }}
         />
       ) : (
-        <ul className="space-y-3">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} />
-          ))}
-        </ul>
+        <div className="space-y-6">
+          {scheduledPosts.length > 0 && (
+            <ul className="space-y-3">
+              {scheduledPosts.map((post) => (
+                <PostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} />
+              ))}
+            </ul>
+          )}
+          {publishedPosts.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold text-gray-700">Publicados</h2>
+              <ul className="space-y-3">
+                {publishedPosts.map((post) => (
+                  <PublishedPostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} />
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

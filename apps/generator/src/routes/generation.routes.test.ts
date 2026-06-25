@@ -90,10 +90,12 @@ vi.mock('../infrastructure/template/SharpTemplateRenderer.js', () => ({
 
 const mockUpload = vi.fn().mockResolvedValue('brand-1/generated/img.png')
 const mockGetSignedUrl = vi.fn().mockResolvedValue('https://storage.googleapis.com/signed-url')
+const mockDownload = vi.fn().mockResolvedValue({ base64: 'dXBsb2FkZWQ=', mimeType: 'image/png' })
 
 vi.mock('../infrastructure/storage/GcsImageStorage.js', () => ({
   GcsImageStorage: vi.fn().mockImplementation(() => ({
     upload: mockUpload,
+    download: mockDownload,
     getSignedUrl: mockGetSignedUrl,
     delete: vi.fn(),
   })),
@@ -296,6 +298,67 @@ describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
       method: 'POST',
       url: '/generation-requests/gen-1/artifacts/1/edit',
       payload: { instruction: 'deixe o fundo mais claro' },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
+describe('POST /cards/render', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with the rendered image path', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: {
+        userId: 'brand-1',
+        brandId: 'brand-1',
+        imageStoragePath: 'brand-1/brand-1/upload-1.png',
+        headline: 'Minha headline',
+        body: 'Meu corpo',
+        style: 'bold-bottom',
+      },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ imageStoragePath: string }>()
+    expect(body.imageStoragePath).toBe('brand-1/generated/img.png')
+  })
+
+  it('returns 400 when required fields are missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: { userId: 'brand-1', brandId: 'brand-1' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/cards/render',
+      payload: {
+        userId: 'brand-1',
+        brandId: 'brand-1',
+        imageStoragePath: 'brand-1/brand-1/upload-1.png',
+        style: 'bold-bottom',
+      },
     })
 
     expect(response.statusCode).toBe(401)

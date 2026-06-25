@@ -6,8 +6,9 @@ import { Platform } from '@socialshelf/domain'
 import ScheduledPostsPage from './page'
 import { api, type ApiPost } from '../../../lib/api'
 
+const { pushMock, backMock } = vi.hoisted(() => ({ pushMock: vi.fn(), backMock: vi.fn() }))
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
+  useRouter: () => ({ push: pushMock, back: backMock }),
 }))
 
 vi.mock('../../../lib/api', () => ({
@@ -267,6 +268,79 @@ describe('ScheduledPostsPage', () => {
       expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-brand-600')
       const card = screen.getByText('Texto agendado para o LinkedIn').closest('li')
       expect(card).toHaveClass('ring-2')
+    })
+  })
+
+  describe('posts publicados', () => {
+    function makePublishedPost(overrides: Partial<ApiPost> = {}): ApiPost {
+      return makePost({
+        id: 'post-2',
+        status: 'published',
+        scheduledAt: null,
+        publishedAt: new Date('2026-06-20T15:00:00.000Z').toISOString(),
+        content: [{ platform: Platform.INSTAGRAM, text: 'Texto já publicado no Instagram' }],
+        ...overrides,
+      })
+    }
+
+    function mockScheduledAndPublished(published: ApiPost[]) {
+      mockedApi.getPosts.mockImplementation(async (status) => (status === 'published' ? published : []))
+    }
+
+    it('mostra os posts publicados numa seção própria, com badge e ação de repostar', async () => {
+      mockScheduledAndPublished([makePublishedPost()])
+
+      await renderListView()
+
+      expect(await screen.findByText('Texto já publicado no Instagram')).toBeInTheDocument()
+      expect(screen.getByText('Publicados')).toBeInTheDocument()
+      expect(screen.getByText(/✓ Publicado/)).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Repostar' })).toBeInTheDocument()
+    })
+
+    it('ao clicar em Repostar, navega para o compose levando o post de origem', async () => {
+      mockScheduledAndPublished([makePublishedPost()])
+
+      const user = await renderListView()
+      await screen.findByText('Texto já publicado no Instagram')
+
+      await user.click(screen.getByRole('button', { name: 'Repostar' }))
+
+      expect(pushMock).toHaveBeenCalledWith('/dashboard/compose?repostFrom=post-2')
+    })
+
+    describe('no calendário', () => {
+      beforeEach(() => {
+        vi.useFakeTimers({ toFake: ['Date'] })
+        vi.setSystemTime(new Date('2026-06-25T08:00:00.000Z'))
+      })
+
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      it('mostra o post publicado no dia certo, com indicador visual distinto do agendado', async () => {
+        mockScheduledAndPublished([makePublishedPost()])
+
+        renderPage()
+
+        const entry = await screen.findByText(/Texto já publicado no Instagram/)
+        expect(entry.closest('button')).toHaveClass('bg-emerald-50')
+      })
+
+      it('ao clicar no post publicado no calendário, volta para a lista e o destaca', async () => {
+        const user = userEvent.setup()
+        mockScheduledAndPublished([makePublishedPost()])
+
+        renderPage()
+        await screen.findByText(/Texto já publicado no Instagram/)
+
+        await user.click(screen.getByText(/Texto já publicado no Instagram/))
+
+        expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-brand-600')
+        const card = screen.getByText('Texto já publicado no Instagram').closest('li')
+        expect(card).toHaveClass('ring-2')
+      })
     })
   })
 })
