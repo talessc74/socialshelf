@@ -69,8 +69,8 @@ export class GenerateContentUseCase {
     }
     await this.generationRequestRepo.save(request)
 
-    const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.brandId)
-    const topicSuggestion = await this.resolveTopicSuggestion(input.brandId, input.topicSuggestionId)
+    const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
+    const topicSuggestion = await this.resolveTopicSuggestion(input.userId, input.brandId, input.topicSuggestionId)
     const pautaContext = topicSuggestion
       ? { headline: topicSuggestion.headline, rationale: topicSuggestion.rationale }
       : null
@@ -269,11 +269,12 @@ export class GenerateContentUseCase {
   }
 
   private async resolveTopicSuggestion(
+    userId: string,
     brandId: string,
     topicSuggestionId: string | null,
   ): Promise<TopicSuggestion | null> {
     if (!topicSuggestionId) return null
-    return this.topicSuggestionRepo.findById(brandId, topicSuggestionId)
+    return this.topicSuggestionRepo.findById(userId, brandId, topicSuggestionId)
   }
 }
 

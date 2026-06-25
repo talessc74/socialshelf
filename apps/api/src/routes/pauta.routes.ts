@@ -19,7 +19,7 @@ export async function pautaRoutes(app: FastifyInstance) {
   // Anexa, a cada sugestão, em quais redes a notícia (pelo articleUrl) já gerou um post publicado —
   // permite à UI marcar "essa notícia já foi usada" sem o gerador precisar conhecer posts.
   async function attachPublishedPlatforms(brandId: string, suggestions: RawTopicSuggestion[]) {
-    const publishedPosts = await postRepo.findByBrand(brandId, 'published')
+    const publishedPosts = await postRepo.findByBrand(brandId, brandId, 'published')
     const platformsByArticleUrl = new Map<string, Set<Platform>>()
     for (const post of publishedPosts) {
       if (!post.sourceArticleUrl) continue

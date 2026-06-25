@@ -9,6 +9,6 @@ export interface ProfileDiagnosticRecord {
 }
 
 export interface ProfileDiagnosticRepository {
-  save(record: ProfileDiagnosticRecord): Promise<void>
-  findLatestByBrand(brandId: string): Promise<ProfileDiagnosticRecord | null>
+  save(userId: string, record: ProfileDiagnosticRecord): Promise<void>
+  findLatestByBrand(userId: string, brandId: string): Promise<ProfileDiagnosticRecord | null>
 }

@@ -32,7 +32,7 @@ export class SearchNewsUseCase {
   ) {}
 
   async execute(brandId: string, query: string): Promise<TopicSuggestion[]> {
-    const brandProfile = await this.brandProfileRepo.findLatestByBrand(brandId)
+    const brandProfile = await this.brandProfileRepo.findLatestByBrand(brandId, brandId)
     if (!brandProfile) throw new Error(`No brand profile for brand ${brandId}`)
 
     const rawNews = await this.newsSource.fetchNews(query)
@@ -40,7 +40,7 @@ export class SearchNewsUseCase {
       .map((item) => verifyNewsItem(item, this.trustedDomains))
       .filter((item): item is VerifiedNewsItem => item !== null)
 
-    const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId)
+    const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId, brandId)
 
     const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE)
     const fitResults = await scoreAudienceFit(

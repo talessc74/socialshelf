@@ -98,10 +98,11 @@ export async function buildTopicSuggestion(
 
 export async function computeAvgEngagementRate(
   audienceSignalRepo: AudienceSignalRepository,
+  userId: string,
   brandId: string,
 ): Promise<number> {
   const signals = await Promise.all(
-    ALL_PLATFORMS.map((platform) => audienceSignalRepo.findLatestByBrandAndPlatform(brandId, platform)),
+    ALL_PLATFORMS.map((platform) => audienceSignalRepo.findLatestByBrandAndPlatform(userId, brandId, platform)),
   )
   const rates = signals.filter((signal) => signal !== null).map((signal) => signal!.avgEngagementRate)
   if (rates.length === 0) return 0

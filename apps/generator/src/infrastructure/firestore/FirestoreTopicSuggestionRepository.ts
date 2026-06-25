@@ -2,10 +2,10 @@ import { db } from '../firebase-admin.js'
 import type { TopicSuggestionRepository, TopicSuggestion } from '@socialshelf/domain'
 
 export class FirestoreTopicSuggestionRepository implements TopicSuggestionRepository {
-  async save(suggestion: TopicSuggestion): Promise<void> {
+  async save(userId: string, suggestion: TopicSuggestion): Promise<void> {
     await db
       .collection('users')
-      .doc(suggestion.brandId)
+      .doc(userId)
       .collection('brands')
       .doc(suggestion.brandId)
       .collection('topic_suggestions')
@@ -16,10 +16,10 @@ export class FirestoreTopicSuggestionRepository implements TopicSuggestionReposi
       })
   }
 
-  async findLatestByBrand(brandId: string): Promise<TopicSuggestion[]> {
+  async findLatestByBrand(userId: string, brandId: string): Promise<TopicSuggestion[]> {
     const snapshot = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('topic_suggestions')
@@ -30,10 +30,10 @@ export class FirestoreTopicSuggestionRepository implements TopicSuggestionReposi
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
-  async findById(brandId: string, id: string): Promise<TopicSuggestion | null> {
+  async findById(userId: string, brandId: string, id: string): Promise<TopicSuggestion | null> {
     const doc = await db
       .collection('users')
-      .doc(brandId)
+      .doc(userId)
       .collection('brands')
       .doc(brandId)
       .collection('topic_suggestions')

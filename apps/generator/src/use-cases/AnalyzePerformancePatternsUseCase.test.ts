@@ -66,6 +66,7 @@ describe('AnalyzePerformancePatternsUseCase', () => {
     await useCase.execute('brand-1', [makeEntry(), makeEntry()])
 
     expect(diagnosticRepo.save).toHaveBeenCalledWith(
+      'brand-1',
       expect.objectContaining({
         brandId: 'brand-1',
         postsAnalyzed: 2,

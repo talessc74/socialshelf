@@ -20,10 +20,10 @@ export class ComputeAudienceSignalUseCase {
     const reader = this.readers.get(platform)
     if (!reader) throw new Error(`No analytics reader registered for ${platform}`)
 
-    const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, platform)
+    const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, brandId, platform)
     if (!connection) throw new Error(`No OAuth connection for ${platform}`)
 
-    const publishedPosts = await this.postRepo.findByBrand(brandId, 'published')
+    const publishedPosts = await this.postRepo.findByBrand(brandId, brandId, 'published')
     const postsWithExternalId = publishedPosts.filter((post) => post.externalIds[platform])
 
     let totalImpressions = 0
@@ -51,7 +51,7 @@ export class ComputeAudienceSignalUseCase {
       computedAt: new Date(),
     }
 
-    await this.audienceSignalRepo.save(signal)
+    await this.audienceSignalRepo.save(brandId, signal)
 
     return signal
   }

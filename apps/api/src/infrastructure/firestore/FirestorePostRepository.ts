@@ -31,9 +31,9 @@ export class FirestorePostRepository implements PostRepository {
     return this.fromFirestore(snapshot.docs[0]!.data())
   }
 
-  async findByIdAndBrand(id: string, brandId: string): Promise<Post | null> {
+  async findByIdAndBrand(id: string, userId: string, brandId: string): Promise<Post | null> {
     const doc = await db
-      .collection('users').doc(brandId)
+      .collection('users').doc(userId)
       .collection('brands').doc(brandId)
       .collection('posts').doc(id)
       .get()
@@ -42,7 +42,7 @@ export class FirestorePostRepository implements PostRepository {
     return this.fromFirestore(doc.data()!)
   }
 
-  async findByBrand(brandId: string, status?: PostStatus): Promise<Post[]> {
+  async findByBrand(_userId: string, brandId: string, status?: PostStatus): Promise<Post[]> {
     let query: FirebaseFirestore.Query = db.collectionGroup('posts').where('brandId', '==', brandId)
     // O orderBy aproveita o índice composto (brandId, status, createdAt) já provisionado
     // em produção — sem ele, o Firestore exige um índice diferente (sem createdAt) para

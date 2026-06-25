@@ -31,7 +31,7 @@ export class EditArtifactUseCase {
     const artifact = request.outputs.artifacts.find((a) => a.position === input.position)
     if (!artifact) throw new Error(`Artifact at position ${input.position} not found`)
 
-    const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.brandId)
+    const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.userId, request.brandId)
     const brandTokens = brandProfile
       ? {
           primaryColor: brandProfile.visual.primaryColor,
