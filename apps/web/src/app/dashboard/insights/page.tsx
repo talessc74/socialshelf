@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiPerformanceSuggestion } from '../../../lib/api'
+import { NewsCarousel } from '../../../components/NewsCarousel'
+import { NewsSearch } from '../../../components/NewsSearch'
 
 function isGoodTimeNow(suggestion: ApiPerformanceSuggestion): boolean {
   const now = new Date()
@@ -87,7 +89,7 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
 
 export default function InsightsBankPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<'shelved' | 'fresh'>('shelved')
+  const [tab, setTab] = useState<'shelved' | 'fresh' | 'news'>('shelved')
 
   const { data: shelved, isLoading: loadingShelved } = useQuery({
     queryKey: ['shelved-performance-suggestions'],
@@ -133,9 +135,22 @@ export default function InsightsBankPage() {
         >
           Novas sugestões
         </button>
+        <button
+          onClick={() => setTab('news')}
+          className={`px-3 py-2 text-sm font-medium ${
+            tab === 'news' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          Notícias
+        </button>
       </div>
 
-      {tab === 'shelved' ? (
+      {tab === 'news' ? (
+        <div className="space-y-6">
+          <NewsSearch />
+          <NewsCarousel />
+        </div>
+      ) : tab === 'shelved' ? (
         loadingShelved ? (
           <p className="text-sm text-gray-400">Carregando prateleira…</p>
         ) : !shelved || shelved.length === 0 ? (

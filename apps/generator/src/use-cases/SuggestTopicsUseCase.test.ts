@@ -6,6 +6,7 @@ import type {
   TopicQueryPlannerPort,
   TranslatorPort,
   ThumbnailFetcherPort,
+  AudienceFitScorerPort,
   BrandProfileRepository,
   AudienceSignalRepository,
   TopicSuggestionRepository,
@@ -13,6 +14,15 @@ import type {
   NewsItem,
   AudienceSignal,
 } from '@socialshelf/domain'
+
+// Reproduz o comportamento de correspondência de substring usado antes da IA semântica, para que
+// os testes que não exercitam a IA continuem estáveis.
+const defaultScoreAudienceFit: AudienceFitScorerPort['score'] = async ({ recurringThemes, items }) =>
+  items.map((item) => {
+    const text = `${item.headline} ${item.summary}`.toLowerCase()
+    const matchedThemes = recurringThemes.filter((theme) => text.includes(theme.toLowerCase()))
+    return { matchedThemes, relevanceStrength: matchedThemes.length }
+  })
 
 const mockBrandProfile: BrandProfile = {
   id: 'profile-1',
@@ -62,6 +72,7 @@ function makeUseCase(opts: {
   avgEngagementRate?: number | null
   translate?: TranslatorPort['translate']
   fetchThumbnail?: ThumbnailFetcherPort['fetchThumbnail']
+  scoreAudienceFit?: AudienceFitScorerPort['score']
 }) {
   const newsSource: NewsSourcePort = {
     fetchNews: vi.fn(opts.fetchNewsImpl ?? (async () => opts.newsItems ?? [makeNewsItem()])),
@@ -78,6 +89,11 @@ function makeUseCase(opts: {
   }
   const thumbnailFetcher: ThumbnailFetcherPort = {
     fetchThumbnail: vi.fn(opts.fetchThumbnail ?? (async () => null)),
+  }
+  // Scorer literal por padrão: reproduz o comportamento de correspondência de substring usado
+  // antes da IA semântica, para que os testes que não exercitam a IA continuem estáveis.
+  const audienceFitScorer: AudienceFitScorerPort = {
+    score: vi.fn(opts.scoreAudienceFit ?? defaultScoreAudienceFit),
   }
   const brandProfileRepo: BrandProfileRepository = {
     save: vi.fn(),
@@ -103,6 +119,7 @@ function makeUseCase(opts: {
     queryPlanner,
     translator,
     thumbnailFetcher,
+    audienceFitScorer,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,
@@ -115,6 +132,7 @@ function makeUseCase(opts: {
     queryPlanner,
     translator,
     thumbnailFetcher,
+    audienceFitScorer,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,
@@ -302,6 +320,36 @@ describe('SuggestTopicsUseCase', () => {
 
     expect(newsSource.fetchNews).toHaveBeenCalledTimes(2)
     expect(result).toHaveLength(1)
+  })
+
+  it('gives audience fit credit for AI-judged semantic relevance even without a literal theme match', async () => {
+    const { useCase, audienceFitScorer } = makeUseCase({
+      newsItems: [
+        makeNewsItem({ title: 'IA vence causa inédita no Reino Unido', summary: 'Tribunal usa IA em decisão histórica' }),
+      ],
+      avgEngagementRate: 0.1,
+      scoreAudienceFit: async () => [{ matchedThemes: [], relevanceStrength: 2 }],
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(audienceFitScorer.score).toHaveBeenCalledOnce()
+    expect(result[0]?.audienceFitScore).toBeGreaterThan(0)
+    expect(result[0]?.rationale).toContain('mesmo sem casar literalmente')
+  })
+
+  it('falls back to zero audience fit when the AI scorer fails, never dropping the news', async () => {
+    const { useCase } = makeUseCase({
+      avgEngagementRate: 0.1,
+      scoreAudienceFit: async () => {
+        throw new Error('Vertex unavailable')
+      },
+    })
+
+    const result = await useCase.execute('brand-1')
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.audienceFitScore).toBe(0)
   })
 
   it('falls back to the brand segment when the query planner fails, without dropping the suggestion flow', async () => {

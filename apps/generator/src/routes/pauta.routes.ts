@@ -6,6 +6,7 @@ import { GoogleNewsRssReader } from '../infrastructure/news/GoogleNewsRssReader.
 import { OgImageThumbnailFetcher } from '../infrastructure/news/OgImageThumbnailFetcher.js'
 import { GeminiTranslator } from '../infrastructure/vertexai/GeminiTranslator.js'
 import { GeminiTopicQueryPlanner } from '../infrastructure/vertexai/GeminiTopicQueryPlanner.js'
+import { GeminiAudienceFitScorer } from '../infrastructure/vertexai/GeminiAudienceFitScorer.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
@@ -22,6 +23,7 @@ export async function pautaRoutes(app: FastifyInstance) {
   const newsSource = new GoogleNewsRssReader()
   const queryPlanner = new GeminiTopicQueryPlanner(projectId, geminiLocation, geminiModel)
   const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel)
+  const audienceFitScorer = new GeminiAudienceFitScorer(projectId, geminiLocation, geminiModel)
   const thumbnailFetcher = new OgImageThumbnailFetcher()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const audienceSignalRepo = new FirestoreAudienceSignalRepository()
@@ -32,6 +34,7 @@ export async function pautaRoutes(app: FastifyInstance) {
     queryPlanner,
     translator,
     thumbnailFetcher,
+    audienceFitScorer,
     brandProfileRepo,
     audienceSignalRepo,
     topicSuggestionRepo,
@@ -41,6 +44,7 @@ export async function pautaRoutes(app: FastifyInstance) {
     newsSource,
     translator,
     thumbnailFetcher,
+    audienceFitScorer,
     brandProfileRepo,
     audienceSignalRepo,
     getTrustedDomains(),

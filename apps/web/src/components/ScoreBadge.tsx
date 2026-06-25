@@ -4,9 +4,9 @@ interface ScoreBadgeProps {
 }
 
 /**
- * audienceFitScore (e SuggestTopicsUseCase.ts) não tem teto fixo — é
- * matchedThemes * (1 + avgEngagementRate). Por isso o badge mostra o
- * valor cru, sem fração tipo "x/3", que sugeriria uma escala que não existe.
+ * audienceFitScore é relevanceStrength (0-3, julgado pela IA por relevância
+ * semântica ao negócio da marca) * (1 + avgEngagementRate). O badge mostra o
+ * valor cru, sem fração tipo "x/3", já que o fator de engajamento desloca o teto.
  */
 export function ScoreBadge({ label, score }: ScoreBadgeProps) {
   const variant = score >= 2 ? 'bg-brand-500 text-gray-900' : score >= 1 ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'

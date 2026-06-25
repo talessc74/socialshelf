@@ -2,13 +2,19 @@ import {
   type NewsSourcePort,
   type TranslatorPort,
   type ThumbnailFetcherPort,
+  type AudienceFitScorerPort,
   type BrandProfileRepository,
   type AudienceSignalRepository,
   type TopicSuggestion,
   type VerifiedNewsItem,
 } from '@socialshelf/domain'
 import { verifyNewsItem } from '../lib/factVerification.js'
-import { translateNewsItems, buildTopicSuggestion, computeAvgEngagementRate } from '../lib/newsSuggestionBuilder.js'
+import {
+  translateNewsItems,
+  scoreAudienceFit,
+  buildTopicSuggestion,
+  computeAvgEngagementRate,
+} from '../lib/newsSuggestionBuilder.js'
 
 const TARGET_LANGUAGE = 'português do Brasil'
 
@@ -19,6 +25,7 @@ export class SearchNewsUseCase {
     private readonly newsSource: NewsSourcePort,
     private readonly translator: TranslatorPort,
     private readonly thumbnailFetcher: ThumbnailFetcherPort,
+    private readonly audienceFitScorer: AudienceFitScorerPort,
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly audienceSignalRepo: AudienceSignalRepository,
     private readonly trustedDomains: string[],
@@ -34,13 +41,18 @@ export class SearchNewsUseCase {
       .filter((item): item is VerifiedNewsItem => item !== null)
 
     const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId)
-    const recurringThemes = brandProfile.narrative.recurringThemes.map((theme) => theme.toLowerCase())
 
     const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE)
+    const fitResults = await scoreAudienceFit(
+      this.audienceFitScorer,
+      brandProfile.business,
+      brandProfile.narrative.recurringThemes,
+      translated,
+    )
 
     const suggestions = await Promise.all(
       verifiedNews.map((item, i) =>
-        buildTopicSuggestion(this.thumbnailFetcher, brandId, item, translated[i]!, recurringThemes, avgEngagementRate),
+        buildTopicSuggestion(this.thumbnailFetcher, brandId, item, translated[i]!, fitResults[i]!, avgEngagementRate),
       ),
     )
 

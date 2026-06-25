@@ -3,7 +3,10 @@ import {
   ALL_PLATFORMS,
   type TranslatorPort,
   type ThumbnailFetcherPort,
+  type AudienceFitScorerPort,
+  type AudienceFitResult,
   type AudienceSignalRepository,
+  type BrandProfileBusiness,
   type TopicSuggestion,
   type VerifiedNewsItem,
 } from '@socialshelf/domain'
@@ -34,11 +37,37 @@ export async function translateNewsItems(
   }
 }
 
-export function buildRationale(matchedThemes: string[], avgEngagementRate: number): string {
-  if (matchedThemes.length === 0) {
-    return 'Notícia verificada para o segmento da marca, sem correspondência direta com temas recorrentes.'
+// Avalia a aderência de cada notícia ao negócio da marca numa única chamada. A IA julga relevância
+// semântica, não apenas correspondência literal com os temas recorrentes — uma notícia sobre "IA
+// vence causa no Reino Unido" deve pontuar para uma LegalTech de IA mesmo sem citar nenhuma palavra
+// exata do cadastro. Se a IA falhar, degrada para relevância zero em vez de derrubar a pauta inteira.
+export async function scoreAudienceFit(
+  scorer: AudienceFitScorerPort,
+  business: BrandProfileBusiness,
+  recurringThemes: string[],
+  items: TranslatedText[],
+): Promise<AudienceFitResult[]> {
+  if (items.length === 0) return []
+
+  try {
+    return await scorer.score({
+      business,
+      recurringThemes,
+      items: items.map((item) => ({ headline: item.title, summary: item.summary })),
+    })
+  } catch {
+    return items.map(() => ({ matchedThemes: [], relevanceStrength: 0 }))
   }
-  return `Casa com os temas recorrentes da marca: ${matchedThemes.join(', ')}. Engajamento médio da audiência: ${(avgEngagementRate * 100).toFixed(1)}%.`
+}
+
+export function buildRationale(fit: AudienceFitResult, avgEngagementRate: number): string {
+  if (fit.matchedThemes.length > 0) {
+    return `Casa com os temas recorrentes da marca: ${fit.matchedThemes.join(', ')}. Engajamento médio da audiência: ${(avgEngagementRate * 100).toFixed(1)}%.`
+  }
+  if (fit.relevanceStrength > 0) {
+    return `A IA avaliou esta notícia como relevante para o negócio da marca, mesmo sem casar literalmente com os temas recorrentes cadastrados. Engajamento médio da audiência: ${(avgEngagementRate * 100).toFixed(1)}%.`
+  }
+  return 'Notícia verificada para o segmento da marca, sem correspondência direta com temas recorrentes.'
 }
 
 export async function buildTopicSuggestion(
@@ -46,12 +75,10 @@ export async function buildTopicSuggestion(
   brandId: string,
   item: VerifiedNewsItem,
   translated: TranslatedText,
-  recurringThemes: string[],
+  fit: AudienceFitResult,
   avgEngagementRate: number,
 ): Promise<TopicSuggestion> {
-  const haystack = `${translated.title} ${translated.summary}`.toLowerCase()
-  const matchedThemes = recurringThemes.filter((theme) => haystack.includes(theme))
-  const audienceFitScore = matchedThemes.length * (1 + avgEngagementRate)
+  const audienceFitScore = fit.relevanceStrength * (1 + avgEngagementRate)
   const thumbnailUrl = await thumbnailFetcher.fetchThumbnail(item.articleUrl, item.sourceUrl)
 
   return {
@@ -61,7 +88,7 @@ export async function buildTopicSuggestion(
     summary: translated.summary,
     sourceUrl: item.sourceUrl,
     sourceDomain: item.sourceDomain,
-    rationale: buildRationale(matchedThemes, avgEngagementRate),
+    rationale: buildRationale(fit, avgEngagementRate),
     audienceFitScore,
     thumbnailUrl,
     createdAt: new Date(),

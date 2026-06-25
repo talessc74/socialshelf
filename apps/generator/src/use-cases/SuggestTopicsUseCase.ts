@@ -3,6 +3,7 @@ import {
   type TopicQueryPlannerPort,
   type TranslatorPort,
   type ThumbnailFetcherPort,
+  type AudienceFitScorerPort,
   type BrandProfileRepository,
   type AudienceSignalRepository,
   type TopicSuggestionRepository,
@@ -12,7 +13,12 @@ import {
   type VerifiedNewsItem,
 } from '@socialshelf/domain'
 import { verifyNewsItem } from '../lib/factVerification.js'
-import { translateNewsItems, buildTopicSuggestion, computeAvgEngagementRate } from '../lib/newsSuggestionBuilder.js'
+import {
+  translateNewsItems,
+  scoreAudienceFit,
+  buildTopicSuggestion,
+  computeAvgEngagementRate,
+} from '../lib/newsSuggestionBuilder.js'
 
 // Idioma de destino da pauta. Fixo por ora (não há locale por marca ainda) — ver decisão registrada
 // com o usuário. A busca é global/inglês; a UI é exibida traduzida para este idioma.
@@ -24,6 +30,7 @@ export class SuggestTopicsUseCase {
     private readonly queryPlanner: TopicQueryPlannerPort,
     private readonly translator: TranslatorPort,
     private readonly thumbnailFetcher: ThumbnailFetcherPort,
+    private readonly audienceFitScorer: AudienceFitScorerPort,
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly audienceSignalRepo: AudienceSignalRepository,
     private readonly topicSuggestionRepo: TopicSuggestionRepository,
@@ -48,15 +55,20 @@ export class SuggestTopicsUseCase {
       .filter((item): item is VerifiedNewsItem => item !== null)
 
     const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId)
-    const recurringThemes = brandProfile.narrative.recurringThemes.map((theme) => theme.toLowerCase())
 
     // Traduzimos antes de pontuar: os temas recorrentes da marca estão no idioma do usuário, mas a
-    // notícia chega em inglês — o match de aderência precisa rodar sobre o texto já traduzido.
+    // notícia chega em inglês — a aderência precisa ser avaliada sobre o texto já traduzido.
     const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE)
+    const fitResults = await scoreAudienceFit(
+      this.audienceFitScorer,
+      brandProfile.business,
+      brandProfile.narrative.recurringThemes,
+      translated,
+    )
 
     const suggestions = await Promise.all(
       verifiedNews.map((item, i) =>
-        buildTopicSuggestion(this.thumbnailFetcher, brandId, item, translated[i]!, recurringThemes, avgEngagementRate),
+        buildTopicSuggestion(this.thumbnailFetcher, brandId, item, translated[i]!, fitResults[i]!, avgEngagementRate),
       ),
     )
 
