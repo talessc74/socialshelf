@@ -1,7 +1,7 @@
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 const LI_REST = 'https://api.linkedin.com/rest'
-const LI_VERSION = '202401'
+const LI_VERSION = '202602'
 
 interface LinkedInToken {
   access_token: string

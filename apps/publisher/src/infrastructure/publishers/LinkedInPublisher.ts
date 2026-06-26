@@ -3,7 +3,7 @@ import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPor
 
 const LI_REST = 'https://api.linkedin.com/rest'
 const LI_USERINFO = 'https://api.linkedin.com/v2/userinfo'
-const LI_VERSION = '202401'
+const LI_VERSION = '202602'
 
 interface LinkedInToken {
   access_token: string

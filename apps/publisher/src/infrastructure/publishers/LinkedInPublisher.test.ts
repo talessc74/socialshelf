@@ -88,7 +88,7 @@ describe('LinkedInPublisher', () => {
     await publisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
 
     const postsHeaders = fetchMock.mock.calls[1]![1]!.headers as Record<string, string>
-    expect(postsHeaders['LinkedIn-Version']).toBe('202401')
+    expect(postsHeaders['LinkedIn-Version']).toBe('202602')
   })
 
   it('includes post text as commentary', async () => {

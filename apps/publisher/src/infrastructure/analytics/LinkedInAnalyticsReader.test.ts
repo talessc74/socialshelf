@@ -65,7 +65,7 @@ describe('LinkedInAnalyticsReader', () => {
     await reader.fetchPostMetrics('urn:li:share:111', mockConnection)
 
     const headers = fetchMock.mock.calls[0]![1]!.headers as Record<string, string>
-    expect(headers['LinkedIn-Version']).toBe('202401')
+    expect(headers['LinkedIn-Version']).toBe('202602')
   })
 
   it('throws when the LinkedIn API returns an error', async () => {
