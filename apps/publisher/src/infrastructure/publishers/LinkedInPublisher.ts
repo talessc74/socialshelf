@@ -3,6 +3,7 @@ import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPor
 
 const LI_REST = 'https://api.linkedin.com/rest'
 const LI_USERINFO = 'https://api.linkedin.com/v2/userinfo'
+// Lançada em fev/2026 — sunset estimado fev/2027 (suporte mínimo de 12 meses garantido pela LinkedIn)
 const LI_VERSION = '202602'
 
 interface LinkedInToken {
