@@ -20,6 +20,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-025-brandprofile-schema-e-versionamento](application/025-brand-profile-schema-versionamento.md) - Schema de 6 seções do BrandProfile e versionamento imutável como base do contexto de marca
 - [_local-adr-policy-027-pauta-localizacao-e-verificacao-factual](application/027-pauta-localizacao-e-verificacao-factual.md) - Motor de pauta vive em generator; notícia só é verificada se a fonte resolve para domínio confiável cadastrado
 - [_local-adr-policy-028-geracao-de-conteudo-multiartefato](application/028-geracao-multiartefato.md) - GenerationRequest.outputs.artifacts substitui imagem única; post único e carrossel são o mesmo agregado (N≥1)
+- [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](application/030-quota-marca-tipo-conta.md) - accountType imutável em Brand, checagem de quota contra Subscription antes de criar marca, sinal específico de limite de plano
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.
@@ -45,6 +46,7 @@ Integração com sistemas externos.
 - [_local-adr-policy-013-pkce-por-plataforma-oauth-seletivo](integration/013-pkce-por-plataforma.md) - PKCE (RFC 7636) obrigatório para X, não aplicável para LinkedIn e Meta
 - [_local-adr-policy-016-refresh-de-token-oauth-por-plataforma](integration/016-refresh-token-oauth.md) - X com refresh automático; LinkedIn e Meta dependem de tokens de longa duração
 - [_local-adr-policy-024-instagram-publicacao-em-duas-etapas](integration/024-instagram-publicacao-duas-etapas.md) - Fluxo obrigatório de duas chamadas da Meta Graph API para publicar no Instagram
+- [_local-adr-policy-031-selecao-de-pagina-na-conexao-oauth-multi-marca](integration/031-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
 
 ### platform
 Infraestrutura de plataforma e serviços GCP.
