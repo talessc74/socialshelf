@@ -47,6 +47,7 @@ Integração com sistemas externos.
 - [_local-adr-policy-016-refresh-de-token-oauth-por-plataforma](integration/016-refresh-token-oauth.md) - X com refresh automático; LinkedIn e Meta dependem de tokens de longa duração
 - [_local-adr-policy-024-instagram-publicacao-em-duas-etapas](integration/024-instagram-publicacao-duas-etapas.md) - Fluxo obrigatório de duas chamadas da Meta Graph API para publicar no Instagram
 - [_local-adr-policy-031-selecao-de-pagina-na-conexao-oauth-multi-marca](integration/031-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
+- [_local-adr-policy-032-monitoramento-versao-api-linkedin](integration/032-monitoramento-versao-api-linkedin.md) - Revisão trimestral da constante LI_VERSION com data de sunset documentada inline, prevenindo falha 426 NONEXISTENT_VERSION silenciosa
 
 ### platform
 Infraestrutura de plataforma e serviços GCP.

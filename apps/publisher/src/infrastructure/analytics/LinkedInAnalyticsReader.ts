@@ -1,6 +1,7 @@
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 const LI_REST = 'https://api.linkedin.com/rest'
+// Lançada em fev/2026 — sunset estimado fev/2027 (suporte mínimo de 12 meses garantido pela LinkedIn)
 const LI_VERSION = '202602'
 
 interface LinkedInToken {
