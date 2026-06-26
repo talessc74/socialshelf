@@ -18,10 +18,10 @@ export class LinkedInPublisher implements PublisherPort {
     const token: LinkedInToken = JSON.parse(raw)
 
     const text = post.content.find((c) => c.platform === Platform.LINKEDIN)?.text ?? ''
-    const personId = await this.getPersonId(token.access_token)
+    const author = connection.organizationUrn ?? `urn:li:person:${await this.getPersonId(token.access_token)}`
 
     const body = {
-      author: `urn:li:person:${personId}`,
+      author,
       commentary: text,
       visibility: 'PUBLIC',
       distribution: {
