@@ -28,13 +28,13 @@ Como configurar cada serviço no Cloud Run de forma proporcional à sua responsa
 | Acesso | público | público | **privado** | público |
 | Instâncias min | 0 | 0 | 0 | 0 |
 | Instâncias max | 3 | 3 | 2 | 3 |
-| Timeout | 30s | 60s | 120s | 30s |
+| Timeout | 300s | 300s | 300s | 30s |
 
 **Justificativas**
 
 - `generator-service` com `--no-allow-unauthenticated`: geração via Vertex AI é operação cara e sensível — nunca exposta publicamente
-- `publisher-service` timeout de 60s: publicação pode envolver upload de mídia e retry em APIs externas
-- `generator-service` timeout de 120s: geração de copy + imagem via Vertex AI pode levar até 60–90 segundos
+- `publisher-service` timeout de 300s: publicação pode envolver upload de mídia e retry em APIs externas
+- `generator-service` timeout de 300s: o pipeline síncrono (copy + direção de arte + Imagen + render) em um único request pode, sob cold start, exceder os 60–90s estimados originalmente — 120s (e depois 180s) já se mostraram insuficientes na prática, causando falha de conexão sem resposta HTTP perceptível ao usuário como erro genérico de rede
 - `generator-service` 1Gi: Vertex AI SDK e processamento de resposta têm footprint maior que Fastify simples
 - `generator-service` max 2: custo de geração por instância é significativamente maior; limitar escalonamento
 - Todas as instâncias min=0: custo zero em inatividade; cold start aceitável para o volume atual
