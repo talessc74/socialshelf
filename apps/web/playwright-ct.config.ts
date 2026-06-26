@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/experimental-ct-react'
+import path from 'path'
 
 const VIEWPORTS = {
   mobile: { width: 375, height: 700 },
@@ -19,6 +20,11 @@ export default defineConfig({
     trace: 'on-first-retry',
     ctPort: 3101,
     ctViteConfig: {
+      resolve: {
+        alias: {
+          'next/navigation': path.resolve(__dirname, 'playwright/next-navigation-mock.ts'),
+        },
+      },
       define: {
         'process.env': JSON.stringify({
           NEXT_PUBLIC_FIREBASE_API_KEY: 'test-api-key',

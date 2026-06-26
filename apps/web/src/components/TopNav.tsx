@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, ChevronDown } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
@@ -179,10 +179,14 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
           })}
         </nav>
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-white via-white/70 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-white via-white/70 to-transparent">
+            <ChevronLeft className="h-4 w-4 text-gray-400" />
+          </div>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white via-white/70 to-transparent" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white via-white/70 to-transparent">
+            <ChevronRight className="h-4 w-4 text-gray-400" />
+          </div>
         )}
       </div>
     </header>
