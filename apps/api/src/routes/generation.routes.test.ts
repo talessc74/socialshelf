@@ -223,6 +223,85 @@ describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
   })
 })
 
+describe('POST /generation-requests/:id/artifacts/:position/edit-text', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['CSRF_SECRET'] = 'test-secret-64-chars-long-enough-for-hmac-sha256-signing'
+    process.env['WEB_URL'] = 'http://localhost:3000'
+    process.env['GENERATOR_URL'] = 'http://localhost:3003'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('proxies to generator and returns the updated generation request', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ generationRequest: { id: 'gen-1', status: 'ready' } }),
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: 'Novo corpo' },
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(200)
+  })
+
+  it('returns 400 when headline is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { body: null },
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 404 when generator returns 404', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404, text: async () => 'Not found' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/missing/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('returns 422 when generator returns 422', async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 422, text: async () => 'Unsupported' })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(422)
+  })
+
+  it('returns 401 without auth header', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
 describe('GET /generation-requests/:id', () => {
   let app: FastifyInstance
 

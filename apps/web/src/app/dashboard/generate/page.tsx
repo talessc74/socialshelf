@@ -133,6 +133,8 @@ function LightboxImage({ path, aspectClass }: { path: string; aspectClass: strin
 
 function Lightbox({
   artifacts,
+  headlines,
+  bodyTexts,
   aspectClass,
   index,
   setIndex,
@@ -141,6 +143,8 @@ function Lightbox({
   onClose,
 }: {
   artifacts: GenerationArtifact[]
+  headlines: string[] | null
+  bodyTexts: string[] | null
   aspectClass: string
   index: number
   setIndex: (i: number) => void
@@ -148,12 +152,15 @@ function Lightbox({
   onResultUpdate: (r: ApiGenerationRequest) => void
   onClose: () => void
 }) {
-  const [editing, setEditing] = useState(false)
+  const [editMode, setEditMode] = useState<'menu' | 'instruction' | 'text'>('menu')
   const [instruction, setInstruction] = useState('')
+  const [headlineInput, setHeadlineInput] = useState('')
+  const [bodyInput, setBodyInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
 
   const artifact = artifacts[index]!
+  const canEditText = artifact.backgroundImageStoragePath !== null
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -166,10 +173,12 @@ function Lightbox({
   }, [index, artifacts.length, setIndex, onClose])
 
   useEffect(() => {
-    setEditing(false)
+    setEditMode('menu')
     setInstruction('')
+    setHeadlineInput(headlines?.[index] ?? '')
+    setBodyInput(bodyTexts?.[index] ?? '')
     setEditError('')
-  }, [index])
+  }, [index, headlines, bodyTexts])
 
   const handleSubmitEdit = async () => {
     if (!instruction.trim()) return
@@ -179,9 +188,29 @@ function Lightbox({
       const updated = await api.editArtifact(generationRequestId, artifact.position, instruction.trim())
       onResultUpdate(updated)
       setInstruction('')
-      setEditing(false)
+      setEditMode('menu')
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'Erro ao editar o card.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleSubmitTextEdit = async () => {
+    if (!headlineInput.trim()) return
+    setEditError('')
+    setSubmitting(true)
+    try {
+      const updated = await api.editArtifactText(
+        generationRequestId,
+        artifact.position,
+        headlineInput.trim(),
+        bodyInput.trim() ? bodyInput.trim() : null,
+      )
+      onResultUpdate(updated)
+      setEditMode('menu')
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Erro ao editar o texto do card.')
     } finally {
       setSubmitting(false)
     }
@@ -225,14 +254,62 @@ function Lightbox({
         </p>
 
         <div className="w-full space-y-2">
-          {!editing ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="w-full rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
-            >
-              Editar este card
-            </button>
-          ) : (
+          {editMode === 'menu' && (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setEditMode('text')}
+                disabled={!canEditText}
+                title={!canEditText ? 'Este card foi gerado antes deste recurso e não pode ter o texto editado diretamente' : undefined}
+                className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-30"
+              >
+                Editar texto
+              </button>
+              <button
+                onClick={() => setEditMode('instruction')}
+                className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white hover:bg-white/20"
+              >
+                Editar com IA
+              </button>
+            </div>
+          )}
+
+          {editMode === 'text' && (
+            <div className="space-y-2 rounded-lg bg-white p-3">
+              <p className="text-xs font-medium text-gray-600">Edite o título e o texto de apoio deste card</p>
+              <input
+                value={headlineInput}
+                onChange={(e) => setHeadlineInput(e.target.value)}
+                autoFocus
+                placeholder="Título"
+                className="w-full rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              <textarea
+                value={bodyInput}
+                onChange={(e) => setBodyInput(e.target.value)}
+                rows={2}
+                placeholder="Texto de apoio (opcional)"
+                className="w-full resize-none rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              />
+              {editError && <p className="text-xs text-red-600">{editError}</p>}
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setEditMode('menu')}
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSubmitTextEdit}
+                  disabled={submitting || !headlineInput.trim()}
+                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                >
+                  {submitting ? 'Aplicando…' : 'Aplicar'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {editMode === 'instruction' && (
             <div className="space-y-2 rounded-lg bg-white p-3">
               <p className="text-xs font-medium text-gray-600">
                 Descreva o que você quer mudar neste card
@@ -248,7 +325,7 @@ function Lightbox({
               {editError && <p className="text-xs text-red-600">{editError}</p>}
               <div className="flex justify-end gap-2">
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={() => setEditMode('menu')}
                   className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
                 >
                   Cancelar
@@ -1013,6 +1090,8 @@ function ResultView({
       {lightboxIndex !== null && result.outputs && (
         <Lightbox
           artifacts={result.outputs.artifacts}
+          headlines={result.outputs.headlines}
+          bodyTexts={result.outputs.bodyTexts}
           aspectClass={aspectClass}
           index={lightboxIndex}
           setIndex={setLightboxIndex}

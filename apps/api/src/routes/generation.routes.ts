@@ -25,6 +25,11 @@ const editArtifactSchema = z.object({
   instruction: z.string().min(1),
 })
 
+const editArtifactTextSchema = z.object({
+  headline: z.string().min(1),
+  body: z.string().nullable(),
+})
+
 export async function generationRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -103,6 +108,40 @@ export async function generationRoutes(app: FastifyInstance) {
       if (!res.ok) {
         const body = await res.text()
         if (res.status === 404) return reply.status(404).send({ error: 'Generation request or artifact not found' })
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
+  app.post(
+    '/generation-requests/:id/artifacts/:position/edit-text',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id, position } = request.params as { id: string; position: string }
+      const parsed = editArtifactTextSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const res = await fetchInternal(
+        `${generatorUrl}/generation-requests/${id}/artifacts/${position}/edit-text`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Internal-Secret': internalSecret,
+          },
+          body: JSON.stringify(parsed.data),
+        },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        if (res.status === 404) return reply.status(404).send({ error: 'Generation request or artifact not found' })
+        if (res.status === 422) return reply.status(422).send({ error: 'This card does not support direct text editing' })
         app.log.error(`Generator error ${res.status}: ${body}`)
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }

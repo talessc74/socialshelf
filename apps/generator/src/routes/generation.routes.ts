@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { EditArtifactUseCase } from '../use-cases/EditArtifactUseCase.js'
+import { EditArtifactTextUseCase } from '../use-cases/EditArtifactTextUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { GeminiArtDirector } from '../infrastructure/vertexai/GeminiArtDirector.js'
 import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
@@ -34,6 +35,11 @@ const generateSchema = z.object({
 
 const editArtifactSchema = z.object({
   instruction: z.string().min(1),
+})
+
+const editArtifactTextSchema = z.object({
+  headline: z.string().min(1),
+  body: z.string().nullable(),
 })
 
 const uploadImageSchema = z.object({
@@ -75,6 +81,13 @@ export async function generationRoutes(app: FastifyInstance) {
 
   const editArtifactUseCase = new EditArtifactUseCase(
     imageGenerator,
+    templateRenderer,
+    imageStorage,
+    generationRequestRepo,
+    brandProfileRepo,
+  )
+
+  const editArtifactTextUseCase = new EditArtifactTextUseCase(
     templateRenderer,
     imageStorage,
     generationRequestRepo,
@@ -155,6 +168,34 @@ export async function generationRoutes(app: FastifyInstance) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'edit artifact use-case failed')
       const status = detail.includes('not found') ? 404 : 500
+      return reply.status(status).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.post('/generation-requests/:id/artifacts/:position/edit-text', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const { id, position } = request.params as { id: string; position: string }
+    const parsed = editArtifactTextSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const generationRequest = await editArtifactTextUseCase.execute({
+        generationRequestId: id,
+        position: Number(position),
+        headline: parsed.data.headline,
+        body: parsed.data.body,
+      })
+      return reply.send({ generationRequest })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'edit artifact text use-case failed')
+      const status = detail.includes('not found') ? 404 : detail.includes('does not support') ? 422 : 500
       return reply.status(status).send({ error: 'Internal error', detail })
     }
   })

@@ -15,6 +15,7 @@ export interface GenerationArtifact {
   position: number
   status: ArtifactStatus
   imageStoragePath: string | null
+  backgroundImageStoragePath: string | null
   error: string | null
 }
 

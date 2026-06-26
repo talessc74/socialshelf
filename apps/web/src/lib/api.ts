@@ -139,6 +139,7 @@ export interface ApiGenerationArtifact {
   position: number
   status: 'pending' | 'generating' | 'ready' | 'failed'
   imageStoragePath: string | null
+  backgroundImageStoragePath: string | null
   error: string | null
 }
 
@@ -160,6 +161,7 @@ export interface ApiGenerationRequest {
     copies: Partial<Record<Platform, { text: string; charCount: number }>>
     cta: string | null
     headlines: string[] | null
+    bodyTexts: string[] | null
     artifacts: ApiGenerationArtifact[]
   } | null
   error: string | null
@@ -423,6 +425,19 @@ export const api = {
     const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(
       `/generation-requests/${generationRequestId}/artifacts/${position}/edit`,
       { method: 'POST', body: JSON.stringify({ instruction }) },
+    )
+    return data.generationRequest
+  },
+
+  async editArtifactText(
+    generationRequestId: string,
+    position: number,
+    headline: string,
+    body: string | null,
+  ): Promise<ApiGenerationRequest> {
+    const data = await apiFetch<{ generationRequest: ApiGenerationRequest }>(
+      `/generation-requests/${generationRequestId}/artifacts/${position}/edit-text`,
+      { method: 'POST', body: JSON.stringify({ headline, body }) },
     )
     return data.generationRequest
   },

@@ -116,6 +116,7 @@ export class GenerateContentUseCase {
       position: i + 1,
       status: 'pending',
       imageStoragePath: null,
+      backgroundImageStoragePath: null,
       error: null,
     }))
 
@@ -207,6 +208,14 @@ export class GenerateContentUseCase {
                 hasTextOverlay: input.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
                 hasBodyOverlay,
               })
+          const backgroundImageStoragePath = uploadedPath
+            ?? (await this.imageStorage.upload(
+              input.userId,
+              input.brandId,
+              Buffer.from(image.base64, 'base64'),
+              image.mimeType,
+              `${request.id}-bg`,
+            ))
           const finalImage = await this.templateRenderer.render({
             backgroundImage: image,
             headline,
@@ -224,6 +233,7 @@ export class GenerateContentUseCase {
           )
           artifact.status = 'ready'
           artifact.imageStoragePath = path
+          artifact.backgroundImageStoragePath = backgroundImageStoragePath
         } catch (err) {
           artifact.status = 'failed'
           artifact.error = err instanceof Error ? err.message : String(err)

@@ -1,6 +1,4 @@
-import { TemplateStyle } from '@socialshelf/domain'
 import type {
-  ImageGeneratorPort,
   TemplateRendererPort,
   ImageStoragePort,
   GenerationRequestRepository,
@@ -8,28 +6,31 @@ import type {
   GenerationRequest,
 } from '@socialshelf/domain'
 
-export interface EditArtifactInput {
+export interface EditArtifactTextInput {
   generationRequestId: string
   position: number
-  instruction: string
+  headline: string
+  body: string | null
 }
 
-export class EditArtifactUseCase {
+export class EditArtifactTextUseCase {
   constructor(
-    private readonly imageGenerator: ImageGeneratorPort,
     private readonly templateRenderer: TemplateRendererPort,
     private readonly imageStorage: ImageStoragePort,
     private readonly generationRequestRepo: GenerationRequestRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
   ) {}
 
-  async execute(input: EditArtifactInput): Promise<GenerationRequest> {
+  async execute(input: EditArtifactTextInput): Promise<GenerationRequest> {
     const request = await this.generationRequestRepo.findById(input.generationRequestId)
     if (!request) throw new Error('Generation request not found')
     if (!request.outputs) throw new Error('Generation request has no outputs yet')
 
     const artifact = request.outputs.artifacts.find((a) => a.position === input.position)
     if (!artifact) throw new Error(`Artifact at position ${input.position} not found`)
+    if (!artifact.backgroundImageStoragePath) {
+      throw new Error('This card does not support direct text editing')
+    }
 
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.userId, request.brandId)
     const brandTokens = brandProfile
@@ -48,31 +49,12 @@ export class EditArtifactUseCase {
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
 
     try {
-      const headline = request.outputs.headlines?.[artifact.position - 1] ?? ''
-      const visualBrief = request.outputs.visualBriefs?.[artifact.position - 1] ?? request.inputs.description
-      const bodyText = request.outputs.bodyTexts?.[artifact.position - 1] ?? ''
-      const hasBodyOverlay = request.inputs.includeBodyText && bodyText.trim().length > 0
-      const image = await this.imageGenerator.generateImage({
-        description: `${visualBrief}. Ajuste solicitado pelo usuário: ${input.instruction}`,
-        brandTokens,
-        position: artifact.position,
-        totalArtifacts: request.outputs.artifacts.length,
-        aspectRatio: request.inputs.aspectRatio,
-        templateStyle: request.inputs.style,
-        hasTextOverlay: request.inputs.style !== TemplateStyle.NO_TEXT && headline.trim().length > 0,
-        hasBodyOverlay,
-      })
-      const backgroundImageStoragePath = await this.imageStorage.upload(
-        request.userId,
-        request.brandId,
-        Buffer.from(image.base64, 'base64'),
-        image.mimeType,
-        `${request.id}-bg`,
-      )
+      const backgroundImage = await this.imageStorage.download(artifact.backgroundImageStoragePath)
+      const hasBodyOverlay = input.body !== null && input.body.trim().length > 0
       const finalImage = await this.templateRenderer.render({
-        backgroundImage: image,
-        headline,
-        body: hasBodyOverlay ? bodyText : null,
+        backgroundImage,
+        headline: input.headline,
+        body: hasBodyOverlay ? input.body : null,
         style: request.inputs.style,
         brandTokens,
         logoImage,
@@ -86,7 +68,9 @@ export class EditArtifactUseCase {
       )
       artifact.status = 'ready'
       artifact.imageStoragePath = path
-      artifact.backgroundImageStoragePath = backgroundImageStoragePath
+
+      if (request.outputs.headlines) request.outputs.headlines[artifact.position - 1] = input.headline
+      if (request.outputs.bodyTexts) request.outputs.bodyTexts[artifact.position - 1] = input.body ?? ''
     } catch (err) {
       artifact.status = 'failed'
       artifact.error = err instanceof Error ? err.message : String(err)
