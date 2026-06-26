@@ -8,6 +8,7 @@ import { api, type ApiGenerationRequest, type PublishResponse } from '../../../l
 import {
   Platform,
   PLATFORM_MEDIA_SUPPORT,
+  PLATFORM_CHARACTER_LIMITS,
   TemplateStyle,
   AspectRatio,
   MAX_GENERATION_ARTIFACTS,
@@ -46,6 +47,12 @@ const PLATFORM_MEDIA_NOTE: Record<Platform, string> = Object.fromEntries(
         : 'Apenas texto',
   ]),
 ) as Record<Platform, string>
+
+function truncateForPlatform(text: string, platform: Platform): string {
+  const limit = PLATFORM_CHARACTER_LIMITS[platform]
+  if (text.length <= limit) return text
+  return `${text.slice(0, limit - 1).trimEnd()}…`
+}
 
 const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [
   { value: TemplateStyle.NO_TEXT, label: 'Sem texto' },
@@ -525,6 +532,7 @@ export default function GenerateContentPage() {
               onResultUpdate={setResult}
               onBack={() => router.push('/dashboard')}
               sourceArticleUrl={selectedSuggestion?.articleUrl ?? null}
+              connectedPlatforms={connectedPlatforms}
             />
           ) : generating ? (
             <GeneratingView stages={stages} stageIndex={stageIndex} />
@@ -959,11 +967,13 @@ function ResultView({
   onResultUpdate,
   onBack,
   sourceArticleUrl,
+  connectedPlatforms,
 }: {
   result: ApiGenerationRequest
   onResultUpdate: (r: ApiGenerationRequest) => void
   onBack: () => void
   sourceArticleUrl: string | null
+  connectedPlatforms: Platform[]
 }) {
   const aspectClass = ASPECT_RATIO_CLASS[result.inputs.aspectRatio]
   const readyArtifacts = result.outputs?.artifacts.filter((a) => a.status === 'ready') ?? []
@@ -976,6 +986,12 @@ function ResultView({
   const [scheduledAtInput, setScheduledAtInput] = useState('')
   const [scheduling, setScheduling] = useState(false)
   const [scheduleSuccess, setScheduleSuccess] = useState<Date | null>(null)
+  const [selectedExtraPlatforms, setSelectedExtraPlatforms] = useState<Set<Platform>>(new Set())
+  const [extraUsedPlatforms, setExtraUsedPlatforms] = useState<Set<Platform>>(new Set())
+  const [extraResults, setExtraResults] = useState<PublishResponse['results']>([])
+  const [extraFailed, setExtraFailed] = useState<PublishResponse['failedPlatforms']>([])
+  const [extraPublishing, setExtraPublishing] = useState(false)
+  const [extraPublishError, setExtraPublishError] = useState('')
 
   const buildContent = () => {
     if (!result.outputs) return []
@@ -1022,6 +1038,54 @@ function ResultView({
       setPublishError(err instanceof Error ? err.message : 'Erro ao agendar.')
     } finally {
       setScheduling(false)
+    }
+  }
+
+  const usedPlatforms = new Set<Platform>([
+    ...Object.keys(result.outputs?.copies ?? {}).map((p) => p as Platform),
+    ...extraUsedPlatforms,
+  ])
+  const availableExtraPlatforms = connectedPlatforms.filter(
+    (p) => !usedPlatforms.has(p) && !COMING_SOON_PLATFORMS.has(p),
+  )
+  const sourceTextForExtra = (() => {
+    const texts = Object.values(result.outputs?.copies ?? {}).map((c) => c!.text)
+    return texts.reduce((longest, t) => (t.length > longest.length ? t : longest), texts[0] ?? '')
+  })()
+
+  const toggleExtraPlatform = (p: Platform) => {
+    setSelectedExtraPlatforms((prev) => {
+      const next = new Set(prev)
+      if (next.has(p)) next.delete(p)
+      else next.add(p)
+      return next
+    })
+  }
+
+  const handlePublishMore = async () => {
+    if (selectedExtraPlatforms.size === 0) return
+    setExtraPublishError('')
+    setExtraPublishing(true)
+    try {
+      const content = [...selectedExtraPlatforms].map((platform) => ({
+        platform,
+        text: truncateForPlatform(sourceTextForExtra, platform),
+      }))
+      const post = await api.createPost(
+        content,
+        readyArtifacts.map((a) => a.imageStoragePath!),
+        undefined,
+        sourceArticleUrl,
+      )
+      const response = await api.publishPost(post.id)
+      setExtraResults((prev) => [...prev, ...response.results])
+      setExtraFailed((prev) => [...prev, ...response.failedPlatforms])
+      setExtraUsedPlatforms((prev) => new Set([...prev, ...selectedExtraPlatforms]))
+      setSelectedExtraPlatforms(new Set())
+    } catch (err) {
+      setExtraPublishError(err instanceof Error ? err.message : 'Erro ao publicar nas redes adicionais.')
+    } finally {
+      setExtraPublishing(false)
     }
   }
 
@@ -1103,11 +1167,11 @@ function ResultView({
 
       {publishResult ? (
         <div className="space-y-3">
-          {publishResult.results.length > 0 && (
+          {[...publishResult.results, ...extraResults].length > 0 && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-4">
               <p className="mb-2 font-semibold text-green-800">Publicado com sucesso:</p>
               <ul className="space-y-1">
-                {publishResult.results.map((r) => (
+                {[...publishResult.results, ...extraResults].map((r) => (
                   <li key={r.platform} className="text-sm text-green-700">
                     ✓ {PLATFORM_LABELS[r.platform]}
                   </li>
@@ -1115,16 +1179,78 @@ function ResultView({
               </ul>
             </div>
           )}
-          {publishResult.failedPlatforms.length > 0 && (
+          {[...publishResult.failedPlatforms, ...extraFailed].length > 0 && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="mb-2 font-semibold text-red-800">Falhou:</p>
               <ul className="space-y-1">
-                {publishResult.failedPlatforms.map((f) => (
+                {[...publishResult.failedPlatforms, ...extraFailed].map((f) => (
                   <li key={f.platform} className="text-sm text-red-700">
                     ✗ {PLATFORM_LABELS[f.platform]} — {f.reason}
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {availableExtraPlatforms.length > 0 && (
+            <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+              <p className="text-sm font-semibold text-gray-700">Publicar também em:</p>
+              <div className="flex flex-wrap gap-2">
+                {availableExtraPlatforms.map((p) => {
+                  const blockedByImage = PLATFORM_MEDIA_SUPPORT[p].requiresImage && readyArtifacts.length === 0
+                  return (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => !blockedByImage && toggleExtraPlatform(p)}
+                      disabled={blockedByImage}
+                      title={blockedByImage ? 'Exige imagem — este post não tem imagem.' : PLATFORM_MEDIA_NOTE[p]}
+                      className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                        selectedExtraPlatforms.has(p)
+                          ? 'border-brand-600 bg-brand-600 text-white'
+                          : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                      }`}
+                    >
+                      {PLATFORM_LABELS[p]}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {selectedExtraPlatforms.size > 0 && (
+                <div className="space-y-2 rounded-lg bg-gray-50 p-3">
+                  <p className="text-xs font-medium text-gray-500">Texto que será publicado (reaproveitado da copy gerada):</p>
+                  {[...selectedExtraPlatforms].map((p) => {
+                    const preview = truncateForPlatform(sourceTextForExtra, p)
+                    return (
+                      <div key={p}>
+                        <div className="mb-0.5 flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-500">{PLATFORM_LABELS[p]}</span>
+                          <span className="text-xs tabular-nums text-gray-400">
+                            {preview.length}/{PLATFORM_CHARACTER_LIMITS[p]}
+                          </span>
+                        </div>
+                        <p className="whitespace-pre-wrap rounded border border-gray-200 bg-white p-2 text-xs text-gray-700">
+                          {preview}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {extraPublishError && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">{extraPublishError}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={handlePublishMore}
+                disabled={selectedExtraPlatforms.size === 0 || extraPublishing}
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+              >
+                {extraPublishing ? 'Publicando…' : 'Publicar nas redes selecionadas'}
+              </button>
             </div>
           )}
         </div>
