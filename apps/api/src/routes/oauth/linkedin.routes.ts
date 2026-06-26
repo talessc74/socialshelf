@@ -50,9 +50,6 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
       return reply.redirect(`${webUrl}/dashboard?connected=linkedin`)
     } catch (err) {
       app.log.error(err)
-      if (err instanceof Error && err.message === 'linkedin_multiple_organizations') {
-        return reply.redirect(`${webUrl}/dashboard?error=linkedin_multiple_organizations`)
-      }
       return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
     }
   })

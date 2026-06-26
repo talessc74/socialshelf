@@ -5,49 +5,15 @@ export interface LinkedInTokenResponse {
   scope: string
 }
 
-export interface LinkedInOrganization {
-  urn: string
-  name: string
-}
-
 export function buildLinkedInAuthUrl(state: string): string {
   const params = new URLSearchParams({
     response_type: 'code',
     client_id: process.env['LINKEDIN_CLIENT_ID'] ?? '',
     redirect_uri: process.env['LINKEDIN_REDIRECT_URI'] ?? '',
-    scope: 'openid profile email w_member_social r_organization_admin w_organization_social',
+    scope: 'openid profile email w_member_social',
     state,
   })
   return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`
-}
-
-// Requer o produto "Community Management API" habilitado no app LinkedIn para retornar
-// resultados; sem ele, a chamada responde 200 com lista vazia (não é um erro a propagar).
-export async function listAdministeredOrganizations(accessToken: string): Promise<LinkedInOrganization[]> {
-  const params = new URLSearchParams({
-    q: 'roleAssignee',
-    role: 'ADMINISTRATOR',
-    projection: '(elements*(organization~(id,localizedName)))',
-  })
-
-  const response = await fetch(`https://api.linkedin.com/v2/organizationAcls?${params.toString()}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-
-  if (!response.ok) {
-    return []
-  }
-
-  const data = (await response.json()) as {
-    elements?: Array<{ 'organization~'?: { id: number; localizedName: string } }>
-  }
-
-  return (data.elements ?? [])
-    .filter((el) => el['organization~'] != null)
-    .map((el) => ({
-      urn: `urn:li:organization:${el['organization~']!.id}`,
-      name: el['organization~']!.localizedName,
-    }))
 }
 
 export async function exchangeCodeForToken(

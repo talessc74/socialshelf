@@ -66,6 +66,37 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
   `MetaPublisher`, que continua publicando apenas no destino derivado do token, sem
   seleção de página.
 
+### 2026-06-26 — reversão: bloqueio de produto no LinkedIn Developer Portal
+
+- Ao tentar usar a implementação acima em produção, o fluxo de reconexão do LinkedIn
+  passou a falhar com uma tela de erro genérica do próprio LinkedIn (antes de qualquer
+  redirect para o SocialShelf) — o LinkedIn estava rejeitando a autorização inteira.
+- Causa raiz identificada: os escopos `r_organization_admin` e `w_organization_social`
+  pertencem ao produto **"Community Management API"** do LinkedIn Developer Portal, que
+  não vem habilitado por padrão e precisa ser solicitado e aprovado pelo LinkedIn.
+- Ao tentar solicitar o produto no app existente do SocialShelf, o LinkedIn recusou com:
+  *"This API product requires that it be the only product on the application for legal
+  and security reasons. This product cannot be requested because there are currently
+  other provisioned products."* — o app já tem "Share on LinkedIn" e "Sign In with
+  LinkedIn using OpenID Connect" provisionados, que sustentam login e publicação no
+  perfil pessoal hoje.
+- **Isso é uma restrição estrutural do LinkedIn, não uma aprovação pendente**: não é
+  possível ter Community Management API coexistindo com os produtos atuais no mesmo app.
+  A única forma de obter publicação em página de empresa seria criar um **segundo app**
+  no LinkedIn Developer Portal dedicado exclusivamente a esse produto, com client
+  ID/secret próprios — exigindo o SocialShelf gerenciar dois fluxos OAuth distintos para
+  LinkedIn (um app para perfil pessoal/login, outro para páginas de empresa).
+- Decisão (revertida nesta data): os escopos `r_organization_admin`/`w_organization_social`
+  e a chamada a `listAdministeredOrganizations` foram revertidos em
+  `buildLinkedInAuthUrl` e `HandleLinkedInCallbackUseCase`. `organizationUrn` permanece
+  sempre `null` para novas conexões LinkedIn até uma decisão sobre o app dedicado. O
+  fallback em `LinkedInPublisher.publish` (usar `organizationUrn` quando presente,
+  perfil pessoal quando ausente) foi mantido — é inofensivo e não exige reversão, já que
+  nenhuma conexão terá `organizationUrn` preenchido por ora.
+- **Publicação em página de empresa do LinkedIn permanece sem solução até decisão
+  explícita sobre criar e manter um segundo app LinkedIn** dedicado ao Community
+  Management API.
+
 ## Consequences
 
 - Use-cases de callback de LinkedIn ganham uma etapa intermediária (listar páginas) que

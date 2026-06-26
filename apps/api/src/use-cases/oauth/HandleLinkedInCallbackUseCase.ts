@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { exchangeCodeForToken, listAdministeredOrganizations } from '../../lib/linkedin-client.js'
+import { exchangeCodeForToken } from '../../lib/linkedin-client.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
 import type { OAuthConnection, OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
 
@@ -15,12 +15,6 @@ export class HandleLinkedInCallbackUseCase {
 
     const pairwiseId = derivePairwiseId(userId, Platform.LINKEDIN)
     const tokenRef = `oauth-token-${pairwiseId}`
-
-    const organizations = await listAdministeredOrganizations(tokenResponse.access_token)
-    if (organizations.length > 1) {
-      throw new Error('linkedin_multiple_organizations')
-    }
-    const organizationUrn = organizations[0]?.urn ?? null
 
     await this.tokenVault.store(
       tokenRef,
@@ -40,7 +34,7 @@ export class HandleLinkedInCallbackUseCase {
       pairwiseId,
       tokenRef,
       scopes: tokenResponse.scope.split(' '),
-      organizationUrn,
+      organizationUrn: null,
       expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
       createdAt: new Date(),
       updatedAt: new Date(),
