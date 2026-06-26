@@ -307,7 +307,7 @@ jobs:
             --max-instances=2 \
             --memory=1Gi \
             --cpu=1 \
-            --timeout=180
+            --timeout=300
 
           URL=$(gcloud run services describe generator-service --region=${{ env.GCP_REGION }} --format='value(status.url)')
           echo "url=${URL}" >> "$GITHUB_OUTPUT"
