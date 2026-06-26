@@ -31,6 +31,7 @@ vi.mock('../../lib/linkedin-client.js', () => ({
     expires_in: 5183944,
     scope: 'openid profile email w_member_social',
   }),
+  listAdministeredOrganizations: vi.fn().mockResolvedValue([]),
 }))
 
 describe('LinkedIn OAuth routes', () => {

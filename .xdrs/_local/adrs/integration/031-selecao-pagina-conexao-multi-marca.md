@@ -99,16 +99,18 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
 
 ## Consequences
 
-- Use-cases de callback de LinkedIn ganham uma etapa intermediária (listar páginas) que
-  hoje não existe; quando há exatamente 0 ou 1 página, o fluxo permanece "autoriza e
-  conecta" direto, sem fricção adicional.
-- Quando há mais de uma página administrada pelo login do LinkedIn, a conexão falha hoje
-  com `linkedin_multiple_organizations` — a tela de conexão em `apps/web` ainda precisa
-  do estado de UI para seleção explícita (não implementado nesta rodada).
+- A listagem de páginas administradas (`listAdministeredOrganizations`) e os escopos
+  `r_organization_admin`/`w_organization_social` foram revertidos em 2026-06-26 por
+  bloqueio estrutural do LinkedIn (ver seção de reversão acima) — `HandleLinkedInCallbackUseCase`
+  hoje sempre persiste `organizationUrn: null`, e toda publicação no LinkedIn vai para o
+  perfil pessoal do usuário conectado, independentemente de quantas páginas ele administre.
+- Publicação em página de empresa do LinkedIn requer decisão sobre criar e manter um
+  segundo app dedicado no LinkedIn Developer Portal — sem isso, esta parte da decisão
+  permanece sem implementação possível no app atual.
 - Mensagem de aviso específica no fluxo do X e a implementação para Meta permanecem como
   trabalho futuro.
-- Nenhum impacto em marcas que já têm exatamente uma página/conta disponível —
-  comportamento é corrigido para publicar nessa página em vez do perfil pessoal.
+- Nenhum impacto em marcas que usam apenas o perfil pessoal — comportamento de publicação
+  no LinkedIn é o mesmo de antes desta rodada de decisões.
 
 ## References
 
