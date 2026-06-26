@@ -33,15 +33,51 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
 - A tela de conexão de marca exibe aviso antes de iniciar o fluxo OAuth do X: a conta logada no momento é a que ficará vinculada a esta marca; para conectar outra conta X a outra marca, é necessário trocar a sessão logada no X antes de repetir o processo.
 - Esta é uma limitação reconhecida da plataforma, não do SocialShelf — não há solução técnica do lado do SocialShelf para eliminar essa fricção.
 
-**Sem mudança de modelo de dados**
+**Mudança de modelo de dados (correção em relação à decisão original)**
 
-- `OAuthConnection` permanece isolada por `(brandId, platform)` (`_local-adr-policy-009`, `_local-adr-policy-017`). Esta decisão afeta apenas o fluxo de seleção antes da persistência, não o schema.
+- `OAuthConnection` ganha o campo opcional `organizationUrn: string | null`. Sem ele,
+  não há como o `LinkedInPublisher`/`MetaPublisher` saber se deve publicar como a
+  página/organização selecionada ou como o perfil pessoal do token — a omissão original
+  desta decisão causou um bug real em produção (post publicado no perfil pessoal em vez
+  da página da marca). `(brandId, platform)` continua sendo o isolamento de credenciais
+  (`_local-adr-policy-009`, `_local-adr-policy-017`); `organizationUrn` é apenas o destino
+  de publicação dentro dessa credencial.
+
+### 2026-06-26 — implementação parcial: LinkedIn
+
+- `buildLinkedInAuthUrl` passa a solicitar os scopes `r_organization_admin` e
+  `w_organization_social`, além dos já existentes.
+- `listAdministeredOrganizations` (novo, em `apps/api/src/lib/linkedin-client.ts`) consulta
+  `/v2/organizationAcls?q=roleAssignee&role=ADMINISTRATOR` para obter as páginas
+  administradas pelo token.
+- `HandleLinkedInCallbackUseCase`: 0 páginas → `organizationUrn = null` (publica como
+  perfil pessoal, comportamento anterior preservado); exatamente 1 página → seleção
+  automática (`organizationUrn` preenchido); mais de 1 página → lança
+  `linkedin_multiple_organizations`, e o callback redireciona com
+  `?error=linkedin_multiple_organizations`.
+- `LinkedInPublisher.publish`: usa `connection.organizationUrn` como `author` quando
+  presente; caso contrário, mantém o fallback para `urn:li:person:${personId}` via
+  `/v2/userinfo`.
+- **Pendência conhecida**: o caso de mais de uma página administrada ainda não tem UI de
+  seleção em `apps/web` — hoje apenas falha com um código de erro específico, sem
+  fricção elegante. A etapa de seleção explícita descrita nesta decisão permanece como
+  trabalho futuro para esse caso.
+- Meta (Instagram/Facebook) ainda não foi implementado — mesma lacuna se aplica a
+  `MetaPublisher`, que continua publicando apenas no destino derivado do token, sem
+  seleção de página.
 
 ## Consequences
 
-- Use-cases de callback de LinkedIn e Meta ganham uma etapa intermediária (listar e aguardar seleção) que hoje não existe — fluxo deixa de ser "autoriza e conecta" direto quando há múltiplas páginas.
-- A tela de conexão em `apps/web` precisa de um novo estado de UI para a etapa de seleção de página, e de uma mensagem de aviso específica no fluxo do X.
-- Nenhum impacto em marcas que já têm exatamente uma página/conta disponível — comportamento atual é preservado.
+- Use-cases de callback de LinkedIn ganham uma etapa intermediária (listar páginas) que
+  hoje não existe; quando há exatamente 0 ou 1 página, o fluxo permanece "autoriza e
+  conecta" direto, sem fricção adicional.
+- Quando há mais de uma página administrada pelo login do LinkedIn, a conexão falha hoje
+  com `linkedin_multiple_organizations` — a tela de conexão em `apps/web` ainda precisa
+  do estado de UI para seleção explícita (não implementado nesta rodada).
+- Mensagem de aviso específica no fluxo do X e a implementação para Meta permanecem como
+  trabalho futuro.
+- Nenhum impacto em marcas que já têm exatamente uma página/conta disponível —
+  comportamento é corrigido para publicar nessa página em vez do perfil pessoal.
 
 ## References
 

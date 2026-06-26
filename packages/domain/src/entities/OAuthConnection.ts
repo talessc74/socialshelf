@@ -8,6 +8,7 @@ export interface OAuthConnection {
   pairwiseId: string
   tokenRef: string
   scopes: string[]
+  organizationUrn?: string | null
   expiresAt: Date | null
   createdAt: Date
   updatedAt: Date

@@ -122,6 +122,25 @@ describe('LinkedInPublisher', () => {
     expect(body.author).toBe('urn:li:person:abc-456')
   })
 
+  it('posts as organization and skips /v2/userinfo when connection has organizationUrn', async () => {
+    const orgConnection: OAuthConnection = {
+      ...mockConnection,
+      organizationUrn: 'urn:li:organization:9988776',
+    }
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      headers: { get: (h: string) => h === 'x-restli-id' ? 'urn:li:share:222' : null },
+      json: async () => ({}),
+    })
+
+    const result = await publisher.publish(mockPost, Platform.LINKEDIN, orgConnection)
+
+    expect(result.externalId).toBe('urn:li:share:222')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
+    expect(body.author).toBe('urn:li:organization:9988776')
+  })
+
   it('throws when /v2/userinfo returns an error', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 401 })
 

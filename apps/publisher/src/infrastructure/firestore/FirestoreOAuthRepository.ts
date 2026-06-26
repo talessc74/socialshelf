@@ -89,6 +89,7 @@ export class FirestoreOAuthRepository implements OAuthRepository {
       pairwiseId: data['pairwiseId'] as string,
       tokenRef: data['tokenRef'] as string,
       scopes: data['scopes'] as string[],
+      organizationUrn: (data['organizationUrn'] as string | null | undefined) ?? null,
       expiresAt: data['expiresAt'] ? new Date(data['expiresAt'] as string) : null,
       createdAt: new Date(data['createdAt'] as string),
       updatedAt: new Date(data['updatedAt'] as string),
