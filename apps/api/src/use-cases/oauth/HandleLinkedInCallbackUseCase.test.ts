@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HandleLinkedInCallbackUseCase } from './HandleLinkedInCallbackUseCase.js'
-import { listAdministeredOrganizations } from '../../lib/linkedin-client.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
 import type { OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
 
@@ -10,7 +9,6 @@ vi.mock('../../lib/linkedin-client.js', () => ({
     expires_in: 5183944,
     scope: 'openid profile email w_member_social',
   }),
-  listAdministeredOrganizations: vi.fn().mockResolvedValue([]),
 }))
 
 describe('HandleLinkedInCallbackUseCase', () => {
@@ -79,29 +77,8 @@ describe('HandleLinkedInCallbackUseCase', () => {
     expect(c1.id).not.toBe(c2.id)
   })
 
-  it('leaves organizationUrn null when user administers no organizations', async () => {
+  it('leaves organizationUrn null', async () => {
     const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
     expect(connection.organizationUrn).toBeNull()
-  })
-
-  it('auto-selects the organization when exactly one is administered', async () => {
-    vi.mocked(listAdministeredOrganizations).mockResolvedValueOnce([
-      { urn: 'urn:li:organization:555', name: 'EAI? Simulação Jurídica' },
-    ])
-
-    const connection = await useCase.execute('auth-code', 'user-123', 'brand-456')
-
-    expect(connection.organizationUrn).toBe('urn:li:organization:555')
-  })
-
-  it('throws when user administers more than one organization', async () => {
-    vi.mocked(listAdministeredOrganizations).mockResolvedValueOnce([
-      { urn: 'urn:li:organization:555', name: 'Empresa A' },
-      { urn: 'urn:li:organization:666', name: 'Empresa B' },
-    ])
-
-    await expect(useCase.execute('auth-code', 'user-123', 'brand-456')).rejects.toThrow(
-      'linkedin_multiple_organizations',
-    )
   })
 })
