@@ -253,6 +253,180 @@ describe('GenerateContentPage', () => {
     expect(mockedApi.publishPost).toHaveBeenCalledWith('post-1')
   })
 
+  it('permite publicar também em uma plataforma conectada adicional após publicar', async () => {
+    mockedApi.getConnections.mockResolvedValue([
+      makeConnection(Platform.LINKEDIN),
+      makeConnection(Platform.FACEBOOK),
+    ])
+    mockedApi.generateContent.mockResolvedValue({
+      id: 'gen-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      status: 'ready',
+      inputs: {
+        description: 'Lançamento X',
+        textContent: null,
+        imageStoragePaths: [],
+        targetPlatforms: [Platform.LINKEDIN],
+        topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
+        style: TemplateStyle.BOLD_BOTTOM,
+      },
+      outputs: {
+        copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
+        cta: 'Comente abaixo!',
+        headlines: ['Headline gerada'],
+        bodyTexts: null,
+        artifacts: [
+          {
+            position: 1,
+            status: 'ready',
+            imageStoragePath: 'user-1/generated/img.png',
+            backgroundImageStoragePath: 'user-1/generated/img-bg.png',
+            error: null,
+          },
+        ],
+      },
+      error: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    mockedApi.getImageUrl.mockResolvedValue('https://storage.googleapis.com/signed-url')
+    mockedApi.createPost.mockResolvedValueOnce({
+      id: 'post-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      brandProfileVersion: null,
+      content: [{ platform: Platform.LINKEDIN, text: 'Copy gerada para o LinkedIn' }],
+      imageStoragePaths: ['user-1/generated/img.png'],
+      status: 'draft',
+      externalIds: {},
+      scheduledAt: null,
+      publishedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    mockedApi.publishPost.mockResolvedValueOnce({
+      postId: 'post-1',
+      results: [{ platform: Platform.LINKEDIN, externalId: 'ext-1', publishedAt: new Date().toISOString() }],
+      failedPlatforms: [],
+    })
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+    await user.click(await screen.findByRole('button', { name: 'Publicar Agora' }))
+
+    expect(await screen.findByText('Publicar também em:')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'LinkedIn' })).not.toBeInTheDocument()
+
+    mockedApi.createPost.mockResolvedValueOnce({
+      id: 'post-2',
+      userId: 'user-1',
+      brandId: 'user-1',
+      brandProfileVersion: null,
+      content: [{ platform: Platform.FACEBOOK, text: 'Copy gerada para o LinkedIn' }],
+      imageStoragePaths: ['user-1/generated/img.png'],
+      status: 'draft',
+      externalIds: {},
+      scheduledAt: null,
+      publishedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    mockedApi.publishPost.mockResolvedValueOnce({
+      postId: 'post-2',
+      results: [{ platform: Platform.FACEBOOK, externalId: 'ext-2', publishedAt: new Date().toISOString() }],
+      failedPlatforms: [],
+    })
+
+    await user.click(screen.getByRole('button', { name: 'Facebook' }))
+    expect(await screen.findByText('Texto que será publicado (reaproveitado da copy gerada):')).toBeInTheDocument()
+    expect(screen.getAllByText('Copy gerada para o LinkedIn')).toHaveLength(2)
+    await user.click(screen.getByRole('button', { name: 'Publicar nas redes selecionadas' }))
+
+    await waitFor(() => {
+      expect(mockedApi.createPost).toHaveBeenCalledWith(
+        [{ platform: Platform.FACEBOOK, text: 'Copy gerada para o LinkedIn' }],
+        ['user-1/generated/img.png'],
+        undefined,
+        null,
+      )
+    })
+    expect(mockedApi.publishPost).toHaveBeenCalledWith('post-2')
+    expect(await screen.findAllByText('✓ Facebook')).toHaveLength(1)
+  })
+
+  it('desabilita plataforma adicional que exige imagem quando não há artefato pronto', async () => {
+    mockedApi.getConnections.mockResolvedValue([
+      makeConnection(Platform.LINKEDIN),
+      makeConnection(Platform.INSTAGRAM),
+    ])
+    mockedApi.generateContent.mockResolvedValue({
+      id: 'gen-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      status: 'ready',
+      inputs: {
+        description: 'Lançamento X',
+        textContent: null,
+        imageStoragePaths: [],
+        targetPlatforms: [Platform.LINKEDIN],
+        topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
+        style: TemplateStyle.BOLD_BOTTOM,
+      },
+      outputs: {
+        copies: { [Platform.LINKEDIN]: { text: 'Copy gerada para o LinkedIn', charCount: 27 } },
+        cta: 'Comente abaixo!',
+        headlines: ['Headline gerada'],
+        bodyTexts: null,
+        artifacts: [],
+      },
+      error: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    mockedApi.createPost.mockResolvedValueOnce({
+      id: 'post-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      brandProfileVersion: null,
+      content: [{ platform: Platform.LINKEDIN, text: 'Copy gerada para o LinkedIn' }],
+      imageStoragePaths: [],
+      status: 'draft',
+      externalIds: {},
+      scheduledAt: null,
+      publishedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    mockedApi.publishPost.mockResolvedValueOnce({
+      postId: 'post-1',
+      results: [{ platform: Platform.LINKEDIN, externalId: 'ext-1', publishedAt: new Date().toISOString() }],
+      failedPlatforms: [],
+    })
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+    await user.click(await screen.findByRole('button', { name: 'Publicar Agora' }))
+
+    const instagramButton = await screen.findByRole('button', { name: 'Instagram' })
+    expect(instagramButton).toBeDisabled()
+    expect(instagramButton).toHaveAttribute('title', 'Exige imagem — este post não tem imagem.')
+
+    await user.click(instagramButton)
+    expect(screen.queryByText('Texto que será publicado (reaproveitado da copy gerada):')).not.toBeInTheDocument()
+    expect(mockedApi.createPost).toHaveBeenCalledTimes(1)
+  })
+
   it('ignora plataformas conectadas com valor inválido ao renderizar os botões', async () => {
     const invalidConnection = { ...makeConnection(Platform.LINKEDIN), platform: 'LinkedIn' as Platform }
     mockedApi.getConnections.mockResolvedValue([invalidConnection, makeConnection(Platform.TWITTER)])
