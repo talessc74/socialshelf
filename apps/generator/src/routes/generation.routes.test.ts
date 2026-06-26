@@ -90,7 +90,7 @@ vi.mock('../infrastructure/template/SharpTemplateRenderer.js', () => ({
 
 const mockUpload = vi.fn().mockResolvedValue('brand-1/generated/img.png')
 const mockGetSignedUrl = vi.fn().mockResolvedValue('https://storage.googleapis.com/signed-url')
-const mockDownload = vi.fn().mockResolvedValue({ base64: 'dXBsb2FkZWQ=', mimeType: 'image/png' })
+const mockDownload = vi.fn().mockResolvedValue({ base64: 'YmFja2dyb3VuZA==', mimeType: 'image/png' })
 
 vi.mock('../infrastructure/storage/GcsImageStorage.js', () => ({
   GcsImageStorage: vi.fn().mockImplementation(() => ({
@@ -120,7 +120,16 @@ const mockGenerationRequest = {
     cta: 'Comente abaixo!',
     headlines: ['Headline gerada'],
     visualBriefs: ['Cena gerada'],
-    artifacts: [{ position: 1, status: 'ready', imageStoragePath: 'brand-1/generated/img.png', error: null }],
+    bodyTexts: ['Corpo gerado'],
+    artifacts: [
+      {
+        position: 1,
+        status: 'ready',
+        imageStoragePath: 'brand-1/generated/img.png',
+        backgroundImageStoragePath: 'brand-1/generated/img-bg.png',
+        error: null,
+      },
+    ],
   },
   error: null,
   createdAt: new Date(),
@@ -298,6 +307,88 @@ describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
       method: 'POST',
       url: '/generation-requests/gen-1/artifacts/1/edit',
       payload: { instruction: 'deixe o fundo mais claro' },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
+describe('POST /generation-requests/:id/artifacts/:position/edit-text', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with the updated generation request', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: 'Novo corpo' },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ generationRequest: { outputs: { artifacts: Array<{ status: string }>; headlines: string[] } } }>()
+    expect(body.generationRequest.outputs.artifacts[0]!.status).toBe('ready')
+    expect(body.generationRequest.outputs.headlines[0]).toBe('Novo headline')
+  })
+
+  it('returns 404 when the generation request is not found', async () => {
+    mockFindById.mockResolvedValueOnce(null)
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/missing/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(404)
+  })
+
+  it('returns 422 when the artifact has no saved background', async () => {
+    mockFindById.mockResolvedValueOnce({
+      ...mockGenerationRequest,
+      outputs: {
+        ...mockGenerationRequest.outputs,
+        artifacts: [{ ...mockGenerationRequest.outputs.artifacts[0], backgroundImageStoragePath: null }],
+      },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(422)
+  })
+
+  it('returns 400 when headline is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { body: null },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-requests/gen-1/artifacts/1/edit-text',
+      payload: { headline: 'Novo headline', body: null },
     })
 
     expect(response.statusCode).toBe(401)

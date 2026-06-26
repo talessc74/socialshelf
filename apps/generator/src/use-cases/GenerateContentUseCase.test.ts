@@ -164,6 +164,56 @@ describe('GenerateContentUseCase', () => {
     expect(savedPost.imageStoragePaths).toEqual(['brand-1/generated/img.png'])
   })
 
+  it('persiste o background limpo (sem texto) separado da imagem final, quando a imagem é gerada por IA', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.outputs?.artifacts[0]?.backgroundImageStoragePath).toBe('brand-1/generated/img.png')
+    expect(deps.imageStorage.upload).toHaveBeenCalledWith(
+      'brand-1',
+      'brand-1',
+      Buffer.from('YmFzZTY0', 'base64'),
+      'image/png',
+      `${result.id}-bg`,
+    )
+  })
+
+  it('reaproveita o caminho da foto enviada como background, sem upload extra, quando o usuário fornece a imagem', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+    )
+
+    const result = await useCase.execute({
+      ...baseInput(),
+      imageStoragePaths: ['brand-1/uploads/foto.png'],
+    })
+
+    expect(result.outputs?.artifacts[0]?.backgroundImageStoragePath).toBe('brand-1/uploads/foto.png')
+    expect(deps.imageStorage.upload).toHaveBeenCalledTimes(1)
+    expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
+  })
+
   it('gera múltiplos artefatos (carrossel) sem bifurcação de lógica', async () => {
     const deps = makeDeps({ headlineCount: 3 })
     const useCase = new GenerateContentUseCase(
