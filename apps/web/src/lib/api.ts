@@ -56,9 +56,15 @@ export interface ApiConnection {
   pairwiseId: string
   tokenRef: string
   scopes: string[]
+  organizationUrn?: string | null
   expiresAt: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface LinkedInOrganization {
+  urn: string
+  name: string
 }
 
 export interface PostContent {
@@ -254,6 +260,25 @@ export const api = {
   async getAuthorizeUrl(platform: 'linkedin' | 'meta' | 'x'): Promise<string> {
     const data = await apiFetch<{ url: string }>(`/oauth/${platform}/authorize`)
     return data.url
+  },
+
+  async getLinkedInPageAuthorizeUrl(): Promise<string> {
+    const data = await apiFetch<{ url: string }>('/oauth/linkedin-page/authorize')
+    return data.url
+  },
+
+  async getLinkedInPagePendingSelection(pendingId: string): Promise<LinkedInOrganization[]> {
+    const data = await apiFetch<{ organizations: LinkedInOrganization[] }>(
+      `/oauth/linkedin-page/pending/${pendingId}`,
+    )
+    return data.organizations
+  },
+
+  async selectLinkedInPage(pendingId: string, organizationUrn: string): Promise<void> {
+    await apiFetch('/oauth/linkedin-page/select', {
+      method: 'POST',
+      body: JSON.stringify({ pendingId, organizationUrn }),
+    })
   },
 
   async createPost(

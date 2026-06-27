@@ -140,6 +140,53 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
   trabalho local) que o diff cobre exatamente os três arquivos pretendidos, evitando repetir o
   erro do commit anterior, que divergiu da mensagem de commit declarada.
 
+### 2026-06-27 — implementação: segundo app LinkedIn dedicado, com UI de seleção multi-página
+
+- Decisão tomada: criar um **segundo app no LinkedIn Developer Portal**, exclusivo para o
+  produto Community Management API, em vez de tentar reaproveitar o app pessoal/login já
+  existente (bloqueado desde a reversão de 2026-06-26). O app pessoal continua respondendo
+  por `openid profile email w_member_social` (perfil pessoal); o novo app responde só por
+  `r_organization_admin w_organization_social` (Páginas de empresa).
+- Escopo confirmado com o usuário antes da implementação: só o owner do SocialShelf cria e
+  mantém o app no Developer Portal — usuários finais nunca acessam o Developer Portal, apenas
+  autorizam via OAuth padrão. Ressalva registrada: a API de Community Management normalmente
+  libera publicação só nas Páginas associadas/verificadas pelo próprio app na aprovação
+  inicial; publicar em Páginas de terceiros (clientes do SaaS) tende a exigir uma revisão
+  adicional da LinkedIn além da aprovação inicial do produto. O código abaixo já é
+  multi-tenant por construção — a limitação adicional, se houver, é inteiramente do lado da
+  aprovação da LinkedIn, não do SocialShelf.
+- Novo fluxo, paralelo e independente do fluxo de perfil pessoal:
+  - `apps/api/src/lib/linkedin-page-client.ts` (novo): `buildLinkedInPageAuthUrl`,
+    `exchangeCodeForPageToken`, `listAdministeredOrganizations` — usam
+    `LINKEDIN_PAGE_CLIENT_ID`/`LINKEDIN_PAGE_CLIENT_SECRET`/`LINKEDIN_PAGE_REDIRECT_URI`
+    (novas env vars, distintas de `LINKEDIN_CLIENT_ID` etc.).
+  - `GenerateLinkedInPageAuthUrlUseCase`, `HandleLinkedInPageCallbackUseCase`,
+    `GetPendingLinkedInPageSelectionUseCase`, `ConfirmLinkedInPageSelectionUseCase` (novos,
+    em `apps/api/src/use-cases/oauth/`): 0 páginas → erro `linkedin_no_organizations`; 1
+    página → seleção automática, persiste direto; mais de 1 página → guarda o token
+    temporariamente em `FirestoreTokenVault` sob a chave `linkedin-page-pending-{pendingId}`
+    (TTL de 10 minutos, mesmo padrão do `csrf.ts`) e devolve a lista para a interface
+    escolher; a escolha confirma via endpoint dedicado, que persiste a `OAuthConnection` e
+    apaga a entrada pendente do vault.
+  - Rotas novas em `apps/api/src/routes/oauth/linkedin-page.routes.ts`:
+    `GET /oauth/linkedin-page/authorize`, `GET /oauth/linkedin-page/callback`,
+    `GET /oauth/linkedin-page/pending/:pendingId`, `POST /oauth/linkedin-page/select`.
+  - UI nova em `apps/web/src/app/dashboard/accounts/page.tsx`: botão "Conectar Página do
+    LinkedIn" (disponível mesmo quando já há conexão pessoal — a Página substitui o perfil
+    pessoal para fins de publicação desta marca, não coexistem); etapa de seleção quando há
+    mais de uma Página administrada; indicador "— Página" / "— Perfil pessoal" no card de
+    status da conexão.
+- **Decisão de modelo de dados**: a conexão de Página reutiliza o mesmo `pairwiseId`
+  (`derivePairwiseId(userId, Platform.LINKEDIN)`) e portanto o mesmo documento Firestore e a
+  mesma `tokenRef` da conexão pessoal — escolher conectar a Página **substitui** a conexão
+  pessoal para aquela marca, não cria uma segunda conexão em paralelo. Isso é consistente com
+  o modelo existente de uma conexão por `(brandId, platform)` (`_local-adr-policy-017`) e com a
+  realidade de publicação: uma marca publica no LinkedIn como o perfil pessoal OU como a
+  Página, nunca como os dois simultaneamente a partir da mesma marca.
+- `LinkedInPublisher.publish` não foi alterado — já usava `connection.organizationUrn ??
+  urn:li:person:...` desde a decisão original; o novo fluxo apenas passa a ser capaz de
+  popular `organizationUrn` de fato.
+
 ## Consequences
 
 - A listagem de páginas administradas (`listAdministeredOrganizations`) e os escopos

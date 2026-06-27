@@ -5,6 +5,7 @@ import rateLimit from '@fastify/rate-limit'
 import multipart from '@fastify/multipart'
 import { healthRoutes } from './routes/health.routes.js'
 import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
+import { linkedinPageOAuthRoutes } from './routes/oauth/linkedin-page.routes.js'
 import { metaOAuthRoutes } from './routes/oauth/meta.routes.js'
 import { xOAuthRoutes } from './routes/oauth/x.routes.js'
 import { postsRoutes } from './routes/posts.routes.js'
@@ -42,6 +43,7 @@ export async function buildApp() {
 
   await app.register(healthRoutes)
   await app.register(linkedinOAuthRoutes)
+  await app.register(linkedinPageOAuthRoutes)
   await app.register(metaOAuthRoutes)
   await app.register(xOAuthRoutes)
   await app.register(postsRoutes)
