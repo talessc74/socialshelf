@@ -119,6 +119,27 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
   página/organização vincular na conexão; esta trata de qual marca/usuário é resolvido no
   momento da publicação) — registrada aqui por afetar o mesmo cenário multi-marca.
 
+### 2026-06-27 — correção: reversão de 2026-06-26 estava incompleta, causou regressão em produção
+
+- A reversão registrada em 2026-06-26 só atingiu `HandleLinkedInCallbackUseCase` (e seu teste) —
+  o commit squash daquela PR nunca tocou `apps/api/src/lib/linkedin-client.ts`, confirmado via
+  `git show <commit> --stat`. O scopo bloqueado pelo LinkedIn (`r_organization_admin
+  w_organization_social`) permaneceu em `buildLinkedInAuthUrl`, fazendo o LinkedIn voltar a
+  rejeitar a autorização inteira com a tela genérica de erro — a mesma falha que a reversão
+  deveria ter eliminado, agora reaparecendo em produção em toda tentativa de (re)conexão.
+- Não havia teste dedicado para o `scope` retornado por `buildLinkedInAuthUrl`
+  (`linkedin-client.test.ts` não existe), o que permitiu a reversão incompleta passar
+  pela suíte de testes sem ser detectada.
+- Correção: `buildLinkedInAuthUrl` volta a usar `scope: 'openid profile email w_member_social'`;
+  `listAdministeredOrganizations` e a interface `LinkedInOrganization` foram removidas de
+  `linkedin-client.ts` (código morto, nada mais os referenciava); o branch de erro
+  `linkedin_multiple_organizations` em `linkedin.routes.ts` foi removido (inalcançável, já que
+  `HandleLinkedInCallbackUseCase` nunca lança esse erro); o mock obsoleto de
+  `listAdministeredOrganizations` em `linkedin.routes.test.ts` foi removido.
+- Verificado via `git show`/`git diff` no commit efetivamente enviado (não apenas na árvore de
+  trabalho local) que o diff cobre exatamente os três arquivos pretendidos, evitando repetir o
+  erro do commit anterior, que divergiu da mensagem de commit declarada.
+
 ## Consequences
 
 - A listagem de páginas administradas (`listAdministeredOrganizations`) e os escopos
