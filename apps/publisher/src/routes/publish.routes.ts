@@ -13,6 +13,7 @@ import type { PublisherPort } from '@socialshelf/domain'
 
 const bodySchema = z.object({
   postId: z.string().min(1),
+  userId: z.string().min(1),
   brandId: z.string().min(1),
 })
 
@@ -72,10 +73,10 @@ export async function publishRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid request body' })
     }
 
-    const { postId, brandId } = parsed.data
+    const { postId, userId, brandId } = parsed.data
 
     try {
-      const result = await useCase.execute(postId, brandId)
+      const result = await useCase.execute(postId, userId, brandId)
       return reply.send(result)
     } catch (err) {
       if (err instanceof Error && err.message.startsWith('Post not found')) {

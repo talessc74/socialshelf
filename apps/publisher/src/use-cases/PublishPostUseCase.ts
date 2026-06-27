@@ -31,8 +31,8 @@ export class PublishPostUseCase {
     this.publishers = publishers
   }
 
-  async execute(postId: string, brandId: string): Promise<PublishPostResult> {
-    const post = await this.postRepo.findByIdAndBrand(postId, brandId, brandId)
+  async execute(postId: string, userId: string, brandId: string): Promise<PublishPostResult> {
+    const post = await this.postRepo.findByIdAndBrand(postId, userId, brandId)
     if (!post) throw new Error(`Post not found: ${postId}`)
 
     const results: PlatformPublishResult[] = []
@@ -48,7 +48,7 @@ export class PublishPostUseCase {
       }
 
       try {
-        const connection = await this.oauthRepo.findByBrandAndPlatform(brandId, brandId, platform)
+        const connection = await this.oauthRepo.findByBrandAndPlatform(userId, brandId, platform)
         if (!connection) {
           failedPlatforms.push({ platform, reason: `No OAuth connection for ${platform}` })
           continue
