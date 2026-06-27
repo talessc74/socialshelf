@@ -40,12 +40,14 @@ const mockTokenVault: TokenVaultPort = {
   delete: vi.fn(),
 }
 
+const mockResolveImageUrl = vi.fn(async (path: string) => `https://signed.example/${path}`)
+
 describe('LinkedInPublisher', () => {
   let publisher: LinkedInPublisher
   let fetchMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    publisher = new LinkedInPublisher(mockTokenVault)
+    publisher = new LinkedInPublisher(mockTokenVault, mockResolveImageUrl)
     fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
   })
@@ -139,6 +141,92 @@ describe('LinkedInPublisher', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
     const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
     expect(body.author).toBe('urn:li:organization:9988776')
+  })
+
+  it('uploads a single image and references it as content.media', async () => {
+    const postWithImage: Post = { ...mockPost, imageStoragePaths: ['uploads/img-a.jpg'] }
+    fetchMock
+      // getPersonId
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      // initializeUpload
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: { uploadUrl: 'https://upload.li/a', image: 'urn:li:image:AAA' } }),
+      })
+      // fetch bytes from signed URL
+      .mockResolvedValueOnce({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+      // upload bytes
+      .mockResolvedValueOnce({ ok: true })
+      // /rest/posts
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (h: string) => (h === 'x-restli-id' ? 'urn:li:share:777' : null) },
+        json: async () => ({}),
+      })
+
+    const result = await publisher.publish(postWithImage, Platform.LINKEDIN, mockConnection)
+
+    expect(result.externalId).toBe('urn:li:share:777')
+    expect(mockResolveImageUrl).toHaveBeenCalledWith('uploads/img-a.jpg')
+    const initCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/rest/images?action=initializeUpload'))
+    expect(initCall).toBeDefined()
+    const postsCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/rest/posts'))!
+    const body = JSON.parse(postsCall[1]!.body as string)
+    expect(body.content).toEqual({ media: { id: 'urn:li:image:AAA' } })
+  })
+
+  it('uploads multiple images and references them as content.multiImage', async () => {
+    const postWithImages: Post = {
+      ...mockPost,
+      imageStoragePaths: ['uploads/img-a.jpg', 'uploads/img-b.jpg'],
+    }
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      // image A: init, fetch bytes, upload
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: { uploadUrl: 'https://upload.li/a', image: 'urn:li:image:AAA' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+      .mockResolvedValueOnce({ ok: true })
+      // image B: init, fetch bytes, upload
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: { uploadUrl: 'https://upload.li/b', image: 'urn:li:image:BBB' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+      .mockResolvedValueOnce({ ok: true })
+      // /rest/posts
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (h: string) => (h === 'x-restli-id' ? 'urn:li:share:888' : null) },
+        json: async () => ({}),
+      })
+
+    const result = await publisher.publish(postWithImages, Platform.LINKEDIN, mockConnection)
+
+    expect(result.externalId).toBe('urn:li:share:888')
+    const postsCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/rest/posts'))!
+    const body = JSON.parse(postsCall[1]!.body as string)
+    expect(body.content).toEqual({
+      multiImage: { images: [{ id: 'urn:li:image:AAA' }, { id: 'urn:li:image:BBB' }] },
+    })
+  })
+
+  it('throws when image upload fails', async () => {
+    const postWithImage: Post = { ...mockPost, imageStoragePaths: ['uploads/img-a.jpg'] }
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ value: { uploadUrl: 'https://upload.li/a', image: 'urn:li:image:AAA' } }),
+      })
+      .mockResolvedValueOnce({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })
+      .mockResolvedValueOnce({ ok: false, status: 400, text: async () => 'bad upload' })
+
+    await expect(
+      publisher.publish(postWithImage, Platform.LINKEDIN, mockConnection),
+    ).rejects.toThrow('LinkedIn image upload failed: 400')
   })
 
   it('throws when /v2/userinfo returns an error', async () => {

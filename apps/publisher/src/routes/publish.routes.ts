@@ -45,7 +45,7 @@ export function buildPublishPostUseCase(): PublishPostUseCase {
   }
 
   const publishers = new Map<Platform, PublisherPort>([
-    [Platform.LINKEDIN, new LinkedInPublisher(tokenVault)],
+    [Platform.LINKEDIN, new LinkedInPublisher(tokenVault, resolveImageUrl)],
     [Platform.FACEBOOK, new MetaPublisher(tokenVault, resolveImageUrl)],
     [Platform.INSTAGRAM, new MetaPublisher(tokenVault, resolveImageUrl)],
     [Platform.TWITTER, new XPublisher(tokenVault)],
