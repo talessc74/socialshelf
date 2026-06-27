@@ -127,7 +127,7 @@ describe('POST /publish', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/publish',
-      payload: { postId: 'post-1', brandId: 'brand-1' },
+      payload: { postId: 'post-1', userId: 'user-1', brandId: 'brand-1' },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
@@ -166,7 +166,7 @@ describe('POST /publish', () => {
     const response = await freshApp.inject({
       method: 'POST',
       url: '/publish',
-      payload: { postId: 'nonexistent', brandId: 'brand-1' },
+      payload: { postId: 'nonexistent', userId: 'user-1', brandId: 'brand-1' },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
@@ -178,7 +178,7 @@ describe('POST /publish', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/publish',
-      payload: { postId: 'post-1', brandId: 'brand-1' },
+      payload: { postId: 'post-1', userId: 'user-1', brandId: 'brand-1' },
     })
 
     expect(response.statusCode).toBe(401)
@@ -188,7 +188,7 @@ describe('POST /publish', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/publish',
-      payload: { postId: 'post-1', brandId: 'brand-1' },
+      payload: { postId: 'post-1', userId: 'user-1', brandId: 'brand-1' },
       headers: { 'x-internal-secret': 'wrong-secret' },
     })
 
@@ -199,7 +199,7 @@ describe('POST /publish', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/publish',
-      payload: { postId: 'post-1', brandId: 'brand-1' },
+      payload: { postId: 'post-1', userId: 'user-1', brandId: 'brand-1' },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 

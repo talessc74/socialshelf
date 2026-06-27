@@ -166,7 +166,7 @@ export async function postsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ postId: id, brandId: request.brandId }),
+        body: JSON.stringify({ postId: id, userId: request.userId, brandId: request.brandId }),
       })
 
       if (!res.ok) {

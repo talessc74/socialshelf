@@ -102,7 +102,7 @@ describe('PublishPostUseCase', () => {
 
   it('throws when post is not found', async () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(null)
-    await expect(useCase.execute('missing-post', 'brand-1')).rejects.toThrow('Post not found')
+    await expect(useCase.execute('missing-post', 'user-1', 'brand-1')).rejects.toThrow('Post not found')
   })
 
   it('publishes to all platforms in post.content', async () => {
@@ -110,7 +110,7 @@ describe('PublishPostUseCase', () => {
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
-    const result = await useCase.execute('post-1', 'brand-1')
+    const result = await useCase.execute('post-1', 'user-1', 'brand-1')
 
     expect(result.results).toHaveLength(2)
     expect(liPublisher.publish).toHaveBeenCalledTimes(1)
@@ -118,7 +118,7 @@ describe('PublishPostUseCase', () => {
   })
 
   it('marks post as published and sets publishedAt', async () => {
-    await useCase.execute('post-1', 'brand-1')
+    await useCase.execute('post-1', 'user-1', 'brand-1')
 
     const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.status).toBe('published')
@@ -130,7 +130,7 @@ describe('PublishPostUseCase', () => {
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
-    await useCase.execute('post-1', 'brand-1')
+    await useCase.execute('post-1', 'user-1', 'brand-1')
 
     const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.externalIds[Platform.LINKEDIN]).toBe('urn:li:ugcPost:111')
@@ -142,7 +142,7 @@ describe('PublishPostUseCase', () => {
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
-    await useCase.execute('post-1', 'brand-1')
+    await useCase.execute('post-1', 'user-1', 'brand-1')
 
     const firstSave = vi.mocked(postRepo.save).mock.calls[0]![0]
     expect(firstSave.externalIds[Platform.LINKEDIN]).toBe('urn:li:ugcPost:111')
@@ -152,7 +152,7 @@ describe('PublishPostUseCase', () => {
   it('records failed platform without throwing when publisher errors', async () => {
     vi.mocked(liPublisher.publish).mockRejectedValueOnce(new Error('API down'))
 
-    const result = await useCase.execute('post-1', 'brand-1')
+    const result = await useCase.execute('post-1', 'user-1', 'brand-1')
 
     expect(result.failedPlatforms).toHaveLength(1)
     expect(result.failedPlatforms[0]!.platform).toBe(Platform.LINKEDIN)
@@ -162,7 +162,7 @@ describe('PublishPostUseCase', () => {
   it('marks post as failed when all platforms fail', async () => {
     vi.mocked(liPublisher.publish).mockRejectedValueOnce(new Error('API down'))
 
-    await useCase.execute('post-1', 'brand-1')
+    await useCase.execute('post-1', 'user-1', 'brand-1')
 
     const saved = vi.mocked(postRepo.save).mock.calls.at(-1)![0]
     expect(saved.status).toBe('failed')
@@ -172,7 +172,7 @@ describe('PublishPostUseCase', () => {
   it('records failed platform when no OAuth connection exists', async () => {
     vi.mocked(oauthRepo.findByBrandAndPlatform).mockResolvedValueOnce(null)
 
-    const result = await useCase.execute('post-1', 'brand-1')
+    const result = await useCase.execute('post-1', 'user-1', 'brand-1')
 
     expect(result.failedPlatforms).toHaveLength(1)
     expect(result.failedPlatforms[0]!.reason).toContain('No OAuth connection')
@@ -181,7 +181,7 @@ describe('PublishPostUseCase', () => {
   it('records failed platform when no publisher is registered', async () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(makePost([Platform.FACEBOOK]))
 
-    const result = await useCase.execute('post-1', 'brand-1')
+    const result = await useCase.execute('post-1', 'user-1', 'brand-1')
 
     expect(result.failedPlatforms).toHaveLength(1)
     expect(result.failedPlatforms[0]!.reason).toContain('No publisher registered')

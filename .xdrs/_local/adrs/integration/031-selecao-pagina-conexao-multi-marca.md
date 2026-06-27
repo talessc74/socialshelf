@@ -97,6 +97,28 @@ Como o fluxo de conexão deve se comportar para que o administrador vincule a co
   explícita sobre criar e manter um segundo app LinkedIn** dedicado ao Community
   Management API.
 
+### 2026-06-27 — bug correlato: `apps/publisher` publicava (ou falhava) na marca/conta errada por confundir `userId` com `brandId`
+
+- Sintoma relatado: SocialShelf exibia "Publicado com sucesso: ✓ LinkedIn" para um post da marca
+  "EAI? Jurídico" sem nada aparecer de fato publicado nessa conta.
+- Causa raiz: `apps/api/src/routes/posts.routes.ts` (`POST /posts/:id/publish`) só enviava
+  `postId` e `brandId` no corpo da chamada interna para `apps/publisher` — nunca o `userId` real
+  do dono da marca. `PublishPostUseCase.execute` (em `apps/publisher`), sem ter o `userId` real
+  disponível, usava `brandId` no lugar de `userId` tanto em `postRepo.findByIdAndBrand(postId,
+  brandId, brandId)` quanto em `oauthRepo.findByBrandAndPlatform(brandId, brandId, platform)`.
+  Como os caminhos no Firestore são `users/{userId}/brands/{brandId}/...`, essas chamadas liam
+  (ou gravavam status em) `users/{brandId}/brands/{brandId}/...` — um caminho incorreto sempre
+  que `userId !== brandId`, exatamente o cenário de agência com múltiplas marcas profissionais
+  descrito em `_local-bdr-policy-009` e nesta própria decisão. Em contas de marca única onde
+  `brandId` coincide com o `userId`, o bug ficava mascarado.
+- Correção: `userId` passa a ser enviado por `posts.routes.ts` no corpo da chamada interna;
+  `PublishPostUseCase.execute` ganha o parâmetro `userId` e usa o par real `(userId, brandId)`
+  nas duas consultas; `ScheduledPostsPoller` passa `post.userId` (já disponível no `Post`
+  carregado); a rota `/publish` em `apps/publisher` valida `userId` no corpo da requisição.
+- Esta correção é ortogonal à seleção de página descrita nesta ADR (aquela trata de qual
+  página/organização vincular na conexão; esta trata de qual marca/usuário é resolvido no
+  momento da publicação) — registrada aqui por afetar o mesmo cenário multi-marca.
+
 ## Consequences
 
 - A listagem de páginas administradas (`listAdministeredOrganizations`) e os escopos
