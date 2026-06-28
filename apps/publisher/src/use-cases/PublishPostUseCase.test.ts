@@ -59,6 +59,7 @@ describe('PublishPostUseCase', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
+      claimForPublishing: vi.fn().mockResolvedValue(makePost([Platform.LINKEDIN])),
     }
 
     oauthRepo = {
@@ -105,8 +106,21 @@ describe('PublishPostUseCase', () => {
     await expect(useCase.execute('missing-post', 'user-1', 'brand-1')).rejects.toThrow('Post not found')
   })
 
+  it('returns no results when the post is already locked by a concurrent claim', async () => {
+    vi.mocked(postRepo.claimForPublishing).mockResolvedValueOnce(null)
+
+    const result = await useCase.execute('post-1', 'user-1', 'brand-1')
+
+    expect(result.results).toHaveLength(0)
+    expect(result.failedPlatforms).toHaveLength(0)
+    expect(liPublisher.publish).not.toHaveBeenCalled()
+  })
+
   it('publishes to all platforms in post.content', async () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
+      makePost([Platform.LINKEDIN, Platform.TWITTER]),
+    )
+    vi.mocked(postRepo.claimForPublishing).mockResolvedValueOnce(
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
@@ -129,6 +143,9 @@ describe('PublishPostUseCase', () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
+    vi.mocked(postRepo.claimForPublishing).mockResolvedValueOnce(
+      makePost([Platform.LINKEDIN, Platform.TWITTER]),
+    )
 
     await useCase.execute('post-1', 'user-1', 'brand-1')
 
@@ -139,6 +156,9 @@ describe('PublishPostUseCase', () => {
 
   it('persists the post immediately after each successful platform publish, not only at the end', async () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(
+      makePost([Platform.LINKEDIN, Platform.TWITTER]),
+    )
+    vi.mocked(postRepo.claimForPublishing).mockResolvedValueOnce(
       makePost([Platform.LINKEDIN, Platform.TWITTER]),
     )
 
@@ -180,6 +200,7 @@ describe('PublishPostUseCase', () => {
 
   it('records failed platform when no publisher is registered', async () => {
     vi.mocked(postRepo.findByIdAndBrand).mockResolvedValueOnce(makePost([Platform.FACEBOOK]))
+    vi.mocked(postRepo.claimForPublishing).mockResolvedValueOnce(makePost([Platform.FACEBOOK]))
 
     const result = await useCase.execute('post-1', 'user-1', 'brand-1')
 

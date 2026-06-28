@@ -62,6 +62,25 @@ export class FirestorePostRepository implements PostRepository {
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
+  async claimForPublishing(id: string, userId: string, brandId: string): Promise<Post | null> {
+    const ref = db
+      .collection('users').doc(userId)
+      .collection('brands').doc(brandId)
+      .collection('posts').doc(id)
+
+    return db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref)
+      if (!doc.exists) return null
+
+      const post = this.fromFirestore(doc.data()!)
+      // Already locked by a concurrent claim or already published: refuse to claim again.
+      if (post.status === 'publishing' || post.status === 'published') return null
+
+      tx.update(ref, { status: 'publishing', updatedAt: new Date().toISOString() })
+      return { ...post, status: 'publishing' }
+    })
+  }
+
   async delete(id: string): Promise<void> {
     const snapshot = await db
       .collectionGroup('posts')

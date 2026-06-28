@@ -11,6 +11,7 @@ describe('DeletePostUseCase', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findByIdAndBrand: vi.fn(),
+      claimForPublishing: vi.fn(),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),

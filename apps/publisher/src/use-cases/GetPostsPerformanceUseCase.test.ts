@@ -48,6 +48,7 @@ describe('GetPostsPerformanceUseCase', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findByIdAndBrand: vi.fn(),
+      claimForPublishing: vi.fn(),
       findByBrand: vi.fn().mockResolvedValue([makePost()]),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),

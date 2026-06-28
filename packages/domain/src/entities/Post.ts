@@ -1,6 +1,6 @@
 import type { Platform } from './Platform.js'
 
-export type PostStatus = 'draft' | 'ai-draft' | 'scheduled' | 'published' | 'failed'
+export type PostStatus = 'draft' | 'ai-draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
 
 export interface PlatformContent {
   platform: Platform
