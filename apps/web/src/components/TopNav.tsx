@@ -77,8 +77,10 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
       <Link
         href="/dashboard"
         title="Ir para o início"
-        className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
+        className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
       >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-icon.png" alt="" className="h-7 w-7 rounded-md" />
         Social<span className="text-brand-600">Shelf</span>
       </Link>
 
