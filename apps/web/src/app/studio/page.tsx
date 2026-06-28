@@ -90,12 +90,12 @@ export default function StudioReference() {
           </button>
 
           <div className="flex flex-col gap-5">
-            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left transition-all hover:-translate-y-1 hover:border-accent">
+            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-xl">✍️</div>
               <h3 className="font-semibold">Escrever do zero</h3>
               <p className="mt-1 text-sm text-muted">Sua voz, sua pauta.</p>
             </button>
-            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left transition-all hover:-translate-y-1 hover:border-accent">
+            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
               <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-xl">📰</div>
               <h3 className="font-semibold">A partir de uma notícia</h3>
               <p className="mt-1 text-sm text-muted">Surfe o que está em alta.</p>
@@ -116,7 +116,7 @@ export default function StudioReference() {
             {creations.map((c) => (
               <article
                 key={c.title}
-                className="group overflow-hidden rounded-3xl border border-line bg-card transition-all hover:-translate-y-1 hover:border-accent"
+                className="group overflow-hidden rounded-3xl border border-line bg-card shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev"
               >
                 <div className={`relative flex h-44 items-end bg-gradient-to-br ${c.grad} p-5`}>
                   <span className="absolute right-4 top-4 rounded-full bg-black/25 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
@@ -145,7 +145,7 @@ export default function StudioReference() {
         </section>
 
         <section className="mt-16 grid gap-5 md:grid-cols-3">
-          <div className="rounded-3xl border border-line bg-card-2 p-7 md:col-span-2">
+          <div className="rounded-3xl border border-line bg-card-2 p-7 shadow-card md:col-span-2">
             <span className="text-2xl">🎉</span>
             <h3 className="mt-3 text-xl font-bold">
               Seu melhor post da semana bombou: 8% de engajamento.

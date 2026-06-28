@@ -8,6 +8,11 @@ const config: Config = {
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
+      boxShadow: {
+        // Elevação temática (clara/escura) via CSS vars — dá affordance aos cards.
+        card: 'var(--ss-shadow)',
+        'card-elev': 'var(--ss-shadow-elev)',
+      },
       colors: {
         // Tokens semânticos do sistema de tema (claro/escuro via CSS vars).
         // Trocam de valor conforme a classe `.dark` no <html>.
