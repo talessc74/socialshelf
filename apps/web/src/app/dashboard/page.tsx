@@ -160,10 +160,10 @@ export default function DashboardPage() {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          {greeting()}, <span className="text-brand-600">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
+        <h1 className="text-2xl font-bold text-white">
+          {greeting()}, <span className="text-brand-200">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
         </h1>
-        <p className="mt-1 text-sm text-gray-500">Sua central para criar e acompanhar posts com a SocialShelf.</p>
+        <p className="mt-1 text-sm text-white/70">Sua central para criar e acompanhar posts com a SocialShelf.</p>
       </div>
 
       <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">

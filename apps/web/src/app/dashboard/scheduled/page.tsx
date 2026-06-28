@@ -484,7 +484,7 @@ export default function ScheduledPostsPage() {
         </button>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
-          <h1 className="text-2xl font-bold text-gray-900">Posts Agendados</h1>
+          <h1 className="text-2xl font-bold text-white">Posts Agendados</h1>
         </div>
         <div className="ml-auto flex gap-2 rounded-lg border border-gray-200 p-1">
           <button

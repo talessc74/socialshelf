@@ -12,15 +12,16 @@
 }
 
 .bg-surface-diagnostic-gradient {
-  background-color: theme('colors.surface.diagnostic');
+  background-color: #ffffff;
   background-image:
-    radial-gradient(ellipse 60% 40% at 50% 25%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 35% at 50% 130px, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
     linear-gradient(
       to bottom,
-      theme('colors.surface.diagnostic') 0%,
-      theme('colors.brand.700') 25%,
-      theme('colors.brand.500') 55%,
-      theme('colors.brand.200') 80%,
-      #ffffff 100%
+      theme('colors.surface.diagnostic') 0px,
+      theme('colors.brand.700') 130px,
+      theme('colors.brand.500') 280px,
+      theme('colors.brand.200') 420px,
+      #ffffff 560px
     );
+  background-repeat: no-repeat;
 }

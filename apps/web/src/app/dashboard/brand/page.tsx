@@ -182,7 +182,7 @@ export default function BrandSettingsPage() {
         </button>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações da Marca</h1>
+          <h1 className="text-2xl font-bold text-white">Configurações da Marca</h1>
         </div>
       </div>
 

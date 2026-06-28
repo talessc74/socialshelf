@@ -519,7 +519,7 @@ export default function GenerateContentPage() {
         <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
           ← Voltar
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">Gerar Conteúdo com IA</h1>
+        <h1 className="text-2xl font-bold text-white">Gerar Conteúdo com IA</h1>
       </div>
 
       <Stepper steps={STEPS} currentStep={currentStep} />

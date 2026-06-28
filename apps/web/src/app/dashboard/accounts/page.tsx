@@ -64,8 +64,8 @@ export default function AccountsPage() {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Central de Contas</h1>
-        <p className="mt-1 text-sm text-gray-500">Gerencie as redes sociais conectadas à sua marca.</p>
+        <h1 className="text-2xl font-bold text-white">Central de Contas</h1>
+        <p className="mt-1 text-sm text-white/70">Gerencie as redes sociais conectadas à sua marca.</p>
       </div>
 
       <section>
