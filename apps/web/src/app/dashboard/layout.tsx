@@ -24,7 +24,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-surface-operation-dots">
+    <div className="min-h-screen bg-surface-diagnostic-gradient">
       <TopNav
         email={user.email ?? ''}
         onLogout={logout}

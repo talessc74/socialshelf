@@ -325,7 +325,7 @@ export default function ComposePage() {
   if (result) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Resultado</h1>
+        <h1 className="text-2xl font-bold text-white">Resultado</h1>
         {result.results.length > 0 && (
           <div className="rounded-xl border border-green-200 bg-green-50 p-4">
             <p className="mb-2 font-semibold text-green-800">Publicado com sucesso:</p>
@@ -363,7 +363,7 @@ export default function ComposePage() {
   if (scheduleSuccess) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">Resultado</h1>
+        <h1 className="text-2xl font-bold text-white">Resultado</h1>
         <div className="rounded-xl border border-green-200 bg-green-50 p-4">
           <p className="font-semibold text-green-800">
             Post agendado para{' '}
@@ -389,7 +389,7 @@ export default function ComposePage() {
         >
           ← Voltar
         </button>
-        <h1 className="text-2xl font-bold text-gray-900">{repostFromId ? 'Repostar' : 'Novo Post'}</h1>
+        <h1 className="text-2xl font-bold text-white">{repostFromId ? 'Repostar' : 'Novo Post'}</h1>
       </div>
 
       {/* Platform selector */}
