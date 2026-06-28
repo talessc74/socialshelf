@@ -265,7 +265,7 @@ describe('ScheduledPostsPage', () => {
 
       await user.click(screen.getByText(/Texto agendado para o LinkedIn/))
 
-      expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-brand-600')
+      expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-accent')
       const card = screen.getByText('Texto agendado para o LinkedIn').closest('li')
       expect(card).toHaveClass('ring-2')
     })
@@ -337,7 +337,7 @@ describe('ScheduledPostsPage', () => {
 
         await user.click(screen.getByText(/Texto já publicado no Instagram/))
 
-        expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-brand-600')
+        expect(screen.getByRole('button', { name: 'Lista' })).toHaveClass('bg-accent')
         const card = screen.getByText('Texto já publicado no Instagram').closest('li')
         expect(card).toHaveClass('ring-2')
       })
