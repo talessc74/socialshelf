@@ -147,23 +147,23 @@ export default function PerformanceDashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar
         </button>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
-          <h1 className="text-2xl font-bold text-white">Dashboard de Performance</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Painel da marca</p>
+          <h1 className="text-2xl font-bold text-ink">Dashboard de Performance</h1>
         </div>
       </div>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted">
         Métricas medidas a partir dos posts já publicados manualmente, via integração real com cada
         plataforma. Cada rede é exibida separadamente — uma falha em uma rede não afeta as demais.
       </p>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           Carregando…
         </div>
       ) : error ? (
@@ -182,7 +182,7 @@ export default function PerformanceDashboardPage() {
           )}
         </div>
       ) : platformsToShow.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Nenhum post publicado com métricas medidas ainda. Publique um post para começar a acompanhar
           a performance.
         </p>
@@ -190,13 +190,13 @@ export default function PerformanceDashboardPage() {
         <>
           {entries.length > 0 && (
             <section className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-                <p className="text-xs font-medium text-gray-500">📈 Impressões totais</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.impressions.toLocaleString('pt-BR')}</p>
+              <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
+                <p className="text-xs font-medium text-muted">📈 Impressões totais</p>
+                <p className="text-2xl font-bold text-ink">{totals.impressions.toLocaleString('pt-BR')}</p>
               </div>
-              <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-                <p className="text-xs font-medium text-gray-500">💬 Engajamentos totais</p>
-                <p className="text-2xl font-bold text-gray-900">{totals.engagements.toLocaleString('pt-BR')}</p>
+              <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
+                <p className="text-xs font-medium text-muted">💬 Engajamentos totais</p>
+                <p className="text-2xl font-bold text-ink">{totals.engagements.toLocaleString('pt-BR')}</p>
               </div>
             </section>
           )}
@@ -206,7 +206,7 @@ export default function PerformanceDashboardPage() {
           )}
 
           <section className="space-y-3">
-            <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-2">
+            <div className="flex flex-wrap gap-2 border-b border-line pb-2">
               {platformsToShow.map((platform) => {
                 const hasError = errorsByPlatform.has(platform)
                 const isActive = platform === selectedPlatform
@@ -216,10 +216,10 @@ export default function PerformanceDashboardPage() {
                     onClick={() => setActivePlatform(platform)}
                     className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                       isActive
-                        ? 'bg-brand-600 text-white'
+                        ? 'bg-accent text-accent-ink'
                         : hasError
                           ? 'bg-red-50 text-red-700 hover:bg-red-100'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          : 'bg-card-2 text-ink hover:bg-line'
                     }`}
                   >
                     {hasError && '⚠ '}
@@ -275,17 +275,17 @@ export default function PerformanceDashboardPage() {
                 {entriesByPlatform.get(selectedPlatform)!.map((entry) => (
                   <li
                     key={`${entry.postId}-${entry.platform}`}
-                    className="flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                    className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-5 shadow-card sm:flex-row sm:items-start sm:justify-between sm:gap-4"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-1 flex flex-wrap items-center gap-2">
                         <ScoreBadge label="score" score={entry.score} />
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted">
                           {new Date(entry.publishedAt).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
-                      <p className="truncate text-sm text-gray-800">{entry.text}</p>
-                      <p className="mt-1 text-xs text-gray-500">
+                      <p className="truncate text-sm text-ink">{entry.text}</p>
+                      <p className="mt-1 text-xs text-muted">
                         {entry.metrics.impressions.toLocaleString('pt-BR')} impressões ·{' '}
                         {entry.metrics.likes} curtidas · {entry.metrics.comments} comentários ·{' '}
                         {entry.metrics.shares} compartilhamentos
@@ -293,7 +293,7 @@ export default function PerformanceDashboardPage() {
                     </div>
                     <button
                       onClick={() => handleSeed(entry)}
-                      className="shrink-0 self-start rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50"
+                      className="shrink-0 self-start rounded-lg border border-accent px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent-soft"
                     >
                       🌱 Semear Criação
                     </button>
@@ -305,7 +305,7 @@ export default function PerformanceDashboardPage() {
             {selectedPlatform &&
               !errorsByPlatform.has(selectedPlatform) &&
               (entriesByPlatform.get(selectedPlatform)?.length ?? 0) === 0 && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-muted">
                   Nenhum post publicado com métricas medidas ainda em {PLATFORM_LABELS[selectedPlatform]}.
                 </p>
               )}
@@ -315,9 +315,9 @@ export default function PerformanceDashboardPage() {
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-700">Diagnóstico do Perfil</h2>
+                  <h2 className="text-sm font-semibold text-ink">Diagnóstico do Perfil</h2>
                   {diagnosticComputedAt && (
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted">
                       Última análise: {diagnosticComputedAt.toLocaleDateString('pt-BR')} às{' '}
                       {diagnosticComputedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                     </p>
@@ -326,7 +326,7 @@ export default function PerformanceDashboardPage() {
                 <button
                   onClick={handleAnalyze}
                   disabled={analyzing}
-                  className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-brand-200 hover:bg-brand-700 disabled:opacity-40"
+                  className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-ink shadow-card hover:opacity-90 disabled:opacity-40"
                 >
                   {analyzing ? 'Analisando…' : diagnostic ? '↻ Refazer análise' : '✨ Gerar Diagnóstico'}
                 </button>

@@ -17,14 +17,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-300 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-accent-soft border-t-accent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-surface-diagnostic-gradient">
+    <div className="min-h-screen bg-bg">
       <TopNav
         email={user.email ?? ''}
         onLogout={logout}

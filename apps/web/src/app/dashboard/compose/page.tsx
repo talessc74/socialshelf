@@ -62,15 +62,15 @@ function CardPreview({ path }: { path: string }) {
 
   if (isLoading) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-gray-100">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg bg-card-2">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     )
   }
 
   if (isError || !url) {
     return (
-      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-xs text-gray-400">
+      <div className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-line bg-card-2 text-xs text-muted">
         Não foi possível carregar
       </div>
     )
@@ -86,7 +86,7 @@ function CharCounter({ current, max }: { current: number; max: number }) {
   return (
     <span
       className={`text-xs tabular-nums ${
-        pct >= 1 ? 'font-bold text-red-600' : pct >= 0.9 ? 'text-orange-500' : 'text-gray-400'
+        pct >= 1 ? 'font-bold text-red-600' : pct >= 0.9 ? 'text-orange-500' : 'text-muted'
       }`}
     >
       {remaining}
@@ -325,7 +325,7 @@ export default function ComposePage() {
   if (result) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-white">Resultado</h1>
+        <h1 className="text-2xl font-bold text-ink">Resultado</h1>
         {result.results.length > 0 && (
           <div className="rounded-xl border border-green-200 bg-green-50 p-4">
             <p className="mb-2 font-semibold text-green-800">Publicado com sucesso:</p>
@@ -352,7 +352,7 @@ export default function ComposePage() {
         )}
         <button
           onClick={() => router.push('/dashboard')}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90"
         >
           Voltar ao Dashboard
         </button>
@@ -363,7 +363,7 @@ export default function ComposePage() {
   if (scheduleSuccess) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-white">Resultado</h1>
+        <h1 className="text-2xl font-bold text-ink">Resultado</h1>
         <div className="rounded-xl border border-green-200 bg-green-50 p-4">
           <p className="font-semibold text-green-800">
             Post agendado para{' '}
@@ -372,7 +372,7 @@ export default function ComposePage() {
         </div>
         <button
           onClick={() => router.push('/dashboard')}
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90"
         >
           Voltar ao Dashboard
         </button>
@@ -385,22 +385,22 @@ export default function ComposePage() {
       <div className="flex items-center gap-4">
         <button
           onClick={() => router.back()}
-          className="text-sm text-gray-500 hover:text-gray-700"
+          className="text-sm text-muted hover:text-ink"
         >
           ← Voltar
         </button>
-        <h1 className="text-2xl font-bold text-white">{repostFromId ? 'Repostar' : 'Novo Post'}</h1>
+        <h1 className="text-2xl font-bold text-ink">{repostFromId ? 'Repostar' : 'Novo Post'}</h1>
       </div>
 
       {/* Platform selector */}
-      <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="mb-3 text-sm font-semibold text-gray-700">📡 Plataformas</h2>
+      <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="mb-3 text-sm font-semibold text-ink">📡 Plataformas</h2>
         {isLoading ? (
-          <p className="text-sm text-gray-400">Carregando conexões…</p>
+          <p className="text-sm text-muted">Carregando conexões…</p>
         ) : connectedPlatforms.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Nenhuma plataforma conectada.{' '}
-            <a href="/dashboard" className="text-brand-600 underline">
+            <a href="/dashboard" className="text-accent underline">
               Conectar agora
             </a>
           </p>
@@ -414,8 +414,8 @@ export default function ComposePage() {
                   title={`Até ${PLATFORM_CHARACTER_LIMITS[p].toLocaleString('pt-BR')} caracteres`}
                   className={`rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
                     selectedPlatforms.has(p)
-                      ? 'border-brand-600 bg-brand-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                      ? 'border-accent bg-accent text-accent-ink'
+                      : 'border-line bg-card text-muted hover:border-accent'
                   }`}
                 >
                   {PLATFORM_LABELS[p]}
@@ -424,11 +424,11 @@ export default function ComposePage() {
               {connectedPlatforms.filter((p) => COMING_SOON_PLATFORMS.has(p)).map((p) => (
                 <span
                   key={p}
-                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-line bg-card-2 px-3 py-1 text-sm font-medium text-muted"
                   title="Disponível em breve"
                 >
                   {PLATFORM_LABELS[p]}
-                  <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                  <span className="rounded-full bg-card-2 px-1.5 py-0.5 text-xs font-semibold text-muted">
                     Em breve
                   </span>
                 </span>
@@ -436,23 +436,23 @@ export default function ComposePage() {
               {connectedPlatforms.filter((p) => blockedForNoImage.has(p)).map((p) => (
                 <span
                   key={p}
-                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-line bg-card-2 px-3 py-1 text-sm font-medium text-muted"
                   title="Exige imagem — anexe uma foto abaixo para liberar"
                 >
                   {PLATFORM_LABELS[p]}
-                  <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                  <span className="rounded-full bg-card-2 px-1.5 py-0.5 text-xs font-semibold text-muted">
                     Exige imagem
                   </span>
                 </span>
               ))}
             </div>
             {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 * A publicação via X (Twitter) estará disponível em breve. A API do X requer plano pago para envio de posts.
               </p>
             )}
             {connectedPlatforms.some((p) => blockedForNoImage.has(p)) && (
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 * Instagram exige uma imagem em todo post — anexe uma foto na seção &quot;Imagens&quot; abaixo para liberar.
               </p>
             )}
@@ -461,11 +461,11 @@ export default function ComposePage() {
       </section>
 
       {/* Images / manual cards */}
-      <section className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
+      <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700">🖼 Imagens</h2>
+          <h2 className="text-sm font-semibold text-ink">🖼 Imagens</h2>
           <label
-            className={`cursor-pointer rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 ${
+            className={`cursor-pointer rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-card-2 ${
               totalImageCount >= MAX_GENERATION_ARTIFACTS ? 'pointer-events-none opacity-40' : ''
             }`}
           >
@@ -481,19 +481,19 @@ export default function ComposePage() {
           </label>
         </div>
 
-        <p className="mb-3 text-xs text-gray-400">
+        <p className="mb-3 text-xs text-muted">
           Anexe 1 imagem para um post único, ou 2 ou mais para criar um carrossel no Instagram (na ordem mostrada
           abaixo, até {MAX_GENERATION_ARTIFACTS} imagens).
         </p>
 
         {totalImageCount > 0 && (
-          <p className="mb-3 text-xs font-medium text-brand-600">
+          <p className="mb-3 text-xs font-medium text-accent">
             {totalImageCount === 1 ? 'Post único' : `Carrossel com ${totalImageCount} imagens — nesta ordem`}
           </p>
         )}
 
         {existingImagePaths.length === 0 && cards.length === 0 ? (
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted">
             Nenhuma imagem anexada. Anexe fotos para montar cards manualmente — escolha um modelo e escreva o texto
             que vai aparecer na imagem.
           </p>
@@ -516,11 +516,11 @@ export default function ComposePage() {
             )}
 
             {cards.map((card, index) => (
-              <div key={card.id} className="rounded-xl border border-gray-200 p-4">
+              <div key={card.id} className="rounded-xl border border-line p-4">
                 <div className="flex gap-4">
                   <div className="w-28 shrink-0 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-gray-400">
+                      <span className="text-xs font-semibold text-muted">
                         #{existingImagePaths.length + index + 1}
                       </span>
                       {cards.length > 1 && (
@@ -529,7 +529,7 @@ export default function ComposePage() {
                             onClick={() => moveCard(card.id, -1)}
                             disabled={index === 0}
                             title="Mover para antes"
-                            className="rounded border border-gray-300 px-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                            className="rounded border border-line px-1.5 text-xs text-muted hover:bg-card-2 disabled:opacity-30"
                           >
                             ←
                           </button>
@@ -537,7 +537,7 @@ export default function ComposePage() {
                             onClick={() => moveCard(card.id, 1)}
                             disabled={index === cards.length - 1}
                             title="Mover para depois"
-                            className="rounded border border-gray-300 px-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-30"
+                            className="rounded border border-line px-1.5 text-xs text-muted hover:bg-card-2 disabled:opacity-30"
                           >
                             →
                           </button>
@@ -552,7 +552,7 @@ export default function ComposePage() {
                   </div>
                   <div className="flex-1 space-y-3">
                     <div>
-                      <p className="mb-1 text-xs font-medium text-gray-500">Modelo de card</p>
+                      <p className="mb-1 text-xs font-medium text-muted">Modelo de card</p>
                       <div className="flex flex-wrap gap-1.5">
                         {TEMPLATE_STYLE_OPTIONS.map((opt) => (
                           <button
@@ -560,8 +560,8 @@ export default function ComposePage() {
                             onClick={() => updateCard(card.id, { style: opt.value })}
                             className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
                               card.style === opt.value
-                                ? 'border-brand-600 bg-brand-600 text-white'
-                                : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                                ? 'border-accent bg-accent text-accent-ink'
+                                : 'border-line bg-card text-muted hover:border-accent'
                             }`}
                           >
                             {opt.label}
@@ -575,14 +575,14 @@ export default function ComposePage() {
                           value={card.headline}
                           onChange={(e) => updateCard(card.id, { headline: e.target.value })}
                           placeholder="Texto principal do card…"
-                          className="w-full rounded-lg border border-gray-200 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          className="w-full rounded-lg border border-line p-2 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                         <textarea
                           value={card.body}
                           onChange={(e) => updateCard(card.id, { body: e.target.value })}
                           rows={2}
                           placeholder="Texto secundário (opcional)…"
-                          className="w-full resize-none rounded-lg border border-gray-200 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                          className="w-full resize-none rounded-lg border border-line p-2 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       </>
                     )}
@@ -591,7 +591,7 @@ export default function ComposePage() {
                       <button
                         onClick={() => renderCardPreview(card.id)}
                         disabled={card.rendering}
-                        className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                        className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
                       >
                         {card.rendering ? 'Gerando…' : 'Pré-visualizar'}
                       </button>
@@ -614,13 +614,13 @@ export default function ComposePage() {
       {selectedPlatforms.size > 0 && (
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Conteúdo</h2>
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+            <h2 className="text-sm font-semibold text-ink">Conteúdo</h2>
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-muted">
               <input
                 type="checkbox"
                 checked={synced}
                 onChange={handleSyncToggle}
-                className="accent-brand-600"
+                className="accent-accent"
               />
               Mesmo texto para todas
             </label>
@@ -631,10 +631,10 @@ export default function ComposePage() {
             return (
               <div
                 key={platform}
-                className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60"
+                className="rounded-2xl border border-line bg-card p-5 shadow-card"
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700">{PLATFORM_LABELS[platform]}</span>
+                  <span className="text-sm font-medium text-ink">{PLATFORM_LABELS[platform]}</span>
                   <CharCounter current={text.length} max={limit} />
                 </div>
                 <textarea
@@ -642,7 +642,7 @@ export default function ComposePage() {
                   onChange={(e) => handleTextChange(platform, e.target.value)}
                   rows={4}
                   placeholder={`Escreva para ${PLATFORM_LABELS[platform]}…`}
-                  className="w-full resize-none rounded-lg border border-gray-200 p-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full resize-none rounded-lg border border-line p-3 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
             )
@@ -655,7 +655,7 @@ export default function ComposePage() {
       )}
 
       {selectedPlatforms.size > 0 && !canPublish && !publishing && !scheduling && (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           {validSelectedPlatforms.some((p) => (texts[p] ?? '').length > PLATFORM_CHARACTER_LIMITS[p])
             ? 'O texto excede o limite de caracteres de uma das plataformas selecionadas.'
             : cards.some((c) => c.rendering)
@@ -670,30 +670,30 @@ export default function ComposePage() {
             <button
               onClick={handlePublish}
               disabled={!canPublish || publishing || scheduling}
-              className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+              className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
             >
               {publishing ? 'Publicando…' : 'Publicar Agora'}
             </button>
             <button
               onClick={() => setShowScheduler((v) => !v)}
               disabled={!canPublish || publishing || scheduling}
-              className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              className="rounded-lg border border-line px-6 py-2.5 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
             >
               Agendar
             </button>
           </div>
           {showScheduler && (
-            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card-2 p-4">
               <input
                 type="datetime-local"
                 value={scheduledAtInput}
                 onChange={(e) => setScheduledAtInput(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-line bg-card text-ink px-3 py-2 text-sm"
               />
               <button
                 onClick={handleSchedule}
                 disabled={scheduling || !scheduledAtInput}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
                 {scheduling ? 'Agendando…' : 'Confirmar agendamento'}
               </button>

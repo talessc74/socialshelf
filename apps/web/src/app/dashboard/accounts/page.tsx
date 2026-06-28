@@ -64,15 +64,15 @@ export default function AccountsPage() {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-white">Central de Contas</h1>
-        <p className="mt-1 text-sm text-white/70">Gerencie as redes sociais conectadas à sua marca.</p>
+        <h1 className="text-2xl font-bold text-ink">Central de Contas</h1>
+        <p className="mt-1 text-sm text-muted">Gerencie as redes sociais conectadas à sua marca.</p>
       </div>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">Plataformas Conectadas</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">Plataformas Conectadas</h2>
         {isLoading ? (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+          <div className="flex items-center gap-2 text-sm text-muted">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
             Carregando…
           </div>
         ) : (
@@ -82,17 +82,17 @@ export default function AccountsPage() {
               return (
                 <div
                   key={platform}
-                  className={`flex flex-col items-start rounded-2xl border p-5 shadow-sm transition-shadow ${
+                  className={`flex flex-col items-start rounded-2xl border p-5 shadow-card transition-shadow hover:shadow-card-elev ${
                     isConnected
-                      ? 'border-brand-100 bg-white shadow-brand-100/60'
-                      : 'border-gray-200 bg-white/70'
+                      ? 'border-accent-soft bg-card'
+                      : 'border-line bg-card/70'
                   }`}
                 >
                   <div className="mb-3 flex items-center gap-2.5">
                     <span className={`flex h-9 w-9 items-center justify-center rounded-full text-base ${meta.color}`}>
                       {meta.emoji}
                     </span>
-                    <span className="font-semibold text-gray-800">{meta.label}</span>
+                    <span className="font-semibold text-ink">{meta.label}</span>
                   </div>
                   {isConnected ? (
                     <div className="flex flex-col gap-1.5">
@@ -101,7 +101,7 @@ export default function AccountsPage() {
                       </span>
                       <button
                         onClick={() => handleConnect(meta.oauth)}
-                        className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                        className="rounded-full bg-card-2 px-2.5 py-0.5 text-xs font-medium text-muted hover:bg-accent-soft hover:text-accent"
                       >
                         Reconectar
                       </button>
@@ -109,7 +109,7 @@ export default function AccountsPage() {
                   ) : (
                     <button
                       onClick={() => handleConnect(meta.oauth)}
-                      className="rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-100"
+                      className="rounded-full bg-accent-soft px-2.5 py-0.5 text-xs font-medium text-accent hover:bg-accent-soft"
                     >
                       Conectar
                     </button>
