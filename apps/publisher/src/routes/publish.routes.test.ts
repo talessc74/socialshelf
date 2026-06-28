@@ -26,6 +26,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
     findById: vi.fn().mockResolvedValue(mockPost),
     findByIdAndBrand: vi.fn().mockResolvedValue(mockPost),
+    claimForPublishing: vi.fn().mockResolvedValue(mockPost),
     save: vi.fn().mockResolvedValue(undefined),
     findByBrand: vi.fn(),
     findScheduledBefore: vi.fn(),
@@ -153,6 +154,7 @@ describe('POST /publish', () => {
     vi.mocked(FirestorePostRepository).mockImplementationOnce(() => ({
       findById: vi.fn().mockResolvedValue(null),
       findByIdAndBrand: vi.fn().mockResolvedValue(null),
+      claimForPublishing: vi.fn().mockResolvedValue(null),
       save: vi.fn(),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),

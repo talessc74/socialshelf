@@ -55,6 +55,7 @@ describe('ComputeAudienceSignalUseCase', () => {
       save: vi.fn(),
       findById: vi.fn(),
       findByIdAndBrand: vi.fn(),
+      claimForPublishing: vi.fn(),
       findByBrand: vi.fn().mockResolvedValue([makePost('urn:li:share:1'), makePost('urn:li:share:2')]),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),

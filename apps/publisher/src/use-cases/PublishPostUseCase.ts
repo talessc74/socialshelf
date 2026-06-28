@@ -32,8 +32,13 @@ export class PublishPostUseCase {
   }
 
   async execute(postId: string, userId: string, brandId: string): Promise<PublishPostResult> {
-    const post = await this.postRepo.findByIdAndBrand(postId, userId, brandId)
-    if (!post) throw new Error(`Post not found: ${postId}`)
+    const existing = await this.postRepo.findByIdAndBrand(postId, userId, brandId)
+    if (!existing) throw new Error(`Post not found: ${postId}`)
+
+    // Atomically lock the post before publishing: prevents an overlapping poller tick
+    // or a concurrent Cloud Run instance from publishing the same post twice.
+    const post = await this.postRepo.claimForPublishing(postId, userId, brandId)
+    if (!post) return { postId, results: [], failedPlatforms: [] }
 
     const results: PlatformPublishResult[] = []
     const failedPlatforms: Array<{ platform: Platform; reason: string }> = []

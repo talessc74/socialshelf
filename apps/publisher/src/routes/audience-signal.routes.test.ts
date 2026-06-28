@@ -26,6 +26,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
     findById: vi.fn(),
     findByIdAndBrand: vi.fn(),
+    claimForPublishing: vi.fn(),
     save: vi.fn(),
     findByBrand: vi.fn().mockResolvedValue([mockPost]),
     findScheduledBefore: vi.fn(),

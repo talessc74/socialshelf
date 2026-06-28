@@ -13,6 +13,7 @@ describe('CreatePostUseCase', () => {
       save: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn(),
       findByIdAndBrand: vi.fn(),
+      claimForPublishing: vi.fn(),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),

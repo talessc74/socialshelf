@@ -7,4 +7,11 @@ export interface PostRepository {
   findByBrand(userId: string, brandId: string, status?: PostStatus): Promise<Post[]>
   findScheduledBefore(cutoff: Date): Promise<Post[]>
   delete(id: string): Promise<void>
+  /**
+   * Atomically transitions the post into the transient 'publishing' lock state, returning
+   * the claimed post on success. Returns null if the post is missing or already
+   * locked/published by a concurrent caller (e.g. an overlapping poller tick or another
+   * Cloud Run instance), preventing the same post from being published more than once.
+   */
+  claimForPublishing(id: string, userId: string, brandId: string): Promise<Post | null>
 }
