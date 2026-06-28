@@ -53,6 +53,12 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient px-4">
       <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/logo-icon.png"
+          alt="SocialShelf"
+          className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-lg"
+        />
         <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-200">
           Bem-vindo de volta
         </p>
