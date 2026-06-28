@@ -14,8 +14,13 @@
 .bg-surface-diagnostic-gradient {
   background-color: theme('colors.surface.diagnostic');
   background-image:
-    radial-gradient(circle at 15% 20%, theme('colors.brand.700') 0%, transparent 45%),
-    radial-gradient(circle at 85% 15%, theme('colors.brand.500') 0%, transparent 40%),
-    radial-gradient(circle at 75% 85%, theme('colors.brand.900') 0%, transparent 50%),
-    radial-gradient(circle at 10% 90%, theme('colors.brand.600') 0%, transparent 35%);
+    radial-gradient(ellipse 60% 40% at 50% 25%, rgba(255, 255, 255, 0.55) 0%, transparent 70%),
+    linear-gradient(
+      to bottom,
+      theme('colors.surface.diagnostic') 0%,
+      theme('colors.brand.700') 25%,
+      theme('colors.brand.500') 55%,
+      theme('colors.brand.200') 80%,
+      #ffffff 100%
+    );
 }
