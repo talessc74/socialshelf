@@ -163,7 +163,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
         <nav
           ref={mobileNavRef}
           onScroll={updateScrollAffordance}
-          className="flex w-full items-center gap-1 overflow-x-auto bg-bg px-3 py-2"
+          className="flex w-full items-center gap-1 overflow-x-auto bg-transparent px-3 py-2"
         >
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
