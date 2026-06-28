@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -8,6 +9,22 @@ const config: Config = {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
       },
       colors: {
+        // Tokens semânticos do sistema de tema (claro/escuro via CSS vars).
+        // Trocam de valor conforme a classe `.dark` no <html>.
+        bg: 'var(--ss-bg)',
+        card: 'var(--ss-card)',
+        'card-2': 'var(--ss-card-2)',
+        ink: 'var(--ss-ink)',
+        muted: 'var(--ss-muted)',
+        'muted-2': 'var(--ss-muted-2)',
+        line: 'var(--ss-line)',
+        accent: 'var(--ss-accent)',
+        'accent-soft': 'var(--ss-accent-soft)',
+        'accent-ink': 'var(--ss-accent-ink)',
+        contrast: 'var(--ss-contrast)',
+        'contrast-ink': 'var(--ss-contrast-ink)',
+        positive: 'var(--ss-positive)',
+        // Paleta legada — mantida durante a migração das telas internas.
         brand: {
           50: '#f0f9ff',
           100: '#e0f2fe',
