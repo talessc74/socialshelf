@@ -25,9 +25,22 @@ export function LanternToggle({ className = '' }: { className?: string }) {
       aria-pressed={lit}
       className={`group relative -m-1 flex items-center justify-center p-1 text-ink transition-transform hover:scale-110 active:scale-95 ${className}`}
     >
+      {/* halo de luz quando acesa — gradiente radial colado à lanterna,
+          forte no centro e escurecendo rápido até sumir nas bordas.
+          Renderizado antes do SVG para que a lanterna fique por cima. */}
+      {lit && (
+        <span
+          aria-hidden
+          className="ss-glow-pulse pointer-events-none absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            background:
+              'radial-gradient(circle, rgba(255,107,74,0.85) 22%, rgba(255,107,74,0.45) 42%, transparent 64%)',
+          }}
+        />
+      )}
       <svg
         viewBox="0 0 24 28"
-        className="h-8 w-8"
+        className="relative h-8 w-8"
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
@@ -53,14 +66,6 @@ export function LanternToggle({ className = '' }: { className?: string }) {
           className={lit ? 'drop-shadow-[0_0_6px_var(--ss-accent)]' : ''}
         />
       </svg>
-      {/* halo de luz quando acesa */}
-      {lit && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ boxShadow: '0 0 18px 2px var(--ss-accent)', opacity: 0.4 }}
-        />
-      )}
     </button>
   )
 }

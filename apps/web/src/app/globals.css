@@ -51,6 +51,26 @@ body {
   color: var(--ss-ink);
 }
 
+/* Pulso lento e fraco do glow da lanterna acesa — respira como uma chama.
+   Só anima quando o usuário não pediu redução de movimento. */
+@keyframes ss-lantern-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+.ss-glow-pulse {
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ss-glow-pulse {
+    animation: ss-lantern-pulse 3.6s ease-in-out infinite;
+  }
+}
+
 /* Suaviza a transição ao acender/apagar a lanterna. */
 .ss-theme-transition,
 .ss-theme-transition * {
