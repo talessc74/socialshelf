@@ -42,7 +42,7 @@ describe('InsightsBankPage', () => {
   it('abre na aba "Guardadas" por padrão', () => {
     renderPage()
 
-    expect(screen.getByRole('button', { name: 'Guardadas' })).toHaveClass('border-brand-600')
+    expect(screen.getByRole('button', { name: 'Guardadas' })).toHaveClass('border-accent')
     expect(screen.queryByText('Buscar uma notícia')).not.toBeInTheDocument()
   })
 
@@ -50,7 +50,7 @@ describe('InsightsBankPage', () => {
     searchParams = new URLSearchParams('tab=news')
     renderPage()
 
-    expect(screen.getByRole('button', { name: 'Notícias' })).toHaveClass('border-brand-600')
+    expect(screen.getByRole('button', { name: 'Notícias' })).toHaveClass('border-accent')
     expect(screen.getByText('Buscar uma notícia')).toBeInTheDocument()
   })
 })

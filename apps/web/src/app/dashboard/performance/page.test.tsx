@@ -222,7 +222,7 @@ describe('PerformanceDashboardPage', () => {
     renderPage()
 
     expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Instagram/ })).toHaveClass('bg-brand-600')
+    expect(screen.getByRole('button', { name: /Instagram/ })).toHaveClass('bg-accent')
     expect(screen.queryByText(/100 seguidores/)).not.toBeInTheDocument()
   })
 

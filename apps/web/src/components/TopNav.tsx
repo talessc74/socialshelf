@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { LanternToggle } from './LanternToggle'
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
@@ -72,16 +73,16 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
   }, [updateScrollAffordance])
 
   return (
-    <header className="sticky top-0 z-10 flex flex-col border-b border-brand-100/60 bg-white/80 backdrop-blur">
+    <header className="sticky top-0 z-10 flex flex-col border-b border-line bg-bg/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
       <Link
         href="/dashboard"
         title="Ir para o início"
-        className="flex shrink-0 items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-bold text-gray-900 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
+        className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 text-sm font-bold text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-icon.png" alt="" className="h-7 w-7 rounded-md" />
-        Social<span className="text-brand-600">Shelf</span>
+        Social<span className="text-accent">Shelf</span>
       </Link>
 
       {showBrandSwitcher && (
@@ -91,15 +92,15 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
             onClick={() => setBrandMenuOpen((open) => !open)}
             aria-haspopup="listbox"
             aria-expanded={brandMenuOpen}
-            className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
+            className="flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-2 text-sm font-medium text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
           >
             <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{activeBrand?.name ?? 'Marca'}</span>
-            <ChevronDown className="h-4 w-4 text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-muted" />
           </button>
           {brandMenuOpen && (
             <div
               role="listbox"
-              className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+              className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-card-elev"
             >
               {brands?.map((brand) => (
                 <button
@@ -113,8 +114,8 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
                   }}
                   className={`flex w-full items-center px-3 py-2 text-left text-sm ${
                     brand.id === activeBrandId
-                      ? 'bg-gray-100 font-medium text-gray-900'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-card-2 font-medium text-ink'
+                      : 'text-muted hover:bg-card-2'
                   }`}
                 >
                   {brand.name}
@@ -125,7 +126,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
         </div>
       )}
 
-      <nav className="hidden flex-1 items-center justify-center gap-1 rounded-full bg-gray-100 p-1 lg:flex">
+      <nav className="hidden flex-1 items-center justify-center gap-1 rounded-full bg-card-2 p-1 lg:flex">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
           return (
@@ -134,8 +135,8 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
               href={href}
               className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                 isActive
-                  ? 'bg-gray-900 text-white shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-contrast text-contrast-ink shadow-card'
+                  : 'text-muted hover:text-ink'
               }`}
             >
               <Icon className="h-4 w-4" />
@@ -146,22 +147,23 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
       </nav>
 
       <div className="flex shrink-0 items-center gap-3">
-        <span className="hidden truncate text-sm text-gray-500 sm:inline">{email}</span>
+        <span className="hidden truncate text-sm text-muted sm:inline">{email}</span>
+        <LanternToggle />
         <button
           onClick={onLogout}
           title="Sair"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-600"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-card-2 text-muted hover:bg-red-50 hover:text-red-600"
         >
           <LogOut className="h-4 w-4" />
         </button>
       </div>
       </div>
 
-      <div className="relative w-full border-t border-gray-100 lg:hidden">
+      <div className="relative w-full border-t border-line lg:hidden">
         <nav
           ref={mobileNavRef}
           onScroll={updateScrollAffordance}
-          className="flex w-full items-center gap-1 overflow-x-auto bg-white px-3 py-2"
+          className="flex w-full items-center gap-1 overflow-x-auto bg-bg px-3 py-2"
         >
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
@@ -171,7 +173,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
                 href={href}
                 data-active={isActive}
                 className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium ${
-                  isActive ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600'
+                  isActive ? 'bg-contrast text-contrast-ink' : 'bg-card-2 text-muted'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -181,13 +183,13 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
           })}
         </nav>
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-white via-white/70 to-transparent">
-            <ChevronLeft className="h-4 w-4 text-gray-400" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-bg via-bg/70 to-transparent">
+            <ChevronLeft className="h-4 w-4 text-muted" />
           </div>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-white via-white/70 to-transparent">
-            <ChevronRight className="h-4 w-4 text-gray-400" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-bg via-bg/70 to-transparent">
+            <ChevronRight className="h-4 w-4 text-muted" />
           </div>
         )}
       </div>

@@ -16,9 +16,24 @@ export const metadata: Metadata = {
   description: 'Publicação social para criadores de conteúdo',
 }
 
+// Aplica o tema (claro/escuro) antes da primeira pintura para evitar flash.
+// Segue a escolha salva pelo usuário ou, na ausência dela, a preferência do SO.
+const themeBootScript = `
+(function () {
+  try {
+    var pref = localStorage.getItem('ss-theme');
+    var dark = pref === 'dark' || (!pref && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (dark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={plusJakartaSans.variable}>
+    <html lang="pt-BR" className={plusJakartaSans.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
       <body className="font-sans">
         <Providers>{children}</Providers>
         <BuildBadge />

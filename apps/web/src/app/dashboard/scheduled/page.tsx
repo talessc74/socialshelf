@@ -29,7 +29,7 @@ function PostThumbnail({ path }: { path: string }) {
   })
 
   if (isLoading || !url) {
-    return <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-gray-100" />
+    return <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-card-2" />
   }
 
   // eslint-disable-next-line @next/next/no-img-element
@@ -71,17 +71,17 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
   const today = dayKey(new Date())
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card">
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
           aria-label="Mês anterior"
-          className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+          className="rounded-lg border border-line px-2 py-1 text-sm text-muted hover:bg-card-2"
         >
           ←
         </button>
-        <p className="text-sm font-semibold text-gray-900">
+        <p className="text-sm font-semibold text-ink">
           {(() => {
             const label = month.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
             return label.charAt(0).toUpperCase() + label.slice(1)
@@ -91,13 +91,13 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
           type="button"
           onClick={() => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
           aria-label="Mês seguinte"
-          className="rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-600 hover:bg-gray-50"
+          className="rounded-lg border border-line px-2 py-1 text-sm text-muted hover:bg-card-2"
         >
           →
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase text-gray-400">
+      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase text-muted">
         {WEEKDAY_LABELS.map((w) => (
           <span key={w}>{w}</span>
         ))}
@@ -112,10 +112,10 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
             <div
               key={key}
               className={`min-h-[88px] rounded-lg border p-1.5 ${
-                inMonth ? 'border-gray-100 bg-white' : 'border-transparent bg-gray-50'
-              } ${key === today ? 'ring-2 ring-brand-500' : ''}`}
+                inMonth ? 'border-line bg-card' : 'border-transparent bg-card-2'
+              } ${key === today ? 'ring-2 ring-accent' : ''}`}
             >
-              <span className={`text-xs ${inMonth ? 'text-gray-700' : 'text-gray-300'}`}>{day.getDate()}</span>
+              <span className={`text-xs ${inMonth ? 'text-ink' : 'text-muted'}`}>{day.getDate()}</span>
               <ul className="mt-1 space-y-0.5">
                 {dayPosts.slice(0, 2).map((post) => {
                   const when = postWhen(post)
@@ -127,7 +127,7 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
                         onClick={() => onSelectPost(post.id)}
                         title={post.content[0]?.text}
                         className={`block w-full truncate rounded px-1 py-0.5 text-left text-[10px] font-medium hover:opacity-80 ${
-                          isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-brand-50 text-brand-700'
+                          isPublished ? 'bg-emerald-50 text-emerald-700' : 'bg-accent-soft text-accent'
                         }`}
                       >
                         {isPublished ? '✓ ' : ''}
@@ -142,7 +142,7 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
                   )
                 })}
                 {dayPosts.length > 2 && (
-                  <li className="px-1 text-[10px] text-gray-400">+{dayPosts.length - 2} mais</li>
+                  <li className="px-1 text-[10px] text-muted">+{dayPosts.length - 2} mais</li>
                 )}
               </ul>
             </div>
@@ -229,20 +229,20 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   return (
     <li
       id={`post-${post.id}`}
-      className={`flex gap-4 rounded-2xl border bg-white p-5 shadow-sm shadow-brand-100/60 ${
-        highlighted ? 'border-brand-500 ring-2 ring-brand-500 ring-offset-2' : 'border-brand-100'
+      className={`flex gap-4 rounded-2xl border bg-card p-5 shadow-card ${
+        highlighted ? 'border-accent ring-2 ring-accent ring-offset-2' : 'border-line'
       }`}
     >
       {!isEditing && firstImage && <PostThumbnail path={firstImage} />}
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700">
+          <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
             {post.scheduledAt
               ? new Date(post.scheduledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
               : '—'}
           </span>
           {post.content.map((c) => (
-            <span key={c.platform} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
               {PLATFORM_LABELS[c.platform]}
             </span>
           ))}
@@ -257,10 +257,10 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                 return (
                   <div key={c.platform}>
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="text-xs font-medium text-gray-500">{PLATFORM_LABELS[c.platform]}</span>
+                      <span className="text-xs font-medium text-muted">{PLATFORM_LABELS[c.platform]}</span>
                       <span
                         className={`text-xs tabular-nums ${
-                          text.length > limit ? 'font-bold text-red-600' : 'text-gray-400'
+                          text.length > limit ? 'font-bold text-red-600' : 'text-muted'
                         }`}
                       >
                         {limit - text.length}
@@ -270,7 +270,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                       value={text}
                       onChange={(e) => setTexts((prev) => ({ ...prev, [c.platform]: e.target.value }))}
                       rows={3}
-                      className="w-full resize-none rounded-lg border border-gray-200 p-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                      className="w-full resize-none rounded-lg border border-line p-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
                 )
@@ -278,7 +278,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
             </div>
 
             <div>
-              <span className="mb-1.5 block text-xs font-medium text-gray-500">Fotos</span>
+              <span className="mb-1.5 block text-xs font-medium text-muted">Fotos</span>
               {images.length > 0 && (
                 <ul className="mb-2 flex flex-wrap gap-2">
                   {images.map((path) => (
@@ -301,7 +301,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                   {newPhotoFiles.map((file, i) => (
                     <li
                       key={`${file.name}-${i}`}
-                      className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-600"
+                      className="flex items-center justify-between rounded-lg bg-card-2 px-3 py-1.5 text-xs text-muted"
                     >
                       <span className="truncate">{file.name}</span>
                       <button
@@ -325,12 +325,12 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                   setNewPhotoFiles((prev) => [...prev, ...files])
                   e.target.value = ''
                 }}
-                className="block w-full text-xs text-gray-600"
+                className="block w-full text-xs text-muted"
               />
             </div>
 
             <div>
-              <label htmlFor={`scheduledAt-${post.id}`} className="mb-1.5 block text-xs font-medium text-gray-500">
+              <label htmlFor={`scheduledAt-${post.id}`} className="mb-1.5 block text-xs font-medium text-muted">
                 Data de publicação
               </label>
               <input
@@ -338,7 +338,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                 type="datetime-local"
                 value={scheduledAtInput}
                 onChange={(e) => setScheduledAtInput(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="rounded-lg border border-line px-3 py-2 text-sm"
               />
               {scheduledAtInput && !scheduledAtValid && (
                 <p className="mt-1 text-xs text-red-600">A data de publicação deve ser no futuro.</p>
@@ -354,14 +354,14 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
               <button
                 onClick={handleSave}
                 disabled={!canSave || updateMutation.isPending}
-                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
                 {updateMutation.isPending ? 'Salvando…' : 'Salvar'}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={updateMutation.isPending}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2 disabled:opacity-40"
               >
                 Cancelar
               </button>
@@ -369,7 +369,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
           </div>
         ) : (
           <>
-            <p className="truncate text-sm text-gray-800">{post.content[0]?.text}</p>
+            <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
             {publishMutation.isError && (
               <p className="text-xs text-red-600">
                 {publishMutation.error instanceof Error ? publishMutation.error.message : 'Erro ao publicar.'}
@@ -378,14 +378,14 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(true)}
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
               >
                 Editar
               </button>
               <button
                 onClick={() => publishMutation.mutate()}
                 disabled={publishMutation.isPending}
-                className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
                 {publishMutation.isPending ? 'Publicando…' : 'Publicar agora'}
               </button>
@@ -415,8 +415,8 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
   return (
     <li
       id={`post-${post.id}`}
-      className={`flex gap-4 rounded-2xl border bg-white p-5 shadow-sm shadow-brand-100/60 ${
-        highlighted ? 'border-brand-500 ring-2 ring-brand-500 ring-offset-2' : 'border-gray-100'
+      className={`flex gap-4 rounded-2xl border bg-card p-5 shadow-card ${
+        highlighted ? 'border-accent ring-2 ring-accent ring-offset-2' : 'border-line'
       }`}
     >
       {firstImage && <PostThumbnail path={firstImage} />}
@@ -429,16 +429,16 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
               : ''}
           </span>
           {post.content.map((c) => (
-            <span key={c.platform} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">
+            <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
               {PLATFORM_LABELS[c.platform]}
             </span>
           ))}
         </div>
-        <p className="truncate text-sm text-gray-800">{post.content[0]?.text}</p>
+        <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
         <div className="flex gap-2">
           <button
             onClick={() => router.push(`/dashboard/compose?repostFrom=${post.id}`)}
-            className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90"
           >
             Repostar
           </button>
@@ -479,18 +479,18 @@ export default function ScheduledPostsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar
         </button>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
-          <h1 className="text-2xl font-bold text-white">Posts Agendados</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Painel da marca</p>
+          <h1 className="text-2xl font-bold text-ink">Posts Agendados</h1>
         </div>
-        <div className="ml-auto flex gap-2 rounded-lg border border-gray-200 p-1">
+        <div className="ml-auto flex gap-2 rounded-lg border border-line p-1">
           <button
             onClick={() => setView('list')}
             className={`rounded-md px-3 py-1 text-xs font-medium ${
-              view === 'list' ? 'bg-brand-600 text-white' : 'text-gray-500 hover:bg-gray-50'
+              view === 'list' ? 'bg-accent text-accent-ink' : 'text-muted hover:bg-card-2'
             }`}
           >
             Lista
@@ -498,7 +498,7 @@ export default function ScheduledPostsPage() {
           <button
             onClick={() => setView('calendar')}
             className={`rounded-md px-3 py-1 text-xs font-medium ${
-              view === 'calendar' ? 'bg-brand-600 text-white' : 'text-gray-500 hover:bg-gray-50'
+              view === 'calendar' ? 'bg-accent text-accent-ink' : 'text-muted hover:bg-card-2'
             }`}
           >
             Calendário
@@ -507,8 +507,8 @@ export default function ScheduledPostsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           Carregando…
         </div>
       ) : error ? (
@@ -519,7 +519,7 @@ export default function ScheduledPostsPage() {
           </p>
         </div>
       ) : isEmpty ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Nenhum post agendado ainda. Gere ou componha um post e escolha uma data para publicação.
         </p>
       ) : view === 'calendar' ? (
@@ -541,7 +541,7 @@ export default function ScheduledPostsPage() {
           )}
           {publishedPosts.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-gray-700">Publicados</h2>
+              <h2 className="text-sm font-semibold text-ink">Publicados</h2>
               <ul className="space-y-3">
                 {publishedPosts.map((post) => (
                   <PublishedPostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} />

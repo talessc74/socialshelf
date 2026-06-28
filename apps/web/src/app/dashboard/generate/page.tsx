@@ -85,8 +85,8 @@ function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: stri
 
   if (isLoading) {
     return (
-      <div className={`flex w-full items-center justify-center rounded-lg bg-gray-100 ${aspectClass}`}>
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      <div className={`flex w-full items-center justify-center rounded-lg bg-card-2 ${aspectClass}`}>
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
       </div>
     )
   }
@@ -94,7 +94,7 @@ function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: stri
   if (isError || !url) {
     return (
       <div
-        className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400 ${aspectClass}`}
+        className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-card-2 p-2 text-center text-xs text-muted ${aspectClass}`}
       >
         <span>Não foi possível carregar a imagem</span>
         {error instanceof Error && <span className="break-words text-red-600">{error.message}</span>}
@@ -281,34 +281,34 @@ function Lightbox({
           )}
 
           {editMode === 'text' && (
-            <div className="space-y-2 rounded-lg bg-white p-3">
-              <p className="text-xs font-medium text-gray-600">Edite o título e o texto de apoio deste card</p>
+            <div className="space-y-2 rounded-lg bg-card p-3">
+              <p className="text-xs font-medium text-muted">Edite o título e o texto de apoio deste card</p>
               <input
                 value={headlineInput}
                 onChange={(e) => setHeadlineInput(e.target.value)}
                 autoFocus
                 placeholder="Título"
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full rounded-lg border border-line p-2 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <textarea
                 value={bodyInput}
                 onChange={(e) => setBodyInput(e.target.value)}
                 rows={2}
                 placeholder="Texto de apoio (opcional)"
-                className="w-full resize-none rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full resize-none rounded-lg border border-line p-2 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               {editError && <p className="text-xs text-red-600">{editError}</p>}
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setEditMode('menu')}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSubmitTextEdit}
                   disabled={submitting || !headlineInput.trim()}
-                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
                 >
                   {submitting ? 'Aplicando…' : 'Aplicar'}
                 </button>
@@ -317,8 +317,8 @@ function Lightbox({
           )}
 
           {editMode === 'instruction' && (
-            <div className="space-y-2 rounded-lg bg-white p-3">
-              <p className="text-xs font-medium text-gray-600">
+            <div className="space-y-2 rounded-lg bg-card p-3">
+              <p className="text-xs font-medium text-muted">
                 Descreva o que você quer mudar neste card
               </p>
               <textarea
@@ -327,20 +327,20 @@ function Lightbox({
                 rows={2}
                 autoFocus
                 placeholder="Ex: deixe o fundo mais claro, troque a pessoa por um ícone…"
-                className="w-full resize-none rounded-lg border border-gray-300 p-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full resize-none rounded-lg border border-line p-2 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               {editError && <p className="text-xs text-red-600">{editError}</p>}
               <div className="flex justify-end gap-2">
                 <button
                   onClick={() => setEditMode('menu')}
-                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+                  className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSubmitEdit}
                   disabled={submitting || !instruction.trim()}
-                  className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                  className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
                 >
                   {submitting ? 'Aplicando…' : 'Aplicar'}
                 </button>
@@ -516,10 +516,10 @@ export default function GenerateContentPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar
         </button>
-        <h1 className="text-2xl font-bold text-white">Gerar Conteúdo com IA</h1>
+        <h1 className="text-2xl font-bold text-ink">Gerar Conteúdo com IA</h1>
       </div>
 
       <Stepper steps={STEPS} currentStep={currentStep} />
@@ -572,14 +572,14 @@ export default function GenerateContentPage() {
         <RecommendationPanel>
           {brandProfile ? (
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-gray-800">{brandProfile.business.name}</p>
-              <p className="text-xs text-gray-500">
-                Tom de voz: <span className="font-medium text-gray-700">{brandProfile.voice.tone}</span>
+              <p className="text-sm font-semibold text-ink">{brandProfile.business.name}</p>
+              <p className="text-xs text-muted">
+                Tom de voz: <span className="font-medium text-ink">{brandProfile.voice.tone}</span>
               </p>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 A copy gerada vai seguir esse tom automaticamente.
               </p>
-              <Link href="/dashboard/brand" className="text-xs font-semibold text-brand-600 hover:underline">
+              <Link href="/dashboard/brand" className="text-xs font-semibold text-accent hover:underline">
                 Editar marca →
               </Link>
             </div>
@@ -593,17 +593,17 @@ export default function GenerateContentPage() {
           )}
 
           {selectedSuggestion && (
-            <div className="space-y-2 border-t border-gray-100 pt-3">
-              <p className="text-sm font-medium text-gray-800">{selectedSuggestion.headline}</p>
+            <div className="space-y-2 border-t border-line pt-3">
+              <p className="text-sm font-medium text-ink">{selectedSuggestion.headline}</p>
               <ScoreBadge label="Aderência ao público" score={selectedSuggestion.audienceFitScore} />
-              <p className="text-xs text-gray-400">{selectedSuggestion.rationale}</p>
+              <p className="text-xs text-muted">{selectedSuggestion.rationale}</p>
             </div>
           )}
 
           {result?.outputs?.cta && (
-            <div className="space-y-1 border-t border-gray-100 pt-3">
-              <p className="text-sm font-medium text-gray-800">CTA sugerido</p>
-              <p className="text-xs text-gray-500">{result.outputs.cta}</p>
+            <div className="space-y-1 border-t border-line pt-3">
+              <p className="text-sm font-medium text-ink">CTA sugerido</p>
+              <p className="text-xs text-muted">{result.outputs.cta}</p>
             </div>
           )}
         </RecommendationPanel>
@@ -665,9 +665,9 @@ function FormView({
 }) {
   return (
     <>
-      <section className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-sm font-semibold text-ink">
             Descreva o que você quer publicar
           </label>
           <textarea
@@ -675,12 +675,12 @@ function FormView({
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             placeholder="Ex: Lançamento da nova funcionalidade de relatórios automáticos…"
-            className="w-full resize-none rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full resize-none rounded-lg border border-line p-3 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-sm font-semibold text-ink">
             Texto-base (opcional)
           </label>
           <textarea
@@ -688,19 +688,19 @@ function FormView({
             onChange={(e) => setTextContent(e.target.value)}
             rows={2}
             placeholder="Cole um rascunho ou referência para a IA usar como ponto de partida…"
-            className="w-full resize-none rounded-lg border border-gray-300 p-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full resize-none rounded-lg border border-line p-3 text-sm text-ink placeholder-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
 
         {suggestions && suggestions.length > 0 && (
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+            <label className="mb-1.5 block text-sm font-semibold text-ink">
               Pauta sugerida (opcional)
             </label>
             <select
               value={topicSuggestionId}
               onChange={(e) => setTopicSuggestionId(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="">Nenhuma — usar apenas a descrição</option>
               {suggestions.map((s) => (
@@ -713,13 +713,13 @@ function FormView({
         )}
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Plataformas</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Plataformas</label>
           {loadingConnections ? (
-            <p className="text-sm text-gray-400">Carregando conexões…</p>
+            <p className="text-sm text-muted">Carregando conexões…</p>
           ) : connectedPlatforms.length === 0 ? (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted">
               Nenhuma plataforma conectada.{' '}
-              <a href="/dashboard" className="text-brand-600 underline">
+              <a href="/dashboard" className="text-accent underline">
                 Conectar agora
               </a>
             </p>
@@ -733,14 +733,14 @@ function FormView({
                     title={PLATFORM_MEDIA_NOTE[p]}
                     className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors ${
                       selectedPlatforms.has(p)
-                        ? 'border-brand-600 bg-brand-600 text-white'
-                        : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                        ? 'border-accent bg-accent text-accent-ink'
+                        : 'border-line bg-card text-muted hover:border-accent'
                     }`}
                   >
                     {PLATFORM_LABELS[p]}
                     <span
                       className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                        selectedPlatforms.has(p) ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                        selectedPlatforms.has(p) ? 'bg-white/20 text-accent-ink' : 'bg-card-2 text-muted'
                       }`}
                     >
                       {PLATFORM_MEDIA_NOTE[p]}
@@ -750,22 +750,22 @@ function FormView({
                 {connectedPlatforms.filter((p) => COMING_SOON_PLATFORMS.has(p)).map((p) => (
                   <span
                     key={p}
-                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm font-medium text-gray-400"
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-line bg-card-2 px-3 py-1 text-sm font-medium text-muted"
                     title="Disponível em breve"
                   >
                     {PLATFORM_LABELS[p]}
-                    <span className="rounded-full bg-gray-200 px-1.5 py-0.5 text-xs font-semibold text-gray-500">
+                    <span className="rounded-full bg-card-2 px-1.5 py-0.5 text-xs font-semibold text-muted">
                       Em breve
                     </span>
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-muted">
                 Instagram exige pelo menos uma imagem. Facebook aceita imagem, mas é opcional. LinkedIn e
                 X (Twitter) publicam apenas o texto — fotos e cards gerados não são usados nessas redes.
               </p>
               {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted">
                   * A publicação via X (Twitter) estará disponível em breve. A API do X requer plano pago
                   para envio de posts.
                 </p>
@@ -775,10 +775,10 @@ function FormView({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-sm font-semibold text-ink">
             Suas fotos (opcional)
           </label>
-          <p className="mb-2 text-xs text-gray-400">
+          <p className="mb-2 text-xs text-muted">
             A IA decide, a partir do que você descreveu, quantos cards o post precisa e gera as imagens de
             fundo — você não escolhe a quantidade. Se preferir usar fotos próprias em vez de imagens geradas,
             envie até {MAX_GENERATION_ARTIFACTS}: a quantidade enviada passa a ser exatamente a quantidade de
@@ -794,11 +794,11 @@ function FormView({
               e.target.value = ''
             }}
             disabled={photoFiles.length >= MAX_GENERATION_ARTIFACTS}
-            className="block w-full text-sm text-gray-600"
+            className="block w-full text-sm text-muted"
           />
           {photoFiles.length > 0 && (
             <>
-              <p className="mt-2 text-xs font-medium text-brand-600">
+              <p className="mt-2 text-xs font-medium text-accent">
                 {photoFiles.length === 1 ? 'Post único' : `Carrossel com ${photoFiles.length} cards`} — definido
                 pela quantidade de fotos enviadas.
               </p>
@@ -806,7 +806,7 @@ function FormView({
                 {photoFiles.map((file, i) => (
                   <li
                     key={`${file.name}-${i}`}
-                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-1.5 text-xs text-gray-600"
+                    className="flex items-center justify-between rounded-lg bg-card-2 px-3 py-1.5 text-xs text-muted"
                   >
                     <span className="truncate">
                       #{i + 1} — {file.name}
@@ -826,7 +826,7 @@ function FormView({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-sm font-semibold text-ink">
             Estilo do template
           </label>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -837,13 +837,13 @@ function FormView({
                 onClick={() => setStyle(option.value)}
                 className={`space-y-2 rounded-lg border p-2 text-left transition-colors ${
                   style === option.value
-                    ? 'border-brand-600 bg-brand-50'
-                    : 'border-gray-300 bg-white hover:border-brand-400'
+                    ? 'border-accent bg-accent-soft'
+                    : 'border-line bg-card hover:border-accent'
                 }`}
               >
-                <div className="flex aspect-square w-full flex-col overflow-hidden rounded bg-gray-200">
+                <div className="flex aspect-square w-full flex-col overflow-hidden rounded bg-card-2">
                   {option.value === TemplateStyle.TOP_STRIP && (
-                    <div className="h-1/3 w-full bg-gradient-to-b from-brand-400 to-transparent" />
+                    <div className="h-1/3 w-full bg-gradient-to-b from-accent to-transparent" />
                   )}
                   {option.value === TemplateStyle.CENTERED_OVERLAY && (
                     <div className="flex h-full w-full items-center justify-center">
@@ -853,12 +853,12 @@ function FormView({
                     </div>
                   )}
                   {option.value === TemplateStyle.BOLD_BOTTOM && (
-                    <div className="mt-auto h-1/3 w-full bg-gradient-to-t from-brand-400 to-transparent" />
+                    <div className="mt-auto h-1/3 w-full bg-gradient-to-t from-accent to-transparent" />
                   )}
                 </div>
                 <p
                   className={`text-xs font-medium ${
-                    style === option.value ? 'text-brand-700' : 'text-gray-600'
+                    style === option.value ? 'text-accent' : 'text-muted'
                   }`}
                 >
                   {option.label}
@@ -870,12 +870,12 @@ function FormView({
 
         {style !== TemplateStyle.NO_TEXT && (
           <div>
-            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <label className="flex items-center gap-2 text-sm font-medium text-ink">
               <input
                 type="checkbox"
                 checked={includeBodyText}
                 onChange={(e) => setIncludeBodyText(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
               />
               Incluir texto de apoio (parágrafo curto abaixo do headline)
             </label>
@@ -883,7 +883,7 @@ function FormView({
         )}
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-sm font-semibold text-ink">
             Formato da imagem
           </label>
           <div className="grid grid-cols-4 gap-3">
@@ -894,14 +894,14 @@ function FormView({
                 onClick={() => setAspectRatio(option.value)}
                 className={`space-y-2 rounded-lg border p-2 text-left transition-colors ${
                   aspectRatio === option.value
-                    ? 'border-brand-600 bg-brand-50'
-                    : 'border-gray-300 bg-white hover:border-brand-400'
+                    ? 'border-accent bg-accent-soft'
+                    : 'border-line bg-card hover:border-accent'
                 }`}
               >
-                <div className={`mx-auto w-full rounded bg-gray-200 ${option.preview}`} />
+                <div className={`mx-auto w-full rounded bg-card-2 ${option.preview}`} />
                 <p
                   className={`text-center text-xs font-medium ${
-                    aspectRatio === option.value ? 'text-brand-700' : 'text-gray-600'
+                    aspectRatio === option.value ? 'text-accent' : 'text-muted'
                   }`}
                 >
                   {option.label}
@@ -918,14 +918,14 @@ function FormView({
         <button
           onClick={onGenerate}
           disabled={!canGenerate}
-          className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+          className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
         >
           Gerar Conteúdo
         </button>
         <button
           type="button"
           onClick={onClear}
-          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50"
+          className="rounded-lg border border-line px-4 py-2.5 text-sm font-medium text-muted hover:bg-card-2"
         >
           Limpar
         </button>
@@ -936,7 +936,7 @@ function FormView({
 
 function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: number }) {
   return (
-    <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-6 shadow-sm">
+    <section className="space-y-4 rounded-2xl border border-accent-soft bg-card p-6 shadow-card">
       <ol className="space-y-3">
         {stages.map((stage, i) => {
           const isCurrent = i === stageIndex
@@ -945,17 +945,17 @@ function GeneratingView({ stages, stageIndex }: { stages: string[]; stageIndex: 
             <li key={stage} className="flex items-center gap-3">
               <span
                 className={`h-2 w-2 shrink-0 rounded-full ${
-                  isCurrent ? 'animate-pulse bg-brand-500' : isPast ? 'bg-brand-200' : 'bg-gray-200'
+                  isCurrent ? 'animate-pulse bg-accent' : isPast ? 'bg-accent-soft' : 'bg-card-2'
                 }`}
               />
-              <span className={`text-sm ${isCurrent ? 'font-medium text-gray-800' : 'text-gray-400'}`}>
+              <span className={`text-sm ${isCurrent ? 'font-medium text-ink' : 'text-muted'}`}>
                 {stage}
               </span>
             </li>
           )
         })}
       </ol>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-muted">
         Isso pode levar até 2 minutos, especialmente para carrosséis com várias imagens. Não saia desta página.
       </p>
     </section>
@@ -1091,7 +1091,7 @@ function ResultView({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-gray-900">Resultado da Geração</h2>
+      <h2 className="text-lg font-semibold text-ink">Resultado da Geração</h2>
 
       {result.status === 'ready' ? (
         <div className="rounded-xl border border-green-200 bg-green-50 p-4">
@@ -1105,13 +1105,13 @@ function ResultView({
 
       {result.outputs && Object.keys(result.outputs.copies).length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">Copy gerada</h2>
+          <h2 className="text-sm font-semibold text-ink">Copy gerada</h2>
           {Object.entries(result.outputs.copies).map(([platform, copy]) => (
-            <div key={platform} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="mb-2 text-sm font-medium text-gray-700">
+            <div key={platform} className="rounded-xl border border-line bg-card p-4 shadow-card">
+              <p className="mb-2 text-sm font-medium text-ink">
                 {PLATFORM_LABELS[platform as Platform]}
               </p>
-              <p className="whitespace-pre-wrap text-sm text-gray-800">{copy?.text}</p>
+              <p className="whitespace-pre-wrap text-sm text-ink">{copy?.text}</p>
             </div>
           ))}
         </section>
@@ -1119,7 +1119,7 @@ function ResultView({
 
       {(readyArtifacts.length > 0 || failedArtifacts.length > 0) && (
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-700">
+          <h2 className="text-sm font-semibold text-ink">
             {(result.outputs?.artifacts.length ?? 0) > 1 ? 'Carrossel' : 'Imagem'}
           </h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -1135,7 +1135,7 @@ function ResultView({
                   </button>
                 ) : (
                   <div
-                    className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-2 text-center text-xs text-gray-400 ${aspectClass}`}
+                    className={`flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-card-2 p-2 text-center text-xs text-muted ${aspectClass}`}
                   >
 
                     <span>{ARTIFACT_STATUS_LABELS[artifact.status]}</span>
@@ -1144,7 +1144,7 @@ function ResultView({
                     )}
                   </div>
                 )}
-                <p className="text-center text-xs text-gray-400">#{artifact.position}</p>
+                <p className="text-center text-xs text-muted">#{artifact.position}</p>
               </div>
             ))}
           </div>
@@ -1193,8 +1193,8 @@ function ResultView({
           )}
 
           {availableExtraPlatforms.length > 0 && (
-            <div className="space-y-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-              <p className="text-sm font-semibold text-gray-700">Publicar também em:</p>
+            <div className="space-y-3 rounded-xl border border-line bg-card p-4 shadow-card">
+              <p className="text-sm font-semibold text-ink">Publicar também em:</p>
               <div className="flex flex-wrap gap-2">
                 {availableExtraPlatforms.map((p) => {
                   const blockedByImage = PLATFORM_MEDIA_SUPPORT[p].requiresImage && readyArtifacts.length === 0
@@ -1207,8 +1207,8 @@ function ResultView({
                       title={blockedByImage ? 'Exige imagem — este post não tem imagem.' : PLATFORM_MEDIA_NOTE[p]}
                       className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                         selectedExtraPlatforms.has(p)
-                          ? 'border-brand-600 bg-brand-600 text-white'
-                          : 'border-gray-300 bg-white text-gray-600 hover:border-brand-400'
+                          ? 'border-accent bg-accent text-accent-ink'
+                          : 'border-line bg-card text-muted hover:border-accent'
                       }`}
                     >
                       {PLATFORM_LABELS[p]}
@@ -1218,19 +1218,19 @@ function ResultView({
               </div>
 
               {selectedExtraPlatforms.size > 0 && (
-                <div className="space-y-2 rounded-lg bg-gray-50 p-3">
-                  <p className="text-xs font-medium text-gray-500">Texto que será publicado (reaproveitado da copy gerada):</p>
+                <div className="space-y-2 rounded-lg bg-card-2 p-3">
+                  <p className="text-xs font-medium text-muted">Texto que será publicado (reaproveitado da copy gerada):</p>
                   {[...selectedExtraPlatforms].map((p) => {
                     const preview = truncateForPlatform(sourceTextForExtra, p)
                     return (
                       <div key={p}>
                         <div className="mb-0.5 flex items-center justify-between">
-                          <span className="text-xs font-medium text-gray-500">{PLATFORM_LABELS[p]}</span>
-                          <span className="text-xs tabular-nums text-gray-400">
+                          <span className="text-xs font-medium text-muted">{PLATFORM_LABELS[p]}</span>
+                          <span className="text-xs tabular-nums text-muted">
                             {preview.length}/{PLATFORM_CHARACTER_LIMITS[p]}
                           </span>
                         </div>
-                        <p className="whitespace-pre-wrap rounded border border-gray-200 bg-white p-2 text-xs text-gray-700">
+                        <p className="whitespace-pre-wrap rounded border border-line bg-card p-2 text-xs text-ink">
                           {preview}
                         </p>
                       </div>
@@ -1247,7 +1247,7 @@ function ResultView({
                 type="button"
                 onClick={handlePublishMore}
                 disabled={selectedExtraPlatforms.size === 0 || extraPublishing}
-                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
                 {extraPublishing ? 'Publicando…' : 'Publicar nas redes selecionadas'}
               </button>
@@ -1271,30 +1271,30 @@ function ResultView({
               <button
                 onClick={handlePublish}
                 disabled={publishing || scheduling}
-                className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
                 {publishing ? 'Publicando…' : 'Publicar Agora'}
               </button>
               <button
                 onClick={() => setShowScheduler((v) => !v)}
                 disabled={publishing || scheduling}
-                className="rounded-lg border border-gray-300 px-6 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+                className="rounded-lg border border-line px-6 py-2.5 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
               >
                 Agendar
               </button>
             </div>
             {showScheduler && (
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card-2 p-4">
                 <input
                   type="datetime-local"
                   value={scheduledAtInput}
                   onChange={(e) => setScheduledAtInput(e.target.value)}
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                  className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
                 />
                 <button
                   onClick={handleSchedule}
                   disabled={scheduling || !scheduledAtInput}
-                  className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
                 >
                   {scheduling ? 'Agendando…' : 'Confirmar agendamento'}
                 </button>
@@ -1306,7 +1306,7 @@ function ResultView({
 
       <button
         onClick={onBack}
-        className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+        className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2"
       >
         Voltar ao Dashboard
       </button>

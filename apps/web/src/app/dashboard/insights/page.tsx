@@ -29,7 +29,7 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
   })
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card hover:shadow-card-elev">
       {goodTimeNow && (
         <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
           🟢 Bom momento para publicar agora
@@ -41,18 +41,18 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
           className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
           style={{ background: `conic-gradient(#0369a1 ${suggestion.viralScore}%, #bae6fd ${suggestion.viralScore}%)` }}
         >
-          <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full bg-white">
-            <span className="text-xs font-bold text-brand-700">{Math.round(suggestion.viralScore)}</span>
+          <div className="flex h-9 w-9 flex-col items-center justify-center rounded-full bg-card">
+            <span className="text-xs font-bold text-accent">{Math.round(suggestion.viralScore)}</span>
           </div>
         </div>
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-gray-800">{suggestion.headline}</p>
-          <p className="text-xs text-gray-500">{suggestion.rationale}</p>
+          <p className="text-sm font-medium text-ink">{suggestion.headline}</p>
+          <p className="text-xs text-muted">{suggestion.rationale}</p>
         </div>
       </div>
 
       {suggestion.bestTimeToPost && (
-        <p className="text-xs font-medium text-brand-600">⏰ {suggestion.bestTimeToPost}</p>
+        <p className="text-xs font-medium text-accent">⏰ {suggestion.bestTimeToPost}</p>
       )}
 
       {suggestion.basedOnThemes.length > 0 && (
@@ -60,7 +60,7 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
           {suggestion.basedOnThemes.map((theme) => (
             <span
               key={theme}
-              className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-600"
+              className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent"
             >
               {theme}
             </span>
@@ -71,14 +71,14 @@ function InsightCard({ suggestion }: { suggestion: ApiPerformanceSuggestion }) {
       <div className="flex items-center gap-2 pt-1">
         <button
           onClick={() => router.push(`/dashboard/generate?seed=${encodeURIComponent(suggestion.headline)}`)}
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:bg-accent"
         >
           Criar post disso
         </button>
         <button
           onClick={() => shelveMutation.mutate(!suggestion.shelved)}
           disabled={shelveMutation.isPending}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+          className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
         >
           {suggestion.shelved ? 'Remover da prateleira' : 'Guardar na prateleira'}
         </button>
@@ -110,22 +110,22 @@ export default function InsightsBankPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar
         </button>
-        <h1 className="text-2xl font-bold text-white">Banco de Insights</h1>
+        <h1 className="text-2xl font-bold text-ink">Banco de Insights</h1>
       </div>
 
-      <p className="text-sm text-gray-500">
+      <p className="text-sm text-muted">
         Ideias de posts que a IA sugeriu com base na performance da sua marca. Guarde as que quiser publicar
         depois — a IA te avisa aqui quando chegar um bom momento pra postar.
       </p>
 
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-line">
         <button
           onClick={() => setTab('shelved')}
           className={`px-3 py-2 text-sm font-medium ${
-            tab === 'shelved' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'
+            tab === 'shelved' ? 'border-b-2 border-accent text-accent' : 'text-muted hover:text-ink'
           }`}
         >
           Guardadas
@@ -133,7 +133,7 @@ export default function InsightsBankPage() {
         <button
           onClick={() => setTab('fresh')}
           className={`px-3 py-2 text-sm font-medium ${
-            tab === 'fresh' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'
+            tab === 'fresh' ? 'border-b-2 border-accent text-accent' : 'text-muted hover:text-ink'
           }`}
         >
           Novas sugestões
@@ -141,7 +141,7 @@ export default function InsightsBankPage() {
         <button
           onClick={() => setTab('news')}
           className={`px-3 py-2 text-sm font-medium ${
-            tab === 'news' ? 'border-b-2 border-brand-600 text-brand-700' : 'text-gray-500 hover:text-gray-700'
+            tab === 'news' ? 'border-b-2 border-accent text-accent' : 'text-muted hover:text-ink'
           }`}
         >
           Notícias
@@ -155,9 +155,9 @@ export default function InsightsBankPage() {
         </div>
       ) : tab === 'shelved' ? (
         loadingShelved ? (
-          <p className="text-sm text-gray-400">Carregando prateleira…</p>
+          <p className="text-sm text-muted">Carregando prateleira…</p>
         ) : !shelved || shelved.length === 0 ? (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-muted">
             Nenhuma ideia guardada ainda. Vá na aba &quot;Novas sugestões&quot; ou na tela de geração de conteúdo
             e clique em &quot;Guardar na prateleira&quot;.
           </p>
@@ -169,9 +169,9 @@ export default function InsightsBankPage() {
           </div>
         )
       ) : loadingFresh ? (
-        <p className="text-sm text-gray-400">Analisando seus posts publicados…</p>
+        <p className="text-sm text-muted">Analisando seus posts publicados…</p>
       ) : freshError || freshUnshelved.length === 0 ? (
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted">
           Nenhuma sugestão nova por enquanto. Publique mais posts para a IA aprender com a performance da sua
           marca.
         </p>

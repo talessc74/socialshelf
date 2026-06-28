@@ -51,39 +51,39 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-diagnostic-gradient px-4">
-      <div className="w-full max-w-sm rounded-3xl border border-white/10 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
+    <main className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <div className="w-full max-w-sm rounded-3xl border border-contrast-ink/10 bg-contrast-ink/10 p-8 shadow-2xl backdrop-blur-xl">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo-icon.png"
           alt="SocialShelf"
           className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-lg"
         />
-        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-brand-200">
+        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-accent">
           Bem-vindo de volta
         </p>
-        <h1 className="mb-6 text-center text-2xl font-bold text-white">SocialShelf</h1>
+        <h1 className="mb-6 text-center text-2xl font-bold text-ink">SocialShelf</h1>
 
         <form onSubmit={handleEmail} className="space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-white/80">Email</label>
+            <label className="mb-1 block text-sm font-medium text-ink/80">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full rounded-xl border border-contrast-ink/15 bg-contrast-ink/10 px-3 py-2 text-sm text-ink placeholder-ink/40 focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="seu@email.com"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-white/80">Senha</label>
+            <label className="mb-1 block text-sm font-medium text-ink/80">Senha</label>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-white/15 bg-white/10 px-3 py-2 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full rounded-xl border border-contrast-ink/15 bg-contrast-ink/10 px-3 py-2 text-sm text-ink placeholder-ink/40 focus:outline-none focus:ring-2 focus:ring-accent"
               placeholder="••••••••"
             />
           </div>
@@ -93,22 +93,22 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-gray-900 shadow-lg shadow-brand-900/40 hover:bg-brand-300 disabled:opacity-50"
+            className="w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-ink shadow-lg shadow-accent/40 hover:bg-accent disabled:opacity-50"
           >
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
         </form>
 
         <div className="my-4 flex items-center gap-2">
-          <div className="h-px flex-1 bg-white/15" />
-          <span className="text-xs text-white/40">ou</span>
-          <div className="h-px flex-1 bg-white/15" />
+          <div className="h-px flex-1 bg-contrast-ink/15" />
+          <span className="text-xs text-ink/40">ou</span>
+          <div className="h-px flex-1 bg-contrast-ink/15" />
         </div>
 
         <button
           onClick={handleGoogle}
           disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/90 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-contrast-ink/15 bg-card/90 px-4 py-2 text-sm font-medium text-ink hover:bg-card disabled:opacity-50"
         >
           <svg className="h-4 w-4" viewBox="0 0 24 24">
             <path
@@ -131,9 +131,9 @@ export default function LoginPage() {
           Entrar com Google
         </button>
 
-        <p className="mt-6 text-center text-sm text-white/60">
+        <p className="mt-6 text-center text-sm text-ink/60">
           Não tem conta?{' '}
-          <Link href="/signup" className="font-semibold text-brand-200 hover:underline">
+          <Link href="/signup" className="font-semibold text-accent hover:underline">
             Cadastre-se
           </Link>
         </p>

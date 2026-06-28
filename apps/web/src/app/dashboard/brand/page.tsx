@@ -167,8 +167,8 @@ export default function BrandSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      <div className="flex items-center gap-2 text-sm text-muted">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
         Carregando…
       </div>
     )
@@ -177,12 +177,12 @@ export default function BrandSettingsPage() {
   return (
     <div className="space-y-6 pb-12">
       <div className="flex items-center gap-4">
-        <button onClick={() => router.back()} className="text-sm text-gray-500 hover:text-gray-700">
+        <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar
         </button>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-brand-600">Painel da marca</p>
-          <h1 className="text-2xl font-bold text-white">Configurações da Marca</h1>
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Painel da marca</p>
+          <h1 className="text-2xl font-bold text-ink">Configurações da Marca</h1>
         </div>
       </div>
 
@@ -192,14 +192,14 @@ export default function BrandSettingsPage() {
         </p>
       )}
 
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-muted">
         Cada vez que você salva, é criada uma nova versão da marca — posts já criados continuam usando a
         versão da época em que foram gerados.
       </p>
 
-      <section className="space-y-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Documento da marca</h2>
-        <p className="text-xs text-gray-400">
+      <section className="space-y-3 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Documento da marca</h2>
+        <p className="text-xs text-muted">
           Opcional: suba um documento (PDF ou TXT) com detalhes da marca ou do produto. A IA lê e preenche
           automaticamente os campos abaixo que ainda estiverem vazios — campos já preenchidos não são alterados.
         </p>
@@ -208,51 +208,51 @@ export default function BrandSettingsPage() {
           accept="application/pdf,text/plain"
           onChange={handleDocumentChange}
           disabled={extracting}
-          className="block w-full text-sm text-gray-600"
+          className="block w-full text-sm text-muted"
         />
-        {extracting && <p className="text-xs text-gray-400">Lendo documento…</p>}
-        {extractionNotice && <p className="text-xs font-medium text-brand-700">{extractionNotice}</p>}
+        {extracting && <p className="text-xs text-muted">Lendo documento…</p>}
+        {extractionNotice && <p className="text-xs font-medium text-accent">{extractionNotice}</p>}
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Negócio</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Negócio</h2>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Nome da marca</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Nome da marca</label>
           <input
             type="text"
             value={form.business.name}
             onChange={(e) => setForm((prev) => ({ ...prev, business: { ...prev.business, name: e.target.value } }))}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Segmento</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Segmento</label>
           <input
             type="text"
             value={form.business.segment}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, business: { ...prev.business, segment: e.target.value } }))
             }
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Descrição</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Descrição</label>
           <textarea
             value={form.business.description}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, business: { ...prev.business, description: e.target.value } }))
             }
             rows={3}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Identidade</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Identidade</h2>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Posicionamento</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Posicionamento</label>
           <textarea
             value={form.identity.positioning}
             onChange={(e) =>
@@ -260,7 +260,7 @@ export default function BrandSettingsPage() {
             }
             rows={2}
             placeholder="Como a marca quer ser percebida pelo público"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <TagListEditor
@@ -270,8 +270,8 @@ export default function BrandSettingsPage() {
           onChange={(values) => setForm((prev) => ({ ...prev, identity: { ...prev.identity, values } }))}
         />
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Logo</label>
-          <p className="mb-2 text-xs text-gray-400">Aparece como ícone fixo em cada card gerado.</p>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Logo</label>
+          <p className="mb-2 text-xs text-muted">Aparece como ícone fixo em cada card gerado.</p>
           {form.visual.logoStoragePath && (
             <p className="mb-2 text-xs font-medium text-green-700">Logo cadastrado.</p>
           )}
@@ -280,16 +280,16 @@ export default function BrandSettingsPage() {
             accept="image/png,image/jpeg,image/webp"
             onChange={handleLogoChange}
             disabled={uploading}
-            className="block w-full text-sm text-gray-600"
+            className="block w-full text-sm text-muted"
           />
-          {uploading && <p className="mt-1 text-xs text-gray-400">Enviando…</p>}
+          {uploading && <p className="mt-1 text-xs text-muted">Enviando…</p>}
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Visual</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Visual</h2>
         <div>
-          <p className="mb-2 text-sm font-semibold text-gray-700">Paletas prontas</p>
+          <p className="mb-2 text-sm font-semibold text-ink">Paletas prontas</p>
           <div className="grid gap-2 sm:grid-cols-2">
             {PALETTE_PRESETS.map((preset) => (
               <button
@@ -301,15 +301,15 @@ export default function BrandSettingsPage() {
                     visual: { ...prev.visual, primaryColor: preset.primaryColor, secondaryColor: preset.secondaryColor },
                   }))
                 }
-                className="flex items-center gap-3 rounded-xl border border-gray-200 px-3 py-2.5 text-left hover:border-brand-300 hover:bg-brand-50"
+                className="flex items-center gap-3 rounded-xl border border-line px-3 py-2.5 text-left hover:border-accent hover:bg-accent-soft"
               >
                 <span className="flex shrink-0 gap-1">
                   <span className="h-6 w-6 rounded-full" style={{ backgroundColor: preset.primaryColor }} />
                   <span className="h-6 w-6 rounded-full" style={{ backgroundColor: preset.secondaryColor }} />
                 </span>
                 <span>
-                  <span className="block text-sm font-semibold text-gray-800">{preset.label}</span>
-                  <span className="block text-xs text-gray-400">{preset.description}</span>
+                  <span className="block text-sm font-semibold text-ink">{preset.label}</span>
+                  <span className="block text-xs text-muted">{preset.description}</span>
                 </span>
               </button>
             ))}
@@ -317,7 +317,7 @@ export default function BrandSettingsPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">Cor primária</label>
+            <label className="mb-1.5 block text-sm font-semibold text-ink">Cor primária</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -325,7 +325,7 @@ export default function BrandSettingsPage() {
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, visual: { ...prev.visual, primaryColor: e.target.value } }))
                 }
-                className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-gray-200"
+                className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-line"
               />
               <input
                 type="text"
@@ -333,12 +333,12 @@ export default function BrandSettingsPage() {
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, visual: { ...prev.visual, primaryColor: e.target.value } }))
                 }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-mono focus:border-brand-400 focus:outline-none"
+                className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm font-mono focus:border-accent focus:outline-none"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-semibold text-gray-700">Cor secundária</label>
+            <label className="mb-1.5 block text-sm font-semibold text-ink">Cor secundária</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
@@ -346,7 +346,7 @@ export default function BrandSettingsPage() {
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, visual: { ...prev.visual, secondaryColor: e.target.value } }))
                 }
-                className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-gray-200"
+                className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-line"
               />
               <input
                 type="text"
@@ -354,19 +354,19 @@ export default function BrandSettingsPage() {
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, visual: { ...prev.visual, secondaryColor: e.target.value } }))
                 }
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-mono focus:border-brand-400 focus:outline-none"
+                className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm font-mono focus:border-accent focus:outline-none"
               />
             </div>
           </div>
         </div>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tipografia</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Tipografia</label>
           <select
             value={form.visual.typography}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, visual: { ...prev.visual, typography: e.target.value } }))
             }
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           >
             {TYPOGRAPHY_OPTIONS.map((opt) => (
               <option key={opt} value={opt}>
@@ -376,8 +376,8 @@ export default function BrandSettingsPage() {
           </select>
         </div>
         <div>
-          <p className="mb-2 text-sm font-semibold text-gray-700">Pré-visualização</p>
-          <p className="mb-3 text-xs text-gray-400">
+          <p className="mb-2 text-sm font-semibold text-ink">Pré-visualização</p>
+          <p className="mb-3 text-xs text-muted">
             Como o logo e a cor primária aparecem nos cards gerados, em tempo real.
           </p>
           <BrandPostPreview
@@ -387,16 +387,16 @@ export default function BrandSettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Voz</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Voz</h2>
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">Tom de voz</label>
+          <label className="mb-1.5 block text-sm font-semibold text-ink">Tom de voz</label>
           <input
             type="text"
             value={form.voice.tone}
             onChange={(e) => setForm((prev) => ({ ...prev, voice: { ...prev.voice, tone: e.target.value } }))}
             placeholder="Ex: direto e provocativo"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+            className="w-full rounded-xl border border-line bg-card text-ink px-3 py-2 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <TagListEditor
@@ -417,8 +417,8 @@ export default function BrandSettingsPage() {
         />
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Narrativa</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Narrativa</h2>
         <TagListEditor
           label="Temas recorrentes"
           helperText="Assuntos que a marca sempre volta a abordar."
@@ -428,10 +428,10 @@ export default function BrandSettingsPage() {
         />
       </section>
 
-      <section className="space-y-4 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
-        <h2 className="text-sm font-semibold text-gray-700">Operação</h2>
+      <section className="space-y-4 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink">Operação</h2>
         <div>
-          <p className="mb-2 text-sm font-semibold text-gray-700">Nível de autonomia da IA</p>
+          <p className="mb-2 text-sm font-semibold text-ink">Nível de autonomia da IA</p>
           <div className="grid gap-2 sm:grid-cols-3">
             {AUTONOMY_OPTIONS.map((opt) => (
               <button
@@ -442,12 +442,12 @@ export default function BrandSettingsPage() {
                 }
                 className={`rounded-xl border p-3 text-left ${
                   form.operation.autonomyLevel === opt.value
-                    ? 'border-brand-600 bg-brand-50'
-                    : 'border-gray-200 hover:border-brand-300'
+                    ? 'border-accent bg-accent-soft'
+                    : 'border-line hover:border-accent'
                 }`}
               >
-                <span className="block text-sm font-semibold text-gray-800">{opt.label}</span>
-                <span className="block text-xs text-gray-500">{opt.description}</span>
+                <span className="block text-sm font-semibold text-ink">{opt.label}</span>
+                <span className="block text-xs text-muted">{opt.description}</span>
               </button>
             ))}
           </div>
@@ -479,7 +479,7 @@ export default function BrandSettingsPage() {
         <button
           onClick={handleSave}
           disabled={saving || !form.business.name.trim()}
-          className="rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-200 hover:bg-brand-700 disabled:opacity-40"
+          className="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-accent-ink shadow-lg hover:opacity-90 disabled:opacity-40"
         >
           {saving ? 'Salvando…' : 'Salvar marca'}
         </button>

@@ -160,13 +160,13 @@ export default function DashboardPage() {
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-white">
-          {greeting()}, <span className="text-brand-200">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
+        <h1 className="text-2xl font-bold text-ink">
+          {greeting()}, <span className="text-accent">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
         </h1>
-        <p className="mt-1 text-sm text-white/70">Sua central para criar e acompanhar posts com a SocialShelf.</p>
+        <p className="mt-1 text-sm text-muted">Sua central para criar e acompanhar posts com a SocialShelf.</p>
       </div>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+      <section className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-3">
           <StatPill label="Contas" value={`${connectionsCount}/${TOTAL_PLATFORMS}`} tone="dark" />
           <StatPill label="Posts medidos" value={String(entries.length)} tone="gold" />
@@ -180,35 +180,35 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-card">
           {brandProfile?.visual.logoStoragePath ? (
-            <LogoImage path={brandProfile.visual.logoStoragePath} className="h-28 w-full rounded-xl border border-gray-100" />
+            <LogoImage path={brandProfile.visual.logoStoragePath} className="h-28 w-full rounded-xl border border-line" />
           ) : (
-            <div className="flex h-28 w-full items-center justify-center rounded-xl bg-brand-50 text-3xl font-bold text-brand-700">
+            <div className="flex h-28 w-full items-center justify-center rounded-xl bg-accent-soft text-3xl font-bold text-accent">
               {(user?.email?.[0] ?? 'S').toUpperCase()}
             </div>
           )}
           <div>
-            <p className="font-semibold text-gray-900">{brandProfile?.business.name ?? 'Sua marca'}</p>
-            <p className="text-sm text-gray-500">{brandProfile?.business.segment ?? 'Configure sua identidade'}</p>
+            <p className="font-semibold text-ink">{brandProfile?.business.name ?? 'Sua marca'}</p>
+            <p className="text-sm text-muted">{brandProfile?.business.segment ?? 'Configure sua identidade'}</p>
           </div>
           <Link
             href="/dashboard/brand"
-            className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-gray-900 px-4 py-2 text-xs font-semibold text-white hover:bg-gray-700"
+            className="mt-auto inline-flex w-fit items-center gap-1.5 rounded-full bg-contrast px-4 py-2 text-xs font-semibold text-contrast-ink hover:opacity-90"
           >
             <Tag className="h-3.5 w-3.5" /> Configurar marca
           </Link>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
-            <p className="font-semibold text-gray-900">Impressões na semana</p>
-            <span className="text-xs text-gray-400">por dia da publicação</span>
+            <p className="font-semibold text-ink">Impressões na semana</p>
+            <span className="text-xs text-muted">por dia da publicação</span>
           </div>
           {impressionsUnavailable ? (
             <div className="flex h-32 flex-col items-center justify-center gap-1 text-center">
-              <p className="text-xs text-gray-500">Nenhuma rede conectada reportou impressões para os posts medidos.</p>
-              <p className="text-xs text-gray-400">O LinkedIn não disponibiliza esse dado para perfis pessoais.</p>
+              <p className="text-xs text-muted">Nenhuma rede conectada reportou impressões para os posts medidos.</p>
+              <p className="text-xs text-muted">O LinkedIn não disponibiliza esse dado para perfis pessoais.</p>
             </div>
           ) : (
             <div className="flex h-32 items-end justify-between gap-2">
@@ -218,29 +218,29 @@ export default function DashboardPage() {
                     className="relative w-full"
                     style={{ height: `${Math.max(bucket.ratio * 88, 4)}%` }}
                   >
-                    <span className="absolute -top-4 left-0 right-0 text-center text-[11px] font-medium text-gray-500">
+                    <span className="absolute -top-4 left-0 right-0 text-center text-[11px] font-medium text-muted">
                       {bucket.value}
                     </span>
-                    <div className={`h-full w-full rounded-md ${bucket.value > 0 ? 'bg-brand-500' : 'bg-gray-100'}`} />
+                    <div className={`h-full w-full rounded-md ${bucket.value > 0 ? 'bg-accent' : 'bg-card-2'}`} />
                   </div>
-                  <span className="text-xs text-gray-400">{WEEKDAY_LABELS[i]}</span>
+                  <span className="text-xs text-muted">{WEEKDAY_LABELS[i]}</span>
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <p className="self-start font-semibold text-gray-900">Taxa de engajamento</p>
+        <div className="flex flex-col items-center gap-2 rounded-2xl border border-line bg-card p-5 shadow-card">
+          <p className="self-start font-semibold text-ink">Taxa de engajamento</p>
           <EngagementGauge
             segments={engagementByPlatform.map((p) => ({ share: p.share, color: PLATFORM_COLORS[p.platform] }))}
           />
-          <p className="text-2xl font-bold text-gray-900">{(engagementRate * 100).toFixed(1)}%</p>
-          <p className="text-xs text-gray-400">média dos posts medidos</p>
+          <p className="text-2xl font-bold text-ink">{(engagementRate * 100).toFixed(1)}%</p>
+          <p className="text-xs text-muted">média dos posts medidos</p>
           {engagementByPlatform.length > 1 && (
             <ul className="mt-1 w-full space-y-1 self-stretch">
               {engagementByPlatform.map((p) => (
-                <li key={p.platform} className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                <li key={p.platform} className="flex items-center justify-between gap-2 text-xs text-muted">
                   <span className="flex items-center gap-1.5">
                     <span
                       className="h-2 w-2 shrink-0 rounded-full"
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                     />
                     {PLATFORM_LABELS[p.platform]}
                   </span>
-                  <span className="font-semibold text-gray-700">{(p.share * 100).toFixed(0)}%</span>
+                  <span className="font-semibold text-ink">{(p.share * 100).toFixed(0)}%</span>
                 </li>
               ))}
             </ul>
@@ -258,10 +258,10 @@ export default function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-3">
         {doneCount < checklist.length && (
-          <div className="rounded-2xl bg-gray-900 p-5 text-white shadow-sm lg:col-span-1">
+          <div className="rounded-2xl bg-contrast p-5 text-contrast-ink shadow-card lg:col-span-1">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-semibold">Primeiros passos</p>
-              <span className="text-sm text-brand-300">{doneCount}/{checklist.length}</span>
+              <span className="text-sm text-accent">{doneCount}/{checklist.length}</span>
             </div>
             <ul className="space-y-3">
               {checklist.map((item) => (
@@ -269,12 +269,12 @@ export default function DashboardPage() {
                   <Link href={item.href} className="flex items-center gap-3 text-sm">
                     <span
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs ${
-                        item.done ? 'bg-brand-400 text-gray-900' : 'bg-white/10 text-white/40'
+                        item.done ? 'bg-accent text-accent-ink' : 'bg-contrast-ink/10 text-contrast-ink/40'
                       }`}
                     >
                       {item.done ? '✓' : ''}
                     </span>
-                    <span className={item.done ? 'text-white/60 line-through' : 'text-white'}>{item.label}</span>
+                    <span className={item.done ? 'text-contrast-ink/60 line-through' : 'text-contrast-ink'}>{item.label}</span>
                   </Link>
                 </li>
               ))}
@@ -282,31 +282,31 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className={`rounded-2xl border border-gray-200 bg-white p-5 shadow-sm ${doneCount === checklist.length ? 'lg:col-span-3' : 'lg:col-span-2'}`}>
+        <div className={`rounded-2xl border border-line bg-card p-5 shadow-card ${doneCount === checklist.length ? 'lg:col-span-3' : 'lg:col-span-2'}`}>
           <div className="mb-4 flex items-center justify-between">
-            <p className="flex items-center gap-1.5 font-semibold text-gray-900">
-              <Lightbulb className="h-4 w-4 text-brand-600" /> Sugestões para a próxima publicação
+            <p className="flex items-center gap-1.5 font-semibold text-ink">
+              <Lightbulb className="h-4 w-4 text-accent" /> Sugestões para a próxima publicação
             </p>
-            <Link href="/dashboard/insights" className="text-xs font-semibold text-brand-700 hover:underline">
+            <Link href="/dashboard/insights" className="text-xs font-semibold text-accent hover:underline">
               Ver todas
             </Link>
           </div>
           {suggestions && suggestions.length > 0 ? (
             <ul className="space-y-3">
               {suggestions.slice(0, 4).map((s) => (
-                <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 px-4 py-3">
+                <li key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-line px-4 py-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-gray-800">{s.headline}</p>
-                    <p className="text-xs text-gray-400">{s.bestTimeToPost}</p>
+                    <p className="truncate text-sm font-medium text-ink">{s.headline}</p>
+                    <p className="text-xs text-muted">{s.bestTimeToPost}</p>
                   </div>
-                  <span className="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-xs font-semibold text-brand-700">
+                  <span className="shrink-0 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
                     score {s.viralScore.toFixed(1)}
                   </span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-gray-500">Nenhuma sugestão disponível ainda. Conecte suas redes para começar.</p>
+            <p className="text-sm text-muted">Nenhuma sugestão disponível ainda. Conecte suas redes para começar.</p>
           )}
         </div>
       </section>
@@ -314,7 +314,7 @@ export default function DashboardPage() {
       <NewsCarousel />
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-800">Atalhos</h2>
+        <h2 className="mb-4 text-lg font-semibold text-ink">Atalhos</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SHORTCUTS.map(({ href, label, description, icon: Icon }) => {
             const badge = shortcutBadges[href]
@@ -322,21 +322,21 @@ export default function DashboardPage() {
               <Link
                 key={href}
                 href={href}
-                className="flex flex-col items-start gap-3 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-shadow hover:border-brand-300 hover:shadow-brand-100/60"
+                className="flex flex-col items-start gap-3 rounded-2xl border border-line bg-card p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-card-elev"
               >
                 <div className="flex w-full items-center justify-between">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-700">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft text-accent">
                     <Icon className="h-5 w-5" />
                   </span>
                   {badge && (
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[11px] font-semibold text-gray-600">
+                    <span className="rounded-full bg-card-2 px-2.5 py-1 text-[11px] font-semibold text-muted">
                       {badge}
                     </span>
                   )}
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-800">{label}</p>
-                  <p className="text-xs text-gray-500">{description}</p>
+                  <p className="font-semibold text-ink">{label}</p>
+                  <p className="text-xs text-muted">{description}</p>
                 </div>
               </Link>
             )
@@ -350,10 +350,10 @@ export default function DashboardPage() {
 function StatPill({ label, value, tone }: { label: string; value: string; tone: 'dark' | 'gold' | 'outline' }) {
   const toneClass =
     tone === 'dark'
-      ? 'bg-gray-900 text-white'
+      ? 'bg-contrast text-contrast-ink'
       : tone === 'gold'
-        ? 'bg-brand-400 text-gray-900'
-        : 'border border-gray-200 text-gray-700'
+        ? 'bg-accent text-accent-ink'
+        : 'border border-line text-ink'
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold ${toneClass}`}>
       {value}
@@ -365,12 +365,12 @@ function StatPill({ label, value, tone }: { label: string; value: string; tone: 
 function BigStat({ icon: Icon, value, label }: { icon: typeof Sparkles; value: number; label: string }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-accent">
         <Icon className="h-4 w-4" />
       </span>
       <div>
-        <p className="text-lg font-bold text-gray-900">{value.toLocaleString('pt-BR')}</p>
-        <p className="text-xs text-gray-400">{label}</p>
+        <p className="text-lg font-bold text-ink">{value.toLocaleString('pt-BR')}</p>
+        <p className="text-xs text-muted">{label}</p>
       </div>
     </div>
   )
@@ -385,13 +385,13 @@ function EngagementGauge({ segments }: { segments: Array<{ share: number; color:
     const start = acc * 360
     acc += s.share
     const end = acc * 360
-    if (gapDeg > 0 && stops.length > 0) stops.push(`white ${start}deg ${start + gapDeg}deg`)
+    if (gapDeg > 0 && stops.length > 0) stops.push(`var(--ss-card) ${start}deg ${start + gapDeg}deg`)
     stops.push(`${s.color} ${start + gapDeg}deg ${end}deg`)
   }
-  const background = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : '#f3f4f6'
+  const background = stops.length > 0 ? `conic-gradient(${stops.join(', ')})` : 'var(--ss-card-2)'
   return (
     <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background }}>
-      <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-white" />
+      <div className="flex h-[72px] w-[72px] items-center justify-center rounded-full bg-card" />
     </div>
   )
 }

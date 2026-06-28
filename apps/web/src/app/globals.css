@@ -2,6 +2,88 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   Sistema de tema SocialShelf — tokens semânticos (claro / escuro)
+   Accent unificado: coral. O modo é controlado pela classe `.dark` no <html>.
+   =========================================================================== */
+:root {
+  --ss-bg: #fbf5ee;
+  --ss-card: #ffffff;
+  --ss-card-2: #ffece0;
+  --ss-ink: #2a2320;
+  --ss-muted: #8a7e74;
+  --ss-muted-2: #6f6157;
+  --ss-line: #e0cfbc;
+  --ss-accent: #ff6b4a;
+  --ss-accent-soft: #ffe8dc;
+  --ss-accent-ink: #ffffff;
+  --ss-contrast: #2a2320;
+  --ss-contrast-ink: #ffffff;
+  --ss-positive: #2cb67d;
+  /* Sombras quentes — dão profundidade de descanso aos cards no tema claro. */
+  --ss-shadow: 0 1px 2px rgba(42, 35, 32, 0.05), 0 10px 24px -14px rgba(42, 35, 32, 0.22);
+  --ss-shadow-elev: 0 2px 6px rgba(42, 35, 32, 0.08), 0 18px 38px -16px rgba(42, 35, 32, 0.3);
+  color-scheme: light;
+}
+
+.dark {
+  --ss-bg: #0b0d12;
+  --ss-card: #14171f;
+  --ss-card-2: #1a1d27;
+  --ss-ink: #edeae3;
+  --ss-muted: #9a948b;
+  --ss-muted-2: #b7b1a8;
+  --ss-line: #262a33;
+  --ss-accent: #ff6b4a;
+  --ss-accent-soft: #2a1c17;
+  --ss-accent-ink: #ffffff;
+  --ss-contrast: #1a1d27;
+  --ss-contrast-ink: #edeae3;
+  --ss-positive: #7fcba8;
+  /* No escuro a separação vem da borda + superfície mais clara; sombra discreta. */
+  --ss-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+  --ss-shadow-elev: 0 2px 6px rgba(0, 0, 0, 0.5), 0 20px 40px -16px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--ss-bg);
+  color: var(--ss-ink);
+}
+
+/* Pulso lento e fraco do glow da lanterna acesa — respira como uma chama.
+   Só anima quando o usuário não pediu redução de movimento. */
+@keyframes ss-lantern-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+.ss-glow-pulse {
+  opacity: 0.8;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ss-glow-pulse {
+    animation: ss-lantern-pulse 3.6s ease-in-out infinite;
+  }
+}
+
+/* Suaviza a transição ao acender/apagar a lanterna. */
+.ss-theme-transition,
+.ss-theme-transition * {
+  transition:
+    background-color 0.35s ease,
+    border-color 0.35s ease,
+    color 0.35s ease;
+}
+
+/* ===========================================================================
+   Classes legadas — ainda usadas por telas internas não migradas.
+   Serão removidas conforme a propagação do novo sistema avança.
+   =========================================================================== */
 .bg-surface-operation-dots {
   background-color: theme('colors.surface.operation');
   background-image:
