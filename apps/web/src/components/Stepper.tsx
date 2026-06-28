@@ -5,7 +5,7 @@ interface StepperProps {
 
 export function Stepper({ steps, currentStep }: StepperProps) {
   return (
-    <ol className="flex items-center gap-1 overflow-x-auto sm:gap-2">
+    <ol className="flex items-center gap-1 overflow-x-auto py-1 sm:gap-2">
       {steps.map((step, i) => {
         const isCurrent = i === currentStep
         const isDone = i < currentStep
@@ -15,24 +15,24 @@ export function Stepper({ steps, currentStep }: StepperProps) {
               <span
                 className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold sm:h-7 sm:w-7 ${
                   isCurrent
-                    ? 'bg-brand-500 text-gray-900 ring-4 ring-brand-100'
+                    ? 'bg-accent text-accent-ink ring-4 ring-accent-soft'
                     : isDone
-                      ? 'bg-brand-200 text-brand-700'
-                      : 'bg-gray-100 text-gray-400'
+                      ? 'bg-accent-soft text-accent'
+                      : 'bg-card-2 text-muted-2'
                 }`}
               >
                 {i + 1}
               </span>
               <span
                 className={`whitespace-nowrap text-xs font-medium sm:text-sm ${
-                  isCurrent ? 'text-brand-700' : isDone ? 'text-gray-600' : 'text-gray-400'
+                  isCurrent ? 'text-accent' : isDone ? 'text-muted' : 'text-muted-2'
                 }`}
               >
                 {step}
               </span>
             </div>
             {i < steps.length - 1 && (
-              <span className={`h-px w-4 shrink-0 sm:w-8 ${isDone ? 'bg-brand-200' : 'bg-gray-200'}`} />
+              <span className={`h-px w-4 shrink-0 sm:w-8 ${isDone ? 'bg-accent-soft' : 'bg-line'}`} />
             )}
           </li>
         )
