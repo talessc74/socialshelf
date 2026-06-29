@@ -17,23 +17,23 @@ export function NewsCarousel() {
   })
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="mb-1 flex items-center gap-1.5 font-semibold text-gray-900">
-        <Newspaper className="h-4 w-4 text-brand-600" /> Notícias para pauta
+    <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
+      <p className="mb-1 flex items-center gap-1.5 font-semibold text-ink">
+        <Newspaper className="h-4 w-4 text-accent" /> Notícias para pauta
       </p>
-      <p className="mb-4 text-xs text-gray-400">
+      <p className="mb-4 text-xs text-muted-2">
         Fontes internacionais verificadas, traduzidas automaticamente para o português.
       </p>
 
       {isLoading ? (
-        <p className="text-sm text-gray-400">Buscando notícias relevantes para sua marca…</p>
+        <p className="text-sm text-muted-2">Buscando notícias relevantes para sua marca…</p>
       ) : isError ? (
         <p className="text-sm text-amber-600">
           Não foi possível buscar as notícias agora. Tente recarregar em instantes.
-          {error instanceof Error && <span className="mt-1 block text-xs text-gray-400">{error.message}</span>}
+          {error instanceof Error && <span className="mt-1 block text-xs text-muted-2">{error.message}</span>}
         </p>
       ) : !suggestions || suggestions.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Nenhuma notícia disponível ainda. A IA verifica fontes confiáveis e avisa aqui quando encontrar algo
           relevante para sua marca.
         </p>
