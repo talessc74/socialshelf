@@ -92,6 +92,14 @@ jobs:
             --role="roles/cloudscheduler.admin" \
             --condition=None 2>/dev/null || true
 
+          # roles/cloudscheduler.admin não inclui serviceusage.services.enable — sem
+          # isto, "gcloud services enable cloudscheduler.googleapis.com" falha com
+          # PERMISSION_DENIED (confirmado em produção nos runs #203 e #204).
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/serviceusage.serviceUsageAdmin" \
+            --condition=None 2>/dev/null || true
+
           # roles/datastore.owner on the deployer SA is NOT granted here. Per
           # _local-adr-policy-023, it must already be held by the deployer SA —
           # granting project-level IAM via add-iam-policy-binding requires
