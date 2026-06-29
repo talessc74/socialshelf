@@ -21,11 +21,11 @@ export function NewsSearch() {
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-      <p className="mb-1 flex items-center gap-1.5 font-semibold text-gray-900">
-        <Search className="h-4 w-4 text-brand-600" /> Buscar uma notícia
+    <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
+      <p className="mb-1 flex items-center gap-1.5 font-semibold text-ink">
+        <Search className="h-4 w-4 text-accent" /> Buscar uma notícia
       </p>
-      <p className="mb-4 text-xs text-gray-400">
+      <p className="mb-4 text-xs text-muted-2">
         Já viu uma notícia relevante? Busque pelo assunto e crie um post direto a partir dela.
       </p>
 
@@ -35,28 +35,28 @@ export function NewsSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Ex.: inteligência artificial no varejo"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+          className="flex-1 rounded-lg border border-line bg-bg px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
         />
         <button
           type="submit"
           disabled={searchMutation.isPending || !query.trim()}
-          className="shrink-0 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-40"
+          className="shrink-0 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
         >
           Buscar
         </button>
       </form>
 
       {searchMutation.isPending ? (
-        <p className="text-sm text-gray-400">Buscando notícias…</p>
+        <p className="text-sm text-muted-2">Buscando notícias…</p>
       ) : searchMutation.isError ? (
         <p className="text-sm text-amber-600">
           Não foi possível buscar agora. Tente novamente.
           {searchMutation.error instanceof Error && (
-            <span className="mt-1 block text-xs text-gray-400">{searchMutation.error.message}</span>
+            <span className="mt-1 block text-xs text-muted-2">{searchMutation.error.message}</span>
           )}
         </p>
       ) : searchMutation.isSuccess && searchMutation.data.length === 0 ? (
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted">
           Nenhuma notícia verificada encontrada para esse assunto. Tente outros termos.
         </p>
       ) : searchMutation.isSuccess ? (
