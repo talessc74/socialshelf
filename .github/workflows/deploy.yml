@@ -280,7 +280,15 @@ jobs:
       # o setInterval em memória só executa enquanto a instância já está de pé por outro
       # motivo, e posts agendados ficam sem ninguém para publicá-los. O Cloud Scheduler
       # acorda o Cloud Run no horário certo via uma chamada HTTP autenticada por OIDC.
+      # Não-bloqueante: o deployer SA pode não ter permissão para habilitar a API do
+      # Cloud Scheduler (serviceusage.services.enable não está incluída em
+      # roles/cloudscheduler.admin nem em roles/serviceusage.serviceUsageAdmin quando o
+      # próprio binding desse role falha por falta de resourcemanager.projects.setIamPolicy
+      # — mesmo padrão documentado acima para o signBlob do generator-service). Se faltar,
+      # requer concessão manual única por um humano com acesso de Owner/IAM Admin no
+      # Console. Sem continue-on-error, essa falha bloqueava também o deploy-api-service.
       - name: Create/update Cloud Scheduler job to trigger scheduled posts every minute
+        continue-on-error: true
         run: |
           gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
 
