@@ -84,6 +84,14 @@ jobs:
             --role="roles/iam.serviceAccountUser" \
             --condition=None 2>/dev/null || true
 
+          # Permite ao deployer criar/atualizar o job do Cloud Scheduler que acorda o
+          # publisher-service no horário dos posts agendados (ver step "Create/update
+          # Cloud Scheduler job" no job deploy-publisher).
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/cloudscheduler.admin" \
+            --condition=None 2>/dev/null || true
+
           # roles/datastore.owner on the deployer SA is NOT granted here. Per
           # _local-adr-policy-023, it must already be held by the deployer SA —
           # granting project-level IAM via add-iam-policy-binding requires
@@ -252,6 +260,43 @@ jobs:
             --region=${{ env.GCP_REGION }} \
             --member="serviceAccount:api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
             --role="roles/run.invoker"
+
+      - name: Grant publisher-service invoker access on itself (used by Cloud Scheduler below)
+        run: |
+          gcloud run services add-iam-policy-binding publisher-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
+
+      # publisher-service roda com --min-instances=0 e desliga sem tráfego — sem este job,
+      # o setInterval em memória só executa enquanto a instância já está de pé por outro
+      # motivo, e posts agendados ficam sem ninguém para publicá-los. O Cloud Scheduler
+      # acorda o Cloud Run no horário certo via uma chamada HTTP autenticada por OIDC.
+      - name: Create/update Cloud Scheduler job to trigger scheduled posts every minute
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
+          URL="${{ steps.deploy.outputs.url }}/internal/scheduler-tick"
+          SA="publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+          if gcloud scheduler jobs describe publisher-scheduled-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+            gcloud scheduler jobs update http publisher-scheduled-tick \
+              --location=${{ env.GCP_REGION }} \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          else
+            gcloud scheduler jobs create http publisher-scheduled-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="* * * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          fi
 
   deploy-generator:
     name: Deploy generator-service

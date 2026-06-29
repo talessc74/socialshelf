@@ -208,3 +208,36 @@ describe('POST /publish', () => {
     expect(response.statusCode).toBe(200)
   })
 })
+
+describe('POST /internal/scheduler-tick', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    process.env['GENERATOR_URL'] = 'http://localhost:3002'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+    delete process.env['GENERATOR_URL']
+  })
+
+  it('returns 401 when INTERNAL_SECRET header is missing', async () => {
+    const response = await app.inject({ method: 'POST', url: '/internal/scheduler-tick' })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 200 and runs the tick when INTERNAL_SECRET header is correct', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/scheduler-tick',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ ok: true })
+  })
+})
