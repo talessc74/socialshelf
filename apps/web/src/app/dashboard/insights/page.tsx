@@ -99,7 +99,7 @@ export default function InsightsBankPage() {
     queryFn: () => api.getShelvedPerformanceSuggestions(),
   })
 
-  const { data: fresh, isLoading: loadingFresh, isError: freshError } = useQuery({
+  const { data: fresh, isLoading: loadingFresh, isError: freshError, error: freshFetchError } = useQuery({
     queryKey: ['performance-suggestions'],
     queryFn: () => api.getPerformanceSuggestions(),
     retry: false,
@@ -170,7 +170,14 @@ export default function InsightsBankPage() {
         )
       ) : loadingFresh ? (
         <p className="text-sm text-muted">Analisando seus posts publicados…</p>
-      ) : freshError || freshUnshelved.length === 0 ? (
+      ) : freshError ? (
+        <p className="text-sm text-amber-600">
+          Não foi possível carregar as sugestões agora. Tente recarregar a página em instantes.
+          {freshFetchError instanceof Error && (
+            <span className="mt-1 block text-xs text-muted-2">{freshFetchError.message}</span>
+          )}
+        </p>
+      ) : freshUnshelved.length === 0 ? (
         <p className="text-sm text-muted">
           Nenhuma sugestão nova por enquanto. Publique mais posts para a IA aprender com a performance da sua
           marca.
