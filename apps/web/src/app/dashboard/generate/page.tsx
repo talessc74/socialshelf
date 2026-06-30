@@ -256,7 +256,7 @@ function Lightbox({
           </div>
         )}
 
-        <p className="text-sm text-gray-300">
+        <p className="text-sm text-white/70">
           #{artifact.position} de {artifacts.length}
         </p>
 

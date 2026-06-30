@@ -12,9 +12,9 @@ function ViralScoreGauge({ score }: { score: number }) {
         background: `conic-gradient(#0369a1 ${score}%, #bae6fd ${score}%)`,
       }}
     >
-      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-full bg-white">
-        <span className="text-sm font-bold text-brand-700">{score}</span>
-        <span className="text-[8px] font-medium uppercase text-gray-400">viral</span>
+      <div className="flex h-12 w-12 flex-col items-center justify-center rounded-full bg-card">
+        <span className="text-sm font-bold text-accent">{score}</span>
+        <span className="text-[8px] font-medium uppercase text-muted-2">viral</span>
       </div>
     </div>
   )
@@ -56,10 +56,10 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
 
   if (isLoading) {
     return (
-      <section className="space-y-2 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
-        <p className="text-sm font-semibold text-gray-700">Ideias baseadas na sua performance</p>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-400 border-t-transparent" />
+      <section className="space-y-2 rounded-2xl border border-line bg-card p-5 shadow-card">
+        <p className="text-sm font-semibold text-ink">Ideias baseadas na sua performance</p>
+        <div className="flex items-center gap-2 text-sm text-muted">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           Analisando seus posts publicados…
         </div>
       </section>
@@ -74,23 +74,23 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
   const hasMore = suggestions.length > 1
 
   return (
-    <section className="space-y-3 rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-gray-700">✨ Ideia baseada na sua performance</p>
+    <section className="space-y-3 rounded-2xl border border-line bg-card p-5 shadow-card">
+      <p className="text-sm font-semibold text-ink">✨ Ideia baseada na sua performance</p>
 
       <div className="flex items-start gap-3">
         <ViralScoreGauge score={Math.round(suggestion.viralScore)} />
         <div className="min-w-0 space-y-1">
-          <p className="text-sm font-medium text-gray-800">{suggestion.headline}</p>
-          <p className="text-xs text-gray-500">{suggestion.rationale}</p>
+          <p className="text-sm font-medium text-ink">{suggestion.headline}</p>
+          <p className="text-xs text-muted">{suggestion.rationale}</p>
           {suggestion.bestTimeToPost && (
-            <p className="text-xs font-medium text-brand-600">⏰ Melhor momento: {suggestion.bestTimeToPost}</p>
+            <p className="text-xs font-medium text-accent">⏰ Melhor momento: {suggestion.bestTimeToPost}</p>
           )}
           {suggestion.basedOnThemes.length > 0 && (
             <div className="flex flex-wrap gap-1 pt-1">
               {suggestion.basedOnThemes.map((theme) => (
                 <span
                   key={theme}
-                  className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-600"
+                  className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-medium text-accent"
                 >
                   {theme}
                 </span>
@@ -103,14 +103,14 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
       <div className="flex flex-wrap items-center gap-2 pt-1">
         <button
           onClick={() => onUseSuggestion(suggestion.headline)}
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90"
         >
           Criar post disso
         </button>
         {hasMore && (
           <button
             onClick={() => setIndex((i) => i + 1)}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50"
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
           >
             Trocar sugestão
           </button>
@@ -118,7 +118,7 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
         <button
           onClick={() => shelveMutation.mutate(suggestion.id)}
           disabled={suggestion.shelved || shelveMutation.isPending}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+          className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2 disabled:opacity-40"
         >
           {suggestion.shelved ? '📌 Guardada' : 'Guardar na prateleira'}
         </button>
@@ -131,7 +131,7 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
             className={`rounded-full px-2 py-1 text-xs ${
               suggestion.feedback === 'helpful'
                 ? 'bg-green-100 text-green-700'
-                : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                : 'text-muted-2 hover:bg-card-2 hover:text-muted'
             }`}
           >
             👍
@@ -143,7 +143,7 @@ export function PerformanceSuggestionsPanel({ onUseSuggestion }: PerformanceSugg
             className={`rounded-full px-2 py-1 text-xs ${
               suggestion.feedback === 'not_helpful'
                 ? 'bg-red-100 text-red-700'
-                : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                : 'text-muted-2 hover:bg-card-2 hover:text-muted'
             }`}
           >
             👎

@@ -29,8 +29,8 @@ export function TagListEditor({ label, helperText, placeholder, values, onChange
 
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-gray-700">{label}</label>
-      {helperText && <p className="mb-2 text-xs text-gray-400">{helperText}</p>}
+      <label className="mb-1.5 block text-sm font-semibold text-ink">{label}</label>
+      {helperText && <p className="mb-2 text-xs text-muted-2">{helperText}</p>}
       <div className="flex gap-2">
         <input
           type="text"
@@ -43,12 +43,12 @@ export function TagListEditor({ label, helperText, placeholder, values, onChange
             }
           }}
           placeholder={placeholder}
-          className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
+          className="flex-1 rounded-xl border border-line bg-bg px-3 py-2 text-sm text-ink placeholder-muted-2 focus:border-accent focus:outline-none"
         />
         <button
           type="button"
           onClick={() => addValue(input)}
-          className="shrink-0 rounded-xl border border-brand-600 px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+          className="shrink-0 rounded-xl border border-accent px-3 py-2 text-sm font-semibold text-accent hover:bg-accent-soft"
         >
           Adicionar
         </button>
@@ -58,13 +58,13 @@ export function TagListEditor({ label, helperText, placeholder, values, onChange
           {values.map((value, i) => (
             <li
               key={`${value}-${i}`}
-              className="flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700"
+              className="flex items-center gap-1.5 rounded-full bg-card-2 px-3 py-1 text-xs font-medium text-ink"
             >
               {value}
               <button
                 type="button"
                 onClick={() => removeValue(i)}
-                className="text-gray-400 hover:text-red-600"
+                className="text-muted-2 hover:text-red-600"
                 aria-label={`Remover ${value}`}
               >
                 ×
@@ -75,14 +75,14 @@ export function TagListEditor({ label, helperText, placeholder, values, onChange
       )}
       {availableSuggestions.length > 0 && (
         <div className="mt-2">
-          <p className="mb-1 text-xs uppercase tracking-wide text-gray-400">Sugestões — clique pra adicionar</p>
+          <p className="mb-1 text-xs uppercase tracking-wide text-muted-2">Sugestões — clique pra adicionar</p>
           <div className="flex flex-wrap gap-1.5">
             {availableSuggestions.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => addValue(s)}
-                className="rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-600 hover:bg-brand-100"
+                className="rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent hover:opacity-80"
               >
                 + {s}
               </button>

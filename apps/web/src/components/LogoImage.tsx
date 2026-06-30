@@ -15,7 +15,7 @@ export function LogoImage({ path, className }: LogoImageProps) {
   })
 
   if (isLoading || !url) {
-    return <div className={`animate-pulse rounded-full bg-gray-100 ${className ?? ''}`} />
+    return <div className={`animate-pulse rounded-full bg-card-2 ${className ?? ''}`} />
   }
 
   // object-cover (não contain) para a marca preencher todo o círculo, sem halo de fundo sobrando.

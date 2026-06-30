@@ -12,8 +12,8 @@ export function BrandPostPreview({
   headline = 'Assim vai ficar o destaque dos seus posts',
 }: BrandPostPreviewProps) {
   return (
-    <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
-      <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+    <div className="relative aspect-square w-full max-w-xs overflow-hidden rounded-2xl border border-line bg-card-2">
+      <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-2">
         Sua imagem aqui
       </div>
 
