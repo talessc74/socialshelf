@@ -23,7 +23,7 @@ coverage/
 .nyc_output/
 playwright-report/
 test-results/
-playwright/.cache/
+**/playwright/.cache/
 
 # Turbo
 .turbo/
