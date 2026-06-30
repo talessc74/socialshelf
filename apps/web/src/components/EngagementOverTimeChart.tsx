@@ -34,26 +34,26 @@ export function EngagementOverTimeChart({ entries, avgEngagementRate }: Engageme
   const pathD = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`).join(' ')
 
   return (
-    <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm shadow-brand-100/60">
+    <div className="rounded-2xl border border-line bg-card p-5 shadow-card">
       <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs font-medium text-gray-500">📊 Engajamento ao longo do tempo</p>
+        <p className="text-xs font-medium text-muted">📊 Engajamento ao longo do tempo</p>
         {avgEngagementRate !== null && (
-          <p className="text-xs font-semibold text-gray-700">
+          <p className="text-xs font-semibold text-ink">
             Média: {(avgEngagementRate * 100).toFixed(1)}%
           </p>
         )}
       </div>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="h-28 w-full overflow-visible" preserveAspectRatio="none">
-        <path d={pathD} fill="none" stroke="currentColor" strokeWidth={2} className="text-brand-500" />
+        <path d={pathD} fill="none" stroke="currentColor" strokeWidth={2} className="text-accent" />
         {coords.map((c, i) => (
-          <circle key={i} cx={c.x} cy={c.y} r={3} className="fill-brand-600">
+          <circle key={i} cx={c.x} cy={c.y} r={3} className="fill-accent">
             <title>
               {c.publishedAt.toLocaleDateString('pt-BR')}: {(c.rate * 100).toFixed(1)}%
             </title>
           </circle>
         ))}
       </svg>
-      <div className="mt-1 flex justify-between text-xs text-gray-400">
+      <div className="mt-1 flex justify-between text-xs text-muted-2">
         <span>{coords[0]!.publishedAt.toLocaleDateString('pt-BR')}</span>
         {coords.length > 1 && <span>{coords[coords.length - 1]!.publishedAt.toLocaleDateString('pt-BR')}</span>}
       </div>
