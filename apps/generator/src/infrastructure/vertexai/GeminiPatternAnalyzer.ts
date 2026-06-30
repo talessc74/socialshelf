@@ -34,18 +34,19 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
       location: this.location,
       ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
     })
-    const generativeModel = vertexAi.getGenerativeModel({ model: this.model })
+    const generativeModel = vertexAi.getGenerativeModel({
+      model: this.model,
+      generationConfig: { responseMimeType: 'application/json' },
+    })
 
     const prompt = this.buildPrompt(entries)
     const result = await generativeModel.generateContent(prompt)
     const text = result.response.candidates?.[0]?.content.parts[0]?.text
     if (!text) throw new Error('Gemini returned no content for pattern analysis')
 
-    const jsonText = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '')
-
     let parsedJson: unknown
     try {
-      parsedJson = JSON.parse(jsonText)
+      parsedJson = JSON.parse(text)
     } catch {
       throw new Error('Gemini returned invalid JSON for pattern analysis')
     }
