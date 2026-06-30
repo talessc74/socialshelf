@@ -33,12 +33,19 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ entries }),
+        body: JSON.stringify({ brandId: request.brandId, entries }),
       })
 
       if (!insightsRes.ok) {
         const body = await insightsRes.text()
-        if (insightsRes.status === 400) return reply.status(400).send({ error: 'No published posts with metrics to analyze' })
+        if (insightsRes.status === 400) {
+          let parsed: unknown
+          try { parsed = JSON.parse(body) } catch { parsed = null }
+          const isNoData = typeof parsed === 'object' && parsed !== null && (parsed as Record<string, unknown>)['error'] === 'No published posts with metrics to analyze'
+          if (isNoData) return reply.status(400).send({ error: 'No published posts with metrics to analyze' })
+          app.log.error(`Generator analyze schema error: ${body}`)
+          return reply.status(502).send({ error: 'Generator error', detail: body })
+        }
         app.log.error(`Generator error ${insightsRes.status}: ${body}`)
         return reply.status(502).send({ error: 'Generator error', detail: body })
       }
