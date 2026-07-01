@@ -10,15 +10,15 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 ### ADRs — Decisões Arquiteturais (29 documentos)
 
-Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato e transparência em incidentes.
+Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes e Cloud Scheduler para publicação agendada com scale-to-zero.
 
 ### EDRs — Decisões de Engenharia (28 documentos)
 
 Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato, testes de componente em apps/web, testes visuais de regressão por viewport e tolerância a variação de formato na resposta do Gemini.
 
-### BDRs — Decisões de Negócio (8 policies + 2 planos)
+### BDRs — Decisões de Negócio (9 policies + 2 planos)
 
-Cobertura: definição de produto e público-alvo, redes sociais suportadas, limites de caracteres por plataforma, princípios de UX, design tokens, visão de experiência de produto, inventário do app de referência, roadmap de sprints/fases e navegação/sinalização visual no fluxo de notícias para pauta.
+Cobertura: definição de produto e público-alvo, redes sociais suportadas, limites de caracteres por plataforma, princípios de UX, design tokens, paleta do logo oficial, visão de experiência de produto, inventário do app de referência, roadmap de sprints/fases e navegação/sinalização visual no fluxo de notícias para pauta.
 
 ## Como adicionar uma policy
 
