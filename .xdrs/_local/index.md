@@ -8,7 +8,7 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 ## Conteúdo
 
-### ADRs — Decisões Arquiteturais (28 documentos)
+### ADRs — Decisões Arquiteturais (29 documentos)
 
 Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato e transparência em incidentes.
 

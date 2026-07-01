@@ -57,6 +57,7 @@ Infraestrutura de plataforma e serviços GCP.
 - [_local-adr-policy-021-firestore-indices-compostos-por-query](platform/021-firestore-indexes.md) - Oito índices compostos declarados antes das queries — estratégia query-first
 - [_local-adr-policy-022-cloud-run-configuracao-por-servico](platform/022-cloud-run-config.md) - Configuração diferenciada de memória, timeout e acesso por serviço no Cloud Run
 - [_local-adr-policy-023-iam-papeis-por-servico](platform/023-iam-policies.md) - Papéis IAM mínimos por service account: princípio do mínimo privilégio por serviço
+- [_local-adr-policy-033-cloud-scheduler-publicacao-agendada](platform/033-cloud-scheduler-scale-to-zero.md) - Cloud Scheduler acorda o publisher-service a cada minuto via HTTP para garantir publicação agendada com min-instances=0
 
 ### operations
 Decisões operacionais e de resposta a incidentes.
