@@ -171,19 +171,19 @@ jobs:
         run: |
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
-          VARS="${VARS},WEB_URL=https://radiokactus.com"
+          VARS="${VARS},WEB_URL=https://socialshelf.com.br"
           VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
-          VARS="${VARS},X_REDIRECT_URI=https://api.radiokactus.com/oauth/x/callback"
+          VARS="${VARS},X_REDIRECT_URI=https://api.socialshelf.com.br/oauth/x/callback"
           VARS="${VARS},LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}"
           VARS="${VARS},LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}"
-          VARS="${VARS},LINKEDIN_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin/callback"
+          VARS="${VARS},LINKEDIN_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin/callback"
           VARS="${VARS},LINKEDIN_PAGE_CLIENT_ID=${{ secrets.LINKEDIN_PAGE_CLIENT_ID }}"
           VARS="${VARS},LINKEDIN_PAGE_CLIENT_SECRET=${{ secrets.LINKEDIN_PAGE_CLIENT_SECRET }}"
-          VARS="${VARS},LINKEDIN_PAGE_REDIRECT_URI=https://api.radiokactus.com/oauth/linkedin-page/callback"
+          VARS="${VARS},LINKEDIN_PAGE_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin-page/callback"
           VARS="${VARS},META_APP_ID=${{ secrets.META_APP_ID }}"
           VARS="${VARS},META_APP_SECRET=${{ secrets.META_APP_SECRET }}"
-          VARS="${VARS},META_REDIRECT_URI=https://api.radiokactus.com/oauth/meta/callback"
+          VARS="${VARS},META_REDIRECT_URI=https://api.socialshelf.com.br/oauth/meta/callback"
           VARS="${VARS},PUBLISHER_URL=${{ needs.deploy-publisher.outputs.service-url }}"
           VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
           VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
@@ -422,7 +422,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api.radiokactus.com
+            NEXT_PUBLIC_API_URL=https://api.socialshelf.com.br
             NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
             NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
