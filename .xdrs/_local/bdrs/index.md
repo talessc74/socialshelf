@@ -13,6 +13,7 @@ Princípios de negócio transversais.
 Decisões de identidade visual, tokens e componentes-padrão.
 
 - [_local-bdr-policy-005-design-tokens-identidade-visual](design/001-tokens-identidade-visual.md) - Paleta azul + dois contextos de fundo, tom de copy conversacional, stepper/painel-recomendação/badge-de-score como componentes-padrão
+- [_local-bdr-policy-010-paleta-logo-identidade-visual](design/010-paleta-logo-identidade-visual.md) - Substituição completa da paleta pelos azuis e verdes do logo oficial; supercede a seção Paleta da BDR-005
 
 ### product
 Decisões de produto, roadmap e plataformas suportadas.
