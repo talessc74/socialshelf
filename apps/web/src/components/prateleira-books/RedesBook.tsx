@@ -192,7 +192,7 @@ function PendingSelectionPanel({
 }
 
 export function RedesDesktopLeft() {
-  const { isLoading, orderedPlatforms, connectedPlatforms, linkedinConnection, handleConnect, handleConnectLinkedInPage } =
+  const { isLoading, orderedPlatforms, connectedPlatforms, linkedinConnection, notice, handleConnect, handleConnectLinkedInPage } =
     useRedesConnections()
 
   if (isLoading) {
@@ -205,17 +205,28 @@ export function RedesDesktopLeft() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {orderedPlatforms.map((platform) => (
-        <PlatformCard
-          key={platform}
-          platform={platform}
-          isConnected={connectedPlatforms.has(platform)}
-          linkedinConnection={linkedinConnection}
-          onConnect={handleConnect}
-          onConnectLinkedInPage={handleConnectLinkedInPage}
-        />
-      ))}
+    <div className="flex flex-col gap-2">
+      {notice && (
+        <div
+          className={`rounded-lg px-3 py-2 text-[11px] font-medium ${
+            notice.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+          }`}
+        >
+          {notice.message}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {orderedPlatforms.map((platform) => (
+          <PlatformCard
+            key={platform}
+            platform={platform}
+            isConnected={connectedPlatforms.has(platform)}
+            linkedinConnection={linkedinConnection}
+            onConnect={handleConnect}
+            onConnectLinkedInPage={handleConnectLinkedInPage}
+          />
+        ))}
+      </div>
     </div>
   )
 }
