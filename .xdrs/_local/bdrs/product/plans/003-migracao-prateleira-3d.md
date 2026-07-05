@@ -41,8 +41,15 @@ Migração incremental, um livro por vez, em ordem de risco crescente. Cada livr
 
 ### Milestone 1: REDES
 Due date: a definir
+Status: implementado (2026-07-05) — commit 93dd67d, branch claude/claude-index-review-zgqj5j
 
 Livro mais simples — valida o padrão de dado real em página dupla nos dois modos antes de seguir para os demais.
+
+**Acceptance checklist:**
+- [x] Página esquerda (desktop): grid de plataformas conectadas primeiro, com o LinkedIn distinguindo Perfil pessoal vs Página quando conectado.
+- [x] Página direita (desktop): contagem de redes conectadas e painel de seleção pendente de Página do LinkedIn.
+- [x] Mobile: mesmas informações paginadas (2 plataformas por página), conectadas primeiro, navegação anterior/próxima.
+- [x] `PrateleyraOpen` ganhou um registro de conteúdo por livro (`BOOK_CONTENT`), preparando o encaixe dos próximos 5 livros sem reescrever o container.
 
 **Key tasks:**
 - Página esquerda: grid de contas conectadas por plataforma (conectar/desconectar).
@@ -50,7 +57,8 @@ Livro mais simples — valida o padrão de dado real em página dupla nos dois m
 - Mobile: grid vira card 1; seletor de página vira card 2 (só aparece quando há pendência).
 
 **Riscos:**
-- Nenhum risco significativo identificado — é o candidato de menor complexidade.
+- O redirect OAuth (LinkedIn/Meta/X) está hardcoded no backend para `/dashboard/accounts` (`apps/api/src/routes/oauth/*.routes.ts`), não para `/dashboard/shelf`. Ao conectar/reconectar a partir do livro REDES, o usuário retorna à rota antiga após o fluxo externo, não ao livro. Mitigação futura: parametrizar o redirect de retorno por origem (state OAuth) quando a prateleira substituir `/dashboard` — não bloqueia o Milestone 1 porque a rota antiga permanece ativa em paralelo.
+- Verificação visual automatizada (Playwright CT) não foi possível para os novos componentes: qualquer componente que importe `Platform` de `@socialshelf/domain` falha ao empacotar no ambiente Vite do `playwright-ct.config.ts`, porque o barrel de exportação do pacote arrasta `PairwiseId.ts` (usa `node:crypto`), que o Rollup não consegue externalizar para o browser. Nenhum CT existente testa esse caminho hoje. Verificação feita via `tsc --noEmit` e `eslint` limpos; verificação visual em browser real fica pendente. Mitigação futura: registrar como EDR a necessidade de isolar o barrel de exports do domain (ou mockar `@socialshelf/domain` no `ctViteConfig`) antes de os próximos livros dependerem de CT para regressão visual.
 
 ---
 
