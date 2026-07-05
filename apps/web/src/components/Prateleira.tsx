@@ -2,9 +2,12 @@
 
 import { useState, useCallback } from 'react'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useAuth } from '../contexts/AuthContext'
+import { useBrand } from '../contexts/BrandContext'
 import { PrateleyraShelf } from './PrateleyraShelf'
 import { PrateleyraAnimation } from './PrateleyraAnimation'
 import { PrateleyraOpen } from './PrateleyraOpen'
+import { PrateleyraCorner } from './PrateleyraCorner'
 
 export type Phase = 'shelf' | 'animating' | 'open'
 export type BookId = 'agenda' | 'noticias' | 'desempenho' | 'criar' | 'marca' | 'redes'
@@ -96,6 +99,8 @@ export default function Prateleira() {
   const [coverAngle, setCoverAngle] = useState(0)
 
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { user, logout } = useAuth()
+  const { brands, activeBrandId, setActiveBrandId } = useBrand()
 
   const selectedBook = selectedBookId ? BOOKS.find((b) => b.id === selectedBookId) : null
 
@@ -124,6 +129,14 @@ export default function Prateleira() {
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-gradient-radial from-[#4a3a2a] via-[#2a1a1a] to-transparent opacity-20 blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-gradient-radial from-[#3a2a1a] via-[#1a0a00] to-transparent opacity-15 blur-3xl" />
       </div>
+
+      <PrateleyraCorner
+        email={user?.email ?? ''}
+        brands={brands}
+        activeBrandId={activeBrandId}
+        onBrandChange={setActiveBrandId}
+        onLogout={logout}
+      />
 
       {/* Content container */}
       <div className="relative z-10 h-full flex flex-col">
