@@ -1,6 +1,7 @@
 'use client'
 
 import { Book } from './Prateleira'
+import { RedesDesktopLeft, RedesDesktopRight, RedesMobile } from './prateleira-books/RedesBook'
 
 interface PrateleyraOpenProps {
   book: Book
@@ -8,7 +9,48 @@ interface PrateleyraOpenProps {
   isMobile: boolean
 }
 
+const BOOK_CONTENT: Partial<Record<Book['id'], { left: () => JSX.Element; right: () => JSX.Element; mobile: () => JSX.Element }>> = {
+  redes: { left: RedesDesktopLeft, right: RedesDesktopRight, mobile: RedesMobile },
+}
+
 export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps) {
+  const content = BOOK_CONTENT[book.id]
+
+  if (isMobile && content) {
+    return (
+      <div
+        className="flex items-center justify-center h-full px-4"
+        style={{ opacity: 1, transition: 'opacity 0.45s ease' }}
+      >
+        <div
+          className="w-full max-w-sm rounded-xl bg-white dark:bg-slate-900 p-4"
+          style={{
+            background: 'linear-gradient(to bottom, #ede4d0 0%, #fdf8f2 15%)',
+            boxShadow: '0 30px 60px rgba(0,0,0,0.6)',
+            maxHeight: '85vh',
+            overflowY: 'auto',
+          }}
+        >
+          <div
+            className="mb-3"
+            style={{ height: '3px', width: '50px', background: `linear-gradient(to right, ${book.accent}, transparent)` }}
+          />
+          <h2 className="text-sm font-bold mb-3" style={{ color: 'rgba(0,0,0,0.68)', letterSpacing: '-0.01em' }}>
+            {book.label}
+          </h2>
+          <content.mobile />
+          <button
+            onClick={onClose}
+            className="mt-4 w-full rounded text-xs font-bold tracking-wide py-2"
+            style={{ background: `linear-gradient(135deg, ${book.accent}dd, ${book.accent})`, color: '#fff' }}
+          >
+            ← Fechar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className="flex items-center justify-center h-full px-4"
@@ -66,14 +108,18 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
               {book.leftTitle}
             </h2>
 
-            {/* Content area - placeholder for real data */}
+            {/* Content area */}
             <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.7)', lineHeight: '1.55' }}>
-              <div className="space-y-2">
-                <div className="p-2 rounded bg-white/50 dark:bg-slate-800/50">
-                  <p className="font-medium">Carregando conteúdo...</p>
-                  <p className="text-xs opacity-60">Os dados serão exibidos aqui</p>
+              {content ? (
+                <content.left />
+              ) : (
+                <div className="space-y-2">
+                  <div className="p-2 rounded bg-white/50 dark:bg-slate-800/50">
+                    <p className="font-medium">Carregando conteúdo...</p>
+                    <p className="text-xs opacity-60">Os dados serão exibidos aqui</p>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -152,6 +198,8 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
 
             {/* Action area */}
             <div className="flex-1 flex flex-col gap-4">
+              {content ? <content.right /> : null}
+
               <button
                 onClick={onClose}
                 className="px-4 py-2 rounded text-xs font-bold tracking-wide transition-all hover:opacity-90"
