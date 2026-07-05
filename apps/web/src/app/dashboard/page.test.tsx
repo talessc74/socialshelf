@@ -11,18 +11,18 @@ import {
   type ApiPost,
   type ApiPostPerformanceEntry,
   type ApiTopicSuggestion,
-} from '../../../lib/api'
+} from '../../lib/api'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }))
 
-vi.mock('../../../contexts/AuthContext', () => ({
+vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: null, loading: false, logout: vi.fn() }),
 }))
 
-vi.mock('../../../lib/api', () => ({
+vi.mock('../../lib/api', () => ({
   api: {
     getBrandProfile: vi.fn(),
     getConnections: vi.fn(),

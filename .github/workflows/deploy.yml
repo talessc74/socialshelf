@@ -171,7 +171,7 @@ jobs:
         run: |
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
-          VARS="${VARS},WEB_URL=https://socialshelf.com.br"
+          VARS="${VARS},WEB_URL=https://radiokactus.com"
           VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
           VARS="${VARS},X_REDIRECT_URI=https://api.socialshelf.com.br/oauth/x/callback"
