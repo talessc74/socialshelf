@@ -2,12 +2,20 @@
 
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Linkedin, Instagram, Facebook, Twitter } from 'lucide-react'
 import { Platform } from '@socialshelf/domain'
 import { api } from '../../lib/api'
 import type { LinkedInOrganization } from '../../lib/api'
 import { PLATFORM_META } from '../../lib/platformMeta'
 
 const PLATFORM_ORDER = Object.keys(PLATFORM_META) as Platform[]
+
+const PLATFORM_ICON: Record<Platform, typeof Linkedin> = {
+  [Platform.LINKEDIN]: Linkedin,
+  [Platform.INSTAGRAM]: Instagram,
+  [Platform.FACEBOOK]: Facebook,
+  [Platform.TWITTER]: Twitter,
+}
 
 function useRedesConnections() {
   const queryClient = useQueryClient()
@@ -90,6 +98,7 @@ interface PlatformCardProps {
 
 function PlatformCard({ platform, isConnected, linkedinConnection, onConnect, onConnectLinkedInPage }: PlatformCardProps) {
   const meta = PLATFORM_META[platform]
+  const Icon = PLATFORM_ICON[platform]
   const isLinkedIn = platform === Platform.LINKEDIN
   const linkedinSubtype = isLinkedIn && isConnected ? (linkedinConnection?.organizationUrn ? 'Página' : 'Perfil pessoal') : null
 
@@ -101,8 +110,8 @@ function PlatformCard({ platform, isConnected, linkedinConnection, onConnect, on
       style={{ fontSize: '11px' }}
     >
       <div className="mb-2 flex items-center gap-2">
-        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${meta.color}`}>
-          {meta.emoji}
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-white ${meta.color}`}>
+          <Icon className="h-4 w-4" strokeWidth={2} />
         </span>
         <span className="font-semibold" style={{ color: 'rgba(0,0,0,0.75)' }}>
           {meta.label}
