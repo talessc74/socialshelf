@@ -41,7 +41,7 @@ Migração incremental, um livro por vez, em ordem de risco crescente. Cada livr
 
 ### Milestone 1: REDES
 Due date: a definir
-Status: implementado (2026-07-05) — commit 93dd67d, branch claude/claude-index-review-zgqj5j
+Status: aprovado pelo humano (2026-07-05) — commits 93dd67d, 9f7df80, db7f1e1, 1fae432, 5dd0583, branch claude/claude-index-review-zgqj5j
 
 Livro mais simples — valida o padrão de dado real em página dupla nos dois modos antes de seguir para os demais.
 
@@ -50,6 +50,8 @@ Livro mais simples — valida o padrão de dado real em página dupla nos dois m
 - [x] Página direita (desktop): contagem de redes conectadas e painel de seleção pendente de Página do LinkedIn.
 - [x] Mobile: mesmas informações paginadas (2 plataformas por página), conectadas primeiro, navegação anterior/próxima.
 - [x] `PrateleyraOpen` ganhou um registro de conteúdo por livro (`BOOK_CONTENT`), preparando o encaixe dos próximos 5 livros sem reescrever o container.
+- [x] Ícones reais de plataforma (LinkedIn/Instagram/Facebook/X via lucide-react) substituindo emoji genérico, após feedback visual do humano.
+- [x] Verificado visualmente pelo humano em screenshot real (desktop com moldura de spread + lombada; mobile com card único), usando o componente de produção `PrateleyraOpen` diretamente — não uma reimplementação paralela do layout.
 
 **Key tasks:**
 - Página esquerda: grid de contas conectadas por plataforma (conectar/desconectar).
@@ -59,7 +61,8 @@ Livro mais simples — valida o padrão de dado real em página dupla nos dois m
 **Riscos:**
 - O redirect OAuth (LinkedIn/Meta/X) está hardcoded no backend para `/dashboard/accounts` (`apps/api/src/routes/oauth/*.routes.ts`), não para `/dashboard/shelf`. Ao conectar/reconectar a partir do livro REDES, o usuário retorna à rota antiga após o fluxo externo, não ao livro. Mitigação futura: parametrizar o redirect de retorno por origem (state OAuth) quando a prateleira substituir `/dashboard` — não bloqueia o Milestone 1 porque a rota antiga permanece ativa em paralelo.
 - Deliberação da Galera de QA (PARETO/PROBE/SCAFFOLD) sobre o Milestone 1 encontrou estado duplicado sem sincronização: `RedesDesktopLeft` e `RedesDesktopRight` montam instâncias independentes de `useRedesConnections()`, então um erro de `handleConnect` (disparado em Left) não aparecia em nenhum dos dois lados — falha silenciosa para o usuário. Reparo cirúrgico aplicado (commit db7f1e1): `Left` ganhou sua própria faixa de aviso. Dívida técnica registrada: elevar o estado de conexão para uma única instância compartilhada (contexto) antes do Milestone 2 herdar o mesmo padrão de três montagens independentes do mesmo hook.
-- Verificação visual automatizada (Playwright CT) não foi possível para os novos componentes: qualquer componente que importe `Platform` de `@socialshelf/domain` falha ao empacotar no ambiente Vite do `playwright-ct.config.ts`, porque o barrel de exportação do pacote arrasta `PairwiseId.ts` (usa `node:crypto`), que o Rollup não consegue externalizar para o browser. Nenhum CT existente testa esse caminho hoje. Verificação feita via `tsc --noEmit` e `eslint` limpos; verificação visual em browser real fica pendente. Mitigação futura: registrar como EDR a necessidade de isolar o barrel de exports do domain (ou mockar `@socialshelf/domain` no `ctViteConfig`) antes de os próximos livros dependerem de CT para regressão visual.
+- Verificação visual automatizada (Playwright CT) não foi possível para os novos componentes: qualquer componente que importe `Platform` de `@socialshelf/domain` falha ao empacotar no ambiente Vite do `playwright-ct.config.ts`, porque o barrel de exportação do pacote arrasta `PairwiseId.ts` (usa `node:crypto`), que o Rollup não consegue externalizar para o browser. Nenhum CT existente testa esse caminho hoje. Verificação feita via `tsc --noEmit` e `eslint` limpos. Mitigação futura: registrar como EDR a necessidade de isolar o barrel de exports do domain (ou mockar `@socialshelf/domain` no `ctViteConfig`) antes de os próximos livros dependerem de CT para regressão visual.
+- Primeira rodada de verificação visual manual usou uma página de preview ad hoc que reimplementava o layout à mão, em vez de montar o componente de produção `PrateleyraOpen` diretamente — o screenshot resultante não refletia a moldura real do livro (sem spread, sem lombada, mobile desalinhado) e quase foi validado como se fosse fiel. Corrigido na segunda rodada montando `<PrateleyraOpen book={...} isMobile={...} />` de verdade. Lição para os próximos milestones: a verificação visual manual de cada livro deve sempre montar o componente de produção real, nunca uma reconstrução paralela do layout só para fins de screenshot.
 
 ---
 
