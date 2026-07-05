@@ -6,6 +6,7 @@ import { RedesDesktopLeft, RedesDesktopRight, RedesMobile } from './prateleira-b
 import { MarcaDesktopLeft, MarcaDesktopRight, MarcaMobile, MarcaProvider } from './prateleira-books/MarcaBook'
 import { NoticiasDesktopLeft, NoticiasDesktopRight, NoticiasMobile, NoticiasProvider } from './prateleira-books/NoticiasBook'
 import { AgendaDesktopLeft, AgendaDesktopRight, AgendaMobile, AgendaProvider } from './prateleira-books/AgendaBook'
+import { DesempenhoDesktopLeft, DesempenhoDesktopRight, DesempenhoMobile, DesempenhoProvider } from './prateleira-books/DesempenhoBook'
 
 interface PrateleyraOpenProps {
   book: Book
@@ -20,6 +21,7 @@ const BOOK_CONTENT: Partial<
   marca: { left: MarcaDesktopLeft, right: MarcaDesktopRight, mobile: MarcaMobile, Provider: MarcaProvider },
   noticias: { left: NoticiasDesktopLeft, right: NoticiasDesktopRight, mobile: NoticiasMobile, Provider: NoticiasProvider },
   agenda: { left: AgendaDesktopLeft, right: AgendaDesktopRight, mobile: AgendaMobile, Provider: AgendaProvider },
+  desempenho: { left: DesempenhoDesktopLeft, right: DesempenhoDesktopRight, mobile: DesempenhoMobile, Provider: DesempenhoProvider },
 }
 
 export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps) {
