@@ -28,7 +28,7 @@ function BlueprintPage({ children }: { children: ReactNode }) {
       style={{
         margin: '-20px',
         padding: '18px',
-        minHeight: 'calc(100% + 40px)',
+        minHeight: '530px',
         background: BLUEPRINT_BG,
         backgroundImage: `linear-gradient(${BLUEPRINT_LINE} 1px, transparent 1px), linear-gradient(90deg, ${BLUEPRINT_LINE} 1px, transparent 1px)`,
         backgroundSize: '18px 18px',

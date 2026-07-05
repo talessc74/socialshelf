@@ -15,13 +15,28 @@ interface PrateleyraOpenProps {
 }
 
 const BOOK_CONTENT: Partial<
-  Record<Book['id'], { left: () => JSX.Element; right: () => JSX.Element; mobile: () => JSX.Element; Provider?: React.ComponentType<{ children: React.ReactNode }> }>
+  Record<
+    Book['id'],
+    {
+      left: () => JSX.Element
+      right: () => JSX.Element
+      mobile: () => JSX.Element
+      Provider?: React.ComponentType<{ children: React.ReactNode }>
+      hideChrome?: boolean
+    }
+  >
 > = {
   redes: { left: RedesDesktopLeft, right: RedesDesktopRight, mobile: RedesMobile },
   marca: { left: MarcaDesktopLeft, right: MarcaDesktopRight, mobile: MarcaMobile, Provider: MarcaProvider },
   noticias: { left: NoticiasDesktopLeft, right: NoticiasDesktopRight, mobile: NoticiasMobile, Provider: NoticiasProvider },
   agenda: { left: AgendaDesktopLeft, right: AgendaDesktopRight, mobile: AgendaMobile, Provider: AgendaProvider },
-  desempenho: { left: DesempenhoDesktopLeft, right: DesempenhoDesktopRight, mobile: DesempenhoMobile, Provider: DesempenhoProvider },
+  desempenho: {
+    left: DesempenhoDesktopLeft,
+    right: DesempenhoDesktopRight,
+    mobile: DesempenhoMobile,
+    Provider: DesempenhoProvider,
+    hideChrome: true,
+  },
 }
 
 export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps) {
@@ -103,25 +118,29 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
               boxShadow: 'inset -18px 0 28px -8px rgba(0,0,0,0.13)',
             }}
           >
-            {/* Colored accent rule */}
-            <div
-              className="mb-4"
-              style={{
-                height: '3px',
-                width: '50px',
-                background: `linear-gradient(to right, ${book.accent}, transparent)`,
-              }}
-            />
+            {!content?.hideChrome && (
+              <>
+                {/* Colored accent rule */}
+                <div
+                  className="mb-4"
+                  style={{
+                    height: '3px',
+                    width: '50px',
+                    background: `linear-gradient(to right, ${book.accent}, transparent)`,
+                  }}
+                />
 
-            <h2
-              className="text-sm font-bold mb-3"
-              style={{
-                color: 'rgba(0,0,0,0.68)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {book.leftTitle}
-            </h2>
+                <h2
+                  className="text-sm font-bold mb-3"
+                  style={{
+                    color: 'rgba(0,0,0,0.68)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {book.leftTitle}
+                </h2>
+              </>
+            )}
 
             {/* Content area */}
             <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.7)', lineHeight: '1.55' }}>
@@ -138,23 +157,25 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
             </div>
 
             {/* Footer */}
-            <div
-              className="mt-auto pt-4 border-t"
-              style={{
-                borderColor: 'rgba(0,0,0,0.07)',
-                marginTop: 'auto',
-              }}
-            >
-              <p
+            {!content?.hideChrome && (
+              <div
+                className="mt-auto pt-4 border-t"
                 style={{
-                  fontSize: '10px',
-                  fontStyle: 'italic',
-                  color: 'rgba(0,0,0,0.22)',
+                  borderColor: 'rgba(0,0,0,0.07)',
+                  marginTop: 'auto',
                 }}
               >
-                página 1
-              </p>
-            </div>
+                <p
+                  style={{
+                    fontSize: '10px',
+                    fontStyle: 'italic',
+                    color: 'rgba(0,0,0,0.22)',
+                  }}
+                >
+                  página 1
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Spine binding */}
@@ -190,48 +211,55 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
               boxShadow: 'inset 18px 0 28px -8px rgba(0,0,0,0.08)',
             }}
           >
-            {/* Colored accent rule */}
-            <div
-              className="mb-4"
-              style={{
-                height: '3px',
-                width: '50px',
-                background: `linear-gradient(to left, ${book.accent}, transparent)`,
-                marginLeft: 'auto',
-              }}
-            />
+            {!content?.hideChrome && (
+              <>
+                {/* Colored accent rule */}
+                <div
+                  className="mb-4"
+                  style={{
+                    height: '3px',
+                    width: '50px',
+                    background: `linear-gradient(to left, ${book.accent}, transparent)`,
+                    marginLeft: 'auto',
+                  }}
+                />
 
-            <h2
-              className="text-sm font-bold mb-3"
-              style={{
-                color: 'rgba(0,0,0,0.68)',
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {book.rightTitle}
-            </h2>
+                <h2
+                  className="text-sm font-bold mb-3"
+                  style={{
+                    color: 'rgba(0,0,0,0.68)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {book.rightTitle}
+                </h2>
+              </>
+            )}
 
             {/* Action area */}
             <div className="flex-1 flex flex-col gap-4">
               {content ? <content.right /> : null}
 
-              <button
-                onClick={onClose}
-                className="px-4 py-2 rounded text-xs font-bold tracking-wide transition-all hover:opacity-90"
-                style={{
-                  background: `linear-gradient(135deg, ${book.accent}dd, ${book.accent})`,
-                  color: '#ffffff',
-                  letterSpacing: '0.03em',
-                  boxShadow: `0 4px 12px ${book.accent}40`,
-                }}
-              >
-                {book.cta}
-              </button>
+              {!content?.hideChrome && (
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 rounded text-xs font-bold tracking-wide transition-all hover:opacity-90"
+                  style={{
+                    background: `linear-gradient(135deg, ${book.accent}dd, ${book.accent})`,
+                    color: '#ffffff',
+                    letterSpacing: '0.03em',
+                    boxShadow: `0 4px 12px ${book.accent}40`,
+                  }}
+                >
+                  {book.cta}
+                </button>
+              )}
 
               <div className="flex-1" />
             </div>
 
             {/* Footer */}
+            {!content?.hideChrome && (
             <div
               className="pt-4 border-t"
               style={{
@@ -248,6 +276,7 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
                 página 2
               </p>
             </div>
+            )}
           </div>
         </div>
         </Wrapper>
