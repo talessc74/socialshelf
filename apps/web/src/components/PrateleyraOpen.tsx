@@ -7,6 +7,7 @@ import { MarcaDesktopLeft, MarcaDesktopRight, MarcaMobile, MarcaProvider } from 
 import { NoticiasDesktopLeft, NoticiasDesktopRight, NoticiasMobile, NoticiasProvider } from './prateleira-books/NoticiasBook'
 import { AgendaDesktopLeft, AgendaDesktopRight, AgendaMobile, AgendaProvider } from './prateleira-books/AgendaBook'
 import { DesempenhoDesktopLeft, DesempenhoDesktopRight, DesempenhoMobile, DesempenhoProvider } from './prateleira-books/DesempenhoBook'
+import { CriarRoom, CriarProvider } from './prateleira-books/CriarBook'
 
 interface PrateleyraOpenProps {
   book: Book
@@ -18,11 +19,12 @@ const BOOK_CONTENT: Partial<
   Record<
     Book['id'],
     {
-      left: () => JSX.Element
-      right: () => JSX.Element
-      mobile: () => JSX.Element
+      left?: () => JSX.Element
+      right?: () => JSX.Element
+      mobile?: () => JSX.Element
       Provider?: React.ComponentType<{ children: React.ReactNode }>
       hideChrome?: boolean
+      fullSpread?: boolean
     }
   >
 > = {
@@ -37,13 +39,39 @@ const BOOK_CONTENT: Partial<
     Provider: DesempenhoProvider,
     hideChrome: true,
   },
+  criar: { Provider: CriarProvider, fullSpread: true },
 }
 
 export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps) {
   const content = BOOK_CONTENT[book.id]
   const Wrapper = content?.Provider ?? Fragment
 
+  if (content?.fullSpread) {
+    return (
+      <div
+        className="flex items-center justify-center h-full px-4"
+        style={{ opacity: 1, transition: 'opacity 0.45s ease' }}
+      >
+        <div
+          className={isMobile ? 'w-full max-w-sm' : 'w-full max-w-3xl'}
+          style={{
+            minHeight: '490px',
+            maxHeight: '85vh',
+            borderRadius: '8px',
+            overflow: 'hidden',
+            boxShadow: '0 40px 90px rgba(0,0,0,0.65), 0 12px 30px rgba(0,0,0,0.5)',
+          }}
+        >
+          <Wrapper>
+            <CriarRoom onClose={onClose} isMobile={isMobile} />
+          </Wrapper>
+        </div>
+      </div>
+    )
+  }
+
   if (isMobile && content) {
+    const MobileContent = content.mobile!
     return (
       <div
         className="flex items-center justify-center h-full px-4"
@@ -66,7 +94,7 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
             {book.label}
           </h2>
           <Wrapper>
-            <content.mobile />
+            <MobileContent />
           </Wrapper>
           <button
             onClick={onClose}
@@ -79,6 +107,9 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
       </div>
     )
   }
+
+  const LeftContent = content?.left
+  const RightContent = content?.right
 
   return (
     <div
@@ -144,8 +175,8 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
 
             {/* Content area */}
             <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.7)', lineHeight: '1.55' }}>
-              {content ? (
-                <content.left />
+              {LeftContent ? (
+                <LeftContent />
               ) : (
                 <div className="space-y-2">
                   <div className="p-2 rounded bg-white/50 dark:bg-slate-800/50">
@@ -238,7 +269,7 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
 
             {/* Action area */}
             <div className="flex-1 flex flex-col gap-4">
-              {content ? <content.right /> : null}
+              {RightContent ? <RightContent /> : null}
 
               {!content?.hideChrome && (
                 <button
