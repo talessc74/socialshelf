@@ -180,9 +180,9 @@ export function CriarProvider({ children }: { children: ReactNode }) {
   }, [room])
 
   const generationStages = [
-    'Lendo a voz da marca…',
-    'Escrevendo a copy e decidindo a estrutura do post…',
-    photoFiles.length > 0 ? `Criando ${photoFiles.length} card(s)…` : 'Criando as imagens dos cards…',
+    'Recortando a voz da marca…',
+    'Colando a copy no lugar…',
+    photoFiles.length > 0 ? `Encaixando ${photoFiles.length} card(s) na colagem…` : 'Montando as imagens dos cards…',
   ]
 
   const togglePlatform = (p: Platform) => {
@@ -490,7 +490,7 @@ const INK_DIM = 'rgba(36,29,16,0.5)'
 const CORK = 'linear-gradient(160deg, #c9a876 0%, #a9855a 100%)'
 const WALNUT = '#2e2016'
 const TERRACOTTA = '#b8543a'
-const SAFELIGHT_BG = 'radial-gradient(ellipse at 50% 20%, #7a1018 0%, #1a0708 55%, #0d0304 100%)'
+const KRAFT = 'linear-gradient(160deg, #b99a6e 0%, #967849 100%)'
 const GALLERY_BG = 'linear-gradient(180deg, #ece3d0 0%, #dcd0b4 100%)'
 const PRINT = '#f6efe0'
 
@@ -690,24 +690,95 @@ function IdeiasRoom() {
   )
 }
 
-function DarkroomRoom() {
-  const { generationStages, generationStage } = useCriar()
+function CollagePiece({
+  visible,
+  from,
+  rotate,
+  style,
+  children,
+}: {
+  visible: boolean
+  from: 'left' | 'right' | 'bottom'
+  rotate: number
+  style?: React.CSSProperties
+  children: ReactNode
+}) {
+  const offsets: Record<typeof from, { x: number; y: number }> = {
+    left: { x: -60, y: 0 },
+    right: { x: 60, y: 0 },
+    bottom: { x: 0, y: 60 },
+  }
+  const offset = offsets[from]
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center" style={{ background: SAFELIGHT_BG }}>
+    <div
+      className="absolute bg-[#fdfaf3] p-2"
+      style={{
+        boxShadow: '2px 5px 12px rgba(0,0,0,0.3)',
+        opacity: visible ? 1 : 0,
+        transform: visible
+          ? `translate(0,0) rotate(${rotate}deg)`
+          : `translate(${offset.x}px, ${offset.y}px) rotate(${rotate * 2}deg)`,
+        transition: 'opacity 0.5s ease, transform 0.6s cubic-bezier(0.22,1,0.36,1)',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function DarkroomRoom() {
+  const { generationStages, generationStage, photoFiles } = useCriar()
+  const cardCount = photoFiles.length > 0 ? photoFiles.length : 2
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-6" style={{ background: KRAFT }}>
+      <p style={{ fontSize: '10px', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>
+        ✂️ montando a colagem
+      </p>
+
       <div
-        className="h-16 w-16 rounded-full"
-        style={{ background: 'radial-gradient(circle, rgba(200,31,44,0.5), transparent 70%)', filter: 'blur(2px)' }}
-      />
-      <div className="w-full max-w-xs space-y-2">
+        className="relative w-full max-w-[220px]"
+        style={{ aspectRatio: '3/4', background: '#fdfaf3', border: '1px dashed rgba(0,0,0,0.2)', boxShadow: '0 10px 24px rgba(0,0,0,0.35)' }}
+      >
+        <CollagePiece visible={generationStage >= 0} from="left" rotate={-4} style={{ top: '8%', left: '8%', fontSize: '9px', color: INK }}>
+          tom de voz ✓
+        </CollagePiece>
+
+        <CollagePiece
+          visible={generationStage >= 1}
+          from="right"
+          rotate={2}
+          style={{ top: '38%', left: '10%', right: '10%', fontFamily: 'Georgia, serif', fontSize: '10px', color: INK, lineHeight: 1.3 }}
+        >
+          copy do post sendo colada aqui…
+        </CollagePiece>
+
+        <div className="absolute bottom-[8%] left-[8%] right-[8%] flex gap-1.5">
+          {Array.from({ length: cardCount }, (_, i) => (
+            <CollagePiece
+              key={i}
+              visible={generationStage >= 2}
+              from="bottom"
+              rotate={i % 2 === 0 ? -6 : 5}
+              style={{ position: 'relative', flex: 1, aspectRatio: '3/4', padding: 0, overflow: 'hidden', transitionDelay: `${i * 0.15}s` }}
+            >
+              <div className="h-full w-full" style={{ background: `linear-gradient(150deg, ${TERRACOTTA}, #3a2a4a)` }} />
+            </CollagePiece>
+          ))}
+        </div>
+      </div>
+
+      <div className="w-full max-w-xs space-y-1">
         {generationStages.map((stage, i) => (
-          <p key={stage} style={{ fontSize: '12px', color: i <= generationStage ? PRINT : 'rgba(246,239,224,0.35)' }}>
+          <p key={stage} style={{ fontSize: '11px', color: i <= generationStage ? '#fff8ef' : 'rgba(255,255,255,0.4)' }}>
             {i === generationStage ? '● ' : i < generationStage ? '✓ ' : '○ '}
             {stage}
           </p>
         ))}
       </div>
-      <p style={{ fontStyle: 'italic', fontSize: '12px', color: 'rgba(246,239,224,0.6)' }}>
-        revelando na câmara escura — pode levar até 2 minutos…
+      <p style={{ fontStyle: 'italic', fontSize: '11px', color: 'rgba(255,255,255,0.5)' }}>
+        pode levar até 2 minutos — o post vai aparecendo montado aqui…
       </p>
     </div>
   )
