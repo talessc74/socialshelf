@@ -1,7 +1,9 @@
 'use client'
 
+import { Fragment } from 'react'
 import { Book } from './Prateleira'
 import { RedesDesktopLeft, RedesDesktopRight, RedesMobile } from './prateleira-books/RedesBook'
+import { MarcaDesktopLeft, MarcaDesktopRight, MarcaMobile, MarcaProvider } from './prateleira-books/MarcaBook'
 
 interface PrateleyraOpenProps {
   book: Book
@@ -9,12 +11,16 @@ interface PrateleyraOpenProps {
   isMobile: boolean
 }
 
-const BOOK_CONTENT: Partial<Record<Book['id'], { left: () => JSX.Element; right: () => JSX.Element; mobile: () => JSX.Element }>> = {
+const BOOK_CONTENT: Partial<
+  Record<Book['id'], { left: () => JSX.Element; right: () => JSX.Element; mobile: () => JSX.Element; Provider?: React.ComponentType<{ children: React.ReactNode }> }>
+> = {
   redes: { left: RedesDesktopLeft, right: RedesDesktopRight, mobile: RedesMobile },
+  marca: { left: MarcaDesktopLeft, right: MarcaDesktopRight, mobile: MarcaMobile, Provider: MarcaProvider },
 }
 
 export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps) {
   const content = BOOK_CONTENT[book.id]
+  const Wrapper = content?.Provider ?? Fragment
 
   if (isMobile && content) {
     return (
@@ -38,7 +44,9 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
           <h2 className="text-sm font-bold mb-3" style={{ color: 'rgba(0,0,0,0.68)', letterSpacing: '-0.01em' }}>
             {book.label}
           </h2>
-          <content.mobile />
+          <Wrapper>
+            <content.mobile />
+          </Wrapper>
           <button
             onClick={onClose}
             className="mt-4 w-full rounded text-xs font-bold tracking-wide py-2"
@@ -77,6 +85,7 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
           minHeight: '490px',
         }}
       >
+        <Wrapper>
         <div className="flex gap-0 bg-white dark:bg-slate-900">
           {/* Left page */}
           <div
@@ -235,6 +244,7 @@ export function PrateleyraOpen({ book, onClose, isMobile }: PrateleyraOpenProps)
             </div>
           </div>
         </div>
+        </Wrapper>
       </div>
 
       <style>{`
