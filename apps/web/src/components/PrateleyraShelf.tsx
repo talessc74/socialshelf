@@ -17,16 +17,12 @@ export function PrateleyraShelf({ books, onBookClick, isMobile }: PrateleyraShel
     setIsLoaded(true)
   }, [])
 
-  const scale = isMobile ? 0.72 : 1
-  const rowGap = isMobile ? '6px' : '10px'
-  const rowPadding = isMobile ? '16px' : '24px'
-
   return (
     <div className="flex flex-col items-center justify-center h-full px-4 py-8">
       {/* Title */}
       <div className="mb-8 text-center">
         <h1
-          className={isMobile ? 'font-serif text-3xl font-normal tracking-widest text-[#c9a84c] mb-2' : 'font-serif text-5xl font-normal tracking-widest text-[#c9a84c] mb-2'}
+          className="font-serif text-5xl font-normal tracking-widest text-[#c9a84c] mb-2"
           style={{
             animation: isLoaded ? 'fadeIn 0.8s ease-out forwards' : 'none',
             textShadow: '0 0 20px rgba(201, 168, 76, 0.3)',
@@ -39,35 +35,28 @@ export function PrateleyraShelf({ books, onBookClick, isMobile }: PrateleyraShel
         </p>
       </div>
 
-      {/* Books container — em telas estreitas, rola horizontalmente com snap para caber todos os livros */}
-      <div className="w-full max-w-3xl overflow-x-auto no-scrollbar" style={{ WebkitOverflowScrolling: 'touch' }}>
-        <div
-          className="flex items-end mb-6 perspective snap-x snap-mandatory"
-          style={{
-            gap: rowGap,
-            padding: `0 ${rowPadding}`,
-            width: 'max-content',
-            minWidth: '100%',
-            justifyContent: isMobile ? 'flex-start' : 'center',
-            perspective: '2300px',
-            perspectiveOrigin: '50% 36%',
-            animation: isLoaded ? 'fadeUp 0.55s 0.2s ease both' : 'none',
-          }}
-        >
-          {books.map((book) => (
-            <button
-              key={book.id}
-              onClick={() => onBookClick(book.id)}
-              className="relative group flex-shrink-0 snap-center transition-transform duration-300 ease-out hover:-translate-y-5 hover:brightness-110 cursor-pointer"
-              style={{
-                width: `${book.width * scale}px`,
-                height: `${book.height * scale}px`,
-              }}
-            >
-              <PrateleyraBookCover book={book} />
-            </button>
-          ))}
-        </div>
+      {/* Books container */}
+      <div
+        className="flex items-end gap-2.5 px-6 mb-6 perspective"
+        style={{
+          perspective: '2300px',
+          perspectiveOrigin: '50% 36%',
+          animation: isLoaded ? 'fadeUp 0.55s 0.2s ease both' : 'none',
+        }}
+      >
+        {books.map((book, idx) => (
+          <button
+            key={book.id}
+            onClick={() => onBookClick(book.id)}
+            className="relative group flex-shrink-0 transition-transform duration-300 ease-out hover:-translate-y-5 hover:brightness-110 cursor-pointer"
+            style={{
+              width: `${book.width}px`,
+              height: `${book.height}px`,
+            }}
+          >
+            <PrateleyraBookCover book={book} />
+          </button>
+        ))}
       </div>
 
       {/* Shelf */}
@@ -87,27 +76,25 @@ export function PrateleyraShelf({ books, onBookClick, isMobile }: PrateleyraShel
       />
 
       {/* Book labels */}
-      <div className="w-full max-w-3xl overflow-x-auto no-scrollbar mb-8">
-        <div className="flex items-start" style={{ gap: rowGap, padding: `0 ${rowPadding}`, width: 'max-content', minWidth: '100%', justifyContent: isMobile ? 'flex-start' : 'center' }}>
-          {books.map((book) => (
-            <div
-              key={`label-${book.id}`}
-              style={{
-                width: `${book.width * scale}px`,
-              }}
-              className="text-center"
-            >
-              <p className="text-xs font-semibold tracking-widest uppercase text-[rgba(201,168,76,0.5)]">
-                {book.label}
-              </p>
-            </div>
-          ))}
-        </div>
+      <div className="flex items-start gap-2.5 px-6 mb-8">
+        {books.map((book) => (
+          <div
+            key={`label-${book.id}`}
+            style={{
+              width: `${book.width}px`,
+            }}
+            className="text-center"
+          >
+            <p className="text-xs font-semibold tracking-widest uppercase text-[rgba(201,168,76,0.5)]">
+              {book.label}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Tagline */}
-      <p className="text-sm italic tracking-wider text-[rgba(201,168,76,0.3)] px-4 text-center">
-        {isMobile ? '— arraste para o lado e selecione um livro —' : '— selecione um livro para abrir —'}
+      <p className="text-sm italic tracking-wider text-[rgba(201,168,76,0.3)]">
+        — selecione um livro para abrir —
       </p>
 
       {/* Styles */}
@@ -130,14 +117,6 @@ export function PrateleyraShelf({ books, onBookClick, isMobile }: PrateleyraShel
             opacity: 1;
             transform: translateY(0);
           }
-        }
-
-        .no-scrollbar {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-        }
-        .no-scrollbar::-webkit-scrollbar {
-          display: none;
         }
       `}</style>
     </div>
