@@ -33,6 +33,8 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-030-testes-de-componente-em-apps-web](application/030-testes-componente-web.md) - Vitest + Testing Library com ambiente jsdom em apps/web; mocking de next/navigation e do cliente api; cleanup manual entre testes
 - [_local-edr-policy-031-testes-visuais-de-regressao-em-apps-web](application/031-testes-visuais-regressao.md) - Playwright Component Testing em Chromium real, 3 viewports alinhados aos breakpoints Tailwind (sm/lg) já usados, com asserção geométrica de overflow + screenshot baseline gerada por job manual
 - [_local-edr-policy-032-tolerancia-formato-resposta-llm](application/032-tolerancia-formato-resposta-llm.md) - Campos de lista na resposta do Gemini que ocasionalmente chegam como string única são normalizados via z.preprocess antes da validação zod, em vez de rejeitar a resposta inteira
+- [_local-edr-policy-033-pipeline-video-tiktok-implementacao](application/033-tiktok-video-pipeline-implementacao.md) - Worker de vídeo via Cloud Tasks, progresso por videoStage, TikTokPublisher testado contra mock, nunca API real
+- [_local-edr-policy-034-consentimento-de-terceiros-no-upload](application/034-consentimento-conteudo-terceiros-upload.md) - Checkbox de consentimento obrigatório antes do upload de vídeo próprio do usuário; detalhamento jurídico nos Termos de Uso
 
 ### devops
 Pipeline de entrega e práticas de build.

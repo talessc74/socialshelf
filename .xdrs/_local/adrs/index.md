@@ -21,6 +21,8 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-027-pauta-localizacao-e-verificacao-factual](application/027-pauta-localizacao-e-verificacao-factual.md) - Motor de pauta vive em generator; notícia só é verificada se a fonte resolve para domínio confiável cadastrado
 - [_local-adr-policy-028-geracao-de-conteudo-multiartefato](application/028-geracao-multiartefato.md) - GenerationRequest.outputs.artifacts substitui imagem única; post único e carrossel são o mesmo agregado (N≥1)
 - [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](application/030-quota-marca-tipo-conta.md) - accountType imutável em Brand, checagem de quota contra Subscription antes de criar marca, sinal específico de limite de plano
+- [_local-adr-policy-036-geracao-de-video-assincrona](application/036-geracao-video-multiartefato-assincrona.md) - GenerationArtifact ganha mediaType image/video; vídeo roda em job assíncrono, nunca no request/response síncrono
+- [_local-adr-policy-037-audio-sincronizacao-biblioteca-musica](application/037-audio-sincronizacao-biblioteca-musica.md) - Narração dita duração do vídeo; música se ajusta ao vídeo com fade-out; biblioteca de música própria e catálogo fechado
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.
@@ -48,6 +50,8 @@ Integração com sistemas externos.
 - [_local-adr-policy-024-instagram-publicacao-em-duas-etapas](integration/024-instagram-publicacao-duas-etapas.md) - Fluxo obrigatório de duas chamadas da Meta Graph API para publicar no Instagram
 - [_local-adr-policy-031-selecao-de-pagina-na-conexao-oauth-multi-marca](integration/031-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
 - [_local-adr-policy-032-monitoramento-versao-api-linkedin](integration/032-monitoramento-versao-api-linkedin.md) - Revisão trimestral da constante LI_VERSION com data de sunset documentada inline, prevenindo falha 426 NONEXISTENT_VERSION silenciosa
+- [_local-adr-policy-034-tiktok-oauth-identificadores-pairwise](integration/034-tiktok-oauth-identificadores.md) - pairwiseId = open_id exclusivamente; union_id descartado no callback; refresh automático (24h/1 ano)
+- [_local-adr-policy-035-tiktok-publicacao-multi-etapa](integration/035-tiktok-publicacao-multi-chunk.md) - PULL_FROM_URL como estratégia de envio de vídeo ao TikTok, sem chunking client-side
 
 ### platform
 Infraestrutura de plataforma e serviços GCP.
