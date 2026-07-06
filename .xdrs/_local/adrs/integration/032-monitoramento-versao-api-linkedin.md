@@ -1,5 +1,5 @@
 ---
-name: _local-adr-policy-032-monitoramento-versao-api-linkedin
+name: _local-adr-policy-032-monitoramento-de-versao-da-api-do-linkedin
 description: Define como a versão da LinkedIn-Version header é mantida e monitorada para evitar sunset silencioso. Use ao tocar em LinkedInPublisher, LinkedInAnalyticsReader, ou ao investigar falhas de publicação no LinkedIn.
 apply-to: apps/publisher — LinkedInPublisher, LinkedInAnalyticsReader
 valid-from: 2026-06-26

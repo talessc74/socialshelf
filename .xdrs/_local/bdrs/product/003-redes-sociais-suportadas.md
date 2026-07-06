@@ -15,7 +15,7 @@ Quais redes sociais o SocialShelf suporta e qual é o status de integração de 
 
 ## Decision Outcome
 
-**Quatro plataformas: LinkedIn, X/Twitter, Instagram e Facebook (via Meta API)**
+**Cinco plataformas: LinkedIn, X/Twitter, Instagram, Facebook (via Meta API) e TikTok**
 
 Integração exclusivamente via OAuth delegado — jamais credenciais diretas. Ver `_local-adr-policy-001-oauth-social-networks` para o modelo de integração.
 
@@ -29,6 +29,11 @@ Integração exclusivamente via OAuth delegado — jamais credenciais diretas. V
 | X (Twitter) | Mínimos para posting | Texto | Código implementado, E2E pendente |
 | Instagram | Meta Graph API | Imagem + texto | Aguardando deploy com HTTPS |
 | Facebook | Meta Graph API | Texto + imagem | Aguardando deploy com HTTPS |
+| TikTok | `open_id` pairwise, ver ADR-034 | Vídeo (slideshow ou upload próprio) + áudio opcional | Planejado — ver ADR-034 a 037 |
+
+**Atualização 2026-07-06 — TikTok adicionado**
+
+TikTok é estruturalmente diferente das quatro plataformas anteriores: só aceita vídeo, nunca imagem estática, e a criação de conteúdo para TikTok exige um pipeline de geração de vídeo que não existia no sistema (ver ADR-036). Deliberação completa registrada em ADR-034 (OAuth e identificadores), ADR-035 (publicação), ADR-036 (geração de vídeo assíncrona) e ADR-037 (sincronização de áudio e biblioteca de música).
 
 **Limites de conteúdo por plataforma**
 
@@ -56,3 +61,7 @@ Para adicionar uma nova rede social:
 
 - [_local-adr-policy-001-oauth-social-networks](../../adrs/integration/009-oauth-social-networks.md) - Modelo de integração OAuth
 - [_local-adr-policy-003-pairwise-identity-consent](../../adrs/controls/007-pairwise-identity-consent.md) - Identidade pairwise por plataforma
+- [_local-adr-policy-034-tiktok-oauth-identificadores-pairwise](../../adrs/integration/034-tiktok-oauth-identificadores.md) - OAuth e identificadores do TikTok
+- [_local-adr-policy-035-tiktok-publicacao-multi-etapa](../../adrs/integration/035-tiktok-publicacao-multi-chunk.md) - Fluxo de publicação de vídeo no TikTok
+- [_local-adr-policy-036-geracao-de-video-assincrona](../../adrs/application/036-geracao-video-multiartefato-assincrona.md) - Pipeline de geração de vídeo que alimenta o TikTok
+- [_local-adr-policy-037-audio-sincronizacao-biblioteca-musica](../../adrs/application/037-audio-sincronizacao-biblioteca-musica.md) - Modelo de áudio do vídeo TikTok

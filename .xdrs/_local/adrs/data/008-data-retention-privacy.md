@@ -28,7 +28,7 @@ Dados são retidos apenas pelo período mínimo necessário para a operação de
 | Posts | Firestore `/users/{uid}/brands/{bid}/posts` | Enquanto o usuário mantiver a conta | Deletados com a conta |
 | GenerationRequests | Firestore `/users/{uid}/brands/{bid}/generation_requests` | Curto prazo operacional | A definir em sprint 2b |
 | Imagens geradas | Cloud Storage `socialshelf-generated` | A definir em sprint 2b | A definir em sprint 2b |
-| Uploads do usuário | Cloud Storage `socialshelf-uploads` | Até publicação + margem curta | A definir em sprint 2b |
+| Uploads do usuário | Cloud Storage `socialshelf-uploads` | 7 dias após publicação | Deleção automática monitorada (job agendado, alerta em falha de execução); usuário pode baixar o arquivo durante os 7 dias |
 | Logs de aplicação | Cloud Logging | Mínimo operacional | Sem PII; retenção limitada pelo padrão GCP |
 | Dados de sessão | Firebase Auth | Duração da sessão | Expiração por timeout de sessão |
 | daily_quota | Firestore | Dia corrente | Rotação diária automática |
@@ -45,7 +45,13 @@ Logs de aplicação nunca devem conter:
 
 Em caso de comprometimento de dados, a comunicação com os usuários afetados é imediata e direta. Detalhes de implementação em `_local-adr-policy-001-incident-transparency`.
 
+**Atualização 2026-07-06 — retenção de vídeo enviado pelo usuário**
+
+A linha "Uploads do usuário" estava em aberto desde a criação desta policy. Definida no contexto da integração TikTok: vídeo enviado pelo próprio usuário (`videoSource: 'user-upload'`, ver ADR-036) pode conter conteúdo de terceiros — a retenção de 7 dias com opção de download equilibra a necessidade operacional de reenvio/correção com a minimização de passivo de dados de terceiros. A exclusão ao final do prazo é etapa monitorada, não assumida (ver EDR-034).
+
 ## References
 
 - [_local-adr-policy-002-data-minimization](../controls/006-data-minimization.md) - Critério de coleta
 - [_local-adr-policy-001-incident-transparency](../operations/011-incident-transparency.md) - Protocolo de incidente
+- [_local-adr-policy-036-geracao-de-video-assincrona](../application/036-geracao-video-multiartefato-assincrona.md) - Origem do upload de vídeo do usuário
+- [_local-edr-policy-034-consentimento-conteudo-terceiros-upload-video](../../edrs/application/034-consentimento-conteudo-terceiros-upload.md) - Consentimento e mecanismo de exclusão monitorada

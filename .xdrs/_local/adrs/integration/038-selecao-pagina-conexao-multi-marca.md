@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-031-selecao-de-pagina-na-conexao-oauth-multi-marca
+name: _local-adr-policy-038-selecao-de-pagina-conexao-multi-marca
 description: Define como o fluxo de conexão OAuth seleciona qual página/conta de cada plataforma fica vinculada a cada marca, e a limitação conhecida do X para múltiplas contas. Use ao implementar ou revisar o fluxo de conexão de marca.
 apply-to: Fluxo de conexão OAuth por marca (apps/api use-cases de oauth, tela de conexão em apps/web)
 valid-from: 2026-06-26
 ---
 
-# _local-adr-policy-031: Seleção de Página na Conexão OAuth Multi-Marca
+# _local-adr-policy-038: Seleção de Página — Conexão Multi-Marca
 
 ## Context and Problem Statement
 

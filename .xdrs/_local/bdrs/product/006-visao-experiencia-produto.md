@@ -1,5 +1,5 @@
 ---
-name: _local-bdr-policy-006-visao-de-experiencia-produto
+name: _local-bdr-policy-006-visao-de-experiencia-de-produto
 description: Define como a experiência de produto do SocialShelf deve se sentir — rejeita minimalismo extremo, exige que a IA seja percebida como agente que faz o trabalho, não como formulário. Use ao projetar qualquer tela onde IA gera ou sugere conteúdo, e como critério de aceite de revisão visual.
 apply-to: Toda tela onde o sistema gera, sugere ou recomenda algo via IA
 valid-from: 2026-06-19
@@ -58,7 +58,7 @@ Uma tela de IA está completa quando, e somente quando:
 
 ## References
 
-- [_local-bdr-policy-005-design-tokens-identidade-visual](../design/001-tokens-identidade-visual.md) - Paleta e componentes-padrão; pré-requisito técnico, não suficiente isoladamente
+- [_local-bdr-policy-005-design-tokens-identidade-visual](005-tokens-identidade-visual.md) - Paleta e componentes-padrão; pré-requisito técnico, não suficiente isoladamente
 - [_local-bdr-policy-001-principios-de-ux](../principles/001-ux-principles.md) - Hierarquia de conflito que limita densidade visual a elementos funcionais
 - [_local-bdr-plan-002-roadmap-equipe-marketing-autonoma](plans/002-roadmap-equipe-marketing-autonoma.md) - Fase 0 (Núcleo da Marca) e Fase 3 (Criação Multiformato) — origem dos princípios de voz de marca e progresso granular por artefato
 - [_local-bdr-policy-002-socialshelf-plataforma-e-produto](002-plataforma-produto.md) - Definição de produto como equipe autônoma de marketing, não ferramenta de formulário

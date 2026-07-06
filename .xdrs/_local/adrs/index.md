@@ -20,7 +20,10 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-025-brandprofile-schema-e-versionamento](application/025-brand-profile-schema-versionamento.md) - Schema de 6 seções do BrandProfile e versionamento imutável como base do contexto de marca
 - [_local-adr-policy-027-pauta-localizacao-e-verificacao-factual](application/027-pauta-localizacao-e-verificacao-factual.md) - Motor de pauta vive em generator; notícia só é verificada se a fonte resolve para domínio confiável cadastrado
 - [_local-adr-policy-028-geracao-de-conteudo-multiartefato](application/028-geracao-multiartefato.md) - GenerationRequest.outputs.artifacts substitui imagem única; post único e carrossel são o mesmo agregado (N≥1)
+- [_local-adr-policy-031-template-de-texto-sobre-imagem](application/031-template-texto-sobre-imagem.md) - Headline desenhado deterministicamente via sharp+SVG sobre a imagem de fundo do Imagen, por catálogo fechado de estilo
 - [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](application/030-quota-marca-tipo-conta.md) - accountType imutável em Brand, checagem de quota contra Subscription antes de criar marca, sinal específico de limite de plano
+- [_local-adr-policy-036-geracao-de-video-assincrona](application/036-geracao-video-multiartefato-assincrona.md) - GenerationArtifact ganha mediaType image/video; vídeo roda em job assíncrono, nunca no request/response síncrono
+- [_local-adr-policy-037-audio-sincronizacao-biblioteca-musica](application/037-audio-sincronizacao-biblioteca-musica.md) - Narração dita duração do vídeo; música se ajusta ao vídeo com fade-out; biblioteca de música própria e catálogo fechado
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.
@@ -46,8 +49,10 @@ Integração com sistemas externos.
 - [_local-adr-policy-013-pkce-por-plataforma-oauth-seletivo](integration/013-pkce-por-plataforma.md) - PKCE (RFC 7636) obrigatório para X, não aplicável para LinkedIn e Meta
 - [_local-adr-policy-016-refresh-de-token-oauth-por-plataforma](integration/016-refresh-token-oauth.md) - X com refresh automático; LinkedIn e Meta dependem de tokens de longa duração
 - [_local-adr-policy-024-instagram-publicacao-em-duas-etapas](integration/024-instagram-publicacao-duas-etapas.md) - Fluxo obrigatório de duas chamadas da Meta Graph API para publicar no Instagram
-- [_local-adr-policy-031-selecao-de-pagina-na-conexao-oauth-multi-marca](integration/031-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
-- [_local-adr-policy-032-monitoramento-versao-api-linkedin](integration/032-monitoramento-versao-api-linkedin.md) - Revisão trimestral da constante LI_VERSION com data de sunset documentada inline, prevenindo falha 426 NONEXISTENT_VERSION silenciosa
+- [_local-adr-policy-032-monitoramento-de-versao-da-api-do-linkedin](integration/032-monitoramento-versao-api-linkedin.md) - Revisão trimestral da constante LI_VERSION com data de sunset documentada inline, prevenindo falha 426 NONEXISTENT_VERSION silenciosa
+- [_local-adr-policy-034-tiktok-oauth-e-identificadores-pairwise](integration/034-tiktok-oauth-identificadores.md) - pairwiseId = open_id exclusivamente; union_id descartado no callback; refresh automático (24h/1 ano)
+- [_local-adr-policy-035-tiktok-publicacao-em-multiplas-etapas](integration/035-tiktok-publicacao-multi-chunk.md) - PULL_FROM_URL como estratégia de envio de vídeo ao TikTok, sem chunking client-side
+- [_local-adr-policy-038-selecao-de-pagina-conexao-multi-marca](integration/038-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
 
 ### platform
 Infraestrutura de plataforma e serviços GCP.
@@ -57,7 +62,7 @@ Infraestrutura de plataforma e serviços GCP.
 - [_local-adr-policy-021-firestore-indices-compostos-por-query](platform/021-firestore-indexes.md) - Oito índices compostos declarados antes das queries — estratégia query-first
 - [_local-adr-policy-022-cloud-run-configuracao-por-servico](platform/022-cloud-run-config.md) - Configuração diferenciada de memória, timeout e acesso por serviço no Cloud Run
 - [_local-adr-policy-023-iam-papeis-por-servico](platform/023-iam-policies.md) - Papéis IAM mínimos por service account: princípio do mínimo privilégio por serviço
-- [_local-adr-policy-033-cloud-scheduler-publicacao-agendada](platform/033-cloud-scheduler-scale-to-zero.md) - Cloud Scheduler acorda o publisher-service a cada minuto via HTTP para garantir publicação agendada com min-instances=0
+- [_local-adr-policy-033-cloud-scheduler-wake-up-do-publisher](platform/033-cloud-scheduler-scale-to-zero.md) - Cloud Scheduler acorda o publisher-service a cada minuto via HTTP para garantir publicação agendada com min-instances=0
 
 ### operations
 Decisões operacionais e de resposta a incidentes.
