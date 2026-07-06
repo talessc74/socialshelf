@@ -91,3 +91,4 @@ Com `artifactCount` alto (ex: 6 para um carrossel), o front-end recebia `Load fa
 - [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites
 - [_local-edr-policy-001-cloud-run](../../edrs/infra/007-cloud-run.md) - Configuração detalhada do Cloud Run
 - [_local-adr-policy-001-zero-trust-baseline](../controls/005-zero-trust-baseline.md) - IAM e micro-segmentação
+- [_local-adr-policy-039-dominio-radiokactus-com-dns-e-roteamento](039-dominio-radiokactus-dns-roteamento.md) - Estado real do DNS de radiokactus.com e qual serviço responde pelo domínio hoje
