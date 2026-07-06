@@ -1,11 +1,11 @@
 ---
-name: _local-bdr-policy-009-contas-pessoal-profissional-cobranca
+name: _local-bdr-policy-009-contas-pessoal-e-profissional
 description: Define o modelo de contas (pessoal e profissional) por usuário e a estrutura de cobrança associada. Use ao implementar criação de marca, billing, limites de plano ou upsell.
 apply-to: Modelo de contas, billing e limites de marca por usuário
 valid-from: 2026-06-26
 ---
 
-# _local-bdr-policy-009: Contas Pessoal e Profissional — Modelo de Cobrança
+# _local-bdr-policy-009: Contas Pessoal e Profissional
 
 ## Context and Problem Statement
 

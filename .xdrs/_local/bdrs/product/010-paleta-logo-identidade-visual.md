@@ -1,5 +1,5 @@
 ---
-name: _local-bdr-policy-010-paleta-logo-identidade-visual
+name: _local-bdr-policy-010-paleta-do-logo-nova-identidade-visual
 description: Substitui a paleta de accent por azuis e verdes extraídos diretamente do logo oficial do SocialShelf. Use ao criar ou revisar telas, tokens de tema ou qualquer referência de cor no código. Supercede a seção "Paleta" da _local-bdr-policy-005.
 apply-to: apps/web/src/app/globals.css; apps/web/tailwind.config.ts; toda interface de usuário
 valid-from: 2026-07-01
@@ -86,5 +86,5 @@ A escala `brand` no `tailwind.config.ts` foi atualizada para os azuis do logo (5
 
 ## References
 
-- [_local-bdr-policy-005-design-tokens-identidade-visual](001-tokens-identidade-visual.md) - Policy anterior de tokens — seção Paleta supercedida por esta
+- [_local-bdr-policy-005-tokens-de-identidade-visual](005-tokens-identidade-visual.md) - Policy anterior de tokens — seção Paleta supercedida por esta
 - [_local-bdr-policy-001-principios-de-ux](../principles/001-ux-principles.md) - Hierarquia de conflito que governa qualquer decisão visual

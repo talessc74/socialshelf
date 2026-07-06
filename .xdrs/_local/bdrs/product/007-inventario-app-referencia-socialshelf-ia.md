@@ -1,11 +1,11 @@
 ---
-name: _local-bdr-policy-007-inventario-app-referencia-socialshelf-ia
+name: _local-bdr-policy-007-inventario-do-app-de-referencia
 description: Mapeia as funcionalidades do protótipo "SocialShelf IA" (criado pelo usuário no Google AI Studio) ao roadmap F0–F5 já existente, e decide antecipar o Dashboard de Performance e "Semear Criação" (parte da Fase 5) antes da conclusão da Fase 4. Use ao priorizar o próximo incremento de produto ou ao avaliar se uma funcionalidade do protótipo deve ser adotada.
 apply-to: Priorização de roadmap e decisões sobre quais funcionalidades do protótipo de referência entram no produto real
 valid-from: 2026-06-19
 ---
 
-# _local-bdr-policy-007: Inventário do App de Referência e Antecipação da Fase 5
+# _local-bdr-policy-007: Inventário do App de Referência
 
 ## Context and Problem Statement
 
@@ -61,5 +61,5 @@ Implementar, nesta ordem, dentro da Fase 5:
 ## References
 
 - [_local-bdr-plan-002-roadmap-equipe-marketing-autonoma](plans/002-roadmap-equipe-marketing-autonoma.md) - Roadmap F0–F5 ao qual este inventário é mapeado; nenhuma fase nova é criada
-- [_local-bdr-policy-006-visao-de-experiencia-produto](005-visao-experiencia-produto.md) - Princípio de honestidade de UI (nunca simular dado não medido) aplicado ao Dashboard de Performance
+- [_local-bdr-policy-006-visao-de-experiencia-de-produto](006-visao-experiencia-produto.md) - Princípio de honestidade de UI (nunca simular dado não medido) aplicado ao Dashboard de Performance
 - [_local-bdr-policy-001-principios-de-ux](../principles/001-ux-principles.md) - Hierarquia de conflito de UX que governa a apresentação de métricas reais vs. ausentes

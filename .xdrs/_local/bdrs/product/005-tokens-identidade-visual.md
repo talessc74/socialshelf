@@ -1,5 +1,5 @@
 ---
-name: _local-bdr-policy-005-design-tokens-identidade-visual
+name: _local-bdr-policy-005-tokens-de-identidade-visual
 description: Define a paleta, tom de copy e componentes-padrão de identidade visual do SocialShelf. Use ao criar ou revisar qualquer tela, componente ou token de UI.
 apply-to: Toda interface de usuário e decisão de design visual
 valid-from: 2026-06-19

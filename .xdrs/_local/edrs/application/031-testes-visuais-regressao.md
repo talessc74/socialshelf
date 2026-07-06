@@ -63,4 +63,4 @@ Testes visuais de páginas inteiras autenticadas (Dashboard, Configurar Marca) �
 
 - [_local-edr-policy-030-testes-de-componente-em-apps-web](030-testes-componente-web.md) - Testes de comportamento (jsdom) que esta decisão complementa, não substitui
 - [_local-edr-policy-005-ci-pipeline](../devops/005-ci-pipeline.md) - Pipeline sequencial onde o job `visual-regression` se insere
-- [_local-bdr-policy-005-design-tokens-identidade-visual](../../bdrs/design/001-tokens-identidade-visual.md) - Identidade de marca que a cobertura visual existe para proteger
+- [_local-bdr-policy-005-design-tokens-identidade-visual](../../bdrs/product/005-tokens-identidade-visual.md) - Identidade de marca que a cobertura visual existe para proteger

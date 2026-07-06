@@ -1,11 +1,11 @@
 ---
-name: _local-adr-policy-033-cloud-scheduler-publicacao-agendada
+name: _local-adr-policy-033-cloud-scheduler-wake-up-do-publisher
 description: Define o mecanismo de wake-up do publisher-service via Cloud Scheduler para garantir publicação agendada mesmo com min-instances=0. Use ao ajustar o intervalo de tick, autenticação do scheduler ou lógica de verificação de posts agendados.
 apply-to: .github/workflows/deploy.yml — step "Create/update Cloud Scheduler job"; apps/publisher/src/routes/scheduler.routes.ts; apps/publisher/src/scheduler/ScheduledPostsPoller.ts
 valid-from: 2026-07-01
 ---
 
-# _local-adr-policy-033: Cloud Scheduler — Wake-up do Publisher para Publicação Agendada
+# _local-adr-policy-033: Cloud Scheduler — Wake-up do Publisher
 
 ## Context and Problem Statement
 
