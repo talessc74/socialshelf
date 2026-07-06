@@ -162,7 +162,10 @@ export default function PrivacyPage() {
             <p>
               Dúvidas sobre esta política ou solicitações relacionadas aos seus dados
               podem ser enviadas para{' '}
-              <span className="text-ink">[email de contato a preencher]</span>.
+              <a href="mailto:contato@radiokactus.com" className="font-medium text-accent hover:underline">
+                contato@radiokactus.com
+              </a>
+              .
             </p>
           </section>
 
