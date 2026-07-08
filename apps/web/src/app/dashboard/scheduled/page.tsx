@@ -12,6 +12,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.FACEBOOK]: 'Facebook',
   [Platform.INSTAGRAM]: 'Instagram',
   [Platform.TWITTER]: 'X (Twitter)',
+  [Platform.TIKTOK]: 'TikTok',
 }
 
 function toDatetimeLocalValue(iso: string | null): string {

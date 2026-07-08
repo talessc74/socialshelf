@@ -17,9 +17,16 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.FACEBOOK]: 'Facebook',
   [Platform.INSTAGRAM]: 'Instagram',
   [Platform.TWITTER]: 'X (Twitter)',
+  [Platform.TIKTOK]: 'TikTok',
 }
 
-const ALL_PLATFORMS = [Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER]
+const ALL_PLATFORMS = [
+  Platform.LINKEDIN,
+  Platform.FACEBOOK,
+  Platform.INSTAGRAM,
+  Platform.TWITTER,
+  Platform.TIKTOK,
+]
 
 // Erros de permissão/OAuth do Graph API vêm como JSON crú da Meta — não são
 // acionáveis para o usuário, então tratamos como "precisa reconectar a conta".

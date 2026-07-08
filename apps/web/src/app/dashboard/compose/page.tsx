@@ -17,6 +17,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.FACEBOOK]: 'Facebook',
   [Platform.INSTAGRAM]: 'Instagram',
   [Platform.TWITTER]: 'X (Twitter)',
+  [Platform.TIKTOK]: 'TikTok',
 }
 
 const TEMPLATE_STYLE_OPTIONS: Array<{ value: TemplateStyle; label: string }> = [

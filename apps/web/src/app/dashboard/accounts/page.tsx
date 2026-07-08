@@ -56,7 +56,7 @@ export default function AccountsPage() {
   const connectedPlatforms = new Set(connections?.map((c) => c.platform) ?? [])
   const linkedinConnection = connections?.find((c) => c.platform === Platform.LINKEDIN)
 
-  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'x') => {
+  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'x' | 'tiktok') => {
     try {
       const url = await api.getAuthorizeUrl(oauth)
       window.location.href = url

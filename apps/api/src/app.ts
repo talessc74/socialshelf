@@ -8,6 +8,7 @@ import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
 import { linkedinPageOAuthRoutes } from './routes/oauth/linkedin-page.routes.js'
 import { metaOAuthRoutes } from './routes/oauth/meta.routes.js'
 import { xOAuthRoutes } from './routes/oauth/x.routes.js'
+import { tiktokOAuthRoutes } from './routes/oauth/tiktok.routes.js'
 import { postsRoutes } from './routes/posts.routes.js'
 import { brandsRoutes } from './routes/brands.routes.js'
 import { brandProfileRoutes } from './routes/brand-profile.routes.js'
@@ -46,6 +47,7 @@ export async function buildApp() {
   await app.register(linkedinPageOAuthRoutes)
   await app.register(metaOAuthRoutes)
   await app.register(xOAuthRoutes)
+  await app.register(tiktokOAuthRoutes)
   await app.register(postsRoutes)
   await app.register(brandsRoutes)
   await app.register(brandProfileRoutes)

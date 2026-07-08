@@ -15,23 +15,27 @@ Qual identificador usar como `pairwiseId`, e como o ciclo de vida curto do token
 
 ## Decision Outcome
 
-**`pairwiseId` = `open_id` exclusivamente; `union_id` é descartado no momento do callback, antes de qualquer persistência ou log. Refresh automático, seguindo a mesma categoria de X.**
+**`pairwiseId` segue o mesmo padrão determinístico já implementado para as demais plataformas (ADR-017: `SHA256(userId:platform)`, nunca o identificador retornado pela rede); `open_id` do TikTok é guardado apenas dentro do blob criptografado do token vault, para uso futuro em chamadas à API. `union_id` é descartado no momento do callback, antes de qualquer persistência ou log. Refresh automático, seguindo a mesma categoria de X.**
 
 ### Details
 
+**Atualização 2026-07-08 — alinhamento com ADR-017**
+
+A redação original desta seção ("`pairwiseId` = `open_id` exclusivamente") contradizia [_local-adr-policy-017-separacao-pairwiseid-e-tokenref-oauth](../data/017-separacao-pairwiseid-tokenref-oauth.md), que já define `pairwiseId` como um hash determinístico derivado de `userId + platform` — nunca o identificador literal devolvido pela rede social. Essa contradição só ficou visível na implementação de `HandleTikTokCallbackUseCase`. `pairwiseId` do TikTok segue exatamente o mesmo `derivePairwiseId(userId, Platform.TIKTOK)` usado por LinkedIn/X/Meta. `open_id` é armazenado apenas dentro do JSON criptografado do token vault (ao lado de `access_token`/`refresh_token`), nunca como `pairwiseId` nem em campo indexado do Firestore.
+
 **Por que `open_id` e não `union_id`**
 
-`union_id` correlaciona o mesmo usuário **entre múltiplos apps do mesmo desenvolvedor TikTok** — é, por definição, um identificador de rastreamento cruzado. Isso viola diretamente [_local-adr-policy-007-identidade-pairwise-e-consentimento](../controls/007-pairwise-identity-consent.md), que já rege as outras quatro plataformas. `open_id` é escopado ao app do SocialShelf e é o equivalente funcional ao identificador pairwise usado em LinkedIn/X/Meta.
+`union_id` correlaciona o mesmo usuário **entre múltiplos apps do mesmo desenvolvedor TikTok** — é, por definição, um identificador de rastreamento cruzado. Isso viola diretamente [_local-adr-policy-007-identidade-pairwise-e-consentimento](../controls/007-pairwise-identity-consent.md), que já rege as outras quatro plataformas. `open_id` é escopado ao app do SocialShelf — por isso é aceitável guardá-lo no vault (nunca como `pairwiseId`), enquanto `union_id` não é aceitável em lugar nenhum.
 
 `union_id`, quando presente na resposta do TikTok, é descartado em `HandleTikTokCallbackUseCase` antes de qualquer persistência — não é armazenado, não é logado, não transita para o Firestore em nenhum campo.
 
-**Escopos mínimos**
+**Escopos mínimos — confirmado na implementação (2026-07-08)**
 
-Escopo mínimo necessário para publicação de vídeo, seguindo o princípio de mínimo privilégio já aplicado às demais plataformas (ADR-009). `user.info.basic` é adicionado por padrão pelo Login Kit do TikTok — o escopo específico de publicação de vídeo deve ser confirmado contra a documentação vigente da TikTok API no momento da implementação (nomenclatura de scopes é mais granular que as demais plataformas e pode variar por tipo de app).
+`user.info.basic` (Login Kit) e `video.publish` (Content Posting API, publicação direta) — confirmados diretamente na tela de Scopes do TikTok for Developers ao adicionar os dois produtos ao app. `video.upload` (fluxo de rascunho, para o usuário editar dentro do app do TikTok) existe como escopo alternativo mas não é solicitado — ADR-035 decide por Direct Post, não pelo fluxo de rascunho. Escopos são enviados **separados por vírgula** na URL de autorização do TikTok — diferente de X/LinkedIn/Meta, que usam espaço.
 
-**PKCE**
+**PKCE — confirmado na implementação (2026-07-08)**
 
-Seguindo o mesmo raciocínio de [_local-adr-policy-013-pkce-por-plataforma-oauth-seletivo](013-pkce-por-plataforma.md): o SocialShelf usa cliente confidencial (server-side, com `client_secret`), o que historicamente dispensa PKCE nas demais plataformas (LinkedIn, Meta). PKCE para TikTok deve ser confirmado contra a documentação vigente no momento da implementação antes de decidir omiti-lo — ausência de verificação explícita não é decisão válida.
+TikTok exige PKCE (`code_challenge`, `code_challenge_method=S256`, `code_verifier`) mesmo para cliente confidencial server-side — diferente de LinkedIn e Meta (ADR-013), mas igual a X. `GenerateTikTokAuthUrlUseCase` e `HandleTikTokCallbackUseCase` seguem exatamente o mesmo padrão já usado para X (`generatePkce()`, `codeVerifier` embutido no state HMAC, nunca em cookie).
 
 **Ciclo de vida do token**
 

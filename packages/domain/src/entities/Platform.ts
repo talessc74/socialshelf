@@ -3,6 +3,7 @@ export enum Platform {
   FACEBOOK = 'facebook',
   LINKEDIN = 'linkedin',
   TWITTER = 'twitter',
+  TIKTOK = 'tiktok',
 }
 
 export const PLATFORM_CHARACTER_LIMITS: Record<Platform, number> = {
@@ -10,6 +11,7 @@ export const PLATFORM_CHARACTER_LIMITS: Record<Platform, number> = {
   [Platform.FACEBOOK]: 63206,
   [Platform.LINKEDIN]: 3000,
   [Platform.TWITTER]: 280,
+  [Platform.TIKTOK]: 2200,
 }
 
 export interface PlatformMediaSupport {
@@ -22,6 +24,7 @@ export const PLATFORM_MEDIA_SUPPORT: Record<Platform, PlatformMediaSupport> = {
   [Platform.FACEBOOK]: { supportsImage: true, requiresImage: false },
   [Platform.LINKEDIN]: { supportsImage: false, requiresImage: false },
   [Platform.TWITTER]: { supportsImage: false, requiresImage: false },
+  [Platform.TIKTOK]: { supportsImage: false, requiresImage: false },
 }
 
 export const ALL_PLATFORMS = Object.values(Platform)
