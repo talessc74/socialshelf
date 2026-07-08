@@ -12,7 +12,7 @@ Princípios de negócio transversais.
 ### product
 Decisões de produto, roadmap, plataformas suportadas e identidade visual.
 
-- [_local-bdr-policy-002-socialshelf-plataforma-e-produto](product/002-plataforma-produto.md) - SocialShelf: SaaS de publicação social para pequenos criadores, com Rádio Kactus como primeiro cliente
+- [_local-bdr-policy-002-socialshelf-plataforma-e-produto](product/002-plataforma-produto.md) - SocialShelf: SaaS de publicação social para pequenos criadores; Rádio Kactus é a empresa parceira de lançamento, EAI? Jurídico (produto da Rádio Kactus) é a marca-piloto de validação real
 - [_local-bdr-policy-003-redes-sociais-suportadas](product/003-redes-sociais-suportadas.md) - LinkedIn, X, Instagram, Facebook e TikTok: status de integração e regras por plataforma
 - [_local-bdr-policy-004-limites-de-caracteres-por-plataforma](product/004-limites-de-caracteres-plataforma.md) - Limites de caracteres por plataforma: X 280, LinkedIn 3000, Instagram 2200, Facebook 63206
 - [_local-bdr-policy-005-tokens-de-identidade-visual](product/005-tokens-identidade-visual.md) - Paleta azul + dois contextos de fundo, tom de copy conversacional, stepper/painel-recomendação/badge-de-score como componentes-padrão

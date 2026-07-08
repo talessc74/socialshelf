@@ -38,6 +38,10 @@ O SocialShelf não é uma ferramenta para agências ou grandes equipes. É para 
 
 O primeiro cliente e parceiro de lançamento é o Rádio Kactus. As decisões de produto da Sprint 4 são orientadas para o onboarding do Rádio Kactus como caso de uso real de validação.
 
+**Atualização 2026-07-08 — precisão sobre a marca-piloto**
+
+Rádio Kactus é a empresa parceira de lançamento — dona do SocialShelf, não uma `Brand` modelada dentro dele. A marca-piloto de validação real, cujo conteúdo é de fato publicado nas redes sociais via SocialShelf, é **EAI? Jurídico**, um produto/marca da própria Rádio Kactus. Ao configurar integrações que exigem uma marca real de referência (ex: conta de teste em Sandbox de uma rede social, seed de `BrandProfile`), é EAI? Jurídico que deve ser usada — não Rádio Kactus nem SocialShelf.
+
 **Restrições de escopo**
 
 - O SocialShelf não armazena credenciais de redes sociais (apenas tokens OAuth).
