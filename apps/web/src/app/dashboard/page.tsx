@@ -19,6 +19,7 @@ const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.FACEBOOK]: 'Facebook',
   [Platform.INSTAGRAM]: 'Instagram',
   [Platform.TWITTER]: 'X (Twitter)',
+  [Platform.TIKTOK]: 'TikTok',
 }
 
 const PLATFORM_COLORS: Record<Platform, string> = {
@@ -26,6 +27,7 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   [Platform.FACEBOOK]: '#0369a1',
   [Platform.INSTAGRAM]: '#38bdf8',
   [Platform.TWITTER]: '#bae6fd',
+  [Platform.TIKTOK]: '#000000',
 }
 
 const SHORTCUTS = [

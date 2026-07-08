@@ -5,4 +5,5 @@ export const PLATFORM_META = {
   [Platform.FACEBOOK]: { label: 'Facebook', emoji: '👥', color: 'bg-blue-500', oauth: 'meta' as const },
   [Platform.INSTAGRAM]: { label: 'Instagram', emoji: '📸', color: 'bg-pink-500', oauth: 'meta' as const },
   [Platform.TWITTER]: { label: 'X (Twitter)', emoji: '🐦', color: 'bg-black', oauth: 'x' as const },
+  [Platform.TIKTOK]: { label: 'TikTok', emoji: '🎵', color: 'bg-black', oauth: 'tiktok' as const },
 }

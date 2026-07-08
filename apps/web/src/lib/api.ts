@@ -257,7 +257,7 @@ export const api = {
     return data.connections
   },
 
-  async getAuthorizeUrl(platform: 'linkedin' | 'meta' | 'x'): Promise<string> {
+  async getAuthorizeUrl(platform: 'linkedin' | 'meta' | 'x' | 'tiktok'): Promise<string> {
     const data = await apiFetch<{ url: string }>(`/oauth/${platform}/authorize`)
     return data.url
   },
