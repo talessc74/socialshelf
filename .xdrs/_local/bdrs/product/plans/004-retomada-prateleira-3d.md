@@ -1,174 +1,325 @@
-# BDR-Plan-004 — Retomada da Prateleira 3D: paridade total, mobile e rollout seguro
+# BDR-Plan-004 — Retomada da Prateleira 3D: compatibilidade total (desktop + mobile)
 
-- **Status:** rascunho — aguardando validação humana
-- **Criado em:** 2026-07-05
-- **Antecessor:** BDR-Plan-003 (migração Prateleira 3D — 6 milestones concluídos, revertido de produção em 2026-07-05 via PR #95)
-- **Branch de trabalho:** `claude/claude-index-review-zgqj5j` (código íntegro, preservado)
+- **Status:** rascunho v2 (detalhado) — aguardando validação humana
+- **Criado em:** 2026-07-05 · **Revisado em:** 2026-07-05
+- **Antecessor:** BDR-Plan-003 (6 milestones concluídos; revertido de produção via PR #95)
+- **Branch de trabalho:** `claude/claude-index-review-zgqj5j`
 - **Checkpoint de rollback:** branch `checkpoint-prateleira-6-livros-aprovado` (commit `e83bcb5`)
 
 ---
 
-## 1. Contexto e lições do rollback
+## 0. Princípio regente
 
-A Prateleira 3D foi mesclada na `main` (PR #93/#94) e revertida no mesmo dia (PR #95)
-porque a experiência chegou em produção **desencontrada**: a tela de entrada da
-estante não era responsiva no mobile e havia lacunas de funcionalidade em relação
-ao site clássico. O dashboard clássico voltou ao ar e está estável.
+> **O SocialShelf migrará integralmente para a versão de prateleira e livros.**
+> Toda funcionalidade do site atual deve ter uma "página" compatível dentro dos
+> livros — no desktop e no mobile. Toda função de backend consumida pelo site
+> atual deve ser consumida pela nova visão. Compatibilidade total é critério de
+> bloqueio para o merge, não meta aspiracional.
 
-### Lições incorporadas como regra neste plano
+Este documento é a fonte da verdade dessa compatibilidade. Ele decompõe:
+(A) a superfície completa de backend; (B) cada página do site atual, função por
+função, com o endereço exato de destino na nova versão (livro → página do livro
+→ página mobile); (C) a especificação mobile; (D) as fases de execução com
+critérios de aceite por item.
 
-1. **Nenhuma tela é "pronta" sem verificação visual em desktop E mobile** —
-   screenshot com o componente de produção real em 1100×900 e 390×844, incluindo
-   interações (cliques, rolagem, formulários), não apenas o estado inicial.
-2. **Paridade de funcionalidade é critério de bloqueio, não aspiração** — a matriz
-   da Seção 3 deve estar 100% fechada (ou cada exceção explicitamente aprovada
-   pelo humano) antes de qualquer novo merge na `main`.
-3. **Rollout nunca mais direto para a home** — a nova versão entra em produção
-   primeiro como rota opt-in, é validada pelo humano em aparelhos reais, e só
-   então substitui `/dashboard` (Fase R do plano).
-4. **Deploy é observado até o fim** — todo merge na `main` inclui acompanhamento
-   do workflow Deploy até `success` e smoke test pós-deploy.
+Todo o inventário abaixo foi levantado **do código** em 2026-07-05 (grep da
+superfície `api.*` em `apps/web/src`), não de memória.
 
 ---
 
-## 2. Inventário do site atual (fonte da verdade de paridade)
+## A. Superfície de backend — 31 funções, cobertura obrigatória
 
-Levantado do código em 2026-07-05, por rota, com a superfície de API usada:
+Legenda: ✅ já consumida pela nova versão · ❌ falta portar · ⚠️ situação especial
 
-| Rota | Funcionalidades | APIs |
-|---|---|---|
-| `/dashboard` (clássico) | Home agregada: resumo da marca, posts agendados próximos, sugestões de desempenho, links rápidos, avisos de OAuth via query params | `getBrandProfile`, `getConnections`, `getPerformanceSuggestions`, `getPosts`, `getPostsPerformance` |
-| `/dashboard/brand` | Perfil da marca: identidade, tom, valores, temas, vocabulário, paleta, logo (upload), **upload de documento da marca** | `getBrandProfile`, `updateBrandProfile`, `uploadImage`, `uploadBrandDocument` |
-| `/dashboard/accounts` | Conexões: conectar/ver LinkedIn (perfil × página com sub-fluxo de seleção de organização), Meta, X | `getConnections`, `getAuthorizeUrl`, `getLinkedInPageAuthorizeUrl`, `selectLinkedInPage` |
-| `/dashboard/generate` | Geração com IA: descrição, texto, plataformas, estilo, aspect ratio, fotos, seed de pauta, edição de artefatos (texto/IA), publicar/agendar, plataformas extras | `generateContent`, `editArtifact`, `editArtifactText`, `createPost`, `publishPost`, `uploadImage`, `getTopicSuggestions`, `getBrandProfile`, `getConnections`, `getImageUrl` |
-| `/dashboard/compose` | Composição manual: plataformas, texto sincronizado/por rede, limites de caracteres, **cards de imagem com estilo de template (headline/body/estilo) e render de preview**, repost via `?repostFrom=` | `createPost`, `publishPost`, `uploadImage`, **`renderCard`**, `getPost`, `getConnections`, `getImageUrl` |
-| `/dashboard/scheduled` | Lista + calendário; editar agendado (texto por rede, fotos, data), publicar agora, cancelar; publicados com repost | `getPosts`, `updatePost`, `publishPost`, `deletePost`, `uploadImage`, `getImageUrl` |
-| `/dashboard/news` | Busca de notícias + carrossel de pautas com fit score | `searchNews`, `getTopicSuggestions` |
-| `/dashboard/insights` | **Sugestões de desempenho: viral score, melhor horário (com destaque "agora é a hora"), guardar/remover da prateleira, abas shelved/fresh/news (`?tab=`)** | `getPerformanceSuggestions`, `getShelvedPerformanceSuggestions`, `setPerformanceSuggestionShelved` |
-| `/dashboard/performance` | Métricas de posts, análise de insights de desempenho | `getPostsPerformance`, `getPerformanceInsights` |
-| Transversal | TopNav: troca de marca, criação de marca, logout; redirects de OAuth para `/dashboard` com avisos em query params; deep links (`?repostFrom=`, `?seed=`, `?tab=`) | — |
+| # | Função de backend | Consumidor no site atual | Destino na nova versão | Status |
+|---|---|---|---|---|
+| 1 | `getBrands` | `BrandContext` (global) | Inalterado — contexto global alimenta o `PrateleyraCorner` | ✅ |
+| 2 | `getConnections` | accounts, compose, generate | REDES (lista), CRIAR (plataformas), AGENDA (repost) | ✅ |
+| 3 | `getAuthorizeUrl` | accounts | REDES → conectar LinkedIn/Meta/X | ✅ |
+| 4 | `getLinkedInPageAuthorizeUrl` | accounts | REDES → conectar página LinkedIn | ✅ |
+| 5 | `getLinkedInPagePendingSelection` | accounts (retorno OAuth `?linkedinPagePending=`) | REDES — **o retorno por query param precisa abrir o livro REDES já no seletor de organização** (item T3) | ❌ |
+| 6 | `selectLinkedInPage` | accounts | REDES → escolher organização | ✅ |
+| 7 | `createPost` | compose, generate | CRIAR (publicar/agendar), AGENDA (repost) | ✅ |
+| 8 | `publishPost` | compose, generate, scheduled | CRIAR, AGENDA | ✅ |
+| 9 | `updatePost` | scheduled | AGENDA → editar agendado | ✅ |
+| 10 | `deletePost` | scheduled | AGENDA → cancelar agendamento | ✅ |
+| 11 | `getPosts` | scheduled, classic | AGENDA (calendário + listas) | ✅ |
+| 12 | `getPost` | compose (`?repostFrom=`) | CRIAR → entrada de repost com pré-preenchimento (item P2c) | ❌ |
+| 13 | `getAudienceSignal` | **nenhum** (sem consumidor no front atual) | Confirmar com backend se é órfã; se viva, candidata ao DESEMPENHO | ⚠️ P6 |
+| 14 | `getTopicSuggestions` | generate, NewsCarousel | NOTÍCIAS (mosaico), CRIAR (sala de ideias) | ✅ |
+| 15 | `searchNews` | NewsSearch | NOTÍCIAS (busca) | ✅ |
+| 16 | `getPerformanceSuggestions` | insights, classic (painel) | DESEMPENHO → seção Recomendações (item P1) | ❌ |
+| 17 | `submitPerformanceSuggestionFeedback` | `PerformanceSuggestionsPanel` (classic) | DESEMPENHO → Recomendações: útil/não útil (item P1) | ❌ |
+| 18 | `setPerformanceSuggestionShelved` | insights | DESEMPENHO → guardar/remover da estante (item P1) | ❌ |
+| 19 | `getShelvedPerformanceSuggestions` | insights (aba shelved) | DESEMPENHO → Recomendações guardadas (item P1) | ❌ |
+| 20 | `getBrandProfile` | brand, generate, classic | MARCA, CRIAR | ✅ |
+| 21 | `updateBrandProfile` | brand | MARCA (edição inline) | ✅ |
+| 22 | `uploadImage` | brand, compose, generate, scheduled | MARCA (logo), CRIAR (fotos), AGENDA (fotos na edição) | ✅ |
+| 23 | `uploadBrandDocument` | brand (seção "Documento da marca") | MARCA → anexo do dossiê com extração automática (item P3) | ❌ |
+| 24 | `generateContent` | generate | CRIAR → Mesa de Colagem | ✅ |
+| 25 | `getGenerationRequest` | **nenhum** (geração retorna completa; sem polling no front) | Confirmar se órfã; se o backend tornar a geração assíncrona, entra no CRIAR | ⚠️ P6 |
+| 26 | `editArtifact` | generate (retocar com IA) | CRIAR → editor de retoque | ✅ |
+| 27 | `editArtifactText` | generate (editar texto do card) | CRIAR → editor de retoque | ✅ |
+| 28 | `getPostsPerformance` | performance, classic | DESEMPENHO (blueprint de métricas) | ✅ |
+| 29 | `getPerformanceInsights` | performance | DESEMPENHO (diagnóstico) | ✅ |
+| 30 | `getLatestPerformanceInsights` | **nenhum** no front atual | Confirmar se órfã (cache de diagnóstico); se viva, DESEMPENHO usa para evitar re-análise a cada abertura | ⚠️ P6 |
+| 31 | `getImageUrl` | compose, generate, scheduled, LogoImage | CRIAR ✅ · **AGENDA ❌ (mostra "N imagem(ns)" em texto; o site atual mostra miniaturas reais)** → item P4 | parcial |
+| 32 | `renderCard` | compose (cards com template) | CRIAR → Mesa de Composição com cards estilizados (item P2) | ❌ |
+
+**Resumo:** 22 funções já portadas · 7 faltando (`getLinkedInPagePendingSelection`
+no fluxo de retorno, `getPost`/repost, as 4 de sugestões de desempenho,
+`uploadBrandDocument`, `renderCard`, e `getImageUrl` na AGENDA) · 3 sem
+consumidor no front atual, a confirmar com o backend (P6) para decidir portar
+ou registrar como órfãs.
 
 ---
 
-## 3. Matriz de paridade — estado atual da branch vs. site clássico
+## B. Decomposição página a página — endereço de cada função na nova versão
 
-Comparação feita por superfície de API e leitura de código (não por memória):
+Convenção de endereços:
+- **Desktop:** `LIVRO › página` (páginas do spread; um livro pode ter vários
+  spreads navegáveis com "virar página").
+- **Mobile:** `LIVRO › card N` (sequência de cards navegável por
+  anterior/próxima, padrão já existente).
 
-| Livro | Cobre | Paridade | Lacunas identificadas |
+### B1. Home `/dashboard` (clássica, 397 linhas) → Estante
+
+| Função no site atual | Endereço novo (desktop) | Endereço novo (mobile) | Status |
 |---|---|---|---|
-| **AGENDA** | `/scheduled` | ✅ Completa | Editar/reagendar/publicar/cancelar/repostar já implementados (commit `1f35bad`). Pendente: verificação visual **mobile** dos novos painéis de edição e repost |
-| **REDES** | `/accounts` | ✅ Completa | Verificar em mobile o sub-fluxo de seleção de página LinkedIn |
-| **NOTÍCIAS** | `/news` | ✅ Completa | `searchNews` + `getTopicSuggestions` presentes. CTA aponta para `/dashboard/generate?seed=` (rota antiga) — redirecionar para o livro CRIAR quando o deep-link interno existir (Fase T) |
-| **MARCA** | `/brand` | ⚠️ Quase | **Falta `uploadBrandDocument`** (upload de documento de referência da marca) |
-| **DESEMPENHO** | `/performance` | ⚠️ Parcial | Cobre métricas e insights. **Não cobre `/insights` inteiro**: sugestões de desempenho (viral score, melhor horário, guardar na prateleira, abas) não existem em nenhum livro |
-| **CRIAR** | `/generate` + `/compose` | ⚠️ Parcial | Paridade total com generate. Do compose, **falta `renderCard`**: cards de imagem com estilo de template (headline/body/estilo por card) e preview renderizado. Falta entrada `?repostFrom=` (mitigado: repost existe na AGENDA, mas sem renderização de card) |
-| **Estante** (home) | `/dashboard` clássico | ⚠️ Parcial | Responsividade mobile corrigida (commit `82ba33a`). **Faltam**: avisos de OAuth por query param (o clássico exibia banners de sucesso/erro de conexão — hoje se perdem na estante); a home clássica permanece acessível em `/dashboard/classic` como fallback |
-| **PrateleyraCorner** | TopNav | ⚠️ Quase | Troca de marca e logout OK. **Verificar criação de nova marca** (se o TopNav oferecia, o corner precisa oferecer) |
+| Saudação + resumo da marca ativa (`getBrandProfile`) | A estante É a home; identidade da marca aparece no `PrateleyraCorner` | Idem | ✅ decidido no Plan-003 |
+| Estatísticas (BigStat/StatPill: posts, engajamento) + `EngagementGauge` | DESEMPENHO › página 1 (blueprint já cobre) | DESEMPENHO › card 1 | ✅ coberto |
+| Próximos agendados (`getPosts`) | AGENDA › calendário/lista | AGENDA › cards 1-2 | ✅ coberto |
+| Painel de sugestões (`PerformanceSuggestionsPanel` com feedback útil/não útil) | DESEMPENHO › página Recomendações (**P1**) | DESEMPENHO › card Recomendações (**P1**) | ❌ |
+| Atalhos para as rotas | Os próprios livros na estante | Idem | ✅ por construção |
+| Avisos OAuth (`?connected=`, `?error=`, `?detail=`) com banner e `router.replace` de limpeza | Banner na cena da estante (**P5**) | Banner na estante mobile (**P5**) | ❌ |
+| `?linkedinPagePending=` → abre seletor de organização LinkedIn | Estante abre automaticamente REDES no seletor (**T3**) | Idem (**T3**) | ❌ |
 
-**Decisão de arquitetura (proposta):** o conteúdo de `/insights` entra no livro
-DESEMPENHO como seção própria ("Caderno de recomendações" dentro do blueprint),
-mantendo a divisão 1 livro = 1 domínio. Alternativa: sétimo livro — descartada
-por poluir a estante e quebrar a metáfora física atual de 6 volumes.
+### B2. `/dashboard/brand` (489 linhas, 7 seções) → livro MARCA
 
----
+O formulário atual tem 7 seções; o livro MARCA (estética "livro de mesa de
+centro" com edição inline `EditableText`/`TagRow`/`LogoMark`) precisa endereçar
+**todas**:
 
-## 4. Fases de implementação
+| Seção do site atual | Campos/funções | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|---|
+| Documento da marca | `uploadBrandDocument` → extração automática preenche o perfil | MARCA › página "Dossiê & anexos" (**P3**) | MARCA › card Dossiê (**P3**) | ❌ |
+| Negócio | descrição, segmento, público | MARCA › spread 1 | MARCA › card 1 | ✅ verificar campo a campo em P3 |
+| Identidade | nome, valores (TagListEditor), temas | MARCA › spread 1 | MARCA › card 1-2 | ✅ verificar |
+| Visual | paleta de cores, logo (`uploadImage`) | MARCA › spread 2 | MARCA › card 2 | ✅ verificar |
+| Voz | tom, vocabulário preferido/proibido (2× TagListEditor) | MARCA › spread 2 | MARCA › card 3 | ✅ verificar |
+| Narrativa | história/posicionamento | MARCA › spread 2 | MARCA › card 3 | ✅ verificar |
+| Operação | frequência, horários, plataformas-alvo | MARCA › spread 3 (**P3b — auditar presença**) | MARCA › card 4 | ⚠️ auditar |
+| Salvar (`updateBrandProfile`) com estado novo-perfil (`profile === null`) | Já implementado (salvar por campo, inline) | Idem | ✅ |
 
-Cada fase termina com: typecheck + lint + testes limpos, verificação visual
-desktop E mobile com componentes reais, aprovação explícita do humano, commit na
-branch de trabalho. **Nada vai para `main` antes da Fase R.**
+**Regra de aceite MARCA:** diff campo a campo entre `ApiBrandProfile` completo e
+os campos editáveis no livro; nenhum campo do tipo pode ficar sem lugar de edição.
 
-### Fase P — Paridade funcional (fechar a matriz da Seção 3)
+### B3. `/dashboard/accounts` (212 linhas) → livro REDES
 
-| # | Item | Livro | Detalhe |
+| Função | Endereço desktop | Endereço mobile | Status |
 |---|---|---|---|
-| P1 | Sugestões de desempenho | DESEMPENHO | Portar `/insights` completo: cards de sugestão com viral score, melhor horário com destaque temporal, guardar/remover da prateleira, separação fresh/shelved. Estética blueprint mantida |
-| P2 | Cards com template e preview | CRIAR | Portar do compose: por card de imagem — estilo (`NO_TEXT`, `BOLD_BOTTOM`, `CENTERED_OVERLAY`, `TOP_STRIP`), headline, body, `renderCard` com preview renderizado, estado de re-render quando o conteúdo muda |
-| P3 | Upload de documento da marca | MARCA | Portar `uploadBrandDocument` para o ambiente editorial (ex.: "anexos do dossiê") |
-| P4 | Criação de marca | Corner | Auditar TopNav; se houver criação de marca, adicionar ao PrateleyraCorner |
-| P5 | Avisos de OAuth na estante | Estante | Ler os query params de retorno de OAuth em `/dashboard` e exibir banner/toast na cena da estante (sucesso e erro), com o mesmo `router.replace` de limpeza do clássico |
+| Lista de conexões com status (`getConnections`) | REDES › página esquerda | REDES › card 1 | ✅ |
+| Conectar LinkedIn perfil / Meta / X (`getAuthorizeUrl`) | REDES › página direita | REDES › card 2 | ✅ |
+| Conectar página LinkedIn (`getLinkedInPageAuthorizeUrl`) | REDES › página direita | REDES › card 2 | ✅ |
+| Seletor de organização no retorno (`getLinkedInPagePendingSelection` + `selectLinkedInPage`) | REDES › painel seletor — **precisa abrir via query param na estante** (**T3**) | Idem | ⚠️ código existe, gatilho de abertura não |
+| Banners de sucesso/erro pós-OAuth | Estante (**P5**) + dentro do livro | Idem | ❌ |
 
-### Fase M — Mobile completo (auditoria tela a tela)
+### B4. `/dashboard/generate` (1315 linhas) → livro CRIAR, trilha IA
 
-Protocolo: para cada item, screenshot 390×844 E 414×896 do componente real,
-estado inicial + estados de interação (formulário aberto, painel expandido,
-erro visível), correção, re-screenshot.
+Stepper atual: `Descrever → Gerando → Resultado`. Mapeamento sala a sala do ateliê:
 
-| # | Tela | O que verificar |
-|---|---|---|
-| M1 | Estante | Já corrigida (escala 0.72 + scroll horizontal com snap) — revalidar com corner aberto e nomes de marca longos |
-| M2 | Animação de abertura | Livro de 310×410px numa tela de 390px — verificar corte/estouro; reduzir escala se preciso |
-| M3 | AGENDA mobile | Calendário compacto, lista, detalhe, **novos painéis de edição e repost** (não verificados em mobile ainda) |
-| M4 | CRIAR mobile | Todas as salas (entrada, ideias, mesa, colagem, exposição) + editor de retoque + novos cards P2 |
-| M5 | DESEMPENHO mobile | Blueprint + nova seção P1 |
-| M6 | MARCA mobile | Edição inline, upload de logo, novo P3 |
-| M7 | NOTÍCIAS mobile | Mosaico de recortes, busca |
-| M8 | REDES mobile | Conexões + sub-fluxo LinkedIn página |
-| M9 | Corner mobile | Dropdown não estourar viewport; toque fora fecha; alvo de toque ≥ 44px |
-| M10 | Transversal | `prefers-reduced-motion` nas animações de abertura/flutuação; performance de render 3D em aparelho modesto (throttling de CPU no teste) |
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Formulário: descrição, texto pronto opcional, plataformas, estilo de template, aspect ratio, fotos (`uploadImage`) | CRIAR › Sala Mesa (trilha IA) | CRIAR › Mesa (mobile) | ✅ |
+| Seed de pauta (`getTopicSuggestions`, `?seed=`) | CRIAR › Sala de Ideias | CRIAR › Ideias | ✅ (deep-link externo em **T2**) |
+| Rascunho persistente (sessionStorage `socialshelf:criar-atelie-draft`) | CRIAR (global do livro) | Idem | ✅ |
+| Geração (`generateContent`) com estágios visíveis | CRIAR › Mesa de Colagem | Idem | ✅ |
+| Resultado: cards por plataforma, lightbox de imagem | CRIAR › Sala de Exposição | Exposição (mobile) | ✅ (lightbox: auditar em M4) |
+| Retoque: editar texto (`editArtifactText`) e editar com IA (`editArtifact`) — modos menu/instrução/texto | CRIAR › Editor de retoque | Idem | ✅ |
+| Publicar agora / agendar (`createPost` + `publishPost`) | CRIAR › Exposição | Idem | ✅ |
+| Plataformas extras pós-publicação (publicar o mesmo conteúdo em redes adicionais, com resultados/falhas parciais) | CRIAR › Exposição | Idem | ✅ (auditar estados de falha parcial em M4) |
+| Aviso de mídia por plataforma (`PLATFORM_MEDIA_NOTE`, Instagram exige imagem) | CRIAR › Mesa | Idem | ✅ |
 
-### Fase T — Integrações transversais
+### B5. `/dashboard/compose` (706 linhas) → livro CRIAR, trilha manual
 
-| # | Item | Detalhe |
-|---|---|---|
-| T1 | Deep links para livros | `/dashboard?livro=agenda` (ou hash) abre o livro direto — pré-requisito para T2–T4 |
-| T2 | CTA de NOTÍCIAS → CRIAR | Recorte "usar esta pauta" abre o livro CRIAR com a seed, sem passar pela rota antiga |
-| T3 | Redirects de OAuth | `linkedin/meta/x.routes.ts` já apontam para `/dashboard` (ok com P5); `linkedin-page.routes.ts` aponta para `/dashboard/accounts` — decidir: manter (rota viva) ou redirecionar para `/dashboard?livro=redes` |
-| T4 | Botão voltar do navegador | Fechar livro aberto em vez de sair da página (history state) |
-| T5 | Rotas antigas | Decisão de produto: permanecem acessíveis por URL direta (proposta: sim, indefinidamente, como "modo clássico") |
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Seleção de plataformas com estados: conectada / em breve (X) / bloqueada sem imagem | CRIAR › Mesa (trilha manual) | Idem | ✅ |
+| Texto sincronizado ↔ por plataforma, limites de caracteres com contador de cor | CRIAR › Mesa | Idem | ✅ |
+| **Cards de imagem com template**: por card — estilo (`NO_TEXT`/`BOLD_BOTTOM`/`CENTERED_OVERLAY`/`TOP_STRIP`), headline, body, preview renderizado (`renderCard`), invalidação/re-render quando o conteúdo muda (`cardSnapshot`), estados carregando/erro por card, limite `MAX_GENERATION_ARTIFACTS` | CRIAR › Mesa, painel de cards (**P2**) | CRIAR › Mesa mobile, cards empilhados (**P2**) | ❌ |
+| Repost (`?repostFrom=` + `getPost`): pré-preenche plataformas, textos, sincronização detectada, imagens existentes | CRIAR › entrada "repostar" (**P2c**) — e a AGENDA já oferece repost direto simplificado | (**P2c**) | ❌ parcial |
+| Publicar agora / agendar com validação de data futura | CRIAR › Mesa/Exposição | Idem | ✅ |
+| Resultado com falhas parciais por plataforma | CRIAR › Exposição | Idem | ✅ |
 
-### Fase R — Rollout seguro (o inverso do que causou o rollback)
+### B6. `/dashboard/scheduled` (556 linhas) → livro AGENDA
 
-| # | Passo | Critério de saída |
-|---|---|---|
-| R1 | Merge na `main` com a estante em rota **opt-in** (`/dashboard/shelf`), home clássica intocada | Deploy `success` + smoke test |
-| R2 | Validação humana em produção: desktop + **celular real** (iOS/Android), todos os 6 livros, fluxos completos (agendar, editar, publicar, repostar, gerar, compor) | Aprovação explícita do humano por escrito |
-| R3 | Swap: `/dashboard` → estante; clássico → `/dashboard/classic`; commit isolado e pequeno (só o swap), fácil de reverter | Deploy `success` + humano confirma no ar em desktop e mobile |
-| R4 | Observação por período acordado (proposta: 1 semana) com o clássico a um clique | Sem regressões reportadas |
-| R5 | (Opcional, decisão futura) aposentar rotas antigas | Nova deliberação |
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Visões Lista ↔ Calendário (calendário como padrão, BDR-policy-008) | AGENDA › esquerda calendário, direita lista | AGENDA › card 1 calendário, card 2 lista | ✅ |
+| Calendário mensal com navegação de mês, posts no dia (hora + trecho), "+N mais", destaque hoje | AGENDA › esquerda | AGENDA › card 1 (compacto) | ✅ |
+| Detalhe do post (plataformas, textos por rede, quando/onde) | AGENDA › direita (vira página) | AGENDA › detalhe | ✅ |
+| **Miniaturas das fotos** (`getImageUrl` + `PostThumbnail`) | AGENDA › detalhe e edição — hoje mostra só "N imagem(ns)" em texto (**P4**) | Idem (**P4**) | ❌ |
+| Editar agendado: texto por rede com limite, adicionar/remover fotos, reagendar com validação de data futura (`updatePost` + `uploadImage`) | AGENDA › painel de edição | Idem — **verificação mobile pendente (M3)** | ✅ commit `1f35bad` |
+| Publicar agora (`publishPost`) | AGENDA › detalhe | Idem | ✅ |
+| Cancelar agendamento com confirmação (`deletePost`) | AGENDA › detalhe | Idem | ✅ |
+| Repostar publicado (`createPost`+`publishPost`), escolha livre de redes com regras de mídia, texto por plataforma | AGENDA › painel repost | Idem — **verificação mobile pendente (M3)** | ✅ commit `1f35bad` |
+| Scroll-para-post com destaque ao vir do calendário | AGENDA › seleção direta no contexto | Idem | ✅ equivalente |
 
-**Plano de reversão permanente:** cada passo R tem commit isolado; reverter = 
-`git revert` do commit do passo + push na `main` (procedimento já exercitado no
-PR #95, funcionou em ~6 min de deploy).
+### B7. `/dashboard/news` → livro NOTÍCIAS
+
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Busca de notícias (`searchNews`) | NOTÍCIAS › página busca | NOTÍCIAS › card busca | ✅ |
+| Pautas com fit score, fonte, thumbnail (favicon fallback — BDR-policy-008), selo de plataforma se já publicada (`getTopicSuggestions`) | NOTÍCIAS › mosaico de recortes | NOTÍCIAS › cards | ✅ (auditar selo de plataforma e favicon fallback em M7) |
+| "Usar esta pauta" → gerador com seed | Hoje aponta para rota antiga `/dashboard/generate?seed=` → deve abrir CRIAR › Ideias com a seed (**T2**) | Idem (**T2**) | ❌ |
+
+### B8. `/dashboard/insights` (194 linhas, 3 abas) → livro DESEMPENHO, seção Recomendações (**P1**)
+
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Aba "Guardadas" (`getShelvedPerformanceSuggestions`) | DESEMPENHO › página Recomendações, filtro guardadas | DESEMPENHO › card Recomendações | ❌ |
+| Aba "Novas" (`getPerformanceSuggestions`) | Idem, filtro novas | Idem | ❌ |
+| Aba "Notícias" (`?tab=news`) | Redireciona para o livro NOTÍCIAS (não duplicar conteúdo) — deep-link **T1** | Idem | ❌ |
+| Card de sugestão: headline, rationale, viral score (`ScoreBadge`), temas-base | DESEMPENHO › Recomendações | Idem | ❌ |
+| Melhor horário com **destaque temporal "agora é a hora"** (`bestTimeWeekdays`/`HourStart`/`HourEnd` vs. relógio) | Idem | Idem | ❌ |
+| Guardar/remover da estante (`setPerformanceSuggestionShelved`) | Idem | Idem | ❌ |
+| Feedback útil/não útil (`submitPerformanceSuggestionFeedback`) | Idem | Idem | ❌ |
+
+### B9. `/dashboard/performance` (356 linhas) → livro DESEMPENHO
+
+| Função | Endereço desktop | Endereço mobile | Status |
+|---|---|---|---|
+| Métricas por post (`getPostsPerformance`), tabela/plot por plataforma | DESEMPENHO › blueprint (EngagementPlot, SpecPlate, PlatformSwitch) | DESEMPENHO › cards | ✅ |
+| Gráfico de engajamento no tempo (`EngagementOverTimeChart`) | DESEMPENHO › blueprint — **auditar paridade do gráfico** (M5) | Idem | ⚠️ auditar |
+| Diagnóstico do perfil (`getPerformanceInsights` + `ProfileDiagnosticPanel`, análise automática na 1ª carga) | DESEMPENHO › página diagnóstico | DESEMPENHO › card | ✅ |
+| Viral score gauge | DESEMPENHO › ViralGauge | Idem | ✅ |
+
+### B10. Transversais (fora de rota)
+
+| Função | Situação atual | Endereço novo | Status |
+|---|---|---|---|
+| TopNav: troca de marca, e-mail, logout | `PrateleyraCorner` | Estante (canto sup. direito) | ✅ verificado |
+| TopNav: criação de marca | **Não existe no site atual** (auditado: TopNav não tem) | Nada a portar; registrar | ✅ n/a |
+| Guard de autenticação + spinner de loading | `dashboard/layout.tsx` mantém para todas as rotas | Inalterado | ✅ |
+| Botão voltar do navegador com livro aberto | — | Fecha o livro (history state) (**T4**) | ❌ |
+| Deep-link para livro (`/dashboard?livro=X`) | — | Necessário para T2/T3/B8-news (**T1**) | ❌ |
+| Rotas antigas | Vivas | Permanecem acessíveis por URL como "modo clássico" durante a transição (**T5** confirma política) | decisão |
 
 ---
 
-## 5. Protocolo de verificação obrigatório (todas as fases)
+## C. Especificação mobile (todas as telas)
 
-1. `tsc --noEmit` e `next lint` limpos.
-2. `vitest run` — sem falhas novas (falha pré-existente conhecida:
-   `scheduled/page.test.tsx` com fixture de data fixa `2026-07-01`; corrigi-la
-   com `vi.setSystemTime` é item de higiene desta retomada — **item P0**).
-3. Verificação visual com componente de produção real via rota preview
-   temporária + Chromium headless: 1100×900 e 390×844, estados inicial e de
-   interação. Preview e `.env.local` removidos antes do commit.
-4. Novos fluxos com mutação (salvar, publicar, repostar) exercitados de ponta a
-   ponta no preview com API mockada — clique real, não só render.
-5. XDRS e Notion atualizados somente no fechamento de cada fase aprovada.
+Padrões obrigatórios, aplicados em **todas** as telas da nova versão:
+
+1. **Viewports de referência:** 390×844 (base) e 414×896; sem overflow
+   horizontal do body em nenhuma tela.
+2. **Estante:** livros a 0.72×, fileira com scroll horizontal + snap-center,
+   rótulos acompanham (já implementado — commit `82ba33a`); título reduzido;
+   corner não sobrepõe livros.
+3. **Animação de abertura:** volume 3D de 310×410px deve caber com folga —
+   escalar para ≤ 78% da largura do viewport (**M2**).
+4. **Livro aberto (card mobile):** navegação anterior/próxima já padronizada;
+   cada livro define sua sequência de cards (mapeada na Seção B); painéis novos
+   (edição AGENDA, repost, Recomendações, cards com template) entram como
+   estados dentro do card, com botão voltar contextual.
+5. **Alvos de toque ≥ 44×44px** em chips de plataforma, dots do calendário,
+   botões de página.
+6. **Teclado móvel:** formulários (edição AGENDA, Mesa do CRIAR, MARCA) não
+   podem ficar sob o teclado — verificar com viewport encolhida na altura.
+7. **`prefers-reduced-motion`:** desativa flutuação do livro e abertura 3D
+   (corte direto para o livro aberto) (**M10**).
+8. **Desempenho:** cena da estante testada com CPU throttling 4× no Chromium
+   headless; se travar, fallback com sombras/blurs reduzidos (**M10**).
 
 ---
 
-## 6. Riscos
+## D. Fases de execução
+
+Cada item termina com: typecheck + lint + testes limpos; verificação visual
+desktop (1100×900) E mobile (390×844) com o componente de produção real,
+estados inicial + interação + erro; aprovação humana; commit. **Nada vai para
+`main` antes da fase R.** XDRS/Notion atualizados só no fechamento de fase.
+
+### P0 — Higiene (pré-requisito de tudo)
+- Corrigir `scheduled/page.test.tsx` com `vi.setSystemTime` (fixture de data
+  fixa que envenena o CI e mascara regressões reais).
+- **Aceite:** `vitest run` 100% verde no repositório inteiro.
+
+### P — Paridade funcional (fecha as células ❌ da Seção B)
+
+| Item | Escopo | Funções de backend exercitadas | Aceite |
+|---|---|---|---|
+| P1 | DESEMPENHO › seção Recomendações: cards de sugestão (headline, rationale, ScoreBadge, temas), melhor horário com destaque "agora é a hora", guardar/remover da estante, feedback útil/não útil, filtros novas/guardadas — estética blueprint | 16, 17, 18, 19 | Todos os estados (vazio, novas, guardadas, "agora") verificados no preview desktop+mobile; mutações clicadas de ponta a ponta |
+| P2 | CRIAR › cards com template na Mesa manual: estilo/headline/body por card, `renderCard` com preview, invalidação por `cardSnapshot`, estados carregando/erro por card, limite de artefatos | 32, 22, 31 | Card renderiza, re-renderiza ao editar, erro por card exibido; paridade com compose confirmada lado a lado |
+| P2c | CRIAR › entrada de repost: `?repostFrom=`/deep-link interno pré-preenche plataformas, textos, sincronização e imagens | 12 | Repost de post real mockado pré-preenche idêntico ao compose |
+| P3 | MARCA › página "Dossiê": `uploadBrandDocument` com extração preenchendo o perfil + **auditoria campo a campo** das 7 seções (Negócio, Identidade, Visual, Voz, Narrativa, Operação, Documento) vs. `ApiBrandProfile` | 23, 21 | Diff de campos = vazio; upload extrai e preenche no preview |
+| P4 | AGENDA › miniaturas reais de fotos no detalhe e na edição (`getImageUrl` + PostThumbnail) | 31 | Miniaturas visíveis nos dois modos, desktop e mobile |
+| P5 | Estante › avisos OAuth: banners de `?connected=`/`?error=`/`?detail=` com limpeza de URL, na cena da estante desktop e mobile | — | Simulação dos 3 params no preview exibe banner correto e limpa a URL |
+| P6 | Auditoria das 3 funções sem consumidor (`getAudienceSignal`, `getGenerationRequest`, `getLatestPerformanceInsights`): confirmar com o backend se são órfãs ou pendentes de consumo; portar as vivas (candidato: `getLatestPerformanceInsights` como cache do diagnóstico no DESEMPENHO) | 13, 25, 30 | Cada uma com decisão registrada: portada ou declarada órfã |
+
+### M — Auditoria mobile (tela a tela, contra a Seção C)
+
+| Item | Tela | Verificações específicas |
+|---|---|---|
+| M1 | Estante | Revalidar com corner aberto, nome de marca longo, 390 e 414px |
+| M2 | Animação de abertura | Escala ≤78% do viewport; reduced-motion corta a animação |
+| M3 | AGENDA | Calendário, lista, detalhe, edição (P4 incluída), repost — com teclado aberto |
+| M4 | CRIAR | 5 salas + retoque + lightbox + cards P2 + falhas parciais de publicação |
+| M5 | DESEMPENHO | Blueprint + gráfico de engajamento + Recomendações P1 |
+| M6 | MARCA | 7 seções + dossiê P3 + upload de logo |
+| M7 | NOTÍCIAS | Mosaico, busca, selo de plataforma, favicon fallback |
+| M8 | REDES | Conexões + seletor de organização LinkedIn |
+| M9 | Corner | Dropdown dentro do viewport; toque-fora fecha; alvos ≥44px |
+| M10 | Transversal | reduced-motion global; CPU throttling 4×; overflow horizontal zero em todas |
+
+### T — Integrações transversais
+
+| Item | Escopo | Aceite |
+|---|---|---|
+| T1 | Deep-link `/dashboard?livro=<id>` abre o livro direto (estante monta já aberta) | URL direta abre cada um dos 6 livros |
+| T2 | NOTÍCIAS "usar pauta" → CRIAR › Ideias com seed, sem sair da estante; aba "news" de insights aponta para o livro NOTÍCIAS | Clique no recorte abre CRIAR com a pauta carregada |
+| T3 | Retornos de OAuth: `?linkedinPagePending=` abre REDES no seletor de organização; decidir destino de `linkedin-page.routes.ts` (hoje `/dashboard/accounts`) → proposta: `/dashboard?livro=redes&linkedinPagePending=` | Fluxo completo simulado no preview |
+| T4 | Botão voltar fecha o livro aberto (pushState ao abrir, popstate fecha) | Voltar com livro aberto → estante; voltar na estante → sai da página |
+| T5 | Política das rotas antigas: permanecem por URL direta como "modo clássico" (sem link na UI nova) durante R1–R4 | Registrado nesta policy; revisão pós-R4 |
+
+### R — Rollout seguro (inverso do que causou o rollback)
+
+| Passo | Ação | Critério de saída |
+|---|---|---|
+| R1 | Merge na `main` com a estante em rota **opt-in** (`/dashboard/shelf`); home clássica intocada | CI + Deploy `success`; smoke test na rota opt-in |
+| R2 | Validação humana em produção: desktop + **celular real** (iOS e Android se possível), 6 livros, fluxos completos: conectar rede, editar marca, gerar, compor com card, agendar, editar agendado, repostar, guardar recomendação | Aprovação explícita do humano por escrito |
+| R3 | Swap num commit mínimo e isolado: `/dashboard` → estante; clássico → `/dashboard/classic` | Deploy `success` + humano confirma no ar (desktop e mobile) |
+| R4 | Observação por 1 semana com o clássico a um clique | Sem regressões reportadas |
+| R5 | (Decisão futura) aposentar rotas antigas | Nova deliberação |
+
+**Reversão:** cada passo R em commit isolado; reverter = `git revert` + push
+(procedimento exercitado no PR #95: ~6 min até produção restaurada).
+
+---
+
+## E. Riscos
 
 | Risco | Mitigação |
 |---|---|
-| `renderCard` (P2) é o item mais complexo — estado assíncrono de render por card, invalidação quando headline/body/estilo mudam | Replicar a máquina de estados do compose (`cardSnapshot`) em vez de reinventar; testar re-render no preview |
-| Sugestões de desempenho (P1) dependem de dados que só existem com histórico de posts | Preview com mocks de todos os estados: vazio, fresh, shelved, "agora é a hora" |
-| Cena 3D pesada em celulares modestos | M10: teste com CPU throttling; fallback estático se necessário |
-| Blocker conhecido de Playwright CT (`Platform` de `@socialshelf/domain` importa `node:crypto`) | Manter verificação via preview + headless screenshot, que contorna o problema |
-| Falha de teste pré-existente polui todo CI e mascara regressões reais | P0 corrige antes de qualquer outra coisa |
+| P2 (`renderCard`) é o item tecnicamente mais denso: estado assíncrono por card + invalidação | Replicar a máquina de estados do compose (`cardSnapshot`), não reinventar; testar re-render no preview |
+| P1 depende de dados que só existem com histórico | Preview com mocks de todos os estados, incluindo "agora é a hora" com relógio controlado |
+| Deep-links (T1) mexem no ciclo de fases da estante (shelf/animating/open) | Implementar como estado inicial, sem tocar na máquina de fases existente |
+| Cena 3D pesada em aparelho modesto | M10 com throttling; fallback de efeitos |
+| Playwright CT bloqueado (`Platform` importa `node:crypto`) | Verificação via preview + Chromium headless (já validada em todo o Plan-003) |
+| Falha de teste pré-existente mascara regressões | P0 é pré-requisito de tudo |
+| Escopo grande convida a "pular" verificações | Cada item P/M/T é entrega isolada com aprovação própria; a Seção B é o checklist de merge |
 
 ---
 
-## 7. Ordem de execução proposta
+## F. Ordem de execução
 
 ```
-P0 (higiene do teste flaky)
-  → P1..P5 (paridade, um item por aprovação)
-  → M1..M10 (auditoria mobile)
-  → T1..T5 (integrações)
-  → R1..R4 (rollout gradual)
+P0 → P1 → P2 → P2c → P3 → P4 → P5 → P6   (paridade: fecha a Seção A/B)
+   → M1..M10                              (auditoria mobile: fecha a Seção C)
+   → T1..T5                               (integrações)
+   → R1 → R2 → R3 → R4                    (rollout gradual com validação humana)
 ```
 
-Estimativa de granularidade: cada item P/M/T é uma entrega verificável e
-aprovável isoladamente, no mesmo ritmo de trabalho dos milestones do Plan-003.
+Critério global de "pronto para R1": todas as células da Seção A com ✅ (ou
+órfã registrada em P6), todas as linhas ❌/⚠️ da Seção B resolvidas, todos os
+itens M aprovados com screenshots arquivados.
