@@ -110,6 +110,18 @@ jobs:
           # someone with Owner/IAM Admin access — this is a policy/reality drift,
           # not something CI can or should self-correct.
 
+      # Narração por IA (_local-adr-policy-037) via generator-service. Diferente das APIs de
+      # ML "clássicas" do Google (Vision, Translate, Natural Language, Text-to-Speech), não
+      # há um role de IAM dedicado documentado para chamar synthesizeSpeech — acesso depende
+      # apenas da API estar habilitada no projeto. Se isso se provar insuficiente em produção
+      # (PERMISSION_DENIED em generator-service), a permissão exata que falta fica clara no
+      # próprio erro, e um binding específico é adicionado então — mesmo padrão de "descobrir
+      # em teste real" já usado no restante da integração de vídeo/TikTok.
+      - name: Enable Text-to-Speech API
+        continue-on-error: true
+        run: |
+          gcloud services enable texttospeech.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
       - name: Wait for IAM propagation
         run: |
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."

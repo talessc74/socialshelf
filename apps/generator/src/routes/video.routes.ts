@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { GcsVideoStorage } from '../infrastructure/storage/GcsVideoStorage.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FfmpegVideoComposer } from '../infrastructure/video/FfmpegVideoComposer.js'
+import { GoogleTextToSpeechSynthesizer } from '../infrastructure/tts/GoogleTextToSpeechSynthesizer.js'
 
 const uploadVideoSchema = z.object({
   userId: z.string().min(1),
@@ -16,6 +17,9 @@ const composeSlideshowSchema = z.object({
   brandId: z.string().min(1),
   requestId: z.string().min(1),
   imagePaths: z.array(z.string().min(1)).min(1).max(10),
+  // _local-adr-policy-037: narração dita a duração do vídeo quando presente; o texto vem
+  // da copy já gerada pelo pipeline, nunca de um campo de texto livre novo.
+  narrationText: z.string().min(1).max(4500).optional(),
 })
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
@@ -26,6 +30,7 @@ export async function videoRoutes(app: FastifyInstance) {
   const videoStorage = new GcsVideoStorage(generatedBucket)
   const imageStorage = new GcsImageStorage(generatedBucket)
   const videoComposer = new FfmpegVideoComposer()
+  const textToSpeech = new GoogleTextToSpeechSynthesizer()
 
   const internalSecret = process.env['INTERNAL_SECRET']
   if (!internalSecret) {
@@ -83,9 +88,9 @@ export async function videoRoutes(app: FastifyInstance) {
   // Fatia experimental síncrona (_local-adr-policy-036 exige assíncrono para o pipeline
   // completo — esta é uma ação avulsa, opt-in, disparada por um clique explícito na tela de
   // resultado da geração, não parte do POST /generate original). Compõe um slideshow a
-  // partir de imagens já geradas (sem áudio, sem narração — fatia futura), sobe o resultado
-  // e devolve o path. Sem persistência em GenerationRequest ainda: o teste é "isso renderiza
-  // um vídeo válido?" antes de investir na fila assíncrona completa.
+  // partir de imagens já geradas, com narração opcional (_local-adr-policy-037), sobe o
+  // resultado e devolve o path. Sem persistência em GenerationRequest ainda: o teste é "isso
+  // renderiza um vídeo válido?" antes de investir na fila assíncrona completa.
   app.post('/videos/compose-slideshow', async (request, reply) => {
     const header = request.headers['x-internal-secret']
     if (header !== internalSecret) {
@@ -98,14 +103,22 @@ export async function videoRoutes(app: FastifyInstance) {
     }
 
     try {
-      const slides = await Promise.all(
+      const imageBuffers = await Promise.all(
         parsed.data.imagePaths.map(async (path) => {
           const { base64 } = await imageStorage.download(path)
-          return { imageBuffer: Buffer.from(base64, 'base64'), durationSeconds: SLIDE_DURATION_SECONDS }
+          return Buffer.from(base64, 'base64')
         }),
       )
 
-      const { videoBuffer, durationSeconds } = await videoComposer.composeSlideshow({ slides })
+      const narrationAudioBuffer = parsed.data.narrationText
+        ? await textToSpeech.synthesize(parsed.data.narrationText)
+        : null
+
+      const { videoBuffer, durationSeconds } = await videoComposer.composeSlideshow({
+        imageBuffers,
+        narrationAudioBuffer,
+        silentSlideDurationSeconds: SLIDE_DURATION_SECONDS,
+      })
       const path = await videoStorage.upload(
         parsed.data.userId,
         parsed.data.brandId,

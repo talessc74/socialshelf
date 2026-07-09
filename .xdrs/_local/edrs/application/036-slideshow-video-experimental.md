@@ -1,7 +1,7 @@
 ---
 name: _local-edr-policy-036-slideshow-animado-experimental
-description: Define a primeira fatia testável de vídeo gerado por IA (slideshow animado a partir de imagens já geradas, sem áudio, síncrono), confirmada em teste real e já ligada à publicação no TikTok — uma ação avulsa fora do fluxo normal de geração, deliberadamente divergente do modelo assíncrono de _local-adr-policy-036. Use ao evoluir esta fatia para o pipeline completo, ou ao entender por que este composer roda síncrono onde a arquitetura original pedia fila.
-apply-to: apps/generator — FfmpegVideoComposer, POST /videos/compose-slideshow; apps/api — POST /videos/compose-slideshow, GET /videos/signed-url; apps/web — botão experimental em /dashboard/generate
+description: Define a primeira fatia testável de vídeo gerado por IA (slideshow animado a partir de imagens já geradas, com narração por IA opcional, síncrono), confirmada em teste real e já ligada à publicação no TikTok — uma ação avulsa fora do fluxo normal de geração, deliberadamente divergente do modelo assíncrono de _local-adr-policy-036. Use ao evoluir esta fatia para o pipeline completo, ao adicionar música, ou ao entender por que este composer roda síncrono onde a arquitetura original pedia fila.
+apply-to: apps/generator — FfmpegVideoComposer, GoogleTextToSpeechSynthesizer, POST /videos/compose-slideshow; apps/api — POST /videos/compose-slideshow, GET /videos/signed-url; apps/web — botão experimental em /dashboard/generate
 valid-from: 2026-07-09
 ---
 
@@ -26,7 +26,7 @@ A arquitetura assíncrona da ADR-036 protege o `POST /generate` original de carr
 **Escopo desta fatia**
 
 - Apenas modo `slideshow` a partir de imagens já geradas (não cobre `videoSource: 'user-upload'`, que já existe desde `_local-edr-policy-035`).
-- Sem áudio — nem narração nem música, apenas o modo silêncio de `_local-adr-policy-037` (uma trilha de áudio silenciosa é adicionada via ffmpeg só para garantir compatibilidade de container, não é "silêncio" no sentido de ausência de faixa).
+- Narração por IA implementada (ver seção própria abaixo); música de biblioteca continua fora — trava real de licenciamento, não de engenharia.
 - Sem persistência: `GenerationArtifact` não ganhou `mediaType`/`videoStage`/`videoStoragePath` nesta fatia — o vídeo composto não fica associado ao `GenerationRequest` no Firestore, só é devolvido na resposta HTTP para pré-visualização imediata.
 - Máximo de 10 imagens por composição (mesmo teto de `_local-adr-policy-028-geracao-multiartefato`'s `MAX_GENERATION_ARTIFACTS`), 3 segundos por slide, formato vertical 1080×1920 fixo (não segue o `AspectRatio` do post — o vídeo é sempre otimizado para TikTok, independente do formato de imagem escolhido).
 
@@ -46,9 +46,17 @@ Depois da composição confirmada, um botão dedicado ("Publicar no TikTok com e
 
 **Ajuste de performance após uso real (2026-07-09)** — uma composição com mais imagens produziu "Load failed" no celular do usuário. Causa: o pré-scale do `zoompan` estava em 8000px de largura por imagem (bem mais que o necessário para evitar pixelização no zoom), pesado o bastante no único vCPU do `generator-service` para a requisição síncrona ultrapassar o que uma conexão móvel mais fraca tolera. Reduzido para 2x a largura final (2160px) e adicionado `-preset veryfast` no encode. Testado novamente ao vivo pelo usuário após o ajuste: publicação confirmada com sucesso.
 
+**Narração por IA (2026-07-09) — modo narração de `_local-adr-policy-037`**
+
+`TextToSpeechPort` (novo) + `GoogleTextToSpeechSynthesizer`, via `@google-cloud/text-to-speech` (`languageCode: 'pt-BR'`, sem nome de voz fixo — deixa o Google escolher uma voz compatível, evitando depender de um nome exato que pode não existir em toda conta/região). Texto narrado é a legenda de TikTok já gerada pela IA (checkbox "Narrar com voz de IA" no `/dashboard/generate`, só habilitado quando essa legenda existe) — nunca um campo de texto livre novo, conforme a ADR.
+
+Simplificação consciente em relação ao texto da ADR-037 ("tempo de cada slide distribuído proporcionalmente entre as posições"): esta fatia sintetiza a narração **uma única vez** para o texto inteiro, mede a duração via `ffprobe`, e divide igualmente entre as imagens (`duração_total / N_imagens`), em vez de segmentar o texto por posição e sintetizar cada trecho separado. Distribuição igual e distribuição "proporcional" coincidem quando não há nenhum outro sinal de peso por posição — mas segmentar por posição (ligando cada trecho de texto à imagem correspondente) é uma evolução real, não implementada aqui. Piso de 1.5s por slide evita durações degenerate quando há poucas palavras e muitas imagens.
+
+Infra: `texttospeech.googleapis.com` habilitada no bootstrap do deploy (mesmo padrão do `cloudscheduler.googleapis.com`). Diferente de outras APIs do Google já usadas no projeto (Vertex AI, Cloud Storage), não há um role de IAM dedicado e documentado para Text-to-Speech — a suposição de que "API habilitada + credenciais do generator-service já bastam" não foi confirmada em produção no momento em que este texto foi escrito; se faltar permissão, o erro real na primeira chamada dirá exatamente o que falta.
+
 ## What this does not solve
 
-Fila assíncrona com `videoStage` (desenho completo de `_local-edr-policy-033`), áudio (narração TTS ou música de `_local-adr-policy-037`), persistência do vídeo como artefato do `GenerationRequest` (o vídeo composto ainda não é salvo em `GenerationArtifact`/Firestore — só passa a existir no Cloud Storage e é referenciado diretamente pelo `Post` criado ao publicar), e suporte a `videoSource: 'user-upload'` combinado com composição por IA. Nenhum desses existe ainda.
+Fila assíncrona com `videoStage` (desenho completo de `_local-edr-policy-033`), música de biblioteca (bloqueada por falta de faixas licenciadas reais, não por engenharia), narração segmentada por posição/slide (hoje é um único áudio dividido em partes iguais, não sincronizado por conteúdo), persistência do vídeo como artefato do `GenerationRequest` (o vídeo composto ainda não é salvo em `GenerationArtifact`/Firestore — só passa a existir no Cloud Storage e é referenciado diretamente pelo `Post` criado ao publicar), e suporte a `videoSource: 'user-upload'` combinado com composição por IA. Nenhum desses existe ainda.
 
 ## References
 

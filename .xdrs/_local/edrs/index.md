@@ -36,7 +36,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-033-pipeline-video-tiktok-implementacao](application/033-tiktok-video-pipeline-implementacao.md) - Worker de vídeo via Cloud Tasks, progresso por videoStage, TikTokPublisher testado contra mock, nunca API real
 - [_local-edr-policy-034-consentimento-de-terceiros-no-upload](application/034-consentimento-conteudo-terceiros-upload.md) - Checkbox de consentimento obrigatório antes do upload de vídeo próprio do usuário; detalhamento jurídico nos Termos de Uso
 - [_local-edr-policy-035-upload-de-video-para-tiktok-mvp-sincrono](application/035-upload-video-tiktok-mvp-sincrono.md) - Primeira fatia real: upload próprio síncrono, sem fila/ffmpeg/áudio; proxy via radiokactus.com para satisfazer verificação de domínio do pull_by_url do TikTok
-- [_local-edr-policy-036-slideshow-animado-experimental](application/036-slideshow-video-experimental.md) - Ação avulsa e opt-in que compõe slideshow animado via ffmpeg a partir de imagens já geradas, sem áudio, síncrona (diverge deliberadamente do modelo de fila da ADR-036) — validação mínima antes de investir na fila completa
+- [_local-edr-policy-036-slideshow-animado-experimental](application/036-slideshow-video-experimental.md) - Ação avulsa e opt-in que compõe slideshow animado via ffmpeg a partir de imagens já geradas, com narração por IA opcional (Google Text-to-Speech), síncrona (diverge deliberadamente do modelo de fila da ADR-036) — validação mínima antes de investir na fila completa
 
 ### devops
 Pipeline de entrega e práticas de build.

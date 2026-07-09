@@ -237,6 +237,30 @@ describe('POST /videos/compose-slideshow', () => {
 
     expect(response.statusCode).toBe(502)
   })
+
+  it('forwards narrationText to the generator when provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ path: 'videos/user-test-123/brand-1/req-1.mp4', durationSeconds: 12 }),
+    })
+    global.fetch = fetchMock as unknown as typeof fetch
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: {
+        requestId: 'req-1',
+        imagePaths: ['user-test-123/brand-1/img-0.png'],
+        narrationText: 'Confira essa novidade incrível.',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const [, options] = fetchMock.mock.calls[0]!
+    const sentBody = JSON.parse((options as { body: string }).body)
+    expect(sentBody.narrationText).toBe('Confira essa novidade incrível.')
+  })
 })
 
 describe('GET /videos/signed-url', () => {

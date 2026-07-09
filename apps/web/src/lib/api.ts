@@ -443,10 +443,14 @@ export const api = {
     return res.json() as Promise<{ path: string; consentAcceptedAt: string }>
   },
 
-  async composeSlideshow(requestId: string, imagePaths: string[]): Promise<{ path: string; durationSeconds: number }> {
+  async composeSlideshow(
+    requestId: string,
+    imagePaths: string[],
+    narrationText?: string,
+  ): Promise<{ path: string; durationSeconds: number }> {
     return apiFetch('/videos/compose-slideshow', {
       method: 'POST',
-      body: JSON.stringify({ requestId, imagePaths }),
+      body: JSON.stringify({ requestId, imagePaths, ...(narrationText ? { narrationText } : {}) }),
     })
   },
 

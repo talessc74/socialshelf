@@ -37,6 +37,14 @@ vi.mock('../infrastructure/video/FfmpegVideoComposer.js', () => ({
   })),
 }))
 
+const mockSynthesize = vi.fn().mockResolvedValue(Buffer.from('fake-narration-mp3'))
+
+vi.mock('../infrastructure/tts/GoogleTextToSpeechSynthesizer.js', () => ({
+  GoogleTextToSpeechSynthesizer: vi.fn().mockImplementation(() => ({
+    synthesize: mockSynthesize,
+  })),
+}))
+
 describe('POST /videos/upload', () => {
   let app: FastifyInstance
 
@@ -281,15 +289,38 @@ describe('POST /videos/compose-slideshow', () => {
 
     expect(response.statusCode).toBe(200)
     expect(mockImageDownload).toHaveBeenCalledTimes(2)
+    expect(mockSynthesize).not.toHaveBeenCalled()
     expect(mockComposeSlideshow).toHaveBeenCalledWith({
-      slides: [
-        { imageBuffer: expect.any(Buffer), durationSeconds: 3 },
-        { imageBuffer: expect.any(Buffer), durationSeconds: 3 },
-      ],
+      imageBuffers: [expect.any(Buffer), expect.any(Buffer)],
+      narrationAudioBuffer: null,
+      silentSlideDurationSeconds: 3,
     })
     const body = response.json<{ path: string; durationSeconds: number }>()
     expect(body.path).toBe('videos/user-1/brand-1/upload-123.mp4')
     expect(body.durationSeconds).toBe(6)
+  })
+
+  it('synthesizes narration and passes it to the composer when narrationText is given', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: ['user-1/brand-1/img-0.png'],
+        narrationText: 'Confira essa novidade incrível.',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(mockSynthesize).toHaveBeenCalledWith('Confira essa novidade incrível.')
+    expect(mockComposeSlideshow).toHaveBeenCalledWith({
+      imageBuffers: [expect.any(Buffer)],
+      narrationAudioBuffer: expect.any(Buffer),
+      silentSlideDurationSeconds: 3,
+    })
   })
 
   it('returns 500 when composition fails', async () => {
