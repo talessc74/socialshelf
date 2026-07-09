@@ -38,9 +38,14 @@ export class FfmpegVideoComposer implements VideoComposerPort {
           '-loop', '1',
           '-i', imagePath,
           '-vf',
-          `scale=8000:-1,zoompan=z='min(zoom+${ZOOM_PER_FRAME},${MAX_ZOOM})':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS}`,
+          // Pré-escala antes do zoompan evita pixelização durante o zoom (técnica padrão),
+          // mas 8000px era exagero — 2x a largura final já é suficiente e bem mais rápido.
+          // Em produção, 8000px por imagem deixava a composição lenta o bastante para
+          // esbarrar em timeout de rede no celular ("Load failed") antes de terminar.
+          `scale=${WIDTH * 2}:-1,zoompan=z='min(zoom+${ZOOM_PER_FRAME},${MAX_ZOOM})':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS}`,
           '-t', String(slide.durationSeconds),
           '-c:v', 'libx264',
+          '-preset', 'veryfast',
           '-pix_fmt', 'yuv420p',
           '-r', String(FPS),
           segmentPath,
