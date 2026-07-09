@@ -412,6 +412,49 @@ function useGenerationProgress(active: boolean, knownArtifactCount: number | nul
   return { stages, stageIndex }
 }
 
+// Mantém a tela acesa enquanto `active` (geração de cards ou de vídeo) — no celular, Safari e
+// outros navegadores apagam a tela por inatividade e a geração se perde. A Screen Wake Lock API
+// não existe em todo navegador (ex: Safari só a partir do iOS 16.4) — sem suporte, é um no-op
+// silencioso, não um erro. O navegador também libera o lock sozinho quando a aba fica em
+// background (troca de app, por exemplo); ao voltar a ficar visível com `active` ainda
+// verdadeiro, o lock é pedido de novo.
+function useWakeLock(active: boolean) {
+  useEffect(() => {
+    if (!active || !('wakeLock' in navigator)) return
+
+    let lock: WakeLockSentinel | null = null
+    let cancelled = false
+
+    const acquire = async () => {
+      try {
+        const sentinel = await navigator.wakeLock.request('screen')
+        if (cancelled) {
+          await sentinel.release()
+          return
+        }
+        lock = sentinel
+      } catch {
+        // Falha ao adquirir (ex: bateria fraca) não deve travar a geração — segue sem o lock.
+      }
+    }
+
+    void acquire()
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !lock) {
+        void acquire()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      if (lock) void lock.release()
+    }
+  }, [active])
+}
+
 const DRAFT_STORAGE_KEY = 'socialshelf:generate-draft'
 
 type GenerateDraft = {
@@ -481,6 +524,7 @@ export default function GenerateContentPage() {
   })
 
   const { stages, stageIndex } = useGenerationProgress(generating, photoFiles.length > 0 ? photoFiles.length : null)
+  useWakeLock(generating)
 
   const validPlatforms = new Set(Object.values(Platform))
   const connectedPlatforms = connections
@@ -1029,6 +1073,7 @@ function ResultView({
   const [composingVideo, setComposingVideo] = useState(false)
   const [composedVideoPath, setComposedVideoPath] = useState<string | null>(null)
   const [composeVideoError, setComposeVideoError] = useState('')
+  useWakeLock(composingVideo)
 
   // Experimental: monta um vídeo animado (slideshow com Ken Burns, sem áudio) a partir das
   // imagens já geradas — ação avulsa e opt-in, não parte do fluxo normal de publicação.
