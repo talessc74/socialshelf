@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { GcsVideoStorage } from '../infrastructure/storage/GcsVideoStorage.js'
+import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
+import { FfmpegVideoComposer } from '../infrastructure/video/FfmpegVideoComposer.js'
 
 const uploadVideoSchema = z.object({
   userId: z.string().min(1),
@@ -9,11 +11,21 @@ const uploadVideoSchema = z.object({
   mimeType: z.enum(['video/mp4', 'video/webm', 'video/quicktime']),
 })
 
+const composeSlideshowSchema = z.object({
+  userId: z.string().min(1),
+  brandId: z.string().min(1),
+  requestId: z.string().min(1),
+  imagePaths: z.array(z.string().min(1)).min(1).max(10),
+})
+
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+const SLIDE_DURATION_SECONDS = 3
 
 export async function videoRoutes(app: FastifyInstance) {
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
   const videoStorage = new GcsVideoStorage(generatedBucket)
+  const imageStorage = new GcsImageStorage(generatedBucket)
+  const videoComposer = new FfmpegVideoComposer()
 
   const internalSecret = process.env['INTERNAL_SECRET']
   if (!internalSecret) {
@@ -64,6 +76,47 @@ export async function videoRoutes(app: FastifyInstance) {
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'video signed url failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  // Fatia experimental síncrona (_local-adr-policy-036 exige assíncrono para o pipeline
+  // completo — esta é uma ação avulsa, opt-in, disparada por um clique explícito na tela de
+  // resultado da geração, não parte do POST /generate original). Compõe um slideshow a
+  // partir de imagens já geradas (sem áudio, sem narração — fatia futura), sobe o resultado
+  // e devolve o path. Sem persistência em GenerationRequest ainda: o teste é "isso renderiza
+  // um vídeo válido?" antes de investir na fila assíncrona completa.
+  app.post('/videos/compose-slideshow', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = composeSlideshowSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const slides = await Promise.all(
+        parsed.data.imagePaths.map(async (path) => {
+          const { base64 } = await imageStorage.download(path)
+          return { imageBuffer: Buffer.from(base64, 'base64'), durationSeconds: SLIDE_DURATION_SECONDS }
+        }),
+      )
+
+      const { videoBuffer, durationSeconds } = await videoComposer.composeSlideshow({ slides })
+      const path = await videoStorage.upload(
+        parsed.data.userId,
+        parsed.data.brandId,
+        videoBuffer,
+        'video/mp4',
+        parsed.data.requestId,
+      )
+      return reply.send({ path, durationSeconds })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'compose slideshow failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

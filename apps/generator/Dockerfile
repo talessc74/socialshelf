@@ -26,7 +26,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 # fontconfig + ttf-dejavu: librsvg (usado pelo vips) precisa de fontconfig e de uma fonte
 # instalada no container para renderizar <text> do SVG do template de headline.
-RUN apk add --no-cache vips fontconfig ttf-dejavu
+# ffmpeg: usado por FfmpegVideoComposer para montar o slideshow animado do TikTok.
+RUN apk add --no-cache vips fontconfig ttf-dejavu ffmpeg
 ENV NODE_ENV=production
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 appuser
 COPY --from=builder --chown=appuser:nodejs /deploy ./

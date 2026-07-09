@@ -1,10 +1,16 @@
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
 import { fetchInternal } from '../lib/serviceAuth.js'
 
 const ALLOWED_MIME_TYPES = ['video/mp4', 'video/webm', 'video/quicktime']
 // Limites da Content Posting API do TikTok (_local-adr-policy-035): 3–600s de duração.
 const MIN_DURATION_SECONDS = 3
 const MAX_DURATION_SECONDS = 600
+
+const composeSlideshowSchema = z.object({
+  requestId: z.string().min(1),
+  imagePaths: z.array(z.string().min(1)).min(1).max(10),
+})
 
 export async function videosRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
@@ -78,6 +84,71 @@ export async function videosRoutes(app: FastifyInstance) {
 
       const { path } = (await res.json()) as { path: string }
       return reply.send({ path, consentAcceptedAt: new Date().toISOString() })
+    },
+  )
+
+  // Ação experimental, opt-in: monta um vídeo animado (slideshow com Ken Burns, sem áudio)
+  // a partir de imagens já geradas por IA — não passa pelo checkbox de consentimento de
+  // _local-edr-policy-034, que é especificamente sobre vídeo enviado pelo usuário contendo
+  // conteúdo de terceiros; aqui o conteúdo é o mesmo já gerado pelo próprio pipeline de IA.
+  app.post(
+    '/videos/compose-slideshow',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = composeSlideshowSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const res = await fetchInternal(`${generatorUrl}/videos/compose-slideshow`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Secret': internalSecret,
+        },
+        body: JSON.stringify({
+          userId: request.userId,
+          brandId: request.brandId,
+          requestId: parsed.data.requestId,
+          imagePaths: parsed.data.imagePaths,
+        }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
+
+  app.get(
+    '/videos/signed-url',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = z.object({ path: z.string().min(1) }).safeParse(request.query)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
+      }
+
+      if (!parsed.data.path.startsWith(`videos/${request.userId}/`)) {
+        return reply.status(403).send({ error: 'Forbidden' })
+      }
+
+      const res = await fetchInternal(
+        `${generatorUrl}/videos/signed-url?path=${encodeURIComponent(parsed.data.path)}`,
+        { headers: { 'X-Internal-Secret': internalSecret } },
+      )
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
     },
   )
 }
