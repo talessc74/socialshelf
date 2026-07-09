@@ -50,6 +50,13 @@ Cap prático para o relay em base64 (`apps/api` → `apps/generator`, mesmo padr
 
 Apps do TikTok que não passaram pela revisão de app (nosso caso, ainda em Sandbox) só podem publicar como `SELF_ONLY` (privado, visível apenas ao autor) — publicar como público falha antes da aprovação. `TikTokPublisher` fixa esse valor; torná-lo configurável é decisão para quando o app estiver aprovado em Production.
 
+**Confirmado em publicação real (2026-07-08) — dois requisitos que não estavam em nenhuma policy antes do teste**
+
+1. **Verificação de domínio é por produto, não só por app.** A verificação de `radiokactus.com` feita para App details (Terms/Privacy/Website) não cobre `pull_by_url` do Content Posting API — existe uma segunda tela de "Verify domains" dentro do próprio produto (Sandbox e Production têm listas de URL properties separadas) que precisa ser verificada à parte, mesmo domínio, mesmo método (Domain/DNS TXT). Sem isso, a API devolve `403 url_ownership_unverified`.
+2. **Apps não auditados só publicam em contas privadas.** Além de `privacy_level: SELF_ONLY` no post, a **conta de destino no TikTok** precisa estar configurada como privada (Configurações e privacidade → Conta privada) — sem isso, a API devolve `403 unaudited_client_can_only_post_to_private_accounts`. Não é algo que o SocialShelf controla ou pode contornar via API; é uma configuração que o dono da conta TikTok precisa fazer manualmente enquanto o app não é aprovado em Production.
+
+Publicação real confirmada com sucesso após resolver os dois pontos acima (`publish_id` retornado pela API, formato `v_pub_url~v2-...`).
+
 **Sem áudio**
 
 Modo silêncio de `_local-adr-policy-037` — vídeo publicado exatamente como enviado, sem música nem narração. Multi-modo de áudio é fatia futura.
