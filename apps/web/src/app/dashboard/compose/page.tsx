@@ -43,6 +43,10 @@ const IMAGE_REQUIRED_PLATFORMS = new Set<Platform>(
 const VIDEO_REQUIRED_PLATFORMS = new Set<Platform>([Platform.TIKTOK])
 const MIN_VIDEO_DURATION_SECONDS = 3
 const MAX_VIDEO_DURATION_SECONDS = 600
+// Cap conservador para caber no limite de corpo de requisição do Cloud Run somado à
+// inflação de ~33% do relay em base64 (apps/api → apps/generator, EDR-035) — vídeos de
+// celular em 4K ou HD de alta qualidade passam disso facilmente em poucos segundos.
+const MAX_VIDEO_FILE_SIZE_BYTES = 20 * 1024 * 1024
 const VIDEO_CONSENT_TEXT =
   'Confirmo que tenho os direitos necessários sobre este vídeo e sobre as pessoas nele, e autorizo seu uso para publicação no TikTok.'
 
@@ -199,6 +203,17 @@ export default function ComposePage() {
   const handleAddVideo = (files: FileList | null) => {
     const file = files?.[0]
     if (!file) return
+
+    // Checado antes de qualquer outra coisa: um arquivo grande demais nem chega a ser
+    // anexado — evita que o envio comece e falhe no meio com um erro genérico de rede
+    // ("Load failed"/"Failed to fetch") em vez de um aviso claro aqui.
+    if (file.size > MAX_VIDEO_FILE_SIZE_BYTES) {
+      setVideoDurationError(
+        `Vídeo muito grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Limite atual: ${MAX_VIDEO_FILE_SIZE_BYTES / 1024 / 1024}MB — grave um clipe mais curto ou reduza a qualidade.`,
+      )
+      return
+    }
+
     if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
     setVideoDurationError(null)
     setVideoDurationSeconds(null)
@@ -357,6 +372,19 @@ export default function ComposePage() {
     return [...existingImagePaths, ...cardPaths]
   }
 
+  // "Load failed" (Safari) / "Failed to fetch" (Chrome) são mensagens genéricas do
+  // próprio navegador para falha de rede pura — o mais comum aqui é o vídeo estourando
+  // o limite de tamanho durante o envio. Traduzido para algo acionável.
+  const describePublishError = (err: unknown): string => {
+    const raw = err instanceof Error ? err.message : String(err)
+    if (/load failed|failed to fetch|networkerror/i.test(raw)) {
+      return videoFile
+        ? 'Falha de rede ao enviar o vídeo — tente um arquivo menor ou verifique sua conexão.'
+        : 'Falha de rede ao publicar — verifique sua conexão e tente novamente.'
+    }
+    return raw
+  }
+
   const buildVideo = async (): Promise<{ path: string; consentAcceptedAt: string } | null> => {
     if (!validSelectedPlatforms.includes(Platform.TIKTOK) || !videoFile || videoDurationSeconds === null) {
       return null
@@ -381,7 +409,7 @@ export default function ComposePage() {
       const publishResult = await api.publishPost(post.id)
       setResult(publishResult)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao publicar.')
+      setError(describePublishError(err))
     } finally {
       setPublishing(false)
     }
@@ -410,7 +438,7 @@ export default function ComposePage() {
       setScheduleSuccess(scheduledAt)
       setShowScheduler(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao agendar.')
+      setError(describePublishError(err))
     } finally {
       setScheduling(false)
     }
