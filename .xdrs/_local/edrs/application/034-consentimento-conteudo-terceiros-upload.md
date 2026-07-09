@@ -37,7 +37,17 @@ O texto completo de responsabilidade sobre conteúdo de terceiros, uso indevido 
 
 **Retenção do vídeo bruto**
 
-O vídeo enviado é mantido por 7 dias após a publicação, com opção de download pelo usuário durante esse período, e então deletado — atualização de [_local-adr-policy-008-retencao-e-privacidade-de-dados](../../adrs/data/008-data-retention-privacy.md). A exclusão ao final do prazo é uma etapa monitorada (job agendado com alerta em caso de falha de execução), não uma limpeza assumida.
+O vídeo enviado é mantido por 7 dias, com opção de download pelo usuário durante esse período, e então deletado — atualização de [_local-adr-policy-008-retencao-e-privacidade-de-dados](../../adrs/data/008-data-retention-privacy.md). A exclusão ao final do prazo é uma etapa monitorada (job agendado com alerta em caso de falha de execução), não uma limpeza assumida.
+
+**Implementado em 2026-07-09 — job de deleção, com dois desvios do texto original**
+
+`apps/generator` expõe `POST /internal/videos-cleanup-tick`, acionado uma vez por dia (03:00 UTC) por um job do Cloud Scheduler autenticado por OIDC (mesmo padrão de `publisher-scheduled-tick`, ver `_local-edr-policy-007`). A idade é decidida por `timeCreated` do próprio objeto no Cloud Storage (metadado do GCS, não o timestamp embutido no path do arquivo), listando e apagando tudo sob o prefixo `videos/` com mais de 7 dias — falha em um arquivo é registrada em log e não impede a tentativa dos demais.
+
+Dois pontos onde a implementação diverge do texto original acima:
+
+1. **"7 dias" conta a partir do upload, não da publicação.** Não existe hoje um campo separado de `publishedAt` do vídeo em si — o vídeo é apagado 7 dias após ser enviado ao Cloud Storage, o que na prática (fluxo síncrono da `_local-edr-policy-035`) é a mesma janela, já que a publicação acontece minutos depois do upload.
+2. **"Job agendado com alerta em caso de falha" — o agendamento existe, o alerta não.** Cloud Scheduler tenta de novo em caso de erro HTTP (comportamento padrão da ferramenta), mas não há alerta configurado (e-mail, Slack, etc.) — mesma lacuna já existente e não resolvida para `publisher-scheduled-tick`. Falhas ficam visíveis apenas em log do Cloud Run.
+3. **"Opção de download pelo usuário durante esse período" não está implementada** — não existe endpoint nem UI para o usuário baixar o vídeo bruto de volta antes da exclusão.
 
 ## References
 

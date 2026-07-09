@@ -8,4 +8,5 @@ export interface VideoStoragePort {
   ): Promise<string>
   getSignedUrl(path: string, ttlSeconds: number): Promise<string>
   delete(path: string): Promise<void>
+  listOlderThan(maxAgeMs: number): Promise<string[]>
 }
