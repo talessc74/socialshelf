@@ -20,6 +20,7 @@ const platformEnum = z.enum([
   Platform.FACEBOOK,
   Platform.INSTAGRAM,
   Platform.TWITTER,
+  Platform.TIKTOK,
 ])
 
 const generateSchema = z.object({
