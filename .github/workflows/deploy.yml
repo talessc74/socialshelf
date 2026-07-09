@@ -396,6 +396,45 @@ jobs:
             --member="serviceAccount:publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
             --role="roles/run.invoker"
 
+      - name: Grant generator-service invoker access on itself (used by Cloud Scheduler below)
+        run: |
+          gcloud run services add-iam-policy-binding generator-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:generator-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
+
+      # Retenção de 7 dias para vídeo bruto enviado pelo usuário (_local-edr-policy-034).
+      # Uma vez por dia é suficiente — não é um tick de minuto como o de publicação
+      # agendada. Mesmo padrão de continue-on-error do job de scheduler do
+      # publisher-service acima: a permissão de habilitar a API do Cloud Scheduler pode
+      # não estar disponível ao deployer SA, e isso não deve bloquear o resto do deploy.
+      - name: Create/update Cloud Scheduler job for daily video cleanup
+        continue-on-error: true
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
+          URL="${{ steps.deploy.outputs.url }}/internal/videos-cleanup-tick"
+          SA="generator-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+          if gcloud scheduler jobs describe generator-video-cleanup-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+            gcloud scheduler jobs update http generator-video-cleanup-tick \
+              --location=${{ env.GCP_REGION }} \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          else
+            gcloud scheduler jobs create http generator-video-cleanup-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="0 3 * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          fi
+
   deploy-web:
     name: Deploy web
     runs-on: ubuntu-latest

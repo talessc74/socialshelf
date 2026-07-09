@@ -9,12 +9,15 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
 
 const mockUpload = vi.fn().mockResolvedValue('videos/user-1/brand-1/upload-123.mp4')
 const mockGetSignedUrl = vi.fn().mockResolvedValue('https://storage.googleapis.com/signed-video-url')
+const mockDelete = vi.fn().mockResolvedValue(undefined)
+const mockListOlderThan = vi.fn().mockResolvedValue([])
 
 vi.mock('../infrastructure/storage/GcsVideoStorage.js', () => ({
   GcsVideoStorage: vi.fn().mockImplementation(() => ({
     upload: mockUpload,
     getSignedUrl: mockGetSignedUrl,
-    delete: vi.fn(),
+    delete: mockDelete,
+    listOlderThan: mockListOlderThan,
   })),
 }))
 
@@ -125,5 +128,76 @@ describe('GET /videos/signed-url', () => {
     })
 
     expect(response.statusCode).toBe(401)
+  })
+})
+
+describe('POST /internal/videos-cleanup-tick', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({ method: 'POST', url: '/internal/videos-cleanup-tick' })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('deletes every path returned by listOlderThan and reports the count', async () => {
+    mockListOlderThan.mockResolvedValueOnce([
+      'videos/user-1/brand-1/old-1.mp4',
+      'videos/user-1/brand-1/old-2.mp4',
+    ])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/videos-cleanup-tick',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ deletedCount: number; deleted: string[]; failed: unknown[] }>()
+    expect(body.deletedCount).toBe(2)
+    expect(body.deleted).toEqual(['videos/user-1/brand-1/old-1.mp4', 'videos/user-1/brand-1/old-2.mp4'])
+    expect(body.failed).toEqual([])
+    expect(mockDelete).toHaveBeenCalledWith('videos/user-1/brand-1/old-1.mp4')
+    expect(mockDelete).toHaveBeenCalledWith('videos/user-1/brand-1/old-2.mp4')
+  })
+
+  it('reports per-file failures without aborting the rest', async () => {
+    mockListOlderThan.mockResolvedValueOnce(['videos/user-1/brand-1/ok.mp4', 'videos/user-1/brand-1/bad.mp4'])
+    mockDelete.mockImplementationOnce(() => Promise.resolve())
+    mockDelete.mockImplementationOnce(() => Promise.reject(new Error('gcs unavailable')))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/videos-cleanup-tick',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ deletedCount: number; failed: { path: string; error: string }[] }>()
+    expect(body.deletedCount).toBe(1)
+    expect(body.failed).toEqual([{ path: 'videos/user-1/brand-1/bad.mp4', error: 'gcs unavailable' }])
+  })
+
+  it('returns zero deletions when nothing is old enough', async () => {
+    mockListOlderThan.mockResolvedValueOnce([])
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/videos-cleanup-tick',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ deletedCount: 0, deleted: [], failed: [] })
   })
 })

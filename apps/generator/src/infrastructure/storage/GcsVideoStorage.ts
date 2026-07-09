@@ -36,4 +36,18 @@ export class GcsVideoStorage implements VideoStoragePort {
   async delete(path: string): Promise<void> {
     await this.storage.bucket(this.bucketName).file(path).delete()
   }
+
+  // _local-edr-policy-034: retenção de 7 dias para vídeo bruto enviado pelo usuário.
+  // timeCreated (metadado do próprio GCS) decide a idade — não o timestamp embutido no
+  // nome do arquivo, que é só uma convenção de path, não uma garantia.
+  async listOlderThan(maxAgeMs: number): Promise<string[]> {
+    const cutoff = Date.now() - maxAgeMs
+    const [files] = await this.storage.bucket(this.bucketName).getFiles({ prefix: 'videos/' })
+    return files
+      .filter((file) => {
+        const created = file.metadata.timeCreated
+        return typeof created === 'string' && new Date(created).getTime() < cutoff
+      })
+      .map((file) => file.name)
+  }
 }

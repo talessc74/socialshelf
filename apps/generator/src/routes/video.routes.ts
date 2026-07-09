@@ -9,6 +9,8 @@ const uploadVideoSchema = z.object({
   mimeType: z.enum(['video/mp4', 'video/webm', 'video/quicktime']),
 })
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
+
 export async function videoRoutes(app: FastifyInstance) {
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
   const videoStorage = new GcsVideoStorage(generatedBucket)
@@ -64,5 +66,35 @@ export async function videoRoutes(app: FastifyInstance) {
       app.log.error({ err }, 'video signed url failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
+  })
+
+  // Acionado por Cloud Scheduler (OIDC + X-Internal-Secret, mesmo padrão de
+  // publisher-service's /internal/scheduler-tick) uma vez por dia. Apaga vídeos com mais
+  // de 7 dias (_local-edr-policy-034). Falha em um arquivo não interrompe os demais —
+  // reportado na resposta para quem quiser investigar, não silenciosamente engolido.
+  app.post('/internal/videos-cleanup-tick', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const paths = await videoStorage.listOlderThan(SEVEN_DAYS_MS)
+    const deleted: string[] = []
+    const failed: { path: string; error: string }[] = []
+
+    for (const path of paths) {
+      try {
+        await videoStorage.delete(path)
+        deleted.push(path)
+      } catch (err) {
+        failed.push({ path, error: err instanceof Error ? err.message : String(err) })
+      }
+    }
+
+    if (failed.length > 0) {
+      app.log.error({ failed }, 'video cleanup: some files failed to delete')
+    }
+
+    return reply.send({ deletedCount: deleted.length, deleted, failed })
   })
 }
