@@ -266,6 +266,8 @@ export class GenerateContentUseCase {
       brandProfileVersion: brandProfile?.version ?? null,
       content,
       imageStoragePaths: readyArtifacts.map((a) => a.imageStoragePath!),
+      videoStoragePath: null,
+      videoConsentAcceptedAt: null,
       status: 'ai-draft',
       scheduledAt: null,
       publishedAt: null,

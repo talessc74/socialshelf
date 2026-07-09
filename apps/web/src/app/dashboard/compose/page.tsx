@@ -37,6 +37,15 @@ const IMAGE_REQUIRED_PLATFORMS = new Set<Platform>(
   Object.values(Platform).filter((p) => PLATFORM_MEDIA_SUPPORT[p].requiresImage),
 )
 
+// TikTok não publica texto puro — exige um vídeo enviado pelo próprio usuário
+// (_local-adr-policy-036, videoSource: 'user-upload'; geração via IA de slideshow ainda
+// não existe). Limites de duração (3–600s) vêm de _local-adr-policy-035.
+const VIDEO_REQUIRED_PLATFORMS = new Set<Platform>([Platform.TIKTOK])
+const MIN_VIDEO_DURATION_SECONDS = 3
+const MAX_VIDEO_DURATION_SECONDS = 600
+const VIDEO_CONSENT_TEXT =
+  'Confirmo que tenho os direitos necessários sobre este vídeo e sobre as pessoas nele, e autorizo seu uso para publicação no TikTok.'
+
 interface ComposeCard {
   id: string
   file: File
@@ -107,6 +116,12 @@ export default function ComposePage() {
   const [cards, setCards] = useState<ComposeCard[]>([])
   const [prefilled, setPrefilled] = useState(false)
 
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null)
+  const [videoDurationSeconds, setVideoDurationSeconds] = useState<number | null>(null)
+  const [videoDurationError, setVideoDurationError] = useState<string | null>(null)
+  const [videoConsent, setVideoConsent] = useState(false)
+
   const [publishing, setPublishing] = useState(false)
   const [scheduling, setScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
@@ -146,7 +161,20 @@ export default function ComposePage() {
   const hasImages = existingImagePaths.length > 0 || cards.length > 0
   const totalImageCount = existingImagePaths.length + cards.length
   const blockedForNoImage = hasImages ? new Set<Platform>() : IMAGE_REQUIRED_PLATFORMS
-  const unavailablePlatforms = new Set<Platform>([...COMING_SOON_PLATFORMS, ...blockedForNoImage])
+
+  const videoReady =
+    videoFile !== null &&
+    videoConsent &&
+    videoDurationSeconds !== null &&
+    videoDurationSeconds >= MIN_VIDEO_DURATION_SECONDS &&
+    videoDurationSeconds <= MAX_VIDEO_DURATION_SECONDS
+  const blockedForNoVideo = videoReady ? new Set<Platform>() : VIDEO_REQUIRED_PLATFORMS
+
+  const unavailablePlatforms = new Set<Platform>([
+    ...COMING_SOON_PLATFORMS,
+    ...blockedForNoImage,
+    ...blockedForNoVideo,
+  ])
 
   useEffect(() => {
     if (hasImages) return
@@ -157,6 +185,52 @@ export default function ComposePage() {
       return changed ? next : prev
     })
   }, [hasImages])
+
+  useEffect(() => {
+    if (videoReady) return
+    setSelectedPlatforms((prev) => {
+      const next = new Set(prev)
+      let changed = false
+      VIDEO_REQUIRED_PLATFORMS.forEach((p) => { if (next.delete(p)) changed = true })
+      return changed ? next : prev
+    })
+  }, [videoReady])
+
+  const handleAddVideo = (files: FileList | null) => {
+    const file = files?.[0]
+    if (!file) return
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    setVideoDurationError(null)
+    setVideoDurationSeconds(null)
+    setVideoFile(file)
+    setVideoConsent(false)
+    const url = URL.createObjectURL(file)
+    setVideoPreviewUrl(url)
+
+    // Duração é lida no navegador (metadados do próprio arquivo) — evita depender de
+    // ffmpeg no servidor só para validar os limites de 3–600s do TikTok.
+    const probe = document.createElement('video')
+    probe.preload = 'metadata'
+    probe.onloadedmetadata = () => {
+      const duration = Math.round(probe.duration)
+      setVideoDurationSeconds(duration)
+      if (duration < MIN_VIDEO_DURATION_SECONDS || duration > MAX_VIDEO_DURATION_SECONDS) {
+        setVideoDurationError(
+          `O TikTok exige vídeos entre ${MIN_VIDEO_DURATION_SECONDS} e ${MAX_VIDEO_DURATION_SECONDS} segundos (este tem ${duration}s).`,
+        )
+      }
+    }
+    probe.src = url
+  }
+
+  const removeVideo = () => {
+    if (videoPreviewUrl) URL.revokeObjectURL(videoPreviewUrl)
+    setVideoFile(null)
+    setVideoPreviewUrl(null)
+    setVideoDurationSeconds(null)
+    setVideoDurationError(null)
+    setVideoConsent(false)
+  }
 
   const togglePlatform = (p: Platform) => {
     setSelectedPlatforms((prev) => {
@@ -283,12 +357,27 @@ export default function ComposePage() {
     return [...existingImagePaths, ...cardPaths]
   }
 
+  const buildVideo = async (): Promise<{ path: string; consentAcceptedAt: string } | null> => {
+    if (!validSelectedPlatforms.includes(Platform.TIKTOK) || !videoFile || videoDurationSeconds === null) {
+      return null
+    }
+    return api.uploadVideo(videoFile, videoDurationSeconds, videoConsent)
+  }
+
   const handlePublish = async () => {
     setError('')
     setPublishing(true)
     try {
       const imageStoragePaths = await buildImagePaths()
-      const post = await api.createPost(buildContent(), imageStoragePaths.length > 0 ? imageStoragePaths : undefined)
+      const video = await buildVideo()
+      const post = await api.createPost(
+        buildContent(),
+        imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
+        undefined,
+        undefined,
+        video?.path ?? undefined,
+        video?.consentAcceptedAt ?? undefined,
+      )
       const publishResult = await api.publishPost(post.id)
       setResult(publishResult)
     } catch (err) {
@@ -309,10 +398,14 @@ export default function ComposePage() {
     setScheduling(true)
     try {
       const imageStoragePaths = await buildImagePaths()
+      const video = await buildVideo()
       await api.createPost(
         buildContent(),
         imageStoragePaths.length > 0 ? imageStoragePaths : undefined,
         scheduledAt,
+        undefined,
+        video?.path ?? undefined,
+        video?.consentAcceptedAt ?? undefined,
       )
       setScheduleSuccess(scheduledAt)
       setShowScheduler(false)
@@ -446,6 +539,18 @@ export default function ComposePage() {
                   </span>
                 </span>
               ))}
+              {connectedPlatforms.filter((p) => blockedForNoVideo.has(p)).map((p) => (
+                <span
+                  key={p}
+                  className="inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-line bg-card-2 px-3 py-1 text-sm font-medium text-muted"
+                  title="Exige vídeo — anexe um vídeo abaixo e marque o consentimento para liberar"
+                >
+                  {PLATFORM_LABELS[p]}
+                  <span className="rounded-full bg-card-2 px-1.5 py-0.5 text-xs font-semibold text-muted">
+                    Exige vídeo
+                  </span>
+                </span>
+              ))}
             </div>
             {connectedPlatforms.some((p) => COMING_SOON_PLATFORMS.has(p)) && (
               <p className="text-xs text-muted">
@@ -457,6 +562,64 @@ export default function ComposePage() {
                 * Instagram exige uma imagem em todo post — anexe uma foto na seção &quot;Imagens&quot; abaixo para liberar.
               </p>
             )}
+            {connectedPlatforms.some((p) => blockedForNoVideo.has(p)) && (
+              <p className="text-xs text-muted">
+                * TikTok exige um vídeo — anexe na seção &quot;Vídeo&quot; abaixo e marque o consentimento para liberar. Sem música ou narração nesta versão.
+              </p>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Video (TikTok) */}
+      <section className="rounded-2xl border border-line bg-card p-5 shadow-card">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">🎬 Vídeo (TikTok)</h2>
+          {!videoFile && (
+            <label className="cursor-pointer rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink hover:bg-card-2">
+              + Anexar vídeo
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                onChange={(e) => { handleAddVideo(e.target.files); e.target.value = '' }}
+                className="hidden"
+              />
+            </label>
+          )}
+        </div>
+
+        {!videoFile ? (
+          <p className="text-sm text-muted">
+            Nenhum vídeo anexado. Necessário para publicar no TikTok — entre {MIN_VIDEO_DURATION_SECONDS} e{' '}
+            {MAX_VIDEO_DURATION_SECONDS} segundos, sem música ou narração nesta versão.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex gap-4">
+              {videoPreviewUrl && (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video src={videoPreviewUrl} controls className="aspect-[9/16] w-32 rounded-lg bg-black" />
+              )}
+              <div className="flex-1 space-y-2">
+                <p className="text-sm text-ink">{videoFile.name}</p>
+                <p className="text-xs text-muted">
+                  {videoDurationSeconds !== null ? `Duração: ${videoDurationSeconds}s` : 'Lendo duração…'}
+                </p>
+                {videoDurationError && <p className="text-xs text-red-600">{videoDurationError}</p>}
+                <label className="flex cursor-pointer items-start gap-2 text-xs text-ink">
+                  <input
+                    type="checkbox"
+                    checked={videoConsent}
+                    onChange={(e) => setVideoConsent(e.target.checked)}
+                    className="mt-0.5 accent-accent"
+                  />
+                  <span>{VIDEO_CONSENT_TEXT}</span>
+                </label>
+                <button onClick={removeVideo} className="text-xs text-red-600 hover:underline">
+                  Remover vídeo
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>

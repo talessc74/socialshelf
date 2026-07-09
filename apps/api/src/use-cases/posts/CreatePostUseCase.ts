@@ -13,6 +13,8 @@ export interface CreatePostInput {
   brandId: string
   content: Array<{ platform: Platform; text: string }>
   imageStoragePaths?: string[]
+  videoStoragePath?: string | null
+  videoConsentAcceptedAt?: Date | null
   scheduledAt?: Date
   sourceArticleUrl?: string | null
 }
@@ -43,6 +45,8 @@ export class CreatePostUseCase {
       brandProfileVersion: latestBrandProfile?.version ?? null,
       content: platformContent,
       imageStoragePaths: input.imageStoragePaths ?? [],
+      videoStoragePath: input.videoStoragePath ?? null,
+      videoConsentAcceptedAt: input.videoConsentAcceptedAt ?? null,
       status: input.scheduledAt ? 'scheduled' : 'draft',
       scheduledAt: input.scheduledAt ?? null,
       publishedAt: null,

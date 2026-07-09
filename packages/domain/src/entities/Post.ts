@@ -15,6 +15,11 @@ export interface Post {
   brandProfileVersion: number | null
   content: PlatformContent[]
   imageStoragePaths: string[]
+  // Vídeo enviado pelo próprio usuário para publicação no TikTok (videoSource:
+  // 'user-upload' — ver _local-adr-policy-036). Consentimento é capturado no momento
+  // do upload (_local-edr-policy-034) e carregado para o Post no momento da criação.
+  videoStoragePath: string | null
+  videoConsentAcceptedAt: Date | null
   status: PostStatus
   scheduledAt: Date | null
   publishedAt: Date | null

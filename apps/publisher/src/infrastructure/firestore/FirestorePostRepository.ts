@@ -14,6 +14,7 @@ export class FirestorePostRepository implements PostRepository {
       .set({
         ...post,
         scheduledAt: post.scheduledAt?.toISOString() ?? null,
+        videoConsentAcceptedAt: post.videoConsentAcceptedAt?.toISOString() ?? null,
         publishedAt: post.publishedAt?.toISOString() ?? null,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString(),
@@ -101,6 +102,10 @@ export class FirestorePostRepository implements PostRepository {
       brandProfileVersion: (data['brandProfileVersion'] as number | null) ?? null,
       content: (data['content'] as Post['content']) ?? [],
       imageStoragePaths: (data['imageStoragePaths'] as string[]) ?? [],
+      videoStoragePath: (data['videoStoragePath'] as string | null | undefined) ?? null,
+      videoConsentAcceptedAt: data['videoConsentAcceptedAt']
+        ? new Date(data['videoConsentAcceptedAt'] as string)
+        : null,
       status: data['status'] as PostStatus,
       scheduledAt: data['scheduledAt'] ? new Date(data['scheduledAt'] as string) : null,
       publishedAt: data['publishedAt'] ? new Date(data['publishedAt'] as string) : null,

@@ -18,6 +18,8 @@ import { performanceInsightsRoutes } from './routes/performance-insights.routes.
 import { performanceSuggestionsRoutes } from './routes/performance-suggestions.routes.js'
 import { pautaRoutes } from './routes/pauta.routes.js'
 import { generationRoutes } from './routes/generation.routes.js'
+import { videosRoutes } from './routes/videos.routes.js'
+import { mediaRoutes } from './routes/media.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
 
 export async function buildApp() {
@@ -37,7 +39,9 @@ export async function buildApp() {
     timeWindow: '1 minute',
   })
   await app.register(multipart, {
-    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    // 25MB acomoda um clipe curto de teste para TikTok (_local-adr-policy-036);
+    // vídeos maiores exigiriam upload direto ao Cloud Storage, fora do escopo atual.
+    limits: { fileSize: 25 * 1024 * 1024, files: 1 },
   })
 
   await registerAuthMiddleware(app)
@@ -49,6 +53,8 @@ export async function buildApp() {
   await app.register(xOAuthRoutes)
   await app.register(tiktokOAuthRoutes)
   await app.register(postsRoutes)
+  await app.register(videosRoutes)
+  await app.register(mediaRoutes)
   await app.register(brandsRoutes)
   await app.register(brandProfileRoutes)
   await app.register(audienceSignalRoutes)

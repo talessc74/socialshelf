@@ -7,6 +7,7 @@ import { FirestoreTokenVault } from '../infrastructure/firestore/FirestoreTokenV
 import { LinkedInPublisher } from '../infrastructure/publishers/LinkedInPublisher.js'
 import { MetaPublisher } from '../infrastructure/publishers/MetaPublisher.js'
 import { XPublisher } from '../infrastructure/publishers/XPublisher.js'
+import { TikTokPublisher } from '../infrastructure/publishers/TikTokPublisher.js'
 import { fetchInternal } from '../lib/serviceAuth.js'
 import { Platform } from '@socialshelf/domain'
 import type { PublisherPort } from '@socialshelf/domain'
@@ -44,11 +45,19 @@ export function buildPublishPostUseCase(): PublishPostUseCase {
     return data.url
   }
 
+  // TikTok exige domínio verificado no vídeo servido via PULL_FROM_URL
+  // (_local-adr-policy-035) — radiokactus.com já é verificado (_local-adr-policy-039),
+  // então a URL aponta para o proxy em apps/web, não direto para o Cloud Storage
+  // (que exigiria verificar o domínio do bucket separadamente).
+  const webUrl = process.env['WEB_URL'] ?? 'https://radiokactus.com'
+  const resolveTikTokVideoUrl = async (path: string): Promise<string> => `${webUrl}/media/tiktok/${path}`
+
   const publishers = new Map<Platform, PublisherPort>([
     [Platform.LINKEDIN, new LinkedInPublisher(tokenVault, resolveImageUrl)],
     [Platform.FACEBOOK, new MetaPublisher(tokenVault, resolveImageUrl)],
     [Platform.INSTAGRAM, new MetaPublisher(tokenVault, resolveImageUrl)],
     [Platform.TWITTER, new XPublisher(tokenVault)],
+    [Platform.TIKTOK, new TikTokPublisher(tokenVault, resolveTikTokVideoUrl)],
   ])
 
   return new PublishPostUseCase(postRepo, oauthRepo, tokenVault, publishers)

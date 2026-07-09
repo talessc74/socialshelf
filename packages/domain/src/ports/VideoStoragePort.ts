@@ -1,0 +1,11 @@
+export interface VideoStoragePort {
+  upload(
+    userId: string,
+    brandId: string,
+    video: Buffer,
+    mimeType: string,
+    requestId: string,
+  ): Promise<string>
+  getSignedUrl(path: string, ttlSeconds: number): Promise<string>
+  delete(path: string): Promise<void>
+}
