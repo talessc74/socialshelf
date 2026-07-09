@@ -38,14 +38,20 @@ const STEPS = ['Descrever', 'Gerando', 'Resultado']
 
 const COMING_SOON_PLATFORMS = new Set<Platform>([Platform.TWITTER])
 
+// TikTok não se encaixa na régua imagem/texto das outras plataformas: a IA gera a legenda
+// aqui, mas o vídeo em si ainda precisa ser enviado depois em /dashboard/compose (geração de
+// vídeo por IA ainda não existe) — "Apenas texto" seria enganoso, já que texto puro nunca é
+// aceito pelo TikTok.
 const PLATFORM_MEDIA_NOTE: Record<Platform, string> = Object.fromEntries(
   Object.values(Platform).map((p) => [
     p,
-    PLATFORM_MEDIA_SUPPORT[p].requiresImage
-      ? 'Exige imagem'
-      : PLATFORM_MEDIA_SUPPORT[p].supportsImage
-        ? 'Aceita imagem'
-        : 'Apenas texto',
+    p === Platform.TIKTOK
+      ? 'Legenda com IA — vídeo é enviado depois'
+      : PLATFORM_MEDIA_SUPPORT[p].requiresImage
+        ? 'Exige imagem'
+        : PLATFORM_MEDIA_SUPPORT[p].supportsImage
+          ? 'Aceita imagem'
+          : 'Apenas texto',
   ]),
 ) as Record<Platform, string>
 
@@ -994,12 +1000,17 @@ function ResultView({
   const [extraPublishing, setExtraPublishing] = useState(false)
   const [extraPublishError, setExtraPublishError] = useState('')
 
+  // TikTok fica de fora do publicar/agendar direto desta tela: não há upload de vídeo aqui,
+  // e o TikTok não aceita post sem vídeo — a legenda gerada fica disponível para uso manual
+  // em /dashboard/compose, onde o vídeo é anexado antes de publicar.
   const buildContent = () => {
     if (!result.outputs) return []
-    return Object.entries(result.outputs.copies).map(([platform, copy]) => ({
-      platform: platform as Platform,
-      text: copy!.text,
-    }))
+    return Object.entries(result.outputs.copies)
+      .filter(([platform]) => platform !== Platform.TIKTOK)
+      .map(([platform, copy]) => ({
+        platform: platform as Platform,
+        text: copy!.text,
+      }))
   }
 
   const handlePublish = async () => {
@@ -1046,8 +1057,10 @@ function ResultView({
     ...Object.keys(result.outputs?.copies ?? {}).map((p) => p as Platform),
     ...extraUsedPlatforms,
   ])
+  // TikTok fica de fora deste atalho: "publicar também em" não tem etapa de upload de vídeo,
+  // e o TikTok não aceita post sem vídeo — precisa passar por /dashboard/compose.
   const availableExtraPlatforms = connectedPlatforms.filter(
-    (p) => !usedPlatforms.has(p) && !COMING_SOON_PLATFORMS.has(p),
+    (p) => !usedPlatforms.has(p) && !COMING_SOON_PLATFORMS.has(p) && p !== Platform.TIKTOK,
   )
   const sourceTextForExtra = (() => {
     const texts = Object.values(result.outputs?.copies ?? {}).map((c) => c!.text)
@@ -1113,6 +1126,15 @@ function ResultView({
                 {PLATFORM_LABELS[platform as Platform]}
               </p>
               <p className="whitespace-pre-wrap text-sm text-ink">{copy?.text}</p>
+              {platform === Platform.TIKTOK && (
+                <p className="mt-2 text-xs text-muted">
+                  Esta legenda não é publicada automaticamente aqui — abra{' '}
+                  <Link href="/dashboard/compose" className="underline">
+                    Novo Post
+                  </Link>
+                  , cole a legenda e envie o vídeo para publicar no TikTok.
+                </p>
+              )}
             </div>
           ))}
         </section>
