@@ -1088,7 +1088,15 @@ function ResultView({
       )
       setComposedVideoPath(path)
     } catch (err) {
-      setComposeVideoError(err instanceof Error ? err.message : 'Erro ao gerar vídeo.')
+      const raw = err instanceof Error ? err.message : String(err)
+      // "Load failed"/"Failed to fetch" são os erros genéricos que o navegador dá quando a
+      // conexão cai no meio de uma requisição longa (mesmo padrão já visto no upload de vídeo
+      // do TikTok) — a composição de várias imagens pode levar um tempo em redes mais fracas.
+      setComposeVideoError(
+        /load failed|failed to fetch|networkerror/i.test(raw)
+          ? 'Falha de rede ao gerar o vídeo — tente novamente ou com menos imagens, numa rede mais estável.'
+          : raw,
+      )
     } finally {
       setComposingVideo(false)
     }
