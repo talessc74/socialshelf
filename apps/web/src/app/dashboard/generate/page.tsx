@@ -1210,8 +1210,8 @@ function ResultView({
               <p className="whitespace-pre-wrap text-sm text-ink">{copy?.text}</p>
               {platform === Platform.TIKTOK && (
                 <p className="mt-2 text-xs text-muted">
-                  Esta legenda não é publicada pelo botão "Publicar" acima — gere o vídeo animado
-                  mais abaixo para publicar com ela, ou abra{' '}
+                  Esta legenda não é publicada pelo botão &quot;Publicar&quot; acima — gere o vídeo
+                  animado mais abaixo para publicar com ela, ou abra{' '}
                   <Link href="/dashboard/compose" className="underline">
                     Novo Post
                   </Link>{' '}
