@@ -1073,10 +1073,16 @@ function ResultView({
   const [composingVideo, setComposingVideo] = useState(false)
   const [composedVideoPath, setComposedVideoPath] = useState<string | null>(null)
   const [composeVideoError, setComposeVideoError] = useState('')
+  const [narrateVideo, setNarrateVideo] = useState(false)
   useWakeLock(composingVideo)
 
-  // Experimental: monta um vídeo animado (slideshow com Ken Burns, sem áudio) a partir das
-  // imagens já geradas — ação avulsa e opt-in, não parte do fluxo normal de publicação.
+  // _local-adr-policy-037: o texto narrado vem da legenda de TikTok já gerada pela IA, nunca
+  // de um campo de texto livre novo — narração só é possível quando essa legenda existe.
+  const tiktokCaptionForNarration = result.outputs?.copies[Platform.TIKTOK]?.text ?? null
+
+  // Experimental: monta um vídeo animado (slideshow com Ken Burns) a partir das imagens já
+  // geradas, com narração por IA opcional — ação avulsa e opt-in, não parte do fluxo normal
+  // de publicação.
   const handleComposeVideo = async () => {
     setComposeVideoError('')
     setComposedVideoPath(null)
@@ -1085,6 +1091,7 @@ function ResultView({
       const { path } = await api.composeSlideshow(
         result.id,
         readyArtifacts.map((a) => a.imageStoragePath!),
+        narrateVideo && tiktokCaptionForNarration ? tiktokCaptionForNarration : undefined,
       )
       setComposedVideoPath(path)
     } catch (err) {
@@ -1315,10 +1322,33 @@ function ResultView({
           <div>
             <p className="text-sm font-semibold text-ink">🎬 Vídeo animado (experimental)</p>
             <p className="text-xs text-muted">
-              Monta um vídeo a partir das imagens acima, cada uma com um leve efeito de zoom, sem
-              áudio. Depois de gerado, você pode publicar direto no TikTok com ele.
+              Monta um vídeo a partir das imagens acima, cada uma com um leve efeito de zoom.
+              Depois de gerado, você pode publicar direto no TikTok com ele.
             </p>
           </div>
+          <label className="flex items-start gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={narrateVideo}
+              disabled={!tiktokCaptionForNarration}
+              onChange={(e) => setNarrateVideo(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Narrar com voz de IA
+              {tiktokCaptionForNarration ? (
+                <span className="block text-xs text-muted">
+                  A IA lê a legenda do TikTok em voz alta; a duração do vídeo passa a seguir a
+                  narração, não mais 3s por imagem.
+                </span>
+              ) : (
+                <span className="block text-xs text-muted">
+                  Selecione TikTok como plataforma na geração para poder narrar (a narração usa a
+                  legenda já gerada).
+                </span>
+              )}
+            </span>
+          </label>
           <button
             type="button"
             onClick={handleComposeVideo}

@@ -10,6 +10,7 @@ const MAX_DURATION_SECONDS = 600
 const composeSlideshowSchema = z.object({
   requestId: z.string().min(1),
   imagePaths: z.array(z.string().min(1)).min(1).max(10),
+  narrationText: z.string().min(1).max(4500).optional(),
 })
 
 export async function videosRoutes(app: FastifyInstance) {
@@ -87,10 +88,11 @@ export async function videosRoutes(app: FastifyInstance) {
     },
   )
 
-  // Ação experimental, opt-in: monta um vídeo animado (slideshow com Ken Burns, sem áudio)
-  // a partir de imagens já geradas por IA — não passa pelo checkbox de consentimento de
-  // _local-edr-policy-034, que é especificamente sobre vídeo enviado pelo usuário contendo
-  // conteúdo de terceiros; aqui o conteúdo é o mesmo já gerado pelo próprio pipeline de IA.
+  // Ação experimental, opt-in: monta um vídeo animado (slideshow com Ken Burns) a partir de
+  // imagens já geradas por IA, com narração opcional (_local-adr-policy-037) — não passa pelo
+  // checkbox de consentimento de _local-edr-policy-034, que é especificamente sobre vídeo
+  // enviado pelo usuário contendo conteúdo de terceiros; aqui o conteúdo (imagens e narração)
+  // é gerado pelo próprio pipeline de IA.
   app.post(
     '/videos/compose-slideshow',
     { preHandler: [app.authenticate] },
@@ -111,6 +113,7 @@ export async function videosRoutes(app: FastifyInstance) {
           brandId: request.brandId,
           requestId: parsed.data.requestId,
           imagePaths: parsed.data.imagePaths,
+          ...(parsed.data.narrationText !== undefined && { narrationText: parsed.data.narrationText }),
         }),
       })
 

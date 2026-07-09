@@ -14,25 +14,42 @@ const FPS = 25
 // _local-adr-policy-036, sem tentar imitar edição profissional nesta primeira fatia.
 const ZOOM_PER_FRAME = 0.0015
 const MAX_ZOOM = 1.2
+// Piso de segurança: se a narração for muito curta para o número de imagens, cada slide
+// ainda precisa de um tempo mínimo utilizável.
+const MIN_SLIDE_DURATION_SECONDS = 1.5
 
 export class FfmpegVideoComposer implements VideoComposerPort {
   async composeSlideshow(input: {
-    slides: { imageBuffer: Buffer; durationSeconds: number }[]
+    imageBuffers: Buffer[]
+    narrationAudioBuffer: Buffer | null
+    silentSlideDurationSeconds: number
   }): Promise<{ videoBuffer: Buffer; durationSeconds: number }> {
-    if (input.slides.length === 0) {
-      throw new Error('composeSlideshow requires at least one slide')
+    if (input.imageBuffers.length === 0) {
+      throw new Error('composeSlideshow requires at least one image')
     }
 
     const workDir = await mkdtemp(join(tmpdir(), 'socialshelf-video-'))
     try {
+      let narrationPath: string | null = null
+      let slideDurationSeconds = input.silentSlideDurationSeconds
+
+      if (input.narrationAudioBuffer) {
+        narrationPath = join(workDir, 'narration.mp3')
+        await writeFile(narrationPath, input.narrationAudioBuffer)
+        const narrationDuration = await this.probeDuration(narrationPath)
+        slideDurationSeconds = Math.max(
+          MIN_SLIDE_DURATION_SECONDS,
+          narrationDuration / input.imageBuffers.length,
+        )
+      }
+
       const segmentPaths: string[] = []
-      for (let i = 0; i < input.slides.length; i++) {
-        const slide = input.slides[i]!
+      for (let i = 0; i < input.imageBuffers.length; i++) {
         const imagePath = join(workDir, `slide-${i}.jpg`)
-        await writeFile(imagePath, slide.imageBuffer)
+        await writeFile(imagePath, input.imageBuffers[i]!)
 
         const segmentPath = join(workDir, `segment-${i}.mp4`)
-        const frames = Math.max(1, Math.round(slide.durationSeconds * FPS))
+        const frames = Math.max(1, Math.round(slideDurationSeconds * FPS))
         await run('ffmpeg', [
           '-y',
           '-loop', '1',
@@ -43,7 +60,7 @@ export class FfmpegVideoComposer implements VideoComposerPort {
           // Em produção, 8000px por imagem deixava a composição lenta o bastante para
           // esbarrar em timeout de rede no celular ("Load failed") antes de terminar.
           `scale=${WIDTH * 2}:-1,zoompan=z='min(zoom+${ZOOM_PER_FRAME},${MAX_ZOOM})':d=${frames}:s=${WIDTH}x${HEIGHT}:fps=${FPS}`,
-          '-t', String(slide.durationSeconds),
+          '-t', String(slideDurationSeconds),
           '-c:v', 'libx264',
           '-preset', 'veryfast',
           '-pix_fmt', 'yuv420p',
@@ -62,8 +79,7 @@ export class FfmpegVideoComposer implements VideoComposerPort {
         '-f', 'concat',
         '-safe', '0',
         '-i', listPath,
-        '-f', 'lavfi',
-        '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+        ...(narrationPath ? ['-i', narrationPath] : ['-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100']),
         '-c:v', 'copy',
         '-c:a', 'aac',
         '-shortest',
@@ -71,10 +87,24 @@ export class FfmpegVideoComposer implements VideoComposerPort {
       ])
 
       const videoBuffer = await readFile(outputPath)
-      const durationSeconds = input.slides.reduce((sum, s) => sum + s.durationSeconds, 0)
+      const durationSeconds = slideDurationSeconds * input.imageBuffers.length
       return { videoBuffer, durationSeconds }
     } finally {
       await rm(workDir, { recursive: true, force: true })
     }
+  }
+
+  private async probeDuration(filePath: string): Promise<number> {
+    const { stdout } = await run('ffprobe', [
+      '-v', 'error',
+      '-show_entries', 'format=duration',
+      '-of', 'csv=p=0',
+      filePath,
+    ])
+    const seconds = Number.parseFloat(stdout.trim())
+    if (Number.isNaN(seconds) || seconds <= 0) {
+      throw new Error(`ffprobe returned an invalid duration for ${filePath}: "${stdout}"`)
+    }
+    return seconds
   }
 }

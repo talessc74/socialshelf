@@ -3,7 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -15,15 +17,16 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@socialshelf/domain": "workspace:*",
-    "fastify": "^4.28.1",
     "@fastify/helmet": "^11.1.1",
     "@fastify/multipart": "^8.3.0",
-    "@google-cloud/vertexai": "^1.9.2",
     "@google-cloud/storage": "^7.14.0",
-    "google-auth-library": "^9.15.1",
-    "firebase-admin": "^12.7.0",
+    "@google-cloud/text-to-speech": "^6.4.1",
+    "@google-cloud/vertexai": "^1.9.2",
+    "@socialshelf/domain": "workspace:*",
     "fast-xml-parser": "^5.8.0",
+    "fastify": "^4.28.1",
+    "firebase-admin": "^12.7.0",
+    "google-auth-library": "^9.15.1",
     "sharp": "^0.33.5",
     "zod": "^3.24.1"
   },

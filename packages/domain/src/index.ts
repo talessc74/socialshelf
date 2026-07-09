@@ -65,6 +65,7 @@ export type {
 export type { ImageStoragePort } from './ports/ImageStoragePort.js'
 export type { VideoStoragePort } from './ports/VideoStoragePort.js'
 export type { VideoComposerPort } from './ports/VideoComposerPort.js'
+export type { TextToSpeechPort } from './ports/TextToSpeechPort.js'
 export type {
   TemplateRendererPort,
   TemplateRenderInput,
