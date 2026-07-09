@@ -113,6 +113,33 @@ function GeneratedImage({ path, aspectClass }: { path: string; aspectClass: stri
   return <img src={url} alt="Artefato gerado" className={`w-full rounded-lg object-cover ${aspectClass}`} />
 }
 
+function GeneratedVideo({ path }: { path: string }) {
+  const { data: url, isLoading, isError, error } = useQuery({
+    queryKey: ['generated-video-url', path],
+    queryFn: () => api.getVideoUrl(path),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="flex aspect-[9/16] w-full max-w-xs items-center justify-center rounded-lg bg-card-2">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (isError || !url) {
+    return (
+      <div className="flex aspect-[9/16] w-full max-w-xs flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line bg-card-2 p-2 text-center text-xs text-muted">
+        <span>Não foi possível carregar o vídeo</span>
+        {error instanceof Error && <span className="break-words text-red-600">{error.message}</span>}
+      </div>
+    )
+  }
+
+  // eslint-disable-next-line jsx-a11y/media-has-caption
+  return <video src={url} controls className="aspect-[9/16] w-full max-w-xs rounded-lg bg-black" />
+}
+
 function LightboxImage({ path, aspectClass }: { path: string; aspectClass: string }) {
   const { data: url, isLoading, isError } = useQuery({
     queryKey: ['generation-image-url', path],
@@ -999,6 +1026,28 @@ function ResultView({
   const [extraFailed, setExtraFailed] = useState<PublishResponse['failedPlatforms']>([])
   const [extraPublishing, setExtraPublishing] = useState(false)
   const [extraPublishError, setExtraPublishError] = useState('')
+  const [composingVideo, setComposingVideo] = useState(false)
+  const [composedVideoPath, setComposedVideoPath] = useState<string | null>(null)
+  const [composeVideoError, setComposeVideoError] = useState('')
+
+  // Experimental: monta um vídeo animado (slideshow com Ken Burns, sem áudio) a partir das
+  // imagens já geradas — ação avulsa e opt-in, não parte do fluxo normal de publicação.
+  const handleComposeVideo = async () => {
+    setComposeVideoError('')
+    setComposedVideoPath(null)
+    setComposingVideo(true)
+    try {
+      const { path } = await api.composeSlideshow(
+        result.id,
+        readyArtifacts.map((a) => a.imageStoragePath!),
+      )
+      setComposedVideoPath(path)
+    } catch (err) {
+      setComposeVideoError(err instanceof Error ? err.message : 'Erro ao gerar vídeo.')
+    } finally {
+      setComposingVideo(false)
+    }
+  }
 
   // TikTok fica de fora do publicar/agendar direto desta tela: não há upload de vídeo aqui,
   // e o TikTok não aceita post sem vídeo — a legenda gerada fica disponível para uso manual
@@ -1171,6 +1220,28 @@ function ResultView({
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {readyArtifacts.length > 0 && (
+        <section className="space-y-3 rounded-xl border border-dashed border-accent/50 bg-card p-4">
+          <div>
+            <p className="text-sm font-semibold text-ink">🎬 Vídeo animado (experimental)</p>
+            <p className="text-xs text-muted">
+              Monta um vídeo a partir das imagens acima, cada uma com um leve efeito de zoom, sem
+              áudio. Ainda não é publicado automaticamente — é só para testar o resultado.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleComposeVideo}
+            disabled={composingVideo}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink disabled:opacity-50"
+          >
+            {composingVideo ? 'Gerando vídeo…' : 'Gerar vídeo de teste'}
+          </button>
+          {composeVideoError && <p className="text-sm text-red-600">{composeVideoError}</p>}
+          {composedVideoPath && <GeneratedVideo path={composedVideoPath} />}
         </section>
       )}
 

@@ -443,6 +443,13 @@ export const api = {
     return res.json() as Promise<{ path: string; consentAcceptedAt: string }>
   },
 
+  async composeSlideshow(requestId: string, imagePaths: string[]): Promise<{ path: string; durationSeconds: number }> {
+    return apiFetch('/videos/compose-slideshow', {
+      method: 'POST',
+      body: JSON.stringify({ requestId, imagePaths }),
+    })
+  },
+
   async uploadBrandDocument(file: File): Promise<ApiBrandProfileExtraction> {
     const token = await getToken()
     const formData = new FormData()
@@ -520,6 +527,11 @@ export const api = {
     const data = await apiFetch<{ url: string }>(
       `/generation-images/signed-url?path=${encodeURIComponent(path)}`,
     )
+    return data.url
+  },
+
+  async getVideoUrl(path: string): Promise<string> {
+    const data = await apiFetch<{ url: string }>(`/videos/signed-url?path=${encodeURIComponent(path)}`)
     return data.url
   },
 

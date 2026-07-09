@@ -21,6 +21,22 @@ vi.mock('../infrastructure/storage/GcsVideoStorage.js', () => ({
   })),
 }))
 
+const mockImageDownload = vi.fn().mockResolvedValue({ base64: Buffer.from('fake-image').toString('base64'), mimeType: 'image/png' })
+
+vi.mock('../infrastructure/storage/GcsImageStorage.js', () => ({
+  GcsImageStorage: vi.fn().mockImplementation(() => ({
+    download: mockImageDownload,
+  })),
+}))
+
+const mockComposeSlideshow = vi.fn().mockResolvedValue({ videoBuffer: Buffer.from('fake-video'), durationSeconds: 6 })
+
+vi.mock('../infrastructure/video/FfmpegVideoComposer.js', () => ({
+  FfmpegVideoComposer: vi.fn().mockImplementation(() => ({
+    composeSlideshow: mockComposeSlideshow,
+  })),
+}))
+
 describe('POST /videos/upload', () => {
   let app: FastifyInstance
 
@@ -199,5 +215,98 @@ describe('POST /internal/videos-cleanup-tick', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.json()).toEqual({ deletedCount: 0, deleted: [], failed: [] })
+  })
+})
+
+describe('POST /videos/compose-slideshow', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      payload: { userId: 'user-1', brandId: 'brand-1', requestId: 'req-1', imagePaths: ['a.png'] },
+    })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 400 when imagePaths is empty', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: { userId: 'user-1', brandId: 'brand-1', requestId: 'req-1', imagePaths: [] },
+    })
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 400 when imagePaths has more than 10 entries', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: Array.from({ length: 11 }, (_, i) => `img-${i}.png`),
+      },
+    })
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('downloads each image, composes the slideshow, and returns the uploaded path', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: ['user-1/brand-1/img-0.png', 'user-1/brand-1/img-1.png'],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(mockImageDownload).toHaveBeenCalledTimes(2)
+    expect(mockComposeSlideshow).toHaveBeenCalledWith({
+      slides: [
+        { imageBuffer: expect.any(Buffer), durationSeconds: 3 },
+        { imageBuffer: expect.any(Buffer), durationSeconds: 3 },
+      ],
+    })
+    const body = response.json<{ path: string; durationSeconds: number }>()
+    expect(body.path).toBe('videos/user-1/brand-1/upload-123.mp4')
+    expect(body.durationSeconds).toBe(6)
+  })
+
+  it('returns 500 when composition fails', async () => {
+    mockComposeSlideshow.mockRejectedValueOnce(new Error('ffmpeg exploded'))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: ['user-1/brand-1/img-0.png'],
+      },
+    })
+
+    expect(response.statusCode).toBe(500)
   })
 })
