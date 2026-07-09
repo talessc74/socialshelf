@@ -1,6 +1,6 @@
 ---
 name: _local-edr-policy-036-slideshow-animado-experimental
-description: Define a primeira fatia testável de vídeo gerado por IA (slideshow animado a partir de imagens já geradas, sem áudio, síncrono) — uma ação avulsa e experimental fora do fluxo normal de geração/publicação, deliberadamente divergente do modelo assíncrono de _local-adr-policy-036. Use ao evoluir esta fatia para o pipeline completo, ou ao entender por que este composer roda síncrono onde a arquitetura original pedia fila.
+description: Define a primeira fatia testável de vídeo gerado por IA (slideshow animado a partir de imagens já geradas, sem áudio, síncrono), confirmada em teste real e já ligada à publicação no TikTok — uma ação avulsa fora do fluxo normal de geração, deliberadamente divergente do modelo assíncrono de _local-adr-policy-036. Use ao evoluir esta fatia para o pipeline completo, ou ao entender por que este composer roda síncrono onde a arquitetura original pedia fila.
 apply-to: apps/generator — FfmpegVideoComposer, POST /videos/compose-slideshow; apps/api — POST /videos/compose-slideshow, GET /videos/signed-url; apps/web — botão experimental em /dashboard/generate
 valid-from: 2026-07-09
 ---
@@ -28,7 +28,6 @@ A arquitetura assíncrona da ADR-036 protege o `POST /generate` original de carr
 - Apenas modo `slideshow` a partir de imagens já geradas (não cobre `videoSource: 'user-upload'`, que já existe desde `_local-edr-policy-035`).
 - Sem áudio — nem narração nem música, apenas o modo silêncio de `_local-adr-policy-037` (uma trilha de áudio silenciosa é adicionada via ffmpeg só para garantir compatibilidade de container, não é "silêncio" no sentido de ausência de faixa).
 - Sem persistência: `GenerationArtifact` não ganhou `mediaType`/`videoStage`/`videoStoragePath` nesta fatia — o vídeo composto não fica associado ao `GenerationRequest` no Firestore, só é devolvido na resposta HTTP para pré-visualização imediata.
-- Sem integração com publicação: o vídeo gerado aqui **não é usado automaticamente para publicar no TikTok** — isso é decisão de fatia futura, depois de confirmado que o resultado é aceitável.
 - Máximo de 10 imagens por composição (mesmo teto de `_local-adr-policy-028-geracao-multiartefato`'s `MAX_GENERATION_ARTIFACTS`), 3 segundos por slide, formato vertical 1080×1920 fixo (não segue o `AspectRatio` do post — o vídeo é sempre otimizado para TikTok, independente do formato de imagem escolhido).
 
 **Composição via ffmpeg — Ken Burns por segmento + concat**
@@ -39,9 +38,15 @@ A arquitetura assíncrona da ADR-036 protege o `POST /generate` original de carr
 
 O ambiente onde este código foi escrito não tem ffmpeg nem Docker disponíveis para validar a composição antes do deploy — os testes automatizados mockam a chamada ao binário (`node:child_process`), validando a orquestração (arquivos temporários, ordem das chamadas, limpeza) mas não a saída real do ffmpeg. A sintaxe do filtro `zoompan` segue o padrão mais comumente documentado para este efeito, mas a primeira confirmação real de que produz um vídeo válido só acontece no teste ao vivo em produção, com o usuário presente — mesmo modelo de validação que fechou o EDR-035 original (três rodadas de erro real → correção, até a primeira publicação confirmada).
 
+**Confirmado em teste real (2026-07-09)** — composição validada ao vivo pelo usuário: ffmpeg produziu um vídeo válido a partir das imagens geradas.
+
+**Integração com publicação — fechada na mesma sessão**
+
+Depois da composição confirmada, um botão dedicado ("Publicar no TikTok com este vídeo") foi adicionado na mesma seção experimental: cria um `Post` com `videoStoragePath` apontando para o vídeo composto e `videoConsentAcceptedAt: null` (o checkbox de `_local-edr-policy-034` é sobre vídeo enviado pelo usuário contendo terceiros — aqui o conteúdo é gerado pela IA a partir de imagens já geradas pelo próprio pipeline, mesma categoria de conteúdo original já isenta desse consentimento), e publica imediatamente via o fluxo já existente (`TikTokPublisher`). Exige que TikTok tenha sido selecionado como plataforma na geração (para existir uma legenda pronta) — sem isso, o botão de publicar não aparece, só o de gerar/testar o vídeo.
+
 ## What this does not solve
 
-Fila assíncrona com `videoStage` (desenho completo de `_local-edr-policy-033`), áudio (narração TTS ou música de `_local-adr-policy-037`), integração com o fluxo de publicação (o vídeo ainda não vira `Post.videoStoragePath` automaticamente), persistência do vídeo como artefato do `GenerationRequest`, e suporte a `videoSource: 'user-upload'` combinado com composição por IA. Nenhum desses existe ainda — esta decisão cobre apenas a validação mínima de que a composição funciona.
+Fila assíncrona com `videoStage` (desenho completo de `_local-edr-policy-033`), áudio (narração TTS ou música de `_local-adr-policy-037`), persistência do vídeo como artefato do `GenerationRequest` (o vídeo composto ainda não é salvo em `GenerationArtifact`/Firestore — só passa a existir no Cloud Storage e é referenciado diretamente pelo `Post` criado ao publicar), e suporte a `videoSource: 'user-upload'` combinado com composição por IA. Nenhum desses existe ainda.
 
 ## References
 
