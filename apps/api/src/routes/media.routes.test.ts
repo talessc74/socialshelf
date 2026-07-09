@@ -8,15 +8,29 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
 }))
 
 const originalFetch = global.fetch
+const VALID_PATH = 'videos/user-1/brand-1/clip.mp4'
 
 describe('GET /media/tiktok-video', () => {
   let app: FastifyInstance
+  let validToken: string
 
   beforeAll(async () => {
     process.env['GENERATOR_URL'] = 'http://localhost:3003'
     process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    process.env['CSRF_SECRET'] = 'test-secret-64-chars-long-enough-for-hmac-sha256-signing'
     app = await buildApp()
     await app.ready()
+
+    // signMediaPath lives in apps/publisher (a different service); reproduce it locally
+    // here with the same CSRF_SECRET-based HMAC scheme instead of a cross-service import.
+    const { createHmac } = await import('crypto')
+    const sign = (path: string): string => {
+      const exp = Date.now() + 2 * 60 * 60 * 1000
+      const payload = Buffer.from(JSON.stringify({ path, exp })).toString('base64url')
+      const sig = createHmac('sha256', process.env['CSRF_SECRET']!).update(payload).digest('base64url')
+      return `${payload}.${sig}`
+    }
+    validToken = sign(VALID_PATH)
   })
 
   afterEach(() => {
@@ -28,16 +42,57 @@ describe('GET /media/tiktok-video', () => {
   })
 
   it('returns 400 when path is missing', async () => {
-    const response = await app.inject({ method: 'GET', url: '/media/tiktok-video' })
+    const response = await app.inject({ method: 'GET', url: `/media/tiktok-video?token=${validToken}` })
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 400 when token is missing', async () => {
+    const response = await app.inject({ method: 'GET', url: `/media/tiktok-video?path=${VALID_PATH}` })
     expect(response.statusCode).toBe(400)
   })
 
   it('returns 400 when path does not start with videos/', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/media/tiktok-video?path=generated/some-image.png',
+      url: `/media/tiktok-video?path=generated/some-image.png&token=${validToken}`,
     })
     expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 when token is invalid', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/media/tiktok-video?path=${VALID_PATH}&token=not-a-real-token`,
+    })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 401 when token was signed for a different path', async () => {
+    const { createHmac } = await import('crypto')
+    const exp = Date.now() + 2 * 60 * 60 * 1000
+    const payload = Buffer.from(JSON.stringify({ path: 'videos/other/path.mp4', exp })).toString('base64url')
+    const sig = createHmac('sha256', process.env['CSRF_SECRET']!).update(payload).digest('base64url')
+    const mismatchedToken = `${payload}.${sig}`
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/media/tiktok-video?path=${VALID_PATH}&token=${mismatchedToken}`,
+    })
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 401 when token is expired', async () => {
+    const { createHmac } = await import('crypto')
+    const exp = Date.now() - 1000
+    const payload = Buffer.from(JSON.stringify({ path: VALID_PATH, exp })).toString('base64url')
+    const sig = createHmac('sha256', process.env['CSRF_SECRET']!).update(payload).digest('base64url')
+    const expiredToken = `${payload}.${sig}`
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/media/tiktok-video?path=${VALID_PATH}&token=${expiredToken}`,
+    })
+    expect(response.statusCode).toBe(401)
   })
 
   it('returns 404 when the generator cannot produce a signed url', async () => {
@@ -45,7 +100,7 @@ describe('GET /media/tiktok-video', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/media/tiktok-video?path=videos/user-1/brand-1/clip.mp4',
+      url: `/media/tiktok-video?path=${VALID_PATH}&token=${validToken}`,
     })
 
     expect(response.statusCode).toBe(404)
@@ -73,7 +128,7 @@ describe('GET /media/tiktok-video', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: '/media/tiktok-video?path=videos/user-1/brand-1/clip.mp4',
+      url: `/media/tiktok-video?path=${VALID_PATH}&token=${validToken}`,
     })
 
     expect(response.statusCode).toBe(200)
