@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
+import { useWakeLock } from '../../../lib/useWakeLock'
 import {
   Platform,
   PLATFORM_MEDIA_SUPPORT,
@@ -410,49 +411,6 @@ function useGenerationProgress(active: boolean, knownArtifactCount: number | nul
   }, [active, stages.length])
 
   return { stages, stageIndex }
-}
-
-// Mantém a tela acesa enquanto `active` (geração de cards ou de vídeo) — no celular, Safari e
-// outros navegadores apagam a tela por inatividade e a geração se perde. A Screen Wake Lock API
-// não existe em todo navegador (ex: Safari só a partir do iOS 16.4) — sem suporte, é um no-op
-// silencioso, não um erro. O navegador também libera o lock sozinho quando a aba fica em
-// background (troca de app, por exemplo); ao voltar a ficar visível com `active` ainda
-// verdadeiro, o lock é pedido de novo.
-function useWakeLock(active: boolean) {
-  useEffect(() => {
-    if (!active || !('wakeLock' in navigator)) return
-
-    let lock: WakeLockSentinel | null = null
-    let cancelled = false
-
-    const acquire = async () => {
-      try {
-        const sentinel = await navigator.wakeLock.request('screen')
-        if (cancelled) {
-          await sentinel.release()
-          return
-        }
-        lock = sentinel
-      } catch {
-        // Falha ao adquirir (ex: bateria fraca) não deve travar a geração — segue sem o lock.
-      }
-    }
-
-    void acquire()
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !lock) {
-        void acquire()
-      }
-    }
-    document.addEventListener('visibilitychange', onVisibilityChange)
-
-    return () => {
-      cancelled = true
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-      if (lock) void lock.release()
-    }
-  }, [active])
 }
 
 const DRAFT_STORAGE_KEY = 'socialshelf:generate-draft'
@@ -1082,7 +1040,6 @@ function ResultView({
   const [composedVideoPath, setComposedVideoPath] = useState<string | null>(null)
   const [composeVideoError, setComposeVideoError] = useState('')
   const [narrateVideo, setNarrateVideo] = useState(false)
-  useWakeLock(composingVideo)
 
   // _local-adr-policy-037: o texto narrado vem da legenda de TikTok já gerada pela IA, nunca
   // de um campo de texto livre novo — narração só é possível quando essa legenda existe.
@@ -1120,6 +1077,9 @@ function ResultView({
   const [publishingTikTokVideo, setPublishingTikTokVideo] = useState(false)
   const [tiktokVideoPublishResult, setTiktokVideoPublishResult] = useState<PublishResponse | null>(null)
   const [tiktokVideoPublishError, setTiktokVideoPublishError] = useState('')
+  // Mantém a tela acesa durante qualquer espera longa nesta tela — gerar/testar vídeo,
+  // publicar, agendar, ou publicar o vídeo no TikTok.
+  useWakeLock(composingVideo || publishing || scheduling || extraPublishing || publishingTikTokVideo)
 
   // Publica o vídeo já composto e testado acima, com a legenda de TikTok já gerada pela IA.
   // videoConsentAcceptedAt fica null de propósito: o checkbox de consentimento de
