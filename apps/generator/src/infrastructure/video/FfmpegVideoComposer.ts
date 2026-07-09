@@ -17,6 +17,13 @@ const MAX_ZOOM = 1.2
 // Piso de segurança: se a narração for muito curta para o número de imagens, cada slide
 // ainda precisa de um tempo mínimo utilizável.
 const MIN_SLIDE_DURATION_SECONDS = 1.5
+// Teto de segurança: uma legenda longa narrada com poucas imagens produziria slides muito
+// longos — cada segundo a mais de duração é um segundo a mais de zoompan pra codificar por
+// imagem, o mesmo tipo de gargalo que já causou "Load failed" em produção por composição
+// lenta demais para uma requisição síncrona (ver EDR-036). Acima do teto, o áudio de
+// narração é cortado no final pelo -shortest do mux final — o vídeo fica mais curto que a
+// narração completa, risco aceito em troca de um tempo de composição previsível.
+const MAX_SLIDE_DURATION_SECONDS = 8
 
 export class FfmpegVideoComposer implements VideoComposerPort {
   async composeSlideshow(input: {
@@ -37,9 +44,9 @@ export class FfmpegVideoComposer implements VideoComposerPort {
         narrationPath = join(workDir, 'narration.mp3')
         await writeFile(narrationPath, input.narrationAudioBuffer)
         const narrationDuration = await this.probeDuration(narrationPath)
-        slideDurationSeconds = Math.max(
-          MIN_SLIDE_DURATION_SECONDS,
-          narrationDuration / input.imageBuffers.length,
+        slideDurationSeconds = Math.min(
+          MAX_SLIDE_DURATION_SECONDS,
+          Math.max(MIN_SLIDE_DURATION_SECONDS, narrationDuration / input.imageBuffers.length),
         )
       }
 
