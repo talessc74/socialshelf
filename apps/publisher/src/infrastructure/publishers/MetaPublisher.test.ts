@@ -14,6 +14,8 @@ function makePost(overrides: Partial<Post> = {}): Post {
       { platform: Platform.INSTAGRAM, text: 'Hello Instagram!', charCount: 16 },
     ],
     imageStoragePaths: [],
+    videoStoragePath: null,
+    videoConsentAcceptedAt: null,
     status: 'scheduled',
     scheduledAt: null,
     publishedAt: null,

@@ -248,6 +248,9 @@ jobs:
           VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
+          VARS="${VARS},TIKTOK_CLIENT_KEY=${{ secrets.TIKTOK_CLIENT_KEY }}"
+          VARS="${VARS},TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}"
+          VARS="${VARS},WEB_URL=https://radiokactus.com"
           VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
           gcloud run deploy publisher-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
@@ -437,13 +440,17 @@ jobs:
 
       - name: Deploy web to Cloud Run
         run: |
+          # API_URL (sem prefixo NEXT_PUBLIC_) é lido em runtime pelo route handler
+          # /media/tiktok/[...path] (server-side, nunca exposto ao bundle do cliente) —
+          # diferente de NEXT_PUBLIC_API_URL acima, que só existe em build-time.
           gcloud run deploy web-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/web:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
+            --set-env-vars="API_URL=https://api.socialshelf.com.br" \
             --min-instances=0 \
             --max-instances=3 \
             --memory=512Mi \
             --cpu=1 \
-            --timeout=30
+            --timeout=60

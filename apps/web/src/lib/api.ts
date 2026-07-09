@@ -286,6 +286,8 @@ export const api = {
     imageStoragePaths?: string[],
     scheduledAt?: Date,
     sourceArticleUrl?: string | null,
+    videoStoragePath?: string | null,
+    videoConsentAcceptedAt?: string | null,
   ): Promise<ApiPost> {
     const data = await apiFetch<{ post: ApiPost }>('/posts', {
       method: 'POST',
@@ -294,6 +296,8 @@ export const api = {
         imageStoragePaths,
         ...(scheduledAt && { scheduledAt: scheduledAt.toISOString() }),
         ...(sourceArticleUrl !== undefined && { sourceArticleUrl }),
+        ...(videoStoragePath !== undefined && { videoStoragePath }),
+        ...(videoConsentAcceptedAt !== undefined && { videoConsentAcceptedAt }),
       }),
     })
     return data.post
@@ -411,6 +415,32 @@ export const api = {
     }
     const data = (await res.json()) as { path: string }
     return data.path
+  },
+
+  async uploadVideo(
+    file: File,
+    durationSeconds: number,
+    consent: boolean,
+  ): Promise<{ path: string; consentAcceptedAt: string }> {
+    const token = await getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('durationSeconds', String(durationSeconds))
+    formData.append('consent', String(consent))
+    const res = await fetch(`${API_URL}/videos/upload`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
+      },
+      body: formData,
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+    return res.json() as Promise<{ path: string; consentAcceptedAt: string }>
   },
 
   async uploadBrandDocument(file: File): Promise<ApiBrandProfileExtraction> {

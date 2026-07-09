@@ -10,6 +10,8 @@ const mockPost: Post = {
   brandProfileVersion: null,
   content: [{ platform: Platform.TWITTER, text: 'Hello X!', charCount: 8 }],
   imageStoragePaths: [],
+  videoStoragePath: null,
+  videoConsentAcceptedAt: null,
   status: 'scheduled',
   scheduledAt: null,
   publishedAt: null,

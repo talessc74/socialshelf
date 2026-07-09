@@ -11,6 +11,8 @@ function makePost(overrides: Partial<Post> = {}): Post {
     brandProfileVersion: null,
     content: [{ platform: Platform.LINKEDIN, text: 'Hello', charCount: 5 }],
     imageStoragePaths: [],
+    videoStoragePath: null,
+    videoConsentAcceptedAt: null,
     status: 'published',
     scheduledAt: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),

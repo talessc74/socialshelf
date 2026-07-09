@@ -14,6 +14,7 @@ const platformEnum = z.enum([
   Platform.FACEBOOK,
   Platform.INSTAGRAM,
   Platform.TWITTER,
+  Platform.TIKTOK,
 ])
 
 const createPostSchema = z.object({
@@ -21,6 +22,8 @@ const createPostSchema = z.object({
     .array(z.object({ platform: platformEnum, text: z.string().min(1) }))
     .min(1),
   imageStoragePaths: z.array(z.string()).optional(),
+  videoStoragePath: z.string().nullable().optional(),
+  videoConsentAcceptedAt: z.string().datetime().nullable().optional(),
   scheduledAt: z.string().datetime().optional(),
   sourceArticleUrl: z.string().nullable().optional(),
 })
@@ -105,6 +108,12 @@ export async function postsRoutes(app: FastifyInstance) {
           brandId: request.brandId,
           content: parsed.data.content as Array<{ platform: Platform; text: string }>,
           ...(parsed.data.imageStoragePaths !== undefined && { imageStoragePaths: parsed.data.imageStoragePaths }),
+          ...(parsed.data.videoStoragePath !== undefined && { videoStoragePath: parsed.data.videoStoragePath }),
+          ...(parsed.data.videoConsentAcceptedAt !== undefined && {
+            videoConsentAcceptedAt: parsed.data.videoConsentAcceptedAt
+              ? new Date(parsed.data.videoConsentAcceptedAt)
+              : null,
+          }),
           ...(parsed.data.scheduledAt !== undefined && { scheduledAt: new Date(parsed.data.scheduledAt) }),
           ...(parsed.data.sourceArticleUrl !== undefined && { sourceArticleUrl: parsed.data.sourceArticleUrl }),
         })

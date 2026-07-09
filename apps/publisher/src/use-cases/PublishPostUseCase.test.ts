@@ -18,6 +18,8 @@ function makePost(platforms: Platform[]): Post {
     brandProfileVersion: null,
     content: platforms.map((p) => ({ platform: p, text: `Text for ${p}`, charCount: 10 })),
     imageStoragePaths: [],
+    videoStoragePath: null,
+    videoConsentAcceptedAt: null,
     status: 'scheduled',
     scheduledAt: null,
     publishedAt: null,

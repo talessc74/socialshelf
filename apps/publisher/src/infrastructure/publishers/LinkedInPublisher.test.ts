@@ -10,6 +10,8 @@ const mockPost: Post = {
   brandProfileVersion: null,
   content: [{ platform: Platform.LINKEDIN, text: 'Hello LinkedIn!', charCount: 16 }],
   imageStoragePaths: [],
+  videoStoragePath: null,
+  videoConsentAcceptedAt: null,
   status: 'scheduled',
   scheduledAt: null,
   publishedAt: null,

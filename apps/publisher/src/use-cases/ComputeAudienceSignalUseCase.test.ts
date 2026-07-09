@@ -18,6 +18,8 @@ function makePost(externalId: string | undefined): Post {
     brandProfileVersion: null,
     content: [{ platform: Platform.LINKEDIN, text: 'Hello', charCount: 5 }],
     imageStoragePaths: [],
+    videoStoragePath: null,
+    videoConsentAcceptedAt: null,
     status: 'published',
     scheduledAt: null,
     publishedAt: new Date(),

@@ -35,6 +35,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-032-tolerancia-formato-resposta-llm](application/032-tolerancia-formato-resposta-llm.md) - Campos de lista na resposta do Gemini que ocasionalmente chegam como string única são normalizados via z.preprocess antes da validação zod, em vez de rejeitar a resposta inteira
 - [_local-edr-policy-033-pipeline-video-tiktok-implementacao](application/033-tiktok-video-pipeline-implementacao.md) - Worker de vídeo via Cloud Tasks, progresso por videoStage, TikTokPublisher testado contra mock, nunca API real
 - [_local-edr-policy-034-consentimento-de-terceiros-no-upload](application/034-consentimento-conteudo-terceiros-upload.md) - Checkbox de consentimento obrigatório antes do upload de vídeo próprio do usuário; detalhamento jurídico nos Termos de Uso
+- [_local-edr-policy-035-upload-de-video-para-tiktok-mvp-sincrono](application/035-upload-video-tiktok-mvp-sincrono.md) - Primeira fatia real: upload próprio síncrono, sem fila/ffmpeg/áudio; proxy via radiokactus.com para satisfazer verificação de domínio do pull_by_url do TikTok
 
 ### devops
 Pipeline de entrega e práticas de build.
