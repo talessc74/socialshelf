@@ -145,6 +145,23 @@ describe('FfmpegVideoComposer', () => {
     expect(vf).toContain('d=38')
   })
 
+  it('caps slide duration when narration is long relative to the image count', async () => {
+    narrationDurationResponse = '90.0\n'
+    const composer = new FfmpegVideoComposer()
+    const result = await composer.composeSlideshow({
+      imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2')],
+      narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
+      silentSlideDurationSeconds: 3,
+    })
+
+    // 90s / 2 images = 45s, above the 8s cap -> clamped to 8s * 25fps = 200 frames
+    const [, firstSlideCallArgs] = execFileMock.mock.calls[1]!
+    const vf = (firstSlideCallArgs as string[])[(firstSlideCallArgs as string[]).indexOf('-vf') + 1]
+    expect(vf).toContain('d=200')
+    // Reported duration reflects the capped video, not the full (now-truncated) narration.
+    expect(result.durationSeconds).toBe(16)
+  })
+
   it('throws when ffprobe returns an unparseable duration', async () => {
     narrationDurationResponse = 'not-a-number\n'
     const composer = new FfmpegVideoComposer()
