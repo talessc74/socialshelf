@@ -9,6 +9,7 @@ import { MetaPublisher } from '../infrastructure/publishers/MetaPublisher.js'
 import { XPublisher } from '../infrastructure/publishers/XPublisher.js'
 import { TikTokPublisher } from '../infrastructure/publishers/TikTokPublisher.js'
 import { fetchInternal } from '../lib/serviceAuth.js'
+import { signMediaPath } from '../lib/mediaToken.js'
 import { Platform } from '@socialshelf/domain'
 import type { PublisherPort } from '@socialshelf/domain'
 
@@ -50,7 +51,10 @@ export function buildPublishPostUseCase(): PublishPostUseCase {
   // então a URL aponta para o proxy em apps/web, não direto para o Cloud Storage
   // (que exigiria verificar o domínio do bucket separadamente).
   const webUrl = process.env['WEB_URL'] ?? 'https://radiokactus.com'
-  const resolveTikTokVideoUrl = async (path: string): Promise<string> => `${webUrl}/media/tiktok/${path}`
+  // Token assinado com TTL curto (_local-adr-policy-035 — risco aceito na EDR-035 original,
+  // fechado aqui): sem ele, o path do vídeo funcionaria como acesso indefinido ao arquivo.
+  const resolveTikTokVideoUrl = async (path: string): Promise<string> =>
+    `${webUrl}/media/tiktok/${path}?token=${signMediaPath(path)}`
 
   const publishers = new Map<Platform, PublisherPort>([
     [Platform.LINKEDIN, new LinkedInPublisher(tokenVault, resolveImageUrl)],

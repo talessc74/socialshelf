@@ -1,12 +1,14 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { fetchInternal } from '../lib/serviceAuth.js'
+import { verifyMediaToken } from '../lib/mediaToken.js'
 
-const querySchema = z.object({ path: z.string().min(1) })
+const querySchema = z.object({ path: z.string().min(1), token: z.string().min(1) })
 
-// Proxy público e não-autenticado (de propósito): o TikTok busca o vídeo diretamente
-// via PULL_FROM_URL (_local-adr-policy-035), sem sessão de usuário. O único guarda é o
-// prefixo obrigatório "videos/" — não é um proxy aberto para qualquer objeto do bucket.
+// Proxy público e não-autenticado por sessão (de propósito): o TikTok busca o vídeo
+// diretamente via PULL_FROM_URL (_local-adr-policy-035), sem sessão de usuário. O guarda
+// é o token assinado com TTL (ver lib/mediaToken.ts) — sem ele, o path previsível do vídeo
+// serviria como acesso indefinido ao arquivo, risco aceito na EDR-035 original.
 export async function mediaRoutes(app: FastifyInstance) {
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -17,9 +19,13 @@ export async function mediaRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Invalid query' })
     }
 
-    const { path } = parsed.data
+    const { path, token } = parsed.data
     if (!path.startsWith('videos/')) {
       return reply.status(400).send({ error: 'Invalid path' })
+    }
+
+    if (!verifyMediaToken(token, path)) {
+      return reply.status(401).send({ error: 'Invalid or expired token' })
     }
 
     const signedUrlRes = await fetchInternal(

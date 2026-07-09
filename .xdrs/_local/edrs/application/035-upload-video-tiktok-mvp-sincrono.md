@@ -31,12 +31,15 @@ O modelo assíncrono da ADR-036 existe para absorver o tempo de **renderização
 
 `_local-adr-policy-035` assumia que uma URL assinada do Cloud Storage bastava para `PULL_FROM_URL`. Na tela real do TikTok for Developers (Content Posting API → "Verify domains"), ficou claro que **pull_by_url exige verificação de domínio** — e não é possível verificar `storage.googleapis.com` por Domain (não somos donos do domínio inteiro, é do Google, compartilhado por todos os clientes de Cloud Storage).
 
-Solução: o vídeo é servido em `https://radiokactus.com/media/tiktok/{path}` — domínio já verificado no TikTok por `_local-adr-policy-039`. A cadeia é `apps/web` (route handler público, sem sessão de usuário) → `apps/api` (`GET /media/tiktok-video`, também público, único guarda é exigir prefixo `videos/`) → `apps/generator` (`GET /videos/signed-url`, autenticado por `INTERNAL_SECRET`) → URL assinada do GCS. Nenhuma verificação adicional no TikTok nem acesso ao Google Cloud foi necessário do usuário.
+Solução: o vídeo é servido em `https://radiokactus.com/media/tiktok/{path}` — domínio já verificado no TikTok por `_local-adr-policy-039`. A cadeia é `apps/web` (route handler público, sem sessão de usuário) → `apps/api` (`GET /media/tiktok-video`, também público, guardas: prefixo `videos/` + token assinado com TTL, ver abaixo) → `apps/generator` (`GET /videos/signed-url`, autenticado por `INTERNAL_SECRET`) → URL assinada do GCS. Nenhuma verificação adicional no TikTok nem acesso ao Google Cloud foi necessário do usuário.
 
 **O que isso não resolve — risco aceito conscientemente**
 
-- O proxy em `/media/tiktok-video` e `/media/tiktok/{path}` não tem expiração própria (a URL assinada do GCS por trás dela expira em 1h, mas o proxy em si aceita qualquer `path` com prefixo `videos/` indefinidamente). Caminho é de entropia razoável (`userId/brandId/requestId-timestamp`), mas não é um token assinado com TTL. Endurecer isso (HMAC com expiração, mesmo padrão de `lib/csrf.ts`) é melhoria futura, não implementada nesta fatia.
 - Deleção automática após 7 dias (`_local-edr-policy-034`) **não está implementada** — o vídeo permanece no bucket indefinidamente até essa etapa ser construída.
+
+**Fechado em 2026-07-09 — token assinado com expiração no proxy**
+
+O proxy em `/media/tiktok-video` e `/media/tiktok/{path}` exige `?token=`, um HMAC-SHA256 (`path` + `exp`) assinado com `CSRF_SECRET` — mesmo segredo já compartilhado por `apps/api` e `apps/publisher` (reaproveitado em vez de introduzir um novo), mesmo formato `payload.assinatura` de `apps/api/src/lib/csrf.ts`. TTL de 2h, gerado por `apps/publisher/src/lib/mediaToken.ts` no momento em que `TikTokPublisher` resolve a URL do vídeo (`resolveTikTokVideoUrl`), verificado por `apps/api/src/lib/mediaToken.ts`. Sem token válido para o `path` exato e ainda não expirado, o proxy responde `401`. O route handler de `apps/web` apenas repassa o `token` recebido na query string — não verifica; a verificação real acontece em `apps/api`.
 
 **Validação de duração — no navegador, não ffprepare/ffprobe no servidor**
 
