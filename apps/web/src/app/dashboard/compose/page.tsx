@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type PublishResponse } from '../../../lib/api'
+import { useWakeLock } from '../../../lib/useWakeLock'
 import {
   MAX_GENERATION_ARTIFACTS,
   Platform,
@@ -133,6 +134,9 @@ export default function ComposePage() {
   const [scheduleSuccess, setScheduleSuccess] = useState<Date | null>(null)
   const [result, setResult] = useState<PublishResponse | null>(null)
   const [error, setError] = useState('')
+  // Publicar/agendar inclui o upload do vídeo do TikTok quando presente — pode levar um tempo
+  // real em conexões mais fracas, mesmo risco de a tela apagar no meio da espera.
+  useWakeLock(publishing || scheduling)
 
   const { data: connections, isLoading } = useQuery({
     queryKey: ['connections'],
