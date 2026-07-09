@@ -583,7 +583,15 @@ export default function GenerateContentPage() {
       setResult(generationRequest)
       window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao gerar conteúdo.')
+      const raw = err instanceof Error ? err.message : String(err)
+      // Gerar conteúdo é uma chamada longa (copy + todas as imagens antes de responder) —
+      // "Load failed"/"Failed to fetch" é o erro genérico do navegador quando a conexão cai
+      // no meio dessa espera, mesmo padrão já visto no upload/composição de vídeo do TikTok.
+      setError(
+        /load failed|failed to fetch|networkerror/i.test(raw)
+          ? 'Falha de rede durante a geração — sua conexão pode ter caído no meio da espera. Tente novamente numa rede mais estável.'
+          : raw || 'Erro ao gerar conteúdo.',
+      )
     } finally {
       setGenerating(false)
     }
