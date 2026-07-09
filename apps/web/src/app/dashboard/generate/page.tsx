@@ -1049,6 +1049,39 @@ function ResultView({
     }
   }
 
+  const [publishingTikTokVideo, setPublishingTikTokVideo] = useState(false)
+  const [tiktokVideoPublishResult, setTiktokVideoPublishResult] = useState<PublishResponse | null>(null)
+  const [tiktokVideoPublishError, setTiktokVideoPublishError] = useState('')
+
+  // Publica o vídeo já composto e testado acima, com a legenda de TikTok já gerada pela IA.
+  // videoConsentAcceptedAt fica null de propósito: o checkbox de consentimento de
+  // _local-edr-policy-034 é sobre vídeo enviado pelo usuário com conteúdo de terceiros — aqui
+  // o vídeo é composição da própria IA a partir de imagens já geradas pelo pipeline.
+  const handlePublishTikTokVideo = async () => {
+    if (!composedVideoPath) return
+    const tiktokCopy = result.outputs?.copies[Platform.TIKTOK]
+    if (!tiktokCopy) return
+
+    setTiktokVideoPublishError('')
+    setPublishingTikTokVideo(true)
+    try {
+      const post = await api.createPost(
+        [{ platform: Platform.TIKTOK, text: tiktokCopy.text }],
+        [],
+        undefined,
+        sourceArticleUrl,
+        composedVideoPath,
+        null,
+      )
+      const response = await api.publishPost(post.id)
+      setTiktokVideoPublishResult(response)
+    } catch (err) {
+      setTiktokVideoPublishError(err instanceof Error ? err.message : 'Erro ao publicar no TikTok.')
+    } finally {
+      setPublishingTikTokVideo(false)
+    }
+  }
+
   // TikTok fica de fora do publicar/agendar direto desta tela: não há upload de vídeo aqui,
   // e o TikTok não aceita post sem vídeo — a legenda gerada fica disponível para uso manual
   // em /dashboard/compose, onde o vídeo é anexado antes de publicar.
@@ -1177,11 +1210,12 @@ function ResultView({
               <p className="whitespace-pre-wrap text-sm text-ink">{copy?.text}</p>
               {platform === Platform.TIKTOK && (
                 <p className="mt-2 text-xs text-muted">
-                  Esta legenda não é publicada automaticamente aqui — abra{' '}
+                  Esta legenda não é publicada pelo botão "Publicar" acima — gere o vídeo animado
+                  mais abaixo para publicar com ela, ou abra{' '}
                   <Link href="/dashboard/compose" className="underline">
                     Novo Post
-                  </Link>
-                  , cole a legenda e envie o vídeo para publicar no TikTok.
+                  </Link>{' '}
+                  para usar um vídeo próprio.
                 </p>
               )}
             </div>
@@ -1229,7 +1263,7 @@ function ResultView({
             <p className="text-sm font-semibold text-ink">🎬 Vídeo animado (experimental)</p>
             <p className="text-xs text-muted">
               Monta um vídeo a partir das imagens acima, cada uma com um leve efeito de zoom, sem
-              áudio. Ainda não é publicado automaticamente — é só para testar o resultado.
+              áudio. Depois de gerado, você pode publicar direto no TikTok com ele.
             </p>
           </div>
           <button
@@ -1242,6 +1276,45 @@ function ResultView({
           </button>
           {composeVideoError && <p className="text-sm text-red-600">{composeVideoError}</p>}
           {composedVideoPath && <GeneratedVideo path={composedVideoPath} />}
+
+          {composedVideoPath && (
+            <div className="space-y-2 border-t border-line pt-3">
+              {result.outputs?.copies[Platform.TIKTOK] ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePublishTikTokVideo}
+                    disabled={publishingTikTokVideo || !!tiktokVideoPublishResult}
+                    className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {publishingTikTokVideo ? 'Publicando…' : 'Publicar no TikTok com este vídeo'}
+                  </button>
+                  {tiktokVideoPublishError && (
+                    <p className="text-sm text-red-600">{tiktokVideoPublishError}</p>
+                  )}
+                  {tiktokVideoPublishResult && (
+                    <>
+                      {tiktokVideoPublishResult.results.length > 0 && (
+                        <p className="text-sm font-medium text-green-700">
+                          ✓ Publicado com sucesso no TikTok.
+                        </p>
+                      )}
+                      {tiktokVideoPublishResult.failedPlatforms.length > 0 && (
+                        <p className="text-sm text-red-700">
+                          ✗ Falhou: {tiktokVideoPublishResult.failedPlatforms[0]?.reason}
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted">
+                  Selecione TikTok como plataforma na geração para ter uma legenda pronta e poder
+                  publicar este vídeo diretamente.
+                </p>
+              )}
+            </div>
+          )}
         </section>
       )}
 
