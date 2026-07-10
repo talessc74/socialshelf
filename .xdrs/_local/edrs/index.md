@@ -40,6 +40,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-037-publicar-em-mais-redes-apos-o-video](application/037-publicar-em-outras-redes-apos-video.md) - Seção "Publicar também em" deixa de depender só de publishResult e passa a aparecer também depois de publicar o vídeo do TikTok; cada rodada continua criando um Post novo, nunca estendendo o original
 - [_local-edr-policy-038-tick-diario-de-autonomia-implementacao](application/038-tick-autonomia-implementacao.md) - Tick diário em publisher-service (não generator-service, para não criar dependência circular de deploy); 3 novas portas de domínio; discovery de marca via collectionGroup; contador diário atômico por transação Firestore
 - [_local-edr-policy-039-campanha-de-fotos-implementacao-fase-1](application/039-campanha-de-fotos-implementacao.md) - EXIF/GPS extraído no api-service sem porta de domínio; clustering guloso por distância haversine (raio 150m); carrossel limitado ao menor teto entre as redes selecionadas; ativação idempotente por item
+- [_local-edr-policy-040-performance-sem-fetch-duplicado](application/040-performance-insights-sem-fetch-duplicado.md) - POST /performance-insights recebe as entradas já buscadas pela tela em vez de rebuscar no publisher, eliminando uma segunda rodada de chamadas ao vivo para Meta/X/LinkedIn a cada carregamento da tela de Performance
 
 ### devops
 Pipeline de entrega e práticas de build.
