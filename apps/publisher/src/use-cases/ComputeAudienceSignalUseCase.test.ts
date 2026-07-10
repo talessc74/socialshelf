@@ -21,6 +21,7 @@ function makePost(externalId: string | undefined): Post {
     videoStoragePath: null,
     videoConsentAcceptedAt: null,
     status: 'published',
+    origin: 'manual',
     scheduledAt: null,
     publishedAt: new Date(),
     externalIds: externalId ? { [Platform.LINKEDIN]: externalId } : {},

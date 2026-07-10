@@ -136,6 +136,7 @@ function baseInput() {
     style: TemplateStyle.BOLD_BOTTOM,
     aspectRatio: AspectRatio.SQUARE,
     includeBodyText: false,
+    origin: 'manual' as const,
   }
 }
 

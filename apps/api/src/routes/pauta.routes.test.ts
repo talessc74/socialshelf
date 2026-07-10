@@ -123,6 +123,7 @@ describe('GET /pauta-suggestions', () => {
         brandId: 'user-test-123',
         content: [{ platform: 'instagram', text: 'Texto', charCount: 5 }],
         status: 'published',
+        origin: 'manual',
         sourceArticleUrl: 'https://news.google.com/rss/articles/abc',
       },
     ])

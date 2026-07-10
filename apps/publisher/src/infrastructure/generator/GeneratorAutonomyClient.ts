@@ -81,6 +81,7 @@ export class HttpGeneratorAutonomyClient implements GeneratorAutonomyClient {
         style: TemplateStyle.BOLD_BOTTOM,
         aspectRatio: AspectRatio.SQUARE,
         includeBodyText: false,
+        origin: 'autonomy-tick',
       }),
     })
     if (!res.ok) throw new Error(`Failed to generate content: ${res.status} ${await res.text()}`)

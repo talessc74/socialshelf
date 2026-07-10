@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { Platform, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
 import type { ApiPost, PostContent } from '../../../lib/api'
+import { PostDetailModal } from '../../../components/PostDetailModal'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -412,6 +413,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
 function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }) {
   const router = useRouter()
   const firstImage = post.imageStoragePaths[0]
+  const [showDetail, setShowDetail] = useState(false)
 
   return (
     <li
@@ -429,6 +431,11 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
               ? ` em ${new Date(post.publishedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
               : ''}
           </span>
+          {post.origin === 'autonomy-tick' && (
+            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
+              🤖 Automático
+            </span>
+          )}
           {post.content.map((c) => (
             <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
               {PLATFORM_LABELS[c.platform]}
@@ -438,6 +445,12 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
         <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
         <div className="flex gap-2">
           <button
+            onClick={() => setShowDetail(true)}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
+          >
+            Ver post completo
+          </button>
+          <button
             onClick={() => router.push(`/dashboard/compose?repostFrom=${post.id}`)}
             className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90"
           >
@@ -445,6 +458,7 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
           </button>
         </div>
       </div>
+      {showDetail && <PostDetailModal post={post} onClose={() => setShowDetail(false)} />}
     </li>
   )
 }

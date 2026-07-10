@@ -79,7 +79,9 @@ export interface ApiPost {
   brandProfileVersion: number | null
   content: PostContent[]
   imageStoragePaths: string[]
+  videoStoragePath: string | null
   status: string
+  origin: 'manual' | 'autonomy-tick'
   externalIds: Partial<Record<Platform, string>>
   scheduledAt: string | null
   publishedAt: string | null

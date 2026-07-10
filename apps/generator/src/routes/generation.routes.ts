@@ -33,6 +33,9 @@ const generateSchema = z.object({
   style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),
   aspectRatio: z.nativeEnum(AspectRatio).default(AspectRatio.SQUARE),
   includeBodyText: z.boolean().default(false),
+  // 'autonomy-tick' só é enviado pelo tick de autonomia do publisher-service — qualquer
+  // chamada vinda da UI (via api-service) nunca envia isso, então o default cobre o caso real.
+  origin: z.enum(['manual', 'autonomy-tick']).default('manual'),
 })
 
 const editArtifactSchema = z.object({
@@ -134,6 +137,7 @@ export async function generationRoutes(app: FastifyInstance) {
         style: parsed.data.style,
         aspectRatio: parsed.data.aspectRatio,
         includeBodyText: parsed.data.includeBodyText,
+        origin: parsed.data.origin,
       })
       return reply.send({ generationRequest })
     } catch (err) {

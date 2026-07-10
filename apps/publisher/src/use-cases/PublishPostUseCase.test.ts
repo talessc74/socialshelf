@@ -21,6 +21,7 @@ function makePost(platforms: Platform[]): Post {
     videoStoragePath: null,
     videoConsentAcceptedAt: null,
     status: 'scheduled',
+    origin: 'manual',
     scheduledAt: null,
     publishedAt: null,
     externalIds: {},
