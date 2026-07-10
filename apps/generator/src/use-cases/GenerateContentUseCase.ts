@@ -273,6 +273,7 @@ export class GenerateContentUseCase {
       videoConsentAcceptedAt: null,
       status: 'ai-draft',
       origin: input.origin,
+      campaignId: null,
       scheduledAt: null,
       publishedAt: null,
       externalIds: {},

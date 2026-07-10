@@ -52,6 +52,7 @@ function makeDraftPost(id: string): Post {
     videoConsentAcceptedAt: null,
     status: 'ai-draft',
     origin: 'manual',
+    campaignId: null,
     scheduledAt: null,
     publishedAt: null,
     externalIds: {},

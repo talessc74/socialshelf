@@ -61,6 +61,11 @@ describe('PostDetailModal', () => {
     expect(screen.queryByText('🤖 Automático')).not.toBeInTheDocument()
   })
 
+  it('shows the "Campanha" badge only when origin is campaign', () => {
+    renderModal(makePost({ origin: 'campaign' }))
+    expect(screen.getByText('📸 Campanha')).toBeInTheDocument()
+  })
+
   it('renders an image for every path in imageStoragePaths', async () => {
     mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
     const { container } = renderModal(makePost({ imageStoragePaths: ['a.png', 'b.png'] }))

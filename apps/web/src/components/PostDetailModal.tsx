@@ -77,6 +77,11 @@ export function PostDetailModal({ post, onClose }: { post: ApiPost; onClose: () 
               🤖 Automático
             </span>
           )}
+          {post.origin === 'campaign' && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              📸 Campanha
+            </span>
+          )}
         </div>
 
         {post.imageStoragePaths.length > 0 && (

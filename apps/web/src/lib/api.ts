@@ -81,7 +81,8 @@ export interface ApiPost {
   imageStoragePaths: string[]
   videoStoragePath: string | null
   status: string
-  origin: 'manual' | 'autonomy-tick'
+  origin: 'manual' | 'autonomy-tick' | 'campaign'
+  campaignId?: string | null
   externalIds: Partial<Record<Platform, string>>
   scheduledAt: string | null
   publishedAt: string | null
@@ -237,6 +238,45 @@ export interface ApiProfileDiagnosticRecord {
   postsAnalyzed: number
   diagnostic: ProfileDiagnostic
   computedAt: string
+}
+
+export interface ApiPhotoCampaign {
+  id: string
+  userId: string
+  brandId: string
+  name: string
+  description: string
+  keywords: string[]
+  platforms: Platform[]
+  postsPerDay: number
+  carouselSizeDefault: number
+  status: 'draft' | 'reviewing' | 'active' | 'completed' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+  startedAt: string | null
+  completedAt: string | null
+}
+
+export interface ApiCampaignPhoto {
+  id: string
+  campaignId: string
+  storagePath: string
+  exifTakenAt: string | null
+  gpsLat: number | null
+  gpsLng: number | null
+  locationClusterId: string | null
+  createdAt: string
+}
+
+export interface ApiCampaignItem {
+  id: string
+  campaignId: string
+  order: number
+  photoIds: string[]
+  caption: string
+  scheduledAt: string
+  status: 'planned' | 'materialized'
+  postId: string | null
 }
 
 export interface GenerateContentInput {
@@ -544,6 +584,85 @@ export const api = {
       `/videos/signed-url?path=${encodeURIComponent(path)}${downloadParam}`,
     )
     return data.url
+  },
+
+  async createCampaign(input: {
+    name: string
+    description: string
+    keywords: string[]
+    platforms: Platform[]
+    postsPerDay: number
+    carouselSizeDefault: number
+  }): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    return data.campaign
+  },
+
+  async listCampaigns(): Promise<ApiPhotoCampaign[]> {
+    const data = await apiFetch<{ campaigns: ApiPhotoCampaign[] }>('/campaigns')
+    return data.campaigns
+  },
+
+  async getCampaign(id: string): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}`)
+    return data.campaign
+  },
+
+  async getCampaignPhotos(id: string): Promise<ApiCampaignPhoto[]> {
+    const data = await apiFetch<{ photos: ApiCampaignPhoto[] }>(`/campaigns/${id}/photos`)
+    return data.photos
+  },
+
+  async uploadCampaignPhoto(campaignId: string, file: File): Promise<ApiCampaignPhoto> {
+    const token = await getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch(`${API_URL}/campaigns/${campaignId}/photos`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
+      },
+      body: formData,
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)
+    }
+    const data = (await res.json()) as { photo: ApiCampaignPhoto }
+    return data.photo
+  },
+
+  async getCampaignTimeline(id: string): Promise<ApiCampaignItem[]> {
+    const data = await apiFetch<{ items: ApiCampaignItem[] }>(`/campaigns/${id}/timeline`)
+    return data.items
+  },
+
+  async generateCampaignTimeline(id: string): Promise<ApiCampaignItem[]> {
+    const data = await apiFetch<{ items: ApiCampaignItem[] }>(`/campaigns/${id}/timeline/generate`, {
+      method: 'POST',
+    })
+    return data.items
+  },
+
+  async updateCampaignTimeline(
+    id: string,
+    items: Array<{ id: string; order: number; photoIds: string[]; caption: string; scheduledAt: string }>,
+  ): Promise<ApiCampaignItem[]> {
+    const data = await apiFetch<{ items: ApiCampaignItem[] }>(`/campaigns/${id}/timeline`, {
+      method: 'PUT',
+      body: JSON.stringify({ items }),
+    })
+    return data.items
+  },
+
+  async activateCampaign(id: string): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}/activate`, { method: 'POST' })
+    return data.campaign
   },
 
   async renderCard(

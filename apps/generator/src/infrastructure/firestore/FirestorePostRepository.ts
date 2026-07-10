@@ -108,6 +108,7 @@ export class FirestorePostRepository implements PostRepository {
         : null,
       status: data['status'] as PostStatus,
       origin: (data['origin'] as Post['origin'] | undefined) ?? 'manual',
+      campaignId: (data['campaignId'] as string | null | undefined) ?? null,
       scheduledAt: data['scheduledAt'] ? new Date(data['scheduledAt'] as string) : null,
       publishedAt: data['publishedAt'] ? new Date(data['publishedAt'] as string) : null,
       externalIds: (data['externalIds'] as Partial<Record<Platform, string>>) ?? {},

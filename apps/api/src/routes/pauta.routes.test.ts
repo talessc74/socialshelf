@@ -124,6 +124,7 @@ describe('GET /pauta-suggestions', () => {
         content: [{ platform: 'instagram', text: 'Texto', charCount: 5 }],
         status: 'published',
         origin: 'manual',
+        campaignId: null,
         sourceArticleUrl: 'https://news.google.com/rss/articles/abc',
       },
     ])
