@@ -2,6 +2,12 @@ import type { Platform } from './Platform.js'
 
 export type PostStatus = 'draft' | 'ai-draft' | 'scheduled' | 'publishing' | 'published' | 'failed'
 
+// 'autonomy-tick': criado pelo tick diário de autonomia (_local-adr-policy-040), sem clique
+// humano — cobre tanto o rascunho de semi-automático quanto o post já publicado de automático.
+// 'manual': qualquer criação disparada por uma ação do usuário na UI, incluindo o clique em
+// "Gerar Conteúdo" (o rascunho é da IA, mas a ação que disparou foi manual).
+export type PostOrigin = 'manual' | 'autonomy-tick'
+
 export interface PlatformContent {
   platform: Platform
   text: string
@@ -21,6 +27,7 @@ export interface Post {
   videoStoragePath: string | null
   videoConsentAcceptedAt: Date | null
   status: PostStatus
+  origin: PostOrigin
   scheduledAt: Date | null
   publishedAt: Date | null
   externalIds: Partial<Record<Platform, string>>

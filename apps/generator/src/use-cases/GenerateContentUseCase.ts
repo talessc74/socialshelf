@@ -17,6 +17,7 @@ import type {
   AspectRatio,
   ArtifactPlan,
   TopicSuggestion,
+  PostOrigin,
 } from '@socialshelf/domain'
 
 export interface GenerateContentInput {
@@ -30,6 +31,7 @@ export interface GenerateContentInput {
   style: TemplateStyle
   aspectRatio: AspectRatio
   includeBodyText: boolean
+  origin: PostOrigin
 }
 
 export class GenerateContentUseCase {
@@ -270,6 +272,7 @@ export class GenerateContentUseCase {
       videoStoragePath: null,
       videoConsentAcceptedAt: null,
       status: 'ai-draft',
+      origin: input.origin,
       scheduledAt: null,
       publishedAt: null,
       externalIds: {},

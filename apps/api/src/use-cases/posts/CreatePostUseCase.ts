@@ -48,6 +48,7 @@ export class CreatePostUseCase {
       videoStoragePath: input.videoStoragePath ?? null,
       videoConsentAcceptedAt: input.videoConsentAcceptedAt ?? null,
       status: input.scheduledAt ? 'scheduled' : 'draft',
+      origin: 'manual',
       scheduledAt: input.scheduledAt ?? null,
       publishedAt: null,
       externalIds: {},

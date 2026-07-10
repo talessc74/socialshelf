@@ -14,6 +14,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     videoStoragePath: null,
     videoConsentAcceptedAt: null,
     status: 'scheduled',
+    origin: 'manual',
     scheduledAt: new Date('2026-07-01T12:00:00.000Z'),
     publishedAt: null,
     externalIds: {},

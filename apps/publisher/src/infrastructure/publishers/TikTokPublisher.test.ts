@@ -13,6 +13,7 @@ const mockPost: Post = {
   videoStoragePath: 'videos/user-1/brand-1/clip.mp4',
   videoConsentAcceptedAt: new Date('2026-07-08T00:00:00.000Z'),
   status: 'scheduled',
+  origin: 'manual',
   scheduledAt: null,
   publishedAt: null,
   externalIds: {},

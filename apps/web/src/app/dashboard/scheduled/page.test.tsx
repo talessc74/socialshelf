@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
@@ -31,7 +31,9 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     brandProfileVersion: null,
     content: [{ platform: Platform.LINKEDIN, text: 'Texto agendado para o LinkedIn' }],
     imageStoragePaths: [],
+    videoStoragePath: null,
     status: 'scheduled',
+    origin: 'manual',
     externalIds: {},
     scheduledAt: new Date('2026-07-01T12:00:00.000Z').toISOString(),
     publishedAt: null,
@@ -307,6 +309,52 @@ describe('ScheduledPostsPage', () => {
       await user.click(screen.getByRole('button', { name: 'Repostar' }))
 
       expect(pushMock).toHaveBeenCalledWith('/dashboard/compose?repostFrom=post-2')
+    })
+
+    it('mostra o selo "Automático" para post publicado pelo tick de autonomia', async () => {
+      mockScheduledAndPublished([makePublishedPost({ origin: 'autonomy-tick' })])
+
+      await renderListView()
+
+      expect(await screen.findByText('🤖 Automático')).toBeInTheDocument()
+    })
+
+    it('não mostra o selo "Automático" para post publicado manualmente', async () => {
+      mockScheduledAndPublished([makePublishedPost({ origin: 'manual' })])
+
+      await renderListView()
+
+      await screen.findByText('Texto já publicado no Instagram')
+      expect(screen.queryByText('🤖 Automático')).not.toBeInTheDocument()
+    })
+
+    it('abre o post completo ao clicar em "Ver post completo", com o texto na íntegra', async () => {
+      mockScheduledAndPublished([
+        makePublishedPost({ content: [{ platform: Platform.INSTAGRAM, text: 'Texto completo bem mais longo do que a prévia truncada mostraria' }] }),
+      ])
+
+      const user = await renderListView()
+      await screen.findByText(/Texto completo bem mais longo/)
+
+      await user.click(screen.getByRole('button', { name: 'Ver post completo' }))
+
+      const dialog = await screen.findByRole('dialog', { name: 'Post completo' })
+      expect(
+        within(dialog).getByText('Texto completo bem mais longo do que a prévia truncada mostraria'),
+      ).toBeInTheDocument()
+    })
+
+    it('fecha o post completo ao clicar em Fechar', async () => {
+      mockScheduledAndPublished([makePublishedPost()])
+
+      const user = await renderListView()
+      await screen.findByText('Texto já publicado no Instagram')
+      await user.click(screen.getByRole('button', { name: 'Ver post completo' }))
+      await screen.findByRole('dialog', { name: 'Post completo' })
+
+      await user.click(screen.getByRole('button', { name: 'Fechar ✕' }))
+
+      expect(screen.queryByRole('dialog', { name: 'Post completo' })).not.toBeInTheDocument()
     })
 
     describe('no calendário', () => {

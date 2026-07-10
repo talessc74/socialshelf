@@ -14,6 +14,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     videoStoragePath: null,
     videoConsentAcceptedAt: null,
     status: 'published',
+    origin: 'manual',
     scheduledAt: null,
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     externalIds: { [Platform.LINKEDIN]: 'urn:li:share:1' },

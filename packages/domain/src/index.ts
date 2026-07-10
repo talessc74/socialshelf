@@ -2,7 +2,7 @@
 export type { User, AiConsent } from './entities/User.js'
 export type { Brand } from './entities/Brand.js'
 export type { OAuthConnection } from './entities/OAuthConnection.js'
-export type { Post, PostStatus, PlatformContent } from './entities/Post.js'
+export type { Post, PostStatus, PostOrigin, PlatformContent } from './entities/Post.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,

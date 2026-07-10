@@ -107,6 +107,7 @@ export class FirestorePostRepository implements PostRepository {
         ? new Date(data['videoConsentAcceptedAt'] as string)
         : null,
       status: data['status'] as PostStatus,
+      origin: (data['origin'] as Post['origin'] | undefined) ?? 'manual',
       scheduledAt: data['scheduledAt'] ? new Date(data['scheduledAt'] as string) : null,
       publishedAt: data['publishedAt'] ? new Date(data['publishedAt'] as string) : null,
       externalIds: (data['externalIds'] as Partial<Record<Platform, string>>) ?? {},
