@@ -114,11 +114,14 @@ export default function PerformanceDashboardPage() {
   const [analyzeError, setAnalyzeError] = useState('')
   const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false)
 
+  // Reaproveita as entradas que a tela já buscou (useQuery acima) em vez de deixar o
+  // backend buscar de novo no publisher — evita uma segunda rodada de chamadas ao vivo
+  // para Meta/X/LinkedIn a cada análise (_local-edr-policy-040).
   const handleAnalyze = useCallback(async () => {
     setAnalyzeError('')
     setAnalyzing(true)
     try {
-      const result = await api.getPerformanceInsights()
+      const result = await api.getPerformanceInsights(entries)
       setDiagnostic(result)
       setDiagnosticComputedAt(new Date())
     } catch (err) {
@@ -126,7 +129,7 @@ export default function PerformanceDashboardPage() {
     } finally {
       setAnalyzing(false)
     }
-  }, [])
+  }, [entries])
 
   // Mostra a última análise salva (com data/hora) enquanto a análise automática roda,
   // em vez de deixar a tela vazia até a IA responder.

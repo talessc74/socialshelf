@@ -1,31 +1,41 @@
 import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
+import { Platform } from '@socialshelf/domain'
 import { fetchInternal } from '../lib/serviceAuth.js'
 
+const platformEnum = z.enum([Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER])
+
+const analyzeSchema = z.object({
+  entries: z.array(
+    z.object({
+      platform: platformEnum,
+      text: z.string(),
+      metrics: z.object({
+        impressions: z.number(),
+        likes: z.number(),
+        comments: z.number(),
+        shares: z.number(),
+      }),
+      score: z.number(),
+    }),
+  ),
+})
+
 export async function performanceInsightsRoutes(app: FastifyInstance) {
-  const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
 
-  app.get(
+  // Recebe as entradas que a tela já buscou via GET /posts-performance em vez de buscar de
+  // novo no publisher — evita uma segunda rodada de chamadas ao vivo para Meta/X/LinkedIn a
+  // cada carregamento da tela de Performance (_local-edr-policy-040).
+  app.post(
     '/performance-insights',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const performanceRes = await fetchInternal(`${publisherUrl}/posts-performance`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Secret': internalSecret,
-        },
-        body: JSON.stringify({ brandId: request.brandId }),
-      })
-
-      if (!performanceRes.ok) {
-        const body = await performanceRes.text()
-        app.log.error(`Publisher error ${performanceRes.status}: ${body}`)
-        return reply.status(502).send({ error: 'Publisher error', detail: body })
+      const parsed = analyzeSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
       }
-
-      const { entries } = (await performanceRes.json()) as { entries: unknown[] }
 
       const insightsRes = await fetchInternal(`${generatorUrl}/performance-insights/analyze`, {
         method: 'POST',
@@ -33,7 +43,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
           'Content-Type': 'application/json',
           'X-Internal-Secret': internalSecret,
         },
-        body: JSON.stringify({ brandId: request.brandId, entries }),
+        body: JSON.stringify({ brandId: request.brandId, entries: parsed.data.entries }),
       })
 
       if (!insightsRes.ok) {

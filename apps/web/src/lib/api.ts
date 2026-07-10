@@ -561,8 +561,11 @@ export const api = {
     return apiFetch<ApiPostsPerformanceResult>('/posts-performance')
   },
 
-  async getPerformanceInsights(): Promise<ProfileDiagnostic> {
-    const data = await apiFetch<{ insights: ProfileDiagnostic }>('/performance-insights')
+  async getPerformanceInsights(entries: ApiPostPerformanceEntry[]): Promise<ProfileDiagnostic> {
+    const data = await apiFetch<{ insights: ProfileDiagnostic }>('/performance-insights', {
+      method: 'POST',
+      body: JSON.stringify({ entries }),
+    })
     return data.insights
   },
 
