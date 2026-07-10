@@ -169,6 +169,7 @@ export interface ApiGenerationRequest {
     headlines: string[] | null
     bodyTexts: string[] | null
     artifacts: ApiGenerationArtifact[]
+    composedVideo?: { storagePath: string; durationSeconds: number; narrated: boolean } | null
   } | null
   error: string | null
   createdAt: string
@@ -534,8 +535,11 @@ export const api = {
     return data.url
   },
 
-  async getVideoUrl(path: string): Promise<string> {
-    const data = await apiFetch<{ url: string }>(`/videos/signed-url?path=${encodeURIComponent(path)}`)
+  async getVideoUrl(path: string, download?: boolean): Promise<string> {
+    const downloadParam = download ? '&download=true' : ''
+    const data = await apiFetch<{ url: string }>(
+      `/videos/signed-url?path=${encodeURIComponent(path)}${downloadParam}`,
+    )
     return data.url
   },
 

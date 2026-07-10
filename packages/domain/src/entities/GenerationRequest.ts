@@ -24,6 +24,15 @@ export interface PlatformCopy {
   charCount: number
 }
 
+// Vídeo montado a partir dos artefatos de imagem desta geração (_local-edr-policy-036).
+// Um único vídeo por GenerationRequest, não por posição — por isso fica fora de
+// GenerationArtifact[], que é por-imagem.
+export interface ComposedVideo {
+  storagePath: string
+  durationSeconds: number
+  narrated: boolean
+}
+
 export interface GenerationRequest {
   id: string
   userId: string
@@ -46,6 +55,7 @@ export interface GenerationRequest {
     visualBriefs: string[] | null
     bodyTexts: string[] | null
     artifacts: GenerationArtifact[]
+    composedVideo?: ComposedVideo | null
   } | null
   error: string | null
   createdAt: Date

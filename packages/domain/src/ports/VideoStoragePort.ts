@@ -6,7 +6,7 @@ export interface VideoStoragePort {
     mimeType: string,
     requestId: string,
   ): Promise<string>
-  getSignedUrl(path: string, ttlSeconds: number): Promise<string>
+  getSignedUrl(path: string, ttlSeconds: number, downloadFilename?: string): Promise<string>
   delete(path: string): Promise<void>
   listOlderThan(maxAgeMs: number): Promise<string[]>
 }

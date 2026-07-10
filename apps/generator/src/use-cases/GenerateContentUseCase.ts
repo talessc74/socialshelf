@@ -130,6 +130,7 @@ export class GenerateContentUseCase {
         visualBriefs: copyResult.visualBriefs,
         bodyTexts: copyResult.bodyTexts,
         artifacts,
+        composedVideo: null,
       },
     }
     await this.generationRequestRepo.updateOutputs(request.id, request.outputs!)

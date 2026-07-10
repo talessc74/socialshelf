@@ -119,6 +119,20 @@ function GeneratedVideo({ path }: { path: string }) {
     queryKey: ['generated-video-url', path],
     queryFn: () => api.getVideoUrl(path),
   })
+  const [downloading, setDownloading] = useState(false)
+
+  const handleDownload = async () => {
+    setDownloading(true)
+    try {
+      // URL separada da usada no player: pede um Content-Disposition: attachment ao GCS, que
+      // força o download em vez de só abrir o vídeo — o atributo `download` do <a> não é
+      // respeitado entre origens diferentes (o link do GCS não é do mesmo domínio do site).
+      const downloadUrl = await api.getVideoUrl(path, true)
+      window.open(downloadUrl, '_blank')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -137,8 +151,20 @@ function GeneratedVideo({ path }: { path: string }) {
     )
   }
 
-  // eslint-disable-next-line jsx-a11y/media-has-caption
-  return <video src={url} controls className="aspect-[9/16] w-full max-w-xs rounded-lg bg-black" />
+  return (
+    <div className="space-y-2">
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+      <video src={url} controls className="aspect-[9/16] w-full max-w-xs rounded-lg bg-black" />
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={downloading}
+        className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-accent disabled:opacity-50"
+      >
+        {downloading ? 'Preparando download…' : 'Baixar vídeo'}
+      </button>
+    </div>
+  )
 }
 
 function LightboxImage({ path, aspectClass }: { path: string; aspectClass: string }) {
@@ -1037,7 +1063,11 @@ function ResultView({
   const [extraPublishing, setExtraPublishing] = useState(false)
   const [extraPublishError, setExtraPublishError] = useState('')
   const [composingVideo, setComposingVideo] = useState(false)
-  const [composedVideoPath, setComposedVideoPath] = useState<string | null>(null)
+  // Se o vídeo já foi composto numa visita anterior a esta tela, outputs.composedVideo trouxe
+  // o path persistido — não precisa gerar de novo.
+  const [composedVideoPath, setComposedVideoPath] = useState<string | null>(
+    result.outputs?.composedVideo?.storagePath ?? null,
+  )
   const [composeVideoError, setComposeVideoError] = useState('')
   const [narrateVideo, setNarrateVideo] = useState(false)
 
@@ -1385,11 +1415,11 @@ function ResultView({
 
       {publishResult ? (
         <div className="space-y-3">
-          {[...publishResult.results, ...extraResults].length > 0 && (
+          {publishResult.results.length > 0 && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-4">
               <p className="mb-2 font-semibold text-green-800">Publicado com sucesso:</p>
               <ul className="space-y-1">
-                {[...publishResult.results, ...extraResults].map((r) => (
+                {publishResult.results.map((r) => (
                   <li key={r.platform} className="text-sm text-green-700">
                     ✓ {PLATFORM_LABELS[r.platform]}
                   </li>
@@ -1397,11 +1427,90 @@ function ResultView({
               </ul>
             </div>
           )}
-          {[...publishResult.failedPlatforms, ...extraFailed].length > 0 && (
+          {publishResult.failedPlatforms.length > 0 && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4">
               <p className="mb-2 font-semibold text-red-800">Falhou:</p>
               <ul className="space-y-1">
-                {[...publishResult.failedPlatforms, ...extraFailed].map((f) => (
+                {publishResult.failedPlatforms.map((f) => (
+                  <li key={f.platform} className="text-sm text-red-700">
+                    ✗ {PLATFORM_LABELS[f.platform]} — {f.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : scheduleSuccess ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+          <p className="font-semibold text-green-800">
+            Post agendado para{' '}
+            {scheduleSuccess.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
+          </p>
+        </div>
+      ) : (
+        result.status === 'ready' && (
+          <div className="space-y-2">
+            {publishError && (
+              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{publishError}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handlePublish}
+                disabled={publishing || scheduling}
+                className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+              >
+                {publishing ? 'Publicando…' : 'Publicar Agora'}
+              </button>
+              <button
+                onClick={() => setShowScheduler((v) => !v)}
+                disabled={publishing || scheduling}
+                className="rounded-lg border border-line px-6 py-2.5 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
+              >
+                Agendar
+              </button>
+            </div>
+            {showScheduler && (
+              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card-2 p-4">
+                <input
+                  type="datetime-local"
+                  value={scheduledAtInput}
+                  onChange={(e) => setScheduledAtInput(e.target.value)}
+                  className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
+                />
+                <button
+                  onClick={handleSchedule}
+                  disabled={scheduling || !scheduledAtInput}
+                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+                >
+                  {scheduling ? 'Agendando…' : 'Confirmar agendamento'}
+                </button>
+              </div>
+            )}
+          </div>
+        )
+      )}
+
+      {/* Independente de qual publicação já aconteceu nesta tela — o post principal ou o
+          vídeo do TikTok — o post ficou bom o suficiente pra valer publicar em mais redes. */}
+      {(publishResult || tiktokVideoPublishResult) && (
+        <div className="space-y-3">
+          {extraResults.length > 0 && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+              <p className="mb-2 font-semibold text-green-800">Publicado também em:</p>
+              <ul className="space-y-1">
+                {extraResults.map((r) => (
+                  <li key={r.platform} className="text-sm text-green-700">
+                    ✓ {PLATFORM_LABELS[r.platform]}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {extraFailed.length > 0 && (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+              <p className="mb-2 font-semibold text-red-800">Falhou:</p>
+              <ul className="space-y-1">
+                {extraFailed.map((f) => (
                   <li key={f.platform} className="text-sm text-red-700">
                     ✗ {PLATFORM_LABELS[f.platform]} — {f.reason}
                   </li>
@@ -1472,54 +1581,6 @@ function ResultView({
             </div>
           )}
         </div>
-      ) : scheduleSuccess ? (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-4">
-          <p className="font-semibold text-green-800">
-            Post agendado para{' '}
-            {scheduleSuccess.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.
-          </p>
-        </div>
-      ) : (
-        result.status === 'ready' && (
-          <div className="space-y-2">
-            {publishError && (
-              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{publishError}</p>
-            )}
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={handlePublish}
-                disabled={publishing || scheduling}
-                className="rounded-lg bg-accent px-6 py-2.5 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
-              >
-                {publishing ? 'Publicando…' : 'Publicar Agora'}
-              </button>
-              <button
-                onClick={() => setShowScheduler((v) => !v)}
-                disabled={publishing || scheduling}
-                className="rounded-lg border border-line px-6 py-2.5 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
-              >
-                Agendar
-              </button>
-            </div>
-            {showScheduler && (
-              <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-card-2 p-4">
-                <input
-                  type="datetime-local"
-                  value={scheduledAtInput}
-                  onChange={(e) => setScheduledAtInput(e.target.value)}
-                  className="rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
-                />
-                <button
-                  onClick={handleSchedule}
-                  disabled={scheduling || !scheduledAtInput}
-                  className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
-                >
-                  {scheduling ? 'Agendando…' : 'Confirmar agendamento'}
-                </button>
-              </div>
-            )}
-          </div>
-        )
       )}
 
       <button

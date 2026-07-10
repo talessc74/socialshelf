@@ -45,6 +45,19 @@ vi.mock('../infrastructure/tts/GoogleTextToSpeechSynthesizer.js', () => ({
   })),
 }))
 
+const mockFindById = vi.fn().mockResolvedValue({
+  id: 'req-1',
+  outputs: { copies: {}, cta: null, headlines: null, visualBriefs: null, bodyTexts: null, artifacts: [] },
+})
+const mockUpdateOutputs = vi.fn().mockResolvedValue(undefined)
+
+vi.mock('../infrastructure/firestore/FirestoreGenerationRequestRepository.js', () => ({
+  FirestoreGenerationRequestRepository: vi.fn().mockImplementation(() => ({
+    findById: mockFindById,
+    updateOutputs: mockUpdateOutputs,
+  })),
+}))
+
 describe('POST /videos/upload', () => {
   let app: FastifyInstance
 
@@ -339,5 +352,49 @@ describe('POST /videos/compose-slideshow', () => {
     })
 
     expect(response.statusCode).toBe(500)
+  })
+
+  it('persists the composed video onto the generation request outputs', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: ['user-1/brand-1/img-0.png'],
+        narrationText: 'Confira essa novidade incrível.',
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(mockFindById).toHaveBeenCalledWith('req-1')
+    expect(mockUpdateOutputs).toHaveBeenCalledWith(
+      'req-1',
+      expect.objectContaining({
+        composedVideo: { storagePath: 'videos/user-1/brand-1/upload-123.mp4', durationSeconds: 6, narrated: true },
+      }),
+    )
+  })
+
+  it('still returns the composed video when persisting it onto the generation request fails', async () => {
+    mockFindById.mockRejectedValueOnce(new Error('firestore unavailable'))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/videos/compose-slideshow',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: {
+        userId: 'user-1',
+        brandId: 'brand-1',
+        requestId: 'req-1',
+        imagePaths: ['user-1/brand-1/img-0.png'],
+      },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ path: string }>()
+    expect(body.path).toBe('videos/user-1/brand-1/upload-123.mp4')
   })
 })

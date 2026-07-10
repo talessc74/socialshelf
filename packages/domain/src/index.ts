@@ -19,6 +19,7 @@ export type {
   PlatformCopy,
   ArtifactStatus,
   GenerationArtifact,
+  ComposedVideo,
 } from './entities/GenerationRequest.js'
 export type { AudienceSignal } from './entities/AudienceSignal.js'
 export type { NewsItem } from './entities/NewsItem.js'
