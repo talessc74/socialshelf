@@ -12,6 +12,7 @@ export default function CampaignUploadPage() {
   const queryClient = useQueryClient()
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
 
   const { data: campaign } = useQuery({ queryKey: ['campaign', campaignId], queryFn: () => api.getCampaign(campaignId) })
   const { data: photos } = useQuery({
@@ -26,20 +27,28 @@ export default function CampaignUploadPage() {
 
   // Um arquivo por requisição, o cliente faz o loop — mesmo padrão já usado no upload de
   // imagem manual (compose/generate), já que o multipart do api-service aceita 1 arquivo por vez.
+  // Cada foto é isolada em try/catch (mesmo padrão de AutonomyTickUseCase/GetPostsPerformanceUseCase):
+  // uma falha no meio de um lote grande não pode impedir as demais de subir nem esconder da tela
+  // as que já subiram — por isso a lista é sempre atualizada no final, com sucesso ou não.
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
     setUploading(true)
     setUploadError(null)
-    try {
-      for (const file of Array.from(files)) {
+    const failures: string[] = []
+    for (const file of Array.from(files)) {
+      try {
         await api.uploadCampaignPhoto(campaignId, file)
+      } catch (err) {
+        failures.push(`${file.name}: ${err instanceof Error ? err.message : 'falha desconhecida'}`)
       }
-      await queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] })
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Falha ao subir as fotos')
-    } finally {
-      setUploading(false)
     }
+    await queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] })
+    if (failures.length > 0) {
+      const shown = failures.slice(0, 3).join('; ')
+      const rest = failures.length > 3 ? ` (e mais ${failures.length - 3})` : ''
+      setUploadError(`${failures.length} de ${files.length} foto(s) não subiram: ${shown}${rest}`)
+    }
+    setUploading(false)
   }
 
   return (
@@ -53,12 +62,25 @@ export default function CampaignUploadPage() {
 
       <label
         htmlFor="campaign-photos-input"
-        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line bg-card p-8 text-center hover:border-accent"
+        onDragOver={(e) => {
+          e.preventDefault()
+          if (!uploading) setIsDragging(true)
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault()
+          setIsDragging(false)
+          if (uploading) return
+          void handleFiles(e.dataTransfer.files)
+        }}
+        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-8 text-center transition-colors ${
+          isDragging ? 'border-accent bg-accent-soft' : 'border-line bg-card hover:border-accent'
+        }`}
       >
         <span className="text-sm font-semibold text-ink">
-          {uploading ? 'Enviando fotos…' : 'Clique para escolher as fotos'}
+          {uploading ? 'Enviando fotos…' : isDragging ? 'Solte as fotos aqui' : 'Clique ou arraste as fotos aqui'}
         </span>
-        <span className="text-xs text-muted">JPEG, PNG ou WEBP — pode selecionar várias de uma vez</span>
+        <span className="text-xs text-muted">JPEG, PNG ou WEBP — pode selecionar ou arrastar várias de uma vez</span>
         <input
           id="campaign-photos-input"
           type="file"
