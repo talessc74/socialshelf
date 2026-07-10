@@ -214,6 +214,49 @@ describe('PerformanceDashboardPage', () => {
     expect(mockedApi.getPerformanceInsights).toHaveBeenCalledTimes(2)
   })
 
+  it('traduz o erro "No published posts with metrics to analyze" em vez de mostrar em inglês', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
+    mockedApi.getPerformanceInsights.mockRejectedValue(new Error('No published posts with metrics to analyze'))
+
+    renderPage()
+
+    expect(
+      await screen.findByText('Ainda não há posts publicados com métricas medidas para gerar o diagnóstico.'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/No published posts/)).not.toBeInTheDocument()
+  })
+
+  it('refaz a análise sozinha quando a quantidade de posts com métrica muda, mesmo após uma falha anterior', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValueOnce(makeResult({ entries: [makeEntry()] }))
+    mockedApi.getPerformanceInsights
+      .mockRejectedValueOnce(new Error('No published posts with metrics to analyze'))
+      .mockResolvedValueOnce(makeDiagnostic({ niche: 'Novo Nicho' }))
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <PerformanceDashboardPage />
+      </QueryClientProvider>,
+    )
+
+    expect(
+      await screen.findByText('Ainda não há posts publicados com métricas medidas para gerar o diagnóstico.'),
+    ).toBeInTheDocument()
+
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({ entries: [makeEntry(), makeEntry({ platform: Platform.FACEBOOK })] }),
+    )
+    await queryClient.invalidateQueries({ queryKey: ['posts-performance'] })
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <PerformanceDashboardPage />
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('Novo Nicho')).toBeInTheDocument()
+    expect(mockedApi.getPerformanceInsights).toHaveBeenCalledTimes(2)
+  })
+
   it('usa o Instagram como rede padrão quando o Facebook só tem erro de seguidores', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(
       makeResult({
