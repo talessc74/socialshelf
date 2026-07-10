@@ -9,6 +9,16 @@ const stringArray = z.preprocess(
   z.array(z.string()),
 )
 
+// Sem isso, "bestTimes" seria um chute do modelo sem nenhum dado real de horário —
+// o prompt já pedia "com base nos dados", mas os dados nunca incluíam quando cada post saiu.
+const publishedAtFormatter = new Intl.DateTimeFormat('pt-BR', {
+  timeZone: 'America/Sao_Paulo',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+})
+
 const profileDiagnosticSchema = z.object({
   niche: z.string(),
   diagnosisSummary: z.string(),
@@ -63,7 +73,7 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
     const postsSection = entries
       .map(
         (e, i) =>
-          `${i + 1}. [${e.platform}] "${e.text}" — impressões: ${e.metrics.impressions}, curtidas: ${e.metrics.likes}, comentários: ${e.metrics.comments}, compartilhamentos: ${e.metrics.shares}, score: ${e.score}`,
+          `${i + 1}. [${e.platform}] publicado ${publishedAtFormatter.format(e.publishedAt)} (horário de Brasília) — "${e.text}" — impressões: ${e.metrics.impressions}, curtidas: ${e.metrics.likes}, comentários: ${e.metrics.comments}, compartilhamentos: ${e.metrics.shares}, score: ${e.score}`,
       )
       .join('\n')
 

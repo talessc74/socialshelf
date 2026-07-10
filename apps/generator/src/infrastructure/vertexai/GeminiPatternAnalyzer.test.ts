@@ -18,12 +18,14 @@ function respondWith(payload: unknown) {
   })
 }
 
-function makeEntry(): PostPerformanceSummary {
+function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerformanceSummary {
   return {
     platform: Platform.LINKEDIN,
     text: 'Post de exemplo',
     metrics: { impressions: 100, likes: 10, comments: 2, shares: 1 },
     score: 113,
+    publishedAt: new Date('2026-07-06T17:30:00.000Z'),
+    ...overrides,
   }
 }
 
@@ -56,6 +58,19 @@ describe('GeminiPatternAnalyzer', () => {
 
     expect(result.niche).toBe('Tecnologia')
     expect(result.bestTimes).toEqual(['08:00'])
+  })
+
+  it('includes each post\'s publish time (Brasília) in the prompt so bestTimes has real data to work from', async () => {
+    respondWith(makeValidPayload())
+
+    await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([
+      makeEntry({ publishedAt: new Date('2026-07-06T17:30:00.000Z') }),
+    ])
+
+    const prompt = generateContent.mock.calls[0]![0] as string
+    // 17:30 UTC no domingo 2026-07-06 é 14:30 em horário de Brasília (UTC-3).
+    expect(prompt).toContain('14:30')
+    expect(prompt).toContain('horário de Brasília')
   })
 
   it('normalizes bestTimes into an array when the model returns a single string', async () => {

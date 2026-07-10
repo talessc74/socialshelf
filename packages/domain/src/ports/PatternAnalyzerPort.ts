@@ -6,6 +6,7 @@ export interface PostPerformanceSummary {
   text: string
   metrics: PostMetrics
   score: number
+  publishedAt: Date
 }
 
 export interface ProfileDiagnosticChecklistItem {

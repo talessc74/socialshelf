@@ -17,6 +17,7 @@ const analyzeSchema = z.object({
         shares: z.number(),
       }),
       score: z.number(),
+      publishedAt: z.string().datetime(),
     }),
   ),
 })
