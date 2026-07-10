@@ -328,6 +328,14 @@ describe('ScheduledPostsPage', () => {
       expect(screen.queryByText('🤖 Automático')).not.toBeInTheDocument()
     })
 
+    it('mostra o selo "Campanha" para post materializado de uma PhotoCampaign', async () => {
+      mockScheduledAndPublished([makePublishedPost({ origin: 'campaign', campaignId: 'campaign-1' })])
+
+      await renderListView()
+
+      expect(await screen.findByText('📸 Campanha')).toBeInTheDocument()
+    })
+
     it('abre o post completo ao clicar em "Ver post completo", com o texto na íntegra', async () => {
       mockScheduledAndPublished([
         makePublishedPost({ content: [{ platform: Platform.INSTAGRAM, text: 'Texto completo bem mais longo do que a prévia truncada mostraria' }] }),

@@ -14,6 +14,7 @@ const mockPost: Post = {
   videoConsentAcceptedAt: null,
   status: 'scheduled',
   origin: 'manual',
+  campaignId: null,
   scheduledAt: null,
   publishedAt: null,
   externalIds: {},

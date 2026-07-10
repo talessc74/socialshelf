@@ -49,6 +49,7 @@ export class CreatePostUseCase {
       videoConsentAcceptedAt: input.videoConsentAcceptedAt ?? null,
       status: input.scheduledAt ? 'scheduled' : 'draft',
       origin: 'manual',
+      campaignId: null,
       scheduledAt: input.scheduledAt ?? null,
       publishedAt: null,
       externalIds: {},

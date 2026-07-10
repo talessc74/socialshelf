@@ -3,6 +3,9 @@ export type { User, AiConsent } from './entities/User.js'
 export type { Brand } from './entities/Brand.js'
 export type { OAuthConnection } from './entities/OAuthConnection.js'
 export type { Post, PostStatus, PostOrigin, PlatformContent } from './entities/Post.js'
+export type { PhotoCampaign, PhotoCampaignStatus } from './entities/PhotoCampaign.js'
+export type { CampaignPhoto } from './entities/CampaignPhoto.js'
+export type { CampaignItem, CampaignItemStatus } from './entities/CampaignItem.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,
@@ -104,6 +107,9 @@ export type {
 } from './ports/PatternAnalyzerPort.js'
 export type { BrandDocumentExtractorPort, BrandProfileExtraction } from './ports/BrandDocumentExtractorPort.js'
 export type { ProfileDiagnosticRepository, ProfileDiagnosticRecord } from './ports/ProfileDiagnosticRepository.js'
+export type { PhotoCampaignRepository } from './ports/PhotoCampaignRepository.js'
+export type { CampaignPhotoRepository } from './ports/CampaignPhotoRepository.js'
+export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

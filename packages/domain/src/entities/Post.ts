@@ -6,7 +6,10 @@ export type PostStatus = 'draft' | 'ai-draft' | 'scheduled' | 'publishing' | 'pu
 // humano — cobre tanto o rascunho de semi-automático quanto o post já publicado de automático.
 // 'manual': qualquer criação disparada por uma ação do usuário na UI, incluindo o clique em
 // "Gerar Conteúdo" (o rascunho é da IA, mas a ação que disparou foi manual).
-export type PostOrigin = 'manual' | 'autonomy-tick'
+// 'campaign': materializado por ActivateCampaignUseCase a partir de um CampaignItem de uma
+// PhotoCampaign (_local-adr-policy-041) — o usuário trouxe a foto, mas a ativação da linha
+// do tempo é que disparou a criação deste Post específico, não um clique por post.
+export type PostOrigin = 'manual' | 'autonomy-tick' | 'campaign'
 
 export interface PlatformContent {
   platform: Platform
@@ -28,6 +31,10 @@ export interface Post {
   videoConsentAcceptedAt: Date | null
   status: PostStatus
   origin: PostOrigin
+  // Id da PhotoCampaign que materializou este Post, quando origin === 'campaign'. Null pra
+  // todo o resto — não vale a pena modelar como union discriminada porque isso obrigaria
+  // um refinamento de tipo em todo write-site de Post só pra um campo opcional.
+  campaignId: string | null
   scheduledAt: Date | null
   publishedAt: Date | null
   externalIds: Partial<Record<Platform, string>>

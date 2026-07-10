@@ -1,0 +1,185 @@
+import type { FastifyInstance } from 'fastify'
+import { z } from 'zod'
+import { Platform } from '@socialshelf/domain'
+import { CreatePhotoCampaignUseCase } from '../use-cases/campaigns/CreatePhotoCampaignUseCase.js'
+import { UploadCampaignPhotoUseCase } from '../use-cases/campaigns/UploadCampaignPhotoUseCase.js'
+import { GenerateCampaignTimelineUseCase } from '../use-cases/campaigns/GenerateCampaignTimelineUseCase.js'
+import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
+import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
+import { FirestorePhotoCampaignRepository } from '../infrastructure/firestore/FirestorePhotoCampaignRepository.js'
+import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/FirestoreCampaignPhotoRepository.js'
+import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
+import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
+import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+
+const platformEnum = z.enum([Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER, Platform.TIKTOK])
+
+const createCampaignSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().default(''),
+  keywords: z.array(z.string()).default([]),
+  platforms: z.array(platformEnum).min(1),
+  postsPerDay: z.number().int().min(1).max(10),
+  carouselSizeDefault: z.number().int().min(1).max(20),
+})
+
+const updateTimelineSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        order: z.number().int(),
+        photoIds: z.array(z.string()).min(1),
+        caption: z.string(),
+        scheduledAt: z.string().datetime(),
+      }),
+    )
+    .min(1),
+})
+
+export async function campaignsRoutes(app: FastifyInstance) {
+  const campaignRepo = new FirestorePhotoCampaignRepository()
+  const photoRepo = new FirestoreCampaignPhotoRepository()
+  const itemRepo = new FirestoreCampaignItemRepository()
+  const postRepo = new FirestorePostRepository()
+  const brandProfileRepo = new FirestoreBrandProfileRepository()
+
+  const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
+  const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
+
+  const createCampaign = new CreatePhotoCampaignUseCase(campaignRepo)
+  const uploadPhoto = new UploadCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
+  const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo)
+  const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
+  const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
+
+  app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const parsed = createCampaignSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const campaign = await createCampaign.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        ...parsed.data,
+      })
+      return reply.status(201).send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return reply.status(422).send({ error: message })
+    }
+  })
+
+  app.get('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const campaigns = await campaignRepo.findByBrand(request.userId, request.brandId)
+    return reply.send({ campaigns })
+  })
+
+  app.get('/campaigns/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+    if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
+    return reply.send({ campaign })
+  })
+
+  app.get('/campaigns/:id/photos', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+    if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
+    const photos = await photoRepo.findByCampaign(id)
+    return reply.send({ photos })
+  })
+
+  app.get('/campaigns/:id/timeline', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+    if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
+    const items = await itemRepo.findByCampaign(id)
+    return reply.send({ items })
+  })
+
+  // Upload de uma foto por requisição — o cliente faz o loop por arquivo, mesmo padrão já
+  // usado para upload de imagem manual (ver apps/web input[multiple] em compose/generate).
+  app.post('/campaigns/:id/photos', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const file = await request.file()
+    if (!file) return reply.status(400).send({ error: 'No file provided' })
+
+    const allowedMimeTypes = ['image/png', 'image/jpeg', 'image/webp', 'image/heic']
+    if (!allowedMimeTypes.includes(file.mimetype)) {
+      return reply.status(400).send({ error: 'Unsupported image type' })
+    }
+
+    const buffer = await file.toBuffer()
+
+    try {
+      const photo = await uploadPhoto.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        campaignId: id,
+        buffer,
+        mimeType: file.mimetype,
+      })
+      return reply.status(201).send({ photo })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 502
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.post('/campaigns/:id/timeline/generate', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      const items = await generateTimeline.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        campaignId: id,
+      })
+      return reply.send({ items })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.put('/campaigns/:id/timeline', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = updateTimelineSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const items = await updateTimeline.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        campaignId: id,
+        items: parsed.data.items.map((item) => ({ ...item, scheduledAt: new Date(item.scheduledAt) })),
+      })
+      return reply.send({ items })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.post('/campaigns/:id/activate', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      await activateCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
+      const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      return reply.send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
+      return reply.status(status).send({ error: message })
+    }
+  })
+}

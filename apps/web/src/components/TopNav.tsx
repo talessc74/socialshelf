@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
 
 const NAV_ITEMS = [
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/dashboard/news', label: 'Notícias', icon: Newspaper },
   { href: '/dashboard/generate', label: 'Gerar com IA', icon: Sparkles },
   { href: '/dashboard/compose', label: 'Novo Post', icon: Send },
+  { href: '/dashboard/campaigns', label: 'Campanhas', icon: Images },
   { href: '/dashboard/scheduled', label: 'Agendados', icon: Clock },
   { href: '/dashboard/insights', label: 'Insights', icon: Lightbulb },
   { href: '/dashboard/performance', label: 'Performance', icon: BarChart3 },
