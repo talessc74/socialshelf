@@ -5,6 +5,17 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 
+function UploadedPhotoThumbnail({ path }: { path: string }) {
+  const { data: url, isLoading } = useQuery({ queryKey: ['image-url', path], queryFn: () => api.getImageUrl(path) })
+
+  if (isLoading || !url) {
+    return <div className="aspect-square w-full animate-pulse rounded-lg bg-card-2" />
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+}
+
 export default function CampaignUploadPage() {
   const params = useParams<{ id: string }>()
   const campaignId = params.id
@@ -98,9 +109,16 @@ export default function CampaignUploadPage() {
       {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
 
       {photos && photos.length > 0 && (
-        <p className="text-sm text-muted">
-          {photos.length} foto{photos.length > 1 ? 's' : ''} enviada{photos.length > 1 ? 's' : ''}.
-        </p>
+        <div>
+          <p className="mb-2 text-sm font-medium text-ink">
+            {photos.length} foto{photos.length > 1 ? 's' : ''} enviada{photos.length > 1 ? 's' : ''}
+          </p>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+            {photos.map((photo) => (
+              <UploadedPhotoThumbnail key={photo.id} path={photo.storagePath} />
+            ))}
+          </div>
+        </div>
       )}
 
       {generateTimeline.isError && (

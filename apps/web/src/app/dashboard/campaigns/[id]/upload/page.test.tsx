@@ -16,6 +16,7 @@ vi.mock('../../../../../lib/api', () => ({
     getCampaignPhotos: vi.fn(),
     uploadCampaignPhoto: vi.fn(),
     generateCampaignTimeline: vi.fn(),
+    getImageUrl: vi.fn(),
   },
 }))
 
@@ -65,6 +66,17 @@ function renderPage() {
 describe('CampaignUploadPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('shows a thumbnail grid for photos that have already been uploaded', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+
+    const { container } = renderPage()
+
+    expect(await screen.findByText(/2 fotos enviadas/)).toBeInTheDocument()
+    await waitFor(() => expect(container.querySelectorAll('img')).toHaveLength(2))
   })
 
   it('uploads a file dropped onto the dropzone', async () => {
