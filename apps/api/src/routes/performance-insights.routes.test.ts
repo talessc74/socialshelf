@@ -15,6 +15,7 @@ const validEntry = {
   text: 'Post de teste',
   metrics: { impressions: 100, likes: 10, comments: 2, shares: 1 },
   score: 113,
+  publishedAt: '2026-07-06T17:30:00.000Z',
 }
 
 describe('Performance insights routes', () => {

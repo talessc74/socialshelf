@@ -14,6 +14,7 @@ function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerform
     text: 'Post de exemplo',
     metrics: { impressions: 100, likes: 10, comments: 2, shares: 1 },
     score: 113,
+    publishedAt: new Date('2026-07-06T17:30:00.000Z'),
     ...overrides,
   }
 }

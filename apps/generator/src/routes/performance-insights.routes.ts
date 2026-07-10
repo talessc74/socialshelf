@@ -25,6 +25,7 @@ const bodySchema = z.object({
         shares: z.number(),
       }),
       score: z.number(),
+      publishedAt: z.string().datetime(),
     }),
   ),
 })
@@ -57,7 +58,8 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
     }
 
     try {
-      const insights = await useCase.execute(parsed.data.brandId, parsed.data.entries)
+      const entries = parsed.data.entries.map((e) => ({ ...e, publishedAt: new Date(e.publishedAt) }))
+      const insights = await useCase.execute(parsed.data.brandId, entries)
       return reply.send({ insights })
     } catch (err) {
       if (err instanceof Error && err.message === 'No published posts with metrics to analyze') {
