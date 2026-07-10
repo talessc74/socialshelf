@@ -51,6 +51,10 @@ Mesma exclusão já registrada em `_local-edr-policy-037`: o pipeline automátic
 
 `AutonomyTickUseCase.execute` envolve `processBrand` de cada marca em try/catch individual — uma marca com erro (ex: Firestore indisponível, generator-service fora do ar) não impede o processamento das demais no mesmo tick, mesmo padrão já usado por `ScheduledPostsPoller` e pelo job de limpeza de vídeo.
 
+**Checkbox antes de campo de texto em branco (2026-07-10)** — usuário relatou em teste real que a caixa de texto livre para `autoPublishTopics`/`blockedTopics` intimida quem está começando (não sabe o que digitar). Novo componente `TopicChecklist` (apps/web/src/components/) mostra primeiro uma grade de checkboxes com categorias amplas e genéricas o bastante para fazer sentido em qualquer segmento (`AUTO_PUBLISH_TOPIC_OPTIONS`/`BLOCKED_TOPIC_OPTIONS` em `brand/page.tsx`) — não geradas por IA a partir do `BrandProfile`, uma lista fixa e curada, mais previsível e sem custo de mais uma chamada de modelo. O campo de texto livre continua existindo para quem já sabe exatamente o que quer, mas escondido atrás de um `<details>` recolhido por padrão, em vez de ser a primeira coisa que a pessoa vê.
+
+Marcar um checkbox e digitar o mesmo texto no campo livre têm o mesmo efeito — ambos só adicionam/removem a string do mesmo array (`autoPublishTopics`/`blockedTopics`); não há dois modelos de dado, só duas formas de editar o mesmo. `TopicChecklist` mostra como chip removível apenas os valores que não batem com nenhuma opção do checkbox, para não duplicar visualmente a mesma entrada em dois lugares.
+
 ## What this does not solve
 
 Retry de uma marca que falhou no mesmo dia (só tenta de novo no próximo tick, 24h depois). Notificação ao usuário quando um post é publicado automaticamente — hoje só existe o registro no resultado do tick (`{results: [...]}`), sem nenhum canal de aviso proativo. Dashboard de auditoria do que o modo automático já publicou — para investigar, é preciso olhar os `Post`s com `status: 'published'` da marca sem nenhuma marcação de origem "automático" vs. manual.

@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiBrandProfile } from '../../../lib/api'
 import type { AutonomyLevel } from '@socialshelf/domain'
 import { TagListEditor } from '../../../components/TagListEditor'
+import { TopicChecklist } from '../../../components/TopicChecklist'
 import { BrandPostPreview } from '../../../components/BrandPostPreview'
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
@@ -45,6 +46,28 @@ const AUTONOMY_OPTIONS: Array<{ value: AutonomyLevel; label: string; description
 ]
 
 const TYPOGRAPHY_OPTIONS = ['Inter', 'sans-serif bold', 'serif']
+
+// Categorias amplas o bastante para fazer sentido em qualquer segmento — quem está começando
+// marca o que se aplica em vez de encarar uma caixa de texto em branco sem saber o que digitar.
+const AUTO_PUBLISH_TOPIC_OPTIONS = [
+  'Lançamento de produto ou serviço',
+  'Dicas e conteúdo educativo',
+  'Bastidores da empresa',
+  'Depoimento ou case de cliente',
+  'Novidades do setor',
+  'Conquistas e marcos da empresa',
+  'Promoções e ofertas',
+  'Datas comemorativas do nicho',
+]
+
+const BLOCKED_TOPIC_OPTIONS = [
+  'Política',
+  'Religião',
+  'Comparação direta com concorrentes',
+  'Processos jurídicos em andamento',
+  'Temas polêmicos ou controversos',
+  'Crises internas da empresa',
+]
 
 export default function BrandSettingsPage() {
   const router = useRouter()
@@ -480,17 +503,21 @@ export default function BrandSettingsPage() {
             />
           </div>
         )}
-        <TagListEditor
+        <TopicChecklist
           label="Tópicos com publicação automática liberada"
-          placeholder="Ex: lançamento de produto"
+          helperText="Marque o que faz sentido a IA publicar sozinha, sem sua revisão."
+          options={AUTO_PUBLISH_TOPIC_OPTIONS}
+          customPlaceholder="Ex: lançamento de produto"
           values={form.operation.autoPublishTopics}
           onChange={(autoPublishTopics) =>
             setForm((prev) => ({ ...prev, operation: { ...prev.operation, autoPublishTopics } }))
           }
         />
-        <TagListEditor
+        <TopicChecklist
           label="Tópicos bloqueados"
-          placeholder="Ex: política"
+          helperText="Marque o que a IA nunca deve publicar — nem como rascunho."
+          options={BLOCKED_TOPIC_OPTIONS}
+          customPlaceholder="Ex: política"
           values={form.operation.blockedTopics}
           onChange={(blockedTopics) =>
             setForm((prev) => ({ ...prev, operation: { ...prev.operation, blockedTopics } }))
