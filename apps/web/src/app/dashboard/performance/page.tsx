@@ -170,6 +170,10 @@ export default function PerformanceDashboardPage() {
         Métricas medidas a partir dos posts já publicados manualmente, via integração real com cada
         plataforma. Cada rede é exibida separadamente — uma falha em uma rede não afeta as demais.
       </p>
+      <p className="text-xs text-muted">
+        As métricas de cada rede só aparecem depois que ela publica com sucesso — quanto mais posts
+        publicados numa rede, mais completo o painel dela fica.
+      </p>
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted">

@@ -81,6 +81,16 @@ describe('PerformanceDashboardPage', () => {
     expect(screen.getByRole('button', { name: 'LinkedIn' })).toBeInTheDocument()
   })
 
+  it('avisa que o painel de cada rede só se completa depois que ela publica com sucesso', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
+
+    renderPage()
+
+    expect(
+      await screen.findByText(/só aparecem depois que ela publica com sucesso/),
+    ).toBeInTheDocument()
+  })
+
   it('mostra mensagem quando não há posts com métricas medidas', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(makeResult())
 
