@@ -25,6 +25,8 @@ O bloco de resultados (✓/✗ por plataforma) do post principal continua exatam
 
 TikTok continua fora de `availableExtraPlatforms` sempre — esse atalho nunca teve etapa de upload de vídeo, e antes de qualquer coisa, se o vídeo já foi publicado nesta mesma tela, adicionar TikTok de novo não faz sentido de qualquer forma.
 
+**Disponível assim que o post fica pronto, não só depois de publicar (2026-07-10)** — usuário relatou em teste real que agendar (`scheduleSuccess`) também não acionava a seção, só publicar imediatamente ou publicar o vídeo do TikTok acionavam. Em vez de adicionar mais um estado à condição (`publishResult || tiktokVideoPublishResult || scheduleSuccess`), a pergunta certa era outra: por que a opção de publicar em mais redes precisa esperar qualquer publicação acontecer primeiro? `availableExtraPlatforms` já é calculado só a partir de `result.outputs?.copies` e `extraUsedPlatforms` — nunca dependeu de `publishResult` para nada. A seção agora renderiza sempre que `result.status === 'ready'`, junto com os botões "Publicar Agora"/"Agendar" do post principal, não mais como algo que só aparece depois. As duas decisões — publicar o post como veio, e escolher mais redes pra espalhar — são independentes uma da outra; o usuário não precisa terminar uma pra começar a outra.
+
 ## What this does not solve
 
 Extensão do post original com plataformas adicionais (continua sempre criando um novo `Post`) — ver justificativa acima sobre o guard que falta em `PublishPostUseCase`. Nenhuma mudança em `/dashboard/compose`, que nunca teve esta seção. Nenhuma mudança na regra de que TikTok exige vídeo.

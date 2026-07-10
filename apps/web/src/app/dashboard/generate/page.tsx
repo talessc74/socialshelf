@@ -1490,9 +1490,10 @@ function ResultView({
         )
       )}
 
-      {/* Independente de qual publicação já aconteceu nesta tela — o post principal ou o
-          vídeo do TikTok — o post ficou bom o suficiente pra valer publicar em mais redes. */}
-      {(publishResult || tiktokVideoPublishResult) && (
+      {/* Disponível assim que o post fica pronto, não só depois de publicar/agendar — a
+          escolha de publicar nas redes originais e a de espalhar pra mais redes são
+          independentes, o usuário não precisa terminar uma pra começar a outra. */}
+      {result.status === 'ready' && (
         <div className="space-y-3">
           {extraResults.length > 0 && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-4">
