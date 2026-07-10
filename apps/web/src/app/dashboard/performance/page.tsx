@@ -112,7 +112,10 @@ export default function PerformanceDashboardPage() {
   const [diagnosticComputedAt, setDiagnosticComputedAt] = useState<Date | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [analyzeError, setAnalyzeError] = useState('')
-  const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false)
+  // Guarda pra quantos posts a última análise (com sucesso ou erro) rodou — não um booleano
+  // "já rodou uma vez", porque um erro antigo (ex: "nenhum post publicado ainda") não pode
+  // ficar preso na tela pro resto da sessão depois que novos posts são publicados.
+  const [analyzedForCount, setAnalyzedForCount] = useState<number | null>(null)
 
   // Reaproveita as entradas que a tela já buscou (useQuery acima) em vez de deixar o
   // backend buscar de novo no publisher — evita uma segunda rodada de chamadas ao vivo
@@ -125,7 +128,12 @@ export default function PerformanceDashboardPage() {
       setDiagnostic(result)
       setDiagnosticComputedAt(new Date())
     } catch (err) {
-      setAnalyzeError(err instanceof Error ? err.message : 'Erro ao gerar o diagnóstico.')
+      const message = err instanceof Error ? err.message : 'Erro ao gerar o diagnóstico.'
+      setAnalyzeError(
+        message === 'No published posts with metrics to analyze'
+          ? 'Ainda não há posts publicados com métricas medidas para gerar o diagnóstico.'
+          : message,
+      )
     } finally {
       setAnalyzing(false)
     }
@@ -145,14 +153,15 @@ export default function PerformanceDashboardPage() {
       .catch(() => {})
   }, [])
 
-  // Gera o diagnóstico automaticamente ao entrar na tela, uma única vez por sessão —
-  // o botão continua disponível pra refazer a análise manualmente.
+  // Gera o diagnóstico automaticamente ao entrar na tela, e refaz sozinho sempre que a
+  // quantidade de posts com métrica muda (ex: mais posts publicados desde a última análise
+  // desta sessão) — o botão "Refazer análise" continua disponível pra forçar manualmente.
   useEffect(() => {
-    if (entries.length > 0 && !hasAutoAnalyzed) {
-      setHasAutoAnalyzed(true)
+    if (entries.length > 0 && entries.length !== analyzedForCount && !analyzing) {
+      setAnalyzedForCount(entries.length)
       handleAnalyze()
     }
-  }, [entries.length, hasAutoAnalyzed, handleAnalyze])
+  }, [entries.length, analyzedForCount, analyzing, handleAnalyze])
 
   return (
     <div className="space-y-6">
