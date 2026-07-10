@@ -25,11 +25,18 @@ export class GcsVideoStorage implements VideoStoragePort {
     return path
   }
 
-  async getSignedUrl(path: string, ttlSeconds: number): Promise<string> {
+  async getSignedUrl(path: string, ttlSeconds: number, downloadFilename?: string): Promise<string> {
     const [url] = await this.storage
       .bucket(this.bucketName)
       .file(path)
-      .getSignedUrl({ action: 'read', expires: Date.now() + ttlSeconds * 1000 })
+      .getSignedUrl({
+        action: 'read',
+        expires: Date.now() + ttlSeconds * 1000,
+        // GCS honra o Content-Disposition da resposta mesmo sem o atributo `download` do
+        // navegador funcionar entre origens — é o que faz o botão de download baixar de
+        // fato em vez de só abrir o vídeo numa aba.
+        ...(downloadFilename && { promptSaveAs: downloadFilename }),
+      })
     return url
   }
 

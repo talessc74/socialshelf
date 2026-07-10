@@ -131,7 +131,9 @@ export async function videosRoutes(app: FastifyInstance) {
     '/videos/signed-url',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const parsed = z.object({ path: z.string().min(1) }).safeParse(request.query)
+      const parsed = z
+        .object({ path: z.string().min(1), download: z.enum(['true', 'false']).optional() })
+        .safeParse(request.query)
       if (!parsed.success) {
         return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
       }
@@ -140,8 +142,9 @@ export async function videosRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Forbidden' })
       }
 
+      const downloadParam = parsed.data.download ? `&download=${parsed.data.download}` : ''
       const res = await fetchInternal(
-        `${generatorUrl}/videos/signed-url?path=${encodeURIComponent(parsed.data.path)}`,
+        `${generatorUrl}/videos/signed-url?path=${encodeURIComponent(parsed.data.path)}${downloadParam}`,
         { headers: { 'X-Internal-Secret': internalSecret } },
       )
 

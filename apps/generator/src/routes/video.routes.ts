@@ -4,6 +4,7 @@ import { GcsVideoStorage } from '../infrastructure/storage/GcsVideoStorage.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FfmpegVideoComposer } from '../infrastructure/video/FfmpegVideoComposer.js'
 import { GoogleTextToSpeechSynthesizer } from '../infrastructure/tts/GoogleTextToSpeechSynthesizer.js'
+import { FirestoreGenerationRequestRepository } from '../infrastructure/firestore/FirestoreGenerationRequestRepository.js'
 
 const uploadVideoSchema = z.object({
   userId: z.string().min(1),
@@ -31,6 +32,7 @@ export async function videoRoutes(app: FastifyInstance) {
   const imageStorage = new GcsImageStorage(generatedBucket)
   const videoComposer = new FfmpegVideoComposer()
   const textToSpeech = new GoogleTextToSpeechSynthesizer()
+  const generationRequestRepo = new FirestoreGenerationRequestRepository()
 
   const internalSecret = process.env['INTERNAL_SECRET']
   if (!internalSecret) {
@@ -70,13 +72,19 @@ export async function videoRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: 'Unauthorized' })
     }
 
-    const parsed = z.object({ path: z.string().min(1) }).safeParse(request.query)
+    const parsed = z
+      .object({ path: z.string().min(1), download: z.enum(['true', 'false']).optional() })
+      .safeParse(request.query)
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Invalid query', details: parsed.error.flatten() })
     }
 
     try {
-      const url = await videoStorage.getSignedUrl(parsed.data.path, 3600)
+      const url = await videoStorage.getSignedUrl(
+        parsed.data.path,
+        3600,
+        parsed.data.download === 'true' ? 'video.mp4' : undefined,
+      )
       return reply.send({ url })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
@@ -89,8 +97,8 @@ export async function videoRoutes(app: FastifyInstance) {
   // completo — esta é uma ação avulsa, opt-in, disparada por um clique explícito na tela de
   // resultado da geração, não parte do POST /generate original). Compõe um slideshow a
   // partir de imagens já geradas, com narração opcional (_local-adr-policy-037), sobe o
-  // resultado e devolve o path. Sem persistência em GenerationRequest ainda: o teste é "isso
-  // renderiza um vídeo válido?" antes de investir na fila assíncrona completa.
+  // resultado e persiste o path em outputs.composedVideo do GenerationRequest — assim o
+  // vídeo sobrevive a um reload da tela de resultado, e não só à resposta HTTP desta chamada.
   app.post('/videos/compose-slideshow', async (request, reply) => {
     const header = request.headers['x-internal-secret']
     if (header !== internalSecret) {
@@ -126,6 +134,21 @@ export async function videoRoutes(app: FastifyInstance) {
         'video/mp4',
         parsed.data.requestId,
       )
+
+      // Best-effort: se a escrita no Firestore falhar, o vídeo já foi composto e enviado com
+      // sucesso — devolver o path para a pré-visualização importa mais do que a persistência.
+      try {
+        const generationRequest = await generationRequestRepo.findById(parsed.data.requestId)
+        if (generationRequest?.outputs) {
+          await generationRequestRepo.updateOutputs(generationRequest.id, {
+            ...generationRequest.outputs,
+            composedVideo: { storagePath: path, durationSeconds, narrated: narrationAudioBuffer !== null },
+          })
+        }
+      } catch (err) {
+        app.log.error({ err }, 'failed to persist composed video onto generation request')
+      }
+
       return reply.send({ path, durationSeconds })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
