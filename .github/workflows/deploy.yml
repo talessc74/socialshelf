@@ -332,6 +332,37 @@ jobs:
               --oidc-token-audience="${{ steps.deploy.outputs.url }}"
           fi
 
+      # Fase 4 do roadmap (_local-bdr-plan-002): varre marcas com autonomia semi-automática ou
+      # automática e gera (e, quando elegível, publica) 1 post por marca a partir da pauta do
+      # dia. Uma vez por dia é suficiente — não é um tick de minuto como o de publicação
+      # agendada. Mesmo padrão non-blocking do job de scheduler acima, pelo mesmo motivo.
+      - name: Create/update Cloud Scheduler job for the daily autonomy tick
+        continue-on-error: true
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
+          URL="${{ steps.deploy.outputs.url }}/internal/autonomy-tick"
+          SA="publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+          if gcloud scheduler jobs describe publisher-autonomy-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+            gcloud scheduler jobs update http publisher-autonomy-tick \
+              --location=${{ env.GCP_REGION }} \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          else
+            gcloud scheduler jobs create http publisher-autonomy-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="0 12 * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          fi
+
   deploy-generator:
     name: Deploy generator-service
     needs: bootstrap-iam

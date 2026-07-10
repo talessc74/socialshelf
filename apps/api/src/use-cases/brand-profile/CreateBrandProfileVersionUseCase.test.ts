@@ -13,7 +13,7 @@ const sections: Omit<BrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'cr
   },
   voice: { tone: 'informal', allowedVocabulary: ['galera'], prohibitedVocabulary: ['sarcasmo'] },
   narrative: { recurringThemes: ['cultura local'] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: ['política'] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: ['política'], maxAutoPostsPerDay: 1 },
 }
 
 describe('CreateBrandProfileVersionUseCase', () => {

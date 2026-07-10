@@ -16,7 +16,7 @@ const EMPTY_FORM: BrandProfileForm = {
   visual: { primaryColor: '#9d174d', secondaryColor: '#1f2937', typography: 'Inter', logoStoragePath: null },
   voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
 }
 
 const PALETTE_PRESETS: Array<{ label: string; description: string; primaryColor: string; secondaryColor: string }> = [
@@ -452,6 +452,34 @@ export default function BrandSettingsPage() {
             ))}
           </div>
         </div>
+        {form.operation.autonomyLevel === 'automatic' && (
+          <div className="rounded-xl border border-accent/50 bg-accent-soft p-3">
+            <label className="block text-sm font-semibold text-ink" htmlFor="max-auto-posts-per-day">
+              Máximo de posts automáticos por dia
+            </label>
+            <p className="mb-2 text-xs text-muted">
+              Guardrail obrigatório do modo automático: a IA nunca publica mais que esse número de
+              posts sozinha, por dia, nesta marca.
+            </p>
+            <input
+              id="max-auto-posts-per-day"
+              type="number"
+              min={1}
+              max={10}
+              value={form.operation.maxAutoPostsPerDay}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  operation: {
+                    ...prev.operation,
+                    maxAutoPostsPerDay: Math.min(10, Math.max(1, Number(e.target.value) || 1)),
+                  },
+                }))
+              }
+              className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
+            />
+          </div>
+        )}
         <TagListEditor
           label="Tópicos com publicação automática liberada"
           placeholder="Ex: lançamento de produto"

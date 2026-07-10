@@ -32,6 +32,11 @@ export interface BrandProfileOperation {
   autonomyLevel: AutonomyLevel
   autoPublishTopics: string[]
   blockedTopics: string[]
+  // Teto diário de posts que o modo automático pode gerar e publicar sozinho, por marca —
+  // guardrail obrigatório antes de ativar publicação autônoma (_local-bdr-plan-002, Fase 4).
+  // Só é imposto de fato quando autonomyLevel é 'automatic'; nos demais níveis o campo
+  // existe mas não é lido por nenhuma verificação.
+  maxAutoPostsPerDay: number
 }
 
 export interface BrandProfile {

@@ -38,6 +38,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-035-upload-de-video-para-tiktok-mvp-sincrono](application/035-upload-video-tiktok-mvp-sincrono.md) - Primeira fatia real: upload próprio síncrono, sem fila/ffmpeg/áudio; proxy via radiokactus.com para satisfazer verificação de domínio do pull_by_url do TikTok
 - [_local-edr-policy-036-slideshow-animado-experimental](application/036-slideshow-video-experimental.md) - Ação avulsa e opt-in que compõe slideshow animado via ffmpeg a partir de imagens já geradas, com narração por IA opcional (Google Text-to-Speech), síncrona (diverge deliberadamente do modelo de fila da ADR-036) — validação mínima antes de investir na fila completa; vídeo composto agora persiste em outputs.composedVideo e tem botão de download
 - [_local-edr-policy-037-publicar-em-mais-redes-apos-o-video](application/037-publicar-em-outras-redes-apos-video.md) - Seção "Publicar também em" deixa de depender só de publishResult e passa a aparecer também depois de publicar o vídeo do TikTok; cada rodada continua criando um Post novo, nunca estendendo o original
+- [_local-edr-policy-038-tick-diario-de-autonomia-implementacao](application/038-tick-autonomia-implementacao.md) - Tick diário em publisher-service (não generator-service, para não criar dependência circular de deploy); 3 novas portas de domínio; discovery de marca via collectionGroup; contador diário atômico por transação Firestore
 
 ### devops
 Pipeline de entrega e práticas de build.

@@ -73,6 +73,9 @@ export type {
   RenderedTemplateImage,
 } from './ports/TemplateRendererPort.js'
 export type { GenerationRequestRepository } from './ports/GenerationRequestRepository.js'
+export type { TopicAutonomyMatcherPort, TopicAutonomyMatch } from './ports/TopicAutonomyMatcherPort.js'
+export type { AutonomyBrandDiscoveryPort, AutonomyEligibleBrand } from './ports/AutonomyBrandDiscoveryPort.js'
+export type { AutonomyDailyCounterRepository } from './ports/AutonomyDailyCounterRepository.js'
 export type { BrandRepository } from './ports/BrandRepository.js'
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'

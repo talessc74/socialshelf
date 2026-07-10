@@ -24,6 +24,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](application/030-quota-marca-tipo-conta.md) - accountType imutável em Brand, checagem de quota contra Subscription antes de criar marca, sinal específico de limite de plano
 - [_local-adr-policy-036-geracao-de-video-assincrona](application/036-geracao-video-multiartefato-assincrona.md) - GenerationArtifact ganha mediaType image/video; vídeo roda em job assíncrono, nunca no request/response síncrono
 - [_local-adr-policy-037-audio-sincronizacao-biblioteca-musica](application/037-audio-sincronizacao-biblioteca-musica.md) - Narração dita duração do vídeo; música se ajusta ao vídeo com fade-out; biblioteca de música própria e catálogo fechado
+- [_local-adr-policy-040-ativacao-do-modo-automatico-de-publicacao](application/040-ativacao-modo-automatico-publicacao.md) - Ativa o dial de autonomia (Fase 4) com guardrails como pré-condição: teto diário definido pelo usuário, classificação semântica de bloqueio, e modo automático restrito aos tópicos liberados
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.

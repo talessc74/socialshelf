@@ -7,6 +7,7 @@ import { OgImageThumbnailFetcher } from '../infrastructure/news/OgImageThumbnail
 import { GeminiTranslator } from '../infrastructure/vertexai/GeminiTranslator.js'
 import { GeminiTopicQueryPlanner } from '../infrastructure/vertexai/GeminiTopicQueryPlanner.js'
 import { GeminiAudienceFitScorer } from '../infrastructure/vertexai/GeminiAudienceFitScorer.js'
+import { GeminiTopicAutonomyMatcher } from '../infrastructure/vertexai/GeminiTopicAutonomyMatcher.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
@@ -14,6 +15,15 @@ import { getTrustedDomains } from '../lib/factVerification.js'
 
 const bodySchema = z.object({ brandId: z.string().min(1) })
 const searchBodySchema = z.object({ brandId: z.string().min(1), query: z.string().min(1) })
+const classifyAutonomySchema = z.object({
+  topic: z.object({
+    headline: z.string().min(1),
+    summary: z.string(),
+    rationale: z.string(),
+  }),
+  autoPublishTopics: z.array(z.string()),
+  blockedTopics: z.array(z.string()),
+})
 
 export async function pautaRoutes(app: FastifyInstance) {
   const projectId = process.env['GCP_PROJECT_ID'] ?? ''
@@ -24,6 +34,7 @@ export async function pautaRoutes(app: FastifyInstance) {
   const queryPlanner = new GeminiTopicQueryPlanner(projectId, geminiLocation, geminiModel)
   const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel)
   const audienceFitScorer = new GeminiAudienceFitScorer(projectId, geminiLocation, geminiModel)
+  const topicAutonomyMatcher = new GeminiTopicAutonomyMatcher(projectId, geminiLocation, geminiModel)
   const thumbnailFetcher = new OgImageThumbnailFetcher()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const audienceSignalRepo = new FirestoreAudienceSignalRepository()
@@ -99,6 +110,30 @@ export async function pautaRoutes(app: FastifyInstance) {
       }
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'search news use-case failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  // Usado pelo tick de autonomia do publisher-service (_local-bdr-plan-002, Fase 4) para
+  // decidir se uma pauta pode virar rascunho automático (não bloqueada) e/ou ser publicada
+  // sem revisão (elegível para publicação automática) — nunca chamado pelo fluxo manual.
+  app.post('/pauta/classify-autonomy', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = classifyAutonomySchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const match = await topicAutonomyMatcher.classify(parsed.data)
+      return reply.send(match)
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'classify autonomy failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

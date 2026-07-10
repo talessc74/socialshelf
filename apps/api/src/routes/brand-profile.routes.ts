@@ -34,6 +34,9 @@ const brandProfileSchema = z.object({
     autonomyLevel: autonomyLevelEnum,
     autoPublishTopics: z.array(z.string()),
     blockedTopics: z.array(z.string()),
+    // Teto de segurança fixo além do que a UI já orienta — mesmo que o cliente envie algo
+    // fora da faixa, o modo automático nunca publica mais que 10 posts por dia por marca.
+    maxAutoPostsPerDay: z.number().int().min(1).max(10),
   }),
 })
 
