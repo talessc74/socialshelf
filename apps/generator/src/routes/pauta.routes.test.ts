@@ -17,7 +17,7 @@ const mockBrandProfile = {
   visual: { primaryColor: '#000', secondaryColor: '#fff', typography: 'Inter', logoStoragePath: null },
   voice: { tone: 'casual', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: ['inteligência artificial'] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
   createdAt: new Date(),
 }
 
@@ -78,6 +78,14 @@ vi.mock('../infrastructure/vertexai/GeminiTopicQueryPlanner.js', () => ({
 vi.mock('../infrastructure/news/OgImageThumbnailFetcher.js', () => ({
   OgImageThumbnailFetcher: vi.fn().mockImplementation(() => ({
     fetchThumbnail: vi.fn(async () => null),
+  })),
+}))
+
+const mockClassify = vi.fn().mockResolvedValue({ blocked: false, autoPublishEligible: true })
+
+vi.mock('../infrastructure/vertexai/GeminiTopicAutonomyMatcher.js', () => ({
+  GeminiTopicAutonomyMatcher: vi.fn().mockImplementation(() => ({
+    classify: mockClassify,
   })),
 }))
 
@@ -205,6 +213,68 @@ describe('POST /pauta/search', () => {
     })
 
     expect(response.statusCode).toBe(401)
+  })
+})
+
+describe('POST /pauta/classify-autonomy', () => {
+  let app: FastifyInstance
+  const topic = { headline: 'Cliente relata resultado real', summary: 'Resumo', rationale: 'Case de sucesso' }
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns 200 with the classification', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic, autoPublishTopics: ['Caso do Dia'], blockedTopics: [] },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ blocked: false, autoPublishEligible: true })
+  })
+
+  it('returns 400 when topic.headline is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic: { headline: '', summary: '', rationale: '' }, autoPublishTopics: [], blockedTopics: [] },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 when INTERNAL_SECRET header is missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic, autoPublishTopics: [], blockedTopics: [] },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+
+  it('returns 500 when the matcher throws', async () => {
+    mockClassify.mockRejectedValueOnce(new Error('gemini exploded'))
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic, autoPublishTopics: [], blockedTopics: [] },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(500)
   })
 })
 

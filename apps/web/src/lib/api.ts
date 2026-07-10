@@ -190,6 +190,7 @@ export interface ApiBrandProfile {
     autonomyLevel: 'manual' | 'semi-automatic' | 'automatic'
     autoPublishTopics: string[]
     blockedTopics: string[]
+    maxAutoPostsPerDay: number
   }
   createdAt: string
 }

@@ -58,7 +58,7 @@ const validSections = {
   },
   voice: { tone: 'informal', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
 }
 
 describe('Brand profile routes', () => {
