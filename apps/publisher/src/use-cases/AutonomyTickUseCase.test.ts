@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AutonomyTickUseCase } from './AutonomyTickUseCase.js'
 import { Platform } from '@socialshelf/domain'
 import type {
@@ -79,8 +79,19 @@ describe('AutonomyTickUseCase', () => {
   let useCase: AutonomyTickUseCase
 
   beforeEach(() => {
+    // Meio-dia em Brasília (UTC-3) — dentro da janela comercial (9h-21h) usada por
+    // computeDailySlotHours, então o gate de horário deixa passar por padrão em todo teste
+    // que não mexe explicitamente em getCount/maxAutoPostsPerDay. Sem fixar o relógio, esses
+    // testes ficariam dependentes da hora real de quando rodam (_local-edr-policy-038, adendo
+    // 2026-07-11).
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-07-11T15:00:00.000Z'))
+
     brandDiscovery = { findEligibleBrands: vi.fn().mockResolvedValue([makeBrand()]) }
-    dailyCounter = { incrementIfUnderLimit: vi.fn().mockResolvedValue(true) }
+    dailyCounter = {
+      incrementIfUnderLimit: vi.fn().mockResolvedValue(true),
+      getCount: vi.fn().mockResolvedValue(0),
+    }
     oauthRepo = {
       save: vi.fn(),
       findById: vi.fn(),
@@ -114,6 +125,10 @@ describe('AutonomyTickUseCase', () => {
       publishPostUseCase,
       generatorClient,
     )
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('skips a brand with no eligible target platforms (TikTok-only connection)', async () => {
@@ -151,6 +166,36 @@ describe('AutonomyTickUseCase', () => {
     expect(result).toMatchObject({ action: 'draft-created', topicHeadline: suggestion.headline })
     expect(generatorClient.generate).toHaveBeenCalledTimes(1)
     expect(publishPostUseCase.execute).not.toHaveBeenCalled()
+    // O contador diário passa a valer pros dois níveis de autonomia (não só automático) —
+    // agora que o tick roda de hora em hora, sem isso semi-automático geraria um rascunho
+    // novo a cada execução.
+    expect(dailyCounter.incrementIfUnderLimit).toHaveBeenCalledWith('user-1', 'brand-1', expect.any(String), 1)
+  })
+
+  it('skips a brand without generating anything when the next slot of the day has not opened yet', async () => {
+    dailyCounter.getCount = vi.fn().mockResolvedValue(1)
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'skipped-not-yet-time' })
+    expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', expect.any(String))
+    expect(generatorClient.suggestTopics).not.toHaveBeenCalled()
+    expect(generatorClient.generate).not.toHaveBeenCalled()
+  })
+
+  it('opens the second slot of the day for a brand configured with more than one post per day', async () => {
+    brandDiscovery.findEligibleBrands = vi
+      .fn()
+      .mockResolvedValue([makeBrand({ autonomyLevel: 'automatic', maxAutoPostsPerDay: 2 })])
+    // Já publicou o primeiro post do dia (slot das 9h) — o segundo slot (21h Brasília) só
+    // abre perto do fim do dia.
+    dailyCounter.getCount = vi.fn().mockResolvedValue(1)
+    vi.setSystemTime(new Date('2026-07-12T00:00:00.000Z')) // 21h em Brasília (UTC-3)
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'published' })
+    expect(generatorClient.suggestTopics).toHaveBeenCalledTimes(1)
   })
 
   it('skips generating anything in automatic mode when the topic is not auto-publish eligible', async () => {

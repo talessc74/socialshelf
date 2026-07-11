@@ -1,4 +1,4 @@
-import { Platform } from '@socialshelf/domain'
+import { Platform, computeDailySlotHours } from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
@@ -11,6 +11,7 @@ import type { GeneratorAutonomyClient } from '../infrastructure/generator/Genera
 
 export type AutonomyTickAction =
   | 'skipped-no-platforms'
+  | 'skipped-not-yet-time'
   | 'skipped-no-suggestions'
   | 'skipped-blocked'
   | 'skipped-not-eligible'
@@ -27,6 +28,28 @@ export interface AutonomyTickBrandResult {
   error?: string
 }
 
+// Mesma janela comercial fixa (9h-21h Brasília) usada pra espaçar os posts de uma campanha —
+// computeDailySlotHours(maxAutoPostsPerDay) devolve os horários igualmente espaçados do dia
+// (ex: [9, 15, 21] para 3 posts/dia). "Slots abertos até agora" é quantos desses horários já
+// passaram — o tick (agora de hora em hora, não mais 1x/dia) só deixa a marca gerar mais um
+// post quando o número já publicado hoje for menor que os slots já abertos.
+function brasiliaHourNow(now: Date): number {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Sao_Paulo',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false,
+  }).formatToParts(now)
+  const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0')
+  const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0')
+  return hour + minute / 60
+}
+
+function slotsOpenByNow(postsPerDay: number, now: Date): number {
+  const nowHour = brasiliaHourNow(now)
+  return computeDailySlotHours(postsPerDay).filter((slotHour) => slotHour <= nowHour).length
+}
+
 // Fase 4 do roadmap (_local-bdr-plan-002): ativa o dial de autonomia com os guardrails
 // exigidos como pré-condição — teto diário configurável por marca (não um ajuste
 // posterior), classificação semântica de bloqueio antes de qualquer rascunho, e modo
@@ -34,6 +57,12 @@ export interface AutonomyTickBrandResult {
 // findEligibleBrands() já filtra por autonomyLevel — trocar o dial de volta para manual
 // entre um tick e o próximo já corta a automação, sem precisar de um botão de emergência
 // separado.
+//
+// O tick roda de hora em hora (não mais 1x/dia — _local-edr-policy-038, adendo 2026-07-11)
+// pra que maxAutoPostsPerDay > 1 vire realidade: o gate de horário (slotsOpenByNow) decide se
+// já é hora do próximo post do dia antes de gastar qualquer chamada de sugestão/classificação,
+// e o contador diário passa a valer pros dois níveis de autonomia — antes só o automático
+// consultava o contador; sem esse gate, semi-automático geraria um rascunho novo a cada hora.
 export class AutonomyTickUseCase {
   constructor(
     private readonly brandDiscovery: AutonomyBrandDiscoveryPort,
@@ -71,6 +100,13 @@ export class AutonomyTickUseCase {
     const targetPlatforms = [...new Set(connections.map((c) => c.platform))].filter((p) => p !== Platform.TIKTOK)
     if (targetPlatforms.length === 0) return { ...base, action: 'skipped-no-platforms' }
 
+    const now = new Date()
+    const today = now.toISOString().slice(0, 10)
+    const alreadyToday = await this.dailyCounter.getCount(brand.userId, brand.brandId, today)
+    if (alreadyToday >= slotsOpenByNow(brand.maxAutoPostsPerDay, now)) {
+      return { ...base, action: 'skipped-not-yet-time' }
+    }
+
     const suggestions = await this.generatorClient.suggestTopics(brand.brandId)
     if (suggestions.length === 0) return { ...base, action: 'skipped-no-suggestions' }
 
@@ -98,16 +134,17 @@ export class AutonomyTickUseCase {
       return { ...base, action: 'skipped-not-eligible', topicHeadline: topSuggestion.headline }
     }
 
-    if (wantsAutoPublish) {
-      const today = new Date().toISOString().slice(0, 10)
-      const underLimit = await this.dailyCounter.incrementIfUnderLimit(
-        brand.userId,
-        brand.brandId,
-        today,
-        brand.maxAutoPostsPerDay,
-      )
-      if (!underLimit) return { ...base, action: 'skipped-daily-limit', topicHeadline: topSuggestion.headline }
-    }
+    // Vale pros dois níveis de autonomia, não só pro automático — sem isso, semi-automático
+    // (que nunca consultava o contador antes) geraria um rascunho novo a cada hora depois que
+    // o tick deixou de ser 1x/dia. Admissão atômica final: o gate de horário acima já é uma
+    // boa estimativa, mas não é atômico entre execuções concorrentes do tick.
+    const underLimit = await this.dailyCounter.incrementIfUnderLimit(
+      brand.userId,
+      brand.brandId,
+      today,
+      brand.maxAutoPostsPerDay,
+    )
+    if (!underLimit) return { ...base, action: 'skipped-daily-limit', topicHeadline: topSuggestion.headline }
 
     const generateResult = await this.generatorClient.generate({
       brandId: brand.brandId,

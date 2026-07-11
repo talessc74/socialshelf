@@ -113,3 +113,4 @@ export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
+export { computeDailySlotHours } from './value-objects/DailyPostingSlots.js'
