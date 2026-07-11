@@ -26,6 +26,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-037-audio-sincronizacao-biblioteca-musica](application/037-audio-sincronizacao-biblioteca-musica.md) - Narração dita duração do vídeo; música se ajusta ao vídeo com fade-out; biblioteca de música própria e catálogo fechado
 - [_local-adr-policy-040-ativacao-do-modo-automatico-de-publicacao](application/040-ativacao-modo-automatico-publicacao.md) - Ativa o dial de autonomia (Fase 4) com guardrails como pré-condição: teto diário definido pelo usuário, classificação semântica de bloqueio, e modo automático restrito aos tópicos liberados
 - [_local-adr-policy-041-campanha-de-fotos-espinha-dorsal-fase-1](application/041-campanha-de-fotos-espinha-dorsal.md) - Fase 1 da campanha de fotos em lote: usuário sobe suas fotos, sistema agrupa por localidade/EXIF e materializa Post normais via o mesmo agendador que já existe
+- [_local-adr-policy-042-arquitetura-multi-tenant-workspace](application/042-arquitetura-multi-tenant-workspace.md) - Transição de single-user para SaaS multi-tenant: estrutura de workspace como célula isolada, validação em bearer token, audit trail obrigatório
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.
