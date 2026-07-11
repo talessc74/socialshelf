@@ -468,10 +468,19 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
   )
 }
 
+function sortByWhen(posts: ApiPost[], direction: 'desc' | 'asc'): ApiPost[] {
+  return [...posts].sort((a, b) => {
+    const diff = (postWhen(a)?.getTime() ?? 0) - (postWhen(b)?.getTime() ?? 0)
+    return direction === 'desc' ? -diff : diff
+  })
+}
+
 export default function ScheduledPostsPage() {
   const router = useRouter()
   const [view, setView] = useState<'list' | 'calendar'>('calendar')
   const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null)
+  // Mais recente primeiro por padrão (pedido do usuário) — o usuário pode inverter.
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc')
 
   const scheduledQuery = useQuery({
     queryKey: ['posts', 'scheduled'],
@@ -482,8 +491,14 @@ export default function ScheduledPostsPage() {
     queryFn: () => api.getPosts('published'),
   })
 
-  const scheduledPosts = (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled')
-  const publishedPosts = (publishedQuery.data ?? []).filter((p) => p.status === 'published')
+  const scheduledPosts = sortByWhen(
+    (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled'),
+    sortDirection,
+  )
+  const publishedPosts = sortByWhen(
+    (publishedQuery.data ?? []).filter((p) => p.status === 'published'),
+    sortDirection,
+  )
   const calendarPosts = [...scheduledPosts, ...publishedPosts]
   const isLoading = scheduledQuery.isLoading || publishedQuery.isLoading
   const error = scheduledQuery.error ?? publishedQuery.error
@@ -552,6 +567,15 @@ export default function ScheduledPostsPage() {
         />
       ) : (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setSortDirection((d) => (d === 'desc' ? 'asc' : 'desc'))}
+              className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
+            >
+              {sortDirection === 'desc' ? '↓ Mais recentes primeiro' : '↑ Mais antigos primeiro'}
+            </button>
+          </div>
           {scheduledPosts.length > 0 && (
             <ul className="space-y-3">
               {scheduledPosts.map((post) => (
