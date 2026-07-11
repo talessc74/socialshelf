@@ -35,20 +35,6 @@ Integração exclusivamente via OAuth delegado — jamais credenciais diretas. V
 
 TikTok é estruturalmente diferente das quatro plataformas anteriores: só aceita vídeo, nunca imagem estática, e a criação de conteúdo para TikTok exige um pipeline de geração de vídeo que não existia no sistema (ver ADR-036). Deliberação completa registrada em ADR-034 (OAuth e identificadores), ADR-035 (publicação), ADR-036 (geração de vídeo assíncrona) e ADR-037 (sincronização de áudio e biblioteca de música).
 
-**Atualização 2026-07-11 — status real de prontidão para usuários externos (não só o dono do app)**
-
-A tabela original descrevia status de implementação de código, não se a plataforma aceita **qualquer usuário novo** que se cadastre no SocialShelf. São coisas diferentes: código pode estar pronto e a plataforma ainda assim recusar a conexão de quem não foi explicitamente autorizado pelo dono do app nos respectivos portais de desenvolvedor (Meta for Developers, TikTok for Developers). Ver `_local-bdr-policy-012-lancamento-multi-usuario` para o levantamento completo e a estratégia de lançamento.
-
-| Plataforma | Funciona para qualquer usuário novo hoje? | O que falta |
-|---|---|---|
-| LinkedIn (perfil pessoal) | Sim | Nada |
-| LinkedIn (Página de empresa) | Não | App dedicado + Community Management API (ver ADR-038) — fora de escopo por ora |
-| Instagram / Facebook | Não | Meta App Review + Business Verification (bloqueada por falta de CNPJ da Rádio Kactus) |
-| X (Twitter) | Não confirmado | Verificar tier de acesso à API no X Developer Portal |
-| TikTok | Não | App Audit (sair de Sandbox/unaudited para Production) |
-
-`PLATFORM_META` (`apps/web/src/lib/platformMeta.ts`) ganhou um campo `status: 'live' | 'in_review'` refletindo esta tabela — a Central de Contas (`apps/web/src/app/dashboard/accounts/page.tsx`) mostra um aviso nas plataformas `in_review` sem desabilitar o botão de conectar (continua funcionando para o dono do app e para testers já cadastrados nos respectivos portais).
-
 **Limites de conteúdo por plataforma**
 
 Definidos em `packages/domain/src/entities/Platform.ts` como `PLATFORM_CHARACTER_LIMITS`:

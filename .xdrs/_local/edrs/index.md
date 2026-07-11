@@ -46,7 +46,6 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-043-campanha-curadoria-de-fotos-e-posts](application/043-campanha-curadoria-de-fotos-e-posts.md) - CampaignPhoto.order (nullable, sem migração); reordenar/apagar foto na tela de upload; linha do tempo trata a campanha como uma sequência única de fotos onde mover além da borda do post "derrama" pro post vizinho, cobrindo reordenar-no-carrossel e mover-entre-carrosséis com os mesmos botões; photoCount na lista de campanhas
 - [_local-edr-policy-044-ordenacao-da-lista-de-posts-agendados](application/044-ordenacao-da-lista-de-posts-agendados.md) - Lista de /dashboard/scheduled ordenada no cliente por scheduledAt/publishedAt (o mesmo campo exibido no card), decrescente por padrão, com toggle único para agendados+publicados
 - [_local-edr-policy-045-tdd-para-isolamento-multi-tenant](application/045-tdd-isolamento-multi-tenant.md) - **DESCARTADA** — dependia da ADR-042 (workspace colaborativo), descartada por entendimento incorreto do pedido do usuário
-- [_local-edr-policy-046-status-de-plataforma-e-senha](application/046-status-plataforma-recuperacao-senha.md) - Campo `status: 'live' | 'in_review'` em PLATFORM_META com aviso não bloqueante na Central de Contas; página /forgot-password via Firebase Auth
 
 ### devops
 Pipeline de entrega e práticas de build.
