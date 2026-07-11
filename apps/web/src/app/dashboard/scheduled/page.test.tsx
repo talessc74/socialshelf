@@ -17,6 +17,7 @@ vi.mock('../../../lib/api', () => ({
     getImageUrl: vi.fn(),
     updatePost: vi.fn(),
     publishPost: vi.fn(),
+    deletePost: vi.fn(),
     uploadImage: vi.fn(),
   },
 }))
@@ -442,6 +443,120 @@ describe('ScheduledPostsPage', () => {
         texts.findIndex((t) => t.includes('Post mais recente')),
       )
       expect(screen.getByRole('button', { name: '↑ Mais antigos primeiro' })).toBeInTheDocument()
+    })
+  })
+
+  describe('rascunhos aguardando aprovação', () => {
+    function makeDraftPost(overrides: Partial<ApiPost> = {}): ApiPost {
+      return makePost({
+        id: 'draft-1',
+        status: 'ai-draft',
+        origin: 'autonomy-tick',
+        scheduledAt: null,
+        publishedAt: null,
+        content: [{ platform: Platform.INSTAGRAM, text: 'Rascunho gerado automaticamente' }],
+        ...overrides,
+      })
+    }
+
+    function mockDrafts(drafts: ApiPost[]) {
+      mockedApi.getPosts.mockImplementation(async (status) => (status === 'ai-draft' ? drafts : []))
+    }
+
+    it('mostra os rascunhos gerados pelo tick de autonomia (modo semi-automático), aguardando aprovação', async () => {
+      mockDrafts([makeDraftPost()])
+
+      await renderListView()
+
+      expect(await screen.findByText('Rascunho gerado automaticamente')).toBeInTheDocument()
+      expect(screen.getByText('🤖 Aguardando sua aprovação')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aprovar e publicar agora' })).toBeInTheDocument()
+    })
+
+    it('não mostra rascunho de geração manual, mesmo com status ai-draft — só os do tick de autonomia', async () => {
+      mockDrafts([makeDraftPost({ origin: 'manual' })])
+
+      await renderListView()
+
+      await screen.findByText(/Nenhum post agendado ainda/)
+      expect(screen.queryByText('🤖 Aguardando sua aprovação')).not.toBeInTheDocument()
+    })
+
+    it('aprova e publica um rascunho automático imediatamente', async () => {
+      mockDrafts([makeDraftPost()])
+      mockedApi.publishPost.mockResolvedValue({ postId: 'draft-1', results: [], failedPlatforms: [] })
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho gerado automaticamente')
+
+      await user.click(screen.getByRole('button', { name: 'Aprovar e publicar agora' }))
+
+      await waitFor(() => expect(mockedApi.publishPost).toHaveBeenCalledWith('draft-1'))
+    })
+
+    it('descarta um rascunho automático ao confirmar', async () => {
+      mockDrafts([makeDraftPost()])
+      mockedApi.deletePost.mockResolvedValue(undefined)
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho gerado automaticamente')
+
+      await user.click(screen.getByRole('button', { name: 'Descartar' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja descartar este rascunho? Ele não será publicado.',
+      )
+      await waitFor(() => expect(mockedApi.deletePost).toHaveBeenCalledWith('draft-1'))
+    })
+
+    it('permite editar o texto de um rascunho sem definir data, mantendo aguardando aprovação', async () => {
+      mockDrafts([makeDraftPost()])
+      mockedApi.updatePost.mockResolvedValue(
+        makeDraftPost({ content: [{ platform: Platform.INSTAGRAM, text: 'Texto revisado' }] }),
+      )
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho gerado automaticamente')
+
+      await user.click(screen.getByRole('button', { name: 'Editar' }))
+      const textarea = screen.getByDisplayValue('Rascunho gerado automaticamente')
+      await user.clear(textarea)
+      await user.type(textarea, 'Texto revisado')
+      await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      await waitFor(() => {
+        expect(mockedApi.updatePost).toHaveBeenCalledWith(
+          'draft-1',
+          [{ platform: Platform.INSTAGRAM, text: 'Texto revisado' }],
+          [],
+          undefined,
+        )
+      })
+    })
+
+    it('permite agendar um rascunho pra uma data futura', async () => {
+      mockDrafts([makeDraftPost()])
+      mockedApi.updatePost.mockResolvedValue(
+        makeDraftPost({ status: 'scheduled', scheduledAt: '2026-08-15T09:30:00.000Z' }),
+      )
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho gerado automaticamente')
+
+      await user.click(screen.getByRole('button', { name: 'Editar' }))
+      const dateInput = screen.getByLabelText('Data de publicação')
+      await user.type(dateInput, '2026-08-15T09:30')
+      await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      await waitFor(() => {
+        expect(mockedApi.updatePost).toHaveBeenCalledWith(
+          'draft-1',
+          [{ platform: Platform.INSTAGRAM, text: 'Rascunho gerado automaticamente' }],
+          [],
+          new Date('2026-08-15T09:30'),
+        )
+      })
     })
   })
 })
