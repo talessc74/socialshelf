@@ -17,7 +17,11 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
   }
 
   async findByCampaign(campaignId: string): Promise<CampaignPhoto[]> {
-    const snapshot = await db.collectionGroup('photos').where('campaignId', '==', campaignId).get()
+    const snapshot = await db
+      .collectionGroup('photos')
+      .where('campaignId', '==', campaignId)
+      .orderBy('createdAt', 'asc')
+      .get()
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
