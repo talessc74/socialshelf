@@ -73,6 +73,38 @@ via deploy normal do `web-service`, sem depender de nada no Vercel.
   relacionado ao SocialShelf, ex: Search Console ou Workspace). Não foram
   alterados.
 
+## Atualização — migração para socialshelf.com.br em andamento (2026-07-11)
+
+A migração planejada (ver referência à BDR-010 abaixo) começou a sair do papel. Estado observado nesta data:
+
+**DNS de `socialshelf.com.br` — já ativo, nenhuma ação pendente**
+
+O domínio foi registrado no registro.br (NS: `a.sec.dns.br` / `c.sec.dns.br`) e já está mapeado como domínio customizado do Cloud Run (`web-service`, `us-central1`, projeto `socialshelf-547da`) desde ~10 dias antes desta revisão. Ao contrário de `radiokactus.com` (ver riscos acima), aqui os 4 IPs de front-end recomendados pelo Google estão todos presentes:
+
+| Tipo | Valores |
+|---|---|
+| A | `216.239.32.21`, `216.239.34.21`, `216.239.36.21`, `216.239.38.21` |
+| AAAA | `2001:4860:4802:32::15`, `2001:4860:4802:34::15`, `2001:4860:4802:36::15`, `2001:4860:4802:38::15` |
+
+Mapeamento confirmado com status ativo (certificado provisionado e verificado) e resolução real conferida via DNS-over-HTTPS. Sem entrada legada de outro provedor nesta zona (diferente de `radiokactus.com`, que ainda carrega o ALIAS Vercel não removido).
+
+**OAuth — migração parcial dos redirect URIs cadastrados nos apps de terceiros**
+
+Redirect URIs de `https://api.socialshelf.com.br/...` foram adicionadas (mantendo as de `radiokactus.com` em paralelo, sem remoção):
+
+- Meta for Developers — ✅ adicionado
+- X (Twitter) Developer Portal (app 33038648) — ✅ adicionado
+- LinkedIn Developer Portal — ⏳ pendente (sessão de login necessária no painel)
+- TikTok for Developers — ⏳ pendente (sessão de login necessária no painel; inclui também a reverificação de domínio separada exigida pelo Content Posting API, ver `_local-edr-policy-035`)
+
+**Código ainda não migrado — intencional**
+
+`WEB_URL`, `NEXT_PUBLIC_API_URL` (ambos em `deploy.yml`) e o fallback hardcoded em `apps/publisher/src/routes/publish.routes.ts` continuam apontando para `radiokactus.com`, assim como o e-mail de contato em `terms/page.tsx` e `privacy/page.tsx`. Decisão deliberada: não trocar `WEB_URL`/CORS para `socialshelf.com.br` em produção antes de LinkedIn e TikTok aceitarem o redirect novo — trocar antes quebraria OAuth dessas duas plataformas.
+
+**Meta App Review — bloqueio não relacionado a DNS**
+
+Fora do escopo desta ADR: a submissão à Meta Business Verification está bloqueada pela falta de CNPJ regularizado da Rádio Kactus, independente do estado do domínio.
+
 ## References
 
 - [_local-adr-policy-010-gcp-infrastructure-baseline](010-gcp-infrastructure.md) - Cloud Run como runtime do `web-service` que hoje responde por este domínio
