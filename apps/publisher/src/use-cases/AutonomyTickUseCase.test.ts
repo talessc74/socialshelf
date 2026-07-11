@@ -5,6 +5,7 @@ import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
   AutonomyDailyCounterRepository,
+  AutonomyTickLogRepository,
   OAuthRepository,
   OAuthConnection,
   PostRepository,
@@ -76,6 +77,7 @@ describe('AutonomyTickUseCase', () => {
   let postRepo: PostRepository
   let publishPostUseCase: PublishPostUseCase
   let generatorClient: GeneratorAutonomyClient
+  let tickLog: AutonomyTickLogRepository
   let useCase: AutonomyTickUseCase
 
   beforeEach(() => {
@@ -117,6 +119,7 @@ describe('AutonomyTickUseCase', () => {
       classifyAutonomy: vi.fn().mockResolvedValue({ blocked: false, autoPublishEligible: true }),
       generate: vi.fn().mockResolvedValue({ status: 'ready' }),
     }
+    tickLog = { save: vi.fn().mockResolvedValue(undefined), findRecentByBrand: vi.fn().mockResolvedValue([]) }
     useCase = new AutonomyTickUseCase(
       brandDiscovery,
       dailyCounter,
@@ -124,6 +127,7 @@ describe('AutonomyTickUseCase', () => {
       postRepo,
       publishPostUseCase,
       generatorClient,
+      tickLog,
     )
   })
 
@@ -274,5 +278,51 @@ describe('AutonomyTickUseCase', () => {
     expect(generatorClient.generate).toHaveBeenCalledWith(
       expect.objectContaining({ targetPlatforms: [Platform.LINKEDIN, Platform.INSTAGRAM] }),
     )
+  })
+
+  describe('histórico do tick', () => {
+    it('grava uma entrada de log para cada marca processada, com a mesma ação e motivo do resultado', async () => {
+      brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+
+      await useCase.execute()
+
+      expect(tickLog.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 'user-1',
+          brandId: 'brand-1',
+          action: 'published',
+          topicHeadline: suggestion.headline,
+          error: null,
+        }),
+      )
+    })
+
+    it('grava o motivo do skip mesmo quando nenhum tópico foi avaliado', async () => {
+      dailyCounter.getCount = vi.fn().mockResolvedValue(1)
+
+      await useCase.execute()
+
+      expect(tickLog.save).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'skipped-not-yet-time', topicHeadline: null, error: null }),
+      )
+    })
+
+    it('grava a mensagem de erro quando a marca falha antes de qualquer resultado normal', async () => {
+      oauthRepo.findByBrand = vi.fn().mockRejectedValue(new Error('firestore unavailable'))
+
+      await useCase.execute()
+
+      expect(tickLog.save).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'error', error: 'firestore unavailable' }),
+      )
+    })
+
+    it('não deixa uma falha ao gravar o log derrubar o tick nem o resultado devolvido', async () => {
+      tickLog.save = vi.fn().mockRejectedValue(new Error('log write failed'))
+
+      const [result] = await useCase.execute()
+
+      expect(result).toMatchObject({ action: 'draft-created' })
+    })
   })
 })

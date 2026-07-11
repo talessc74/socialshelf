@@ -2,15 +2,18 @@ import type { FastifyInstance } from 'fastify'
 import { AutonomyTickUseCase } from '../use-cases/AutonomyTickUseCase.js'
 import { FirestoreAutonomyBrandDiscovery } from '../infrastructure/firestore/FirestoreAutonomyBrandDiscovery.js'
 import { FirestoreAutonomyDailyCounterRepository } from '../infrastructure/firestore/FirestoreAutonomyDailyCounterRepository.js'
+import { FirestoreAutonomyTickLogRepository } from '../infrastructure/firestore/FirestoreAutonomyTickLogRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { HttpGeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
 import type { PublishPostUseCase } from '../use-cases/PublishPostUseCase.js'
 
-// Acionado pelo Cloud Scheduler uma vez por dia (autenticação OIDC + X-Internal-Secret,
+// Acionado pelo Cloud Scheduler de hora em hora (autenticação OIDC + X-Internal-Secret,
 // mesmo padrão de /internal/scheduler-tick e /internal/videos-cleanup-tick) — varre marcas
-// com autonomia semi-automática/automática e gera (e, quando elegível, publica) 1 post por
-// marca a partir da pauta de maior aderência do dia (_local-bdr-plan-002, Fase 4).
+// com autonomia semi-automática/automática e gera (e, quando elegível, publica) até
+// maxAutoPostsPerDay posts por marca a partir da pauta de maior aderência do dia
+// (_local-bdr-plan-002, Fase 4; frequência e teto real por dia em _local-edr-policy-038,
+// adendo 2026-07-11).
 export async function autonomyRoutes(app: FastifyInstance, publishPostUseCase: PublishPostUseCase) {
   const internalSecret = process.env['INTERNAL_SECRET']
   const generatorUrl = process.env['GENERATOR_URL']
@@ -28,6 +31,7 @@ export async function autonomyRoutes(app: FastifyInstance, publishPostUseCase: P
     new FirestorePostRepository(),
     publishPostUseCase,
     new HttpGeneratorAutonomyClient(generatorUrl, internalSecret),
+    new FirestoreAutonomyTickLogRepository(),
   )
 
   app.post('/internal/autonomy-tick', async (request, reply) => {
