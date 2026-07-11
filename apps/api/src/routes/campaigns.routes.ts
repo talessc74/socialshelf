@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Platform } from '@socialshelf/domain'
 import { CreatePhotoCampaignUseCase } from '../use-cases/campaigns/CreatePhotoCampaignUseCase.js'
 import { UploadCampaignPhotoUseCase } from '../use-cases/campaigns/UploadCampaignPhotoUseCase.js'
+import { DeleteCampaignPhotoUseCase } from '../use-cases/campaigns/DeleteCampaignPhotoUseCase.js'
 import { GenerateCampaignTimelineUseCase } from '../use-cases/campaigns/GenerateCampaignTimelineUseCase.js'
 import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
 import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
@@ -49,6 +50,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
 
   const createCampaign = new CreatePhotoCampaignUseCase(campaignRepo)
   const uploadPhoto = new UploadCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
+  const deletePhoto = new DeleteCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
   const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo)
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
@@ -138,6 +140,19 @@ export async function campaignsRoutes(app: FastifyInstance) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       const status = message === 'Campaign not found' ? 404 : 502
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.delete('/campaigns/:id/photos/:photoId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id, photoId } = request.params as { id: string; photoId: string }
+
+    try {
+      await deletePhoto.execute({ userId: request.userId, brandId: request.brandId, campaignId: id, photoId })
+      return reply.status(204).send()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' || message === 'Photo not found' ? 404 : 500
       return reply.status(status).send({ error: message })
     }
   })

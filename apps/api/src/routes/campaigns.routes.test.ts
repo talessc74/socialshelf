@@ -21,11 +21,13 @@ vi.mock('../infrastructure/firestore/FirestorePhotoCampaignRepository.js', () =>
 }))
 
 const mockPhotoFindByCampaign = vi.fn().mockResolvedValue([])
+const mockPhotoDelete = vi.fn().mockResolvedValue(null)
 vi.mock('../infrastructure/firestore/FirestoreCampaignPhotoRepository.js', () => ({
   FirestoreCampaignPhotoRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     saveAll: vi.fn().mockResolvedValue(undefined),
     findByCampaign: mockPhotoFindByCampaign,
+    delete: mockPhotoDelete,
   })),
 }))
 
@@ -169,6 +171,47 @@ describe('Campaigns routes', () => {
         error: 'Internal error',
         detail: '9 FAILED_PRECONDITION: The query requires an index.',
       })
+    })
+  })
+
+  describe('DELETE /campaigns/:id/photos/:photoId', () => {
+    it('deletes a photo and returns 204', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1' })
+      mockPhotoDelete.mockResolvedValueOnce({ id: 'photo-1', storagePath: 'uploads/photo-1.jpg' })
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/campaign-1/photos/photo-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(204)
+      expect(mockPhotoDelete).toHaveBeenCalledWith('user-test-123', expect.any(String), 'campaign-1', 'photo-1')
+    })
+
+    it('returns 404 when the campaign does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/missing/photos/photo-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 404 when the photo does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1' })
+      mockPhotoDelete.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/campaign-1/photos/missing-photo',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
     })
   })
 

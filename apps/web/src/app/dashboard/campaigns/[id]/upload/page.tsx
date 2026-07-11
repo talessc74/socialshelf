@@ -5,15 +5,36 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 
-function UploadedPhotoThumbnail({ path }: { path: string }) {
+function UploadedPhotoThumbnail({
+  path,
+  deleting,
+  onDelete,
+}: {
+  path: string
+  deleting: boolean
+  onDelete: () => void
+}) {
   const { data: url, isLoading } = useQuery({ queryKey: ['image-url', path], queryFn: () => api.getImageUrl(path) })
 
   if (isLoading || !url) {
     return <div className="aspect-square w-full animate-pulse rounded-lg bg-card-2" />
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+  return (
+    <div className="relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+      <button
+        type="button"
+        onClick={onDelete}
+        disabled={deleting}
+        aria-label="Remover foto"
+        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-50"
+      >
+        {deleting ? '…' : '×'}
+      </button>
+    </div>
+  )
 }
 
 export default function CampaignUploadPage() {
@@ -38,6 +59,11 @@ export default function CampaignUploadPage() {
   const generateTimeline = useMutation({
     mutationFn: () => api.generateCampaignTimeline(campaignId),
     onSuccess: () => router.push(`/dashboard/campaigns/${campaignId}/timeline`),
+  })
+
+  const deletePhoto = useMutation({
+    mutationFn: (photoId: string) => api.deleteCampaignPhoto(campaignId, photoId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
   })
 
   // Um arquivo por requisição, o cliente faz o loop — mesmo padrão já usado no upload de
@@ -133,11 +159,20 @@ export default function CampaignUploadPage() {
           </p>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
             {photos.map((photo) => (
-              <UploadedPhotoThumbnail key={photo.id} path={photo.storagePath} />
+              <UploadedPhotoThumbnail
+                key={photo.id}
+                path={photo.storagePath}
+                deleting={deletePhoto.isPending && deletePhoto.variables === photo.id}
+                onDelete={() => {
+                  if (confirm('Remover esta foto da campanha?')) deletePhoto.mutate(photo.id)
+                }}
+              />
             ))}
           </div>
         </div>
       )}
+
+      {deletePhoto.isError && <p className="text-sm text-red-600">{(deletePhoto.error as Error).message}</p>}
 
       {generateTimeline.isError && (
         <p className="text-sm text-red-600">{(generateTimeline.error as Error).message}</p>

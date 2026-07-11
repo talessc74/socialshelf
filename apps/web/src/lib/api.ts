@@ -656,6 +656,10 @@ export const api = {
     return data.photo
   },
 
+  async deleteCampaignPhoto(campaignId: string, photoId: string): Promise<void> {
+    await apiFetch(`/campaigns/${campaignId}/photos/${photoId}`, { method: 'DELETE' })
+  },
+
   async getCampaignTimeline(id: string): Promise<ApiCampaignItem[]> {
     const data = await apiFetch<{ items: ApiCampaignItem[] }>(`/campaigns/${id}/timeline`)
     return data.items
