@@ -15,6 +15,7 @@ vi.mock('../../../../../lib/api', () => ({
     getCampaign: vi.fn(),
     getCampaignPhotos: vi.fn(),
     uploadCampaignPhoto: vi.fn(),
+    deleteCampaignPhoto: vi.fn(),
     generateCampaignTimeline: vi.fn(),
     getImageUrl: vi.fn(),
   },
@@ -88,6 +89,41 @@ describe('CampaignUploadPage', () => {
 
     expect(await screen.findByText(/2 fotos enviadas/)).toBeInTheDocument()
     await waitFor(() => expect(container.querySelectorAll('img')).toHaveLength(2))
+  })
+
+  it('deletes a photo when its remove button is clicked and confirmed', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos
+      .mockResolvedValueOnce([makePhoto('photo-1'), makePhoto('photo-2')])
+      .mockResolvedValue([makePhoto('photo-2')])
+    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+    mockedApi.deleteCampaignPhoto.mockResolvedValue(undefined)
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+    renderPage()
+
+    expect(await screen.findByText(/2 fotos enviadas/)).toBeInTheDocument()
+    const removeButtons = await screen.findAllByRole('button', { name: 'Remover foto' })
+    fireEvent.click(removeButtons[0]!)
+
+    expect(window.confirm).toHaveBeenCalled()
+    await waitFor(() => expect(mockedApi.deleteCampaignPhoto).toHaveBeenCalledWith('campaign-1', 'photo-1'))
+    expect(await screen.findByText(/1 foto enviada/)).toBeInTheDocument()
+  })
+
+  it('does not delete a photo when the confirmation is declined', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1')])
+    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+    renderPage()
+
+    const removeButton = await screen.findByRole('button', { name: 'Remover foto' })
+    fireEvent.click(removeButton)
+
+    expect(window.confirm).toHaveBeenCalled()
+    expect(mockedApi.deleteCampaignPhoto).not.toHaveBeenCalled()
   })
 
   it('shows how many photos of the batch have been uploaded so far, not just a static "sending" message', async () => {

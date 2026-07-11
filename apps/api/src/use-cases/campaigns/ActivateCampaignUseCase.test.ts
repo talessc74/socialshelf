@@ -89,6 +89,7 @@ describe('ActivateCampaignUseCase', () => {
       save: vi.fn(),
       saveAll: vi.fn(),
       findByCampaign: vi.fn().mockResolvedValue([makePhoto()]),
+      delete: vi.fn(),
     }
     postRepo = {
       save: vi.fn().mockResolvedValue(undefined),

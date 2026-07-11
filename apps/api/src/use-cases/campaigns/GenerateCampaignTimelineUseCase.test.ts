@@ -56,6 +56,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
       save: vi.fn(),
       saveAll: vi.fn(),
       findByCampaign: vi.fn().mockResolvedValue([makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })]),
+      delete: vi.fn(),
     }
     itemRepo = {
       save: vi.fn(),

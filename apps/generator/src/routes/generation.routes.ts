@@ -54,6 +54,10 @@ const uploadImageSchema = z.object({
   mimeType: z.string().min(1),
 })
 
+const deleteImageSchema = z.object({
+  path: z.string().min(1),
+})
+
 const renderCardSchema = z.object({
   userId: z.string().min(1),
   brandId: z.string().min(1),
@@ -239,6 +243,27 @@ export async function generationRoutes(app: FastifyInstance) {
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'image upload failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
+
+  app.post('/images/delete', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = deleteImageSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      await imageStorage.delete(parsed.data.path)
+      return reply.send({ success: true })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'image delete failed')
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })

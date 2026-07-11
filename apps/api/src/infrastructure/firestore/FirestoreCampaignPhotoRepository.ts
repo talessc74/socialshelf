@@ -25,6 +25,15 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
+  async delete(userId: string, brandId: string, campaignId: string, photoId: string): Promise<CampaignPhoto | null> {
+    const ref = this.collectionFor(userId, brandId, campaignId).doc(photoId)
+    const doc = await ref.get()
+    if (!doc.exists) return null
+    const photo = this.fromFirestore(doc.data()!)
+    await ref.delete()
+    return photo
+  }
+
   private collectionFor(userId: string, brandId: string, campaignId: string) {
     return db
       .collection('users').doc(userId)
