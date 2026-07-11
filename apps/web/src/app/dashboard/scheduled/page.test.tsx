@@ -399,4 +399,49 @@ describe('ScheduledPostsPage', () => {
       })
     })
   })
+
+  describe('ordenação da lista', () => {
+    function makeScheduledAt(iso: string, id: string, text: string): ApiPost {
+      return makePost({ id, scheduledAt: iso, content: [{ platform: Platform.LINKEDIN, text }] })
+    }
+
+    function mockTwoScheduledPosts() {
+      mockedApi.getPosts.mockImplementation(async (status) =>
+        status === 'scheduled'
+          ? [
+              makeScheduledAt('2026-07-01T12:00:00.000Z', 'post-early', 'Post mais antigo'),
+              makeScheduledAt('2026-07-05T12:00:00.000Z', 'post-late', 'Post mais recente'),
+            ]
+          : [],
+      )
+    }
+
+    it('mostra o post mais recente primeiro por padrão', async () => {
+      mockTwoScheduledPosts()
+
+      await renderListView()
+      await screen.findByText('Post mais recente')
+
+      const texts = screen.getAllByRole('listitem').map((li) => li.textContent ?? '')
+      expect(texts.findIndex((t) => t.includes('Post mais recente'))).toBeLessThan(
+        texts.findIndex((t) => t.includes('Post mais antigo')),
+      )
+      expect(screen.getByRole('button', { name: '↓ Mais recentes primeiro' })).toBeInTheDocument()
+    })
+
+    it('permite inverter a ordem para mais antigos primeiro', async () => {
+      mockTwoScheduledPosts()
+
+      const user = await renderListView()
+      await screen.findByText('Post mais recente')
+
+      await user.click(screen.getByRole('button', { name: '↓ Mais recentes primeiro' }))
+
+      const texts = screen.getAllByRole('listitem').map((li) => li.textContent ?? '')
+      expect(texts.findIndex((t) => t.includes('Post mais antigo'))).toBeLessThan(
+        texts.findIndex((t) => t.includes('Post mais recente')),
+      )
+      expect(screen.getByRole('button', { name: '↑ Mais antigos primeiro' })).toBeInTheDocument()
+    })
+  })
 })
