@@ -89,7 +89,8 @@
       "collectionGroup": "photos",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
-        { "fieldPath": "campaignId", "order": "ASCENDING" }
+        { "fieldPath": "campaignId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
       ]
     },
     {
