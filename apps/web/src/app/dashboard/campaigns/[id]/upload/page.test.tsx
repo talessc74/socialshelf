@@ -16,6 +16,7 @@ vi.mock('../../../../../lib/api', () => ({
     getCampaignPhotos: vi.fn(),
     uploadCampaignPhoto: vi.fn(),
     deleteCampaignPhoto: vi.fn(),
+    reorderCampaignPhotos: vi.fn(),
     generateCampaignTimeline: vi.fn(),
     getImageUrls: vi.fn(),
   },
@@ -58,6 +59,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     gpsLng: null,
     locationClusterId: null,
     createdAt: new Date().toISOString(),
+    order: null,
   }
 }
 
@@ -130,6 +132,43 @@ describe('CampaignUploadPage', () => {
 
     expect(window.confirm).toHaveBeenCalled()
     expect(mockedApi.deleteCampaignPhoto).not.toHaveBeenCalled()
+  })
+
+  it('moves a photo forward when its right arrow is clicked', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2'), makePhoto('photo-3')])
+    mockImageUrls()
+    mockedApi.reorderCampaignPhotos.mockResolvedValue(undefined)
+
+    renderPage()
+
+    expect(await screen.findByText(/3 fotos enviadas/)).toBeInTheDocument()
+    const moveRightButtons = await screen.findAllByRole('button', { name: 'Mover foto para a próxima posição' })
+    fireEvent.click(moveRightButtons[0]!)
+
+    await waitFor(() =>
+      expect(mockedApi.reorderCampaignPhotos).toHaveBeenCalledWith('campaign-1', [
+        'photo-2',
+        'photo-1',
+        'photo-3',
+      ]),
+    )
+  })
+
+  it('disables the left arrow on the first photo and the right arrow on the last', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockImageUrls()
+
+    renderPage()
+
+    const leftButtons = await screen.findAllByRole('button', { name: 'Mover foto para a posição anterior' })
+    const rightButtons = await screen.findAllByRole('button', { name: 'Mover foto para a próxima posição' })
+
+    expect(leftButtons[0]).toBeDisabled()
+    expect(rightButtons[0]).not.toBeDisabled()
+    expect(leftButtons[1]).not.toBeDisabled()
+    expect(rightButtons[1]).toBeDisabled()
   })
 
   it('shows how many photos of the batch have been uploaded so far, not just a static "sending" message', async () => {

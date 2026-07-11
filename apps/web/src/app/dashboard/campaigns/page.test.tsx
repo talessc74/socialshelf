@@ -55,11 +55,19 @@ describe('CampaignsPage', () => {
     expect(screen.getByText('Em revisão')).toBeInTheDocument()
   })
 
-  it('points a draft campaign to the upload step', async () => {
+  it('points an empty draft campaign to the upload step', async () => {
     mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft' })])
     renderPage()
     const link = await screen.findByText('Subir fotos')
     expect(link.closest('a')).toHaveAttribute('href', '/dashboard/campaigns/campaign-1/upload')
+  })
+
+  it('shows "Continuar upload" instead of "Subir fotos" for a draft that already has photos', async () => {
+    mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft', photoCount: 148 })])
+    renderPage()
+    expect(await screen.findByText('Continuar upload')).toBeInTheDocument()
+    expect(screen.queryByText('Subir fotos')).not.toBeInTheDocument()
+    expect(screen.getByText('148 fotos enviadas')).toBeInTheDocument()
   })
 
   it('points a reviewing campaign to the timeline step', async () => {

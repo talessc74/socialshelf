@@ -60,6 +60,7 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     gpsLng: null,
     locationClusterId: null,
     createdAt: new Date(),
+    order: null,
     ...overrides,
   }
 }
@@ -90,6 +91,8 @@ describe('ActivateCampaignUseCase', () => {
       saveAll: vi.fn(),
       findByCampaign: vi.fn().mockResolvedValue([makePhoto()]),
       delete: vi.fn(),
+      countByCampaign: vi.fn(),
+      reorder: vi.fn(),
     }
     postRepo = {
       save: vi.fn().mockResolvedValue(undefined),

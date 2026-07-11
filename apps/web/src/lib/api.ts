@@ -263,6 +263,9 @@ export interface ApiPhotoCampaign {
   updatedAt: string
   startedAt: string | null
   completedAt: string | null
+  // Só vem preenchido em listCampaigns() — diferencia um rascunho vazio de um que já tem
+  // fotos esperando a próxima etapa.
+  photoCount?: number
 }
 
 export interface ApiCampaignPhoto {
@@ -274,6 +277,7 @@ export interface ApiCampaignPhoto {
   gpsLng: number | null
   locationClusterId: string | null
   createdAt: string
+  order: number | null
 }
 
 export interface ApiCampaignItem {
@@ -678,6 +682,13 @@ export const api = {
 
   async deleteCampaignPhoto(campaignId: string, photoId: string): Promise<void> {
     await apiFetch(`/campaigns/${campaignId}/photos/${photoId}`, { method: 'DELETE' })
+  },
+
+  async reorderCampaignPhotos(campaignId: string, photoIds: string[]): Promise<void> {
+    await apiFetch(`/campaigns/${campaignId}/photos/order`, {
+      method: 'PUT',
+      body: JSON.stringify({ photoIds }),
+    })
   },
 
   async getCampaignTimeline(id: string): Promise<ApiCampaignItem[]> {

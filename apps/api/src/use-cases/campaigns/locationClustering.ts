@@ -30,8 +30,14 @@ function haversineDistanceMeters(a: { lat: number; lng: number }, b: { lat: numb
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(h))
 }
 
-function sortByCapturedTime(photos: CampaignPhoto[]): CampaignPhoto[] {
-  return [...photos].sort((a, b) => (a.exifTakenAt ?? a.createdAt).getTime() - (b.exifTakenAt ?? b.createdAt).getTime())
+// Prioriza a posição manual (CampaignPhoto.order) quando ambas as fotos comparadas já têm
+// uma — é o único jeito de o usuário controlar a sequência de fotos sem GPS/EXIF (ex: prints
+// de tela), já que aí não existe nenhum outro dado real pra ordenar por localidade/data.
+function sortWithinCluster(photos: CampaignPhoto[]): CampaignPhoto[] {
+  return [...photos].sort((a, b) => {
+    if (a.order !== null && b.order !== null) return a.order - b.order
+    return (a.exifTakenAt ?? a.createdAt).getTime() - (b.exifTakenAt ?? b.createdAt).getTime()
+  })
 }
 
 /**
@@ -61,10 +67,10 @@ export function clusterByLocation(photos: CampaignPhoto[]): Map<string, Campaign
 
   const result = new Map<string, CampaignPhoto[]>()
   for (const cluster of clusters) {
-    result.set(cluster.id, sortByCapturedTime(cluster.photos))
+    result.set(cluster.id, sortWithinCluster(cluster.photos))
   }
   if (withoutGps.length > 0) {
-    result.set(NO_LOCATION_CLUSTER_ID, sortByCapturedTime(withoutGps))
+    result.set(NO_LOCATION_CLUSTER_ID, sortWithinCluster(withoutGps))
   }
   return result
 }

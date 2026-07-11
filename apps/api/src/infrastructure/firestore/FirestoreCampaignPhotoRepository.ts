@@ -1,6 +1,16 @@
 import { db } from '../firebase-admin.js'
 import type { CampaignPhotoRepository, CampaignPhoto } from '@socialshelf/domain'
 
+// Fotos sem `order` explícito (enviadas antes dessa feature existir) ordenam depois de
+// qualquer foto já reordenada, mantendo entre si a ordem de upload (createdAt) — sort
+// estável do V8 preserva a posição relativa de todo empate.
+function byOrder(a: CampaignPhoto, b: CampaignPhoto): number {
+  if (a.order === null && b.order === null) return 0
+  if (a.order === null) return 1
+  if (b.order === null) return -1
+  return a.order - b.order
+}
+
 export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository {
   async save(photo: CampaignPhoto): Promise<void> {
     await this.collectionFor(photo.userId, photo.brandId, photo.campaignId).doc(photo.id).set(this.toFirestore(photo))
@@ -22,7 +32,7 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
       .where('campaignId', '==', campaignId)
       .orderBy('createdAt', 'asc')
       .get()
-    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+    return snapshot.docs.map((doc) => this.fromFirestore(doc.data())).sort(byOrder)
   }
 
   async delete(userId: string, brandId: string, campaignId: string, photoId: string): Promise<CampaignPhoto | null> {
@@ -32,6 +42,21 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
     const photo = this.fromFirestore(doc.data()!)
     await ref.delete()
     return photo
+  }
+
+  async countByCampaign(userId: string, brandId: string, campaignId: string): Promise<number> {
+    const snapshot = await this.collectionFor(userId, brandId, campaignId).count().get()
+    return snapshot.data().count
+  }
+
+  async reorder(userId: string, brandId: string, campaignId: string, orderedPhotoIds: string[]): Promise<void> {
+    if (orderedPhotoIds.length === 0) return
+    const collection = this.collectionFor(userId, brandId, campaignId)
+    const batch = db.batch()
+    orderedPhotoIds.forEach((photoId, index) => {
+      batch.update(collection.doc(photoId), { order: index })
+    })
+    await batch.commit()
   }
 
   private collectionFor(userId: string, brandId: string, campaignId: string) {
@@ -62,6 +87,7 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
       gpsLng: (data['gpsLng'] as number | null) ?? null,
       locationClusterId: (data['locationClusterId'] as string | null) ?? null,
       createdAt: new Date(data['createdAt'] as string),
+      order: (data['order'] as number | null | undefined) ?? null,
     }
   }
 }

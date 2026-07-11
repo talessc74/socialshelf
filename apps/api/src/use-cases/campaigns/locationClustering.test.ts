@@ -22,6 +22,7 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     gpsLng: null,
     locationClusterId: null,
     createdAt: new Date('2026-07-01T10:00:00.000Z'),
+    order: null,
     ...overrides,
   }
 }
@@ -82,6 +83,17 @@ describe('clusterByLocation', () => {
     const clusters = clusterByLocation(photos)
 
     expect([...clusters.values()][0]!.map((p) => p.id)).toEqual(['earlier', 'later'])
+  })
+
+  it('prioritizes manual order over EXIF time when both photos have one set', () => {
+    const photos = [
+      makePhoto({ id: 'a', gpsLat: 1, gpsLng: 1, exifTakenAt: new Date('2026-07-01T09:00:00.000Z'), order: 1 }),
+      makePhoto({ id: 'b', gpsLat: 1, gpsLng: 1, exifTakenAt: new Date('2026-07-01T12:00:00.000Z'), order: 0 }),
+    ]
+
+    const clusters = clusterByLocation(photos)
+
+    expect([...clusters.values()][0]!.map((p) => p.id)).toEqual(['b', 'a'])
   })
 })
 

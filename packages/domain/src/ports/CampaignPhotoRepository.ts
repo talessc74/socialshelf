@@ -5,4 +5,6 @@ export interface CampaignPhotoRepository {
   saveAll(photos: CampaignPhoto[]): Promise<void>
   findByCampaign(campaignId: string): Promise<CampaignPhoto[]>
   delete(userId: string, brandId: string, campaignId: string, photoId: string): Promise<CampaignPhoto | null>
+  countByCampaign(userId: string, brandId: string, campaignId: string): Promise<number>
+  reorder(userId: string, brandId: string, campaignId: string, orderedPhotoIds: string[]): Promise<void>
 }

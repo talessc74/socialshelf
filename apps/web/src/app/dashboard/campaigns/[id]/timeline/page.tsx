@@ -6,13 +6,66 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import type { ApiCampaignItem } from '../../../../../lib/api'
 
-function ItemThumbnail({ url }: { url: string | undefined }) {
+function ItemThumbnail({
+  url,
+  editable,
+  onRemove,
+  canMoveLeft,
+  canMoveRight,
+  onMoveLeft,
+  onMoveRight,
+}: {
+  url: string | undefined
+  editable: boolean
+  onRemove: () => void
+  canMoveLeft: boolean
+  canMoveRight: boolean
+  onMoveLeft: () => void
+  onMoveRight: () => void
+}) {
   if (!url) {
     return <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-card-2" />
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+  if (!editable) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+  }
+
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" className="h-16 w-16 rounded-lg object-cover" />
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remover foto deste post"
+        className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80"
+      >
+        ×
+      </button>
+      <div className="absolute bottom-0.5 left-0.5 right-0.5 flex justify-between">
+        <button
+          type="button"
+          onClick={onMoveLeft}
+          disabled={!canMoveLeft}
+          aria-label="Mover foto para trás (pode passar pro post anterior)"
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={onMoveRight}
+          disabled={!canMoveRight}
+          aria-label="Mover foto para frente (pode passar pro próximo post)"
+          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
+        >
+          ›
+        </button>
+      </div>
+    </div>
+  )
 }
 
 export default function CampaignTimelinePage() {
@@ -73,6 +126,50 @@ export default function CampaignTimelinePage() {
     setItems((prev) => prev?.map((item) => (item.id === itemId ? { ...item, caption } : item)) ?? null)
   }
 
+  // Trata a linha do tempo inteira como uma única sequência de fotos atravessando os posts —
+  // mover uma foto pra além da borda do post atual "vaza" pro post vizinho, cobrindo ao mesmo
+  // tempo reordenar dentro de um carrossel e mover foto entre carrosséis com os mesmos dois
+  // botões. Se o post de origem fica sem foto nenhuma, ele desaparece (carrossel virando uma
+  // única foto é só o caso de sobrar 1). Só mexe no estado local — precisa "Salvar alterações".
+  function movePhoto(itemIndex: number, photoIndex: number, direction: -1 | 1) {
+    setItems((prev) => {
+      if (!prev) return prev
+      const current = prev[itemIndex]
+      if (!current) return prev
+      const targetPhotoIndex = photoIndex + direction
+
+      if (targetPhotoIndex >= 0 && targetPhotoIndex < current.photoIds.length) {
+        const photoIds = [...current.photoIds]
+        ;[photoIds[photoIndex], photoIds[targetPhotoIndex]] = [photoIds[targetPhotoIndex]!, photoIds[photoIndex]!]
+        return prev.map((item, i) => (i === itemIndex ? { ...item, photoIds } : item))
+      }
+
+      const targetItemIndex = itemIndex + direction
+      if (targetItemIndex < 0 || targetItemIndex >= prev.length) return prev
+      const photoId = current.photoIds[photoIndex]!
+      const remainingPhotoIds = current.photoIds.filter((id) => id !== photoId)
+      const targetItem = prev[targetItemIndex]!
+      const targetPhotoIds = direction === 1 ? [photoId, ...targetItem.photoIds] : [...targetItem.photoIds, photoId]
+
+      return prev
+        .map((item, i) => {
+          if (i === itemIndex) return { ...item, photoIds: remainingPhotoIds }
+          if (i === targetItemIndex) return { ...item, photoIds: targetPhotoIds }
+          return item
+        })
+        .filter((item) => item.photoIds.length > 0)
+    })
+  }
+
+  function removePhoto(itemIndex: number, photoId: string) {
+    setItems((prev) => {
+      if (!prev) return prev
+      return prev
+        .map((item, i) => (i === itemIndex ? { ...item, photoIds: item.photoIds.filter((id) => id !== photoId) } : item))
+        .filter((item) => item.photoIds.length > 0)
+    })
+  }
+
   const isReviewing = campaign?.status === 'reviewing'
 
   return (
@@ -80,7 +177,8 @@ export default function CampaignTimelinePage() {
       <div>
         <h1 className="text-lg font-semibold text-ink">{campaign?.name ?? 'Campanha'}</h1>
         <p className="text-sm text-muted">
-          Confira a linha do tempo sugerida. Edite a legenda de qualquer item antes de ativar a campanha.
+          Confira a linha do tempo sugerida. Edite a legenda, reordene ou remova fotos de um post (as setas movem a
+          foto pro post vizinho quando chegam na borda) — depois salve as alterações antes de ativar a campanha.
         </p>
       </div>
 
@@ -96,7 +194,7 @@ export default function CampaignTimelinePage() {
         </p>
       ) : (
         <ul className="space-y-3">
-          {items.map((item) => (
+          {items.map((item, itemIndex) => (
             <li key={item.id} className="rounded-2xl border border-line bg-card p-4 shadow-card">
               <div className="mb-2 flex items-center justify-between">
                 <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
@@ -107,9 +205,21 @@ export default function CampaignTimelinePage() {
                 </span>
               </div>
               <div className="mb-2 flex gap-2 overflow-x-auto">
-                {item.photoIds.map((photoId) => {
+                {item.photoIds.map((photoId, photoIndex) => {
                   const photo = photosById.get(photoId)
-                  return photo ? <ItemThumbnail key={photoId} url={imageUrls?.[photo.storagePath]} /> : null
+                  if (!photo) return null
+                  return (
+                    <ItemThumbnail
+                      key={photoId}
+                      url={imageUrls?.[photo.storagePath]}
+                      editable={isReviewing}
+                      onRemove={() => removePhoto(itemIndex, photoId)}
+                      canMoveLeft={!(itemIndex === 0 && photoIndex === 0)}
+                      canMoveRight={!(itemIndex === items.length - 1 && photoIndex === item.photoIds.length - 1)}
+                      onMoveLeft={() => movePhoto(itemIndex, photoIndex, -1)}
+                      onMoveRight={() => movePhoto(itemIndex, photoIndex, 1)}
+                    />
+                  )
                 })}
               </div>
               <textarea

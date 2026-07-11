@@ -12,4 +12,7 @@ export interface CampaignPhoto {
   // Preenchido por GenerateCampaignTimelineUseCase ao clusterizar por proximidade GPS.
   locationClusterId: string | null
   createdAt: Date
+  // Posição manual definida pelo usuário (arraste/mova na tela de upload). Null pra fotos
+  // enviadas antes dessa feature existir — nesse caso a ordem cai de volta pra createdAt.
+  order: number | null
 }
