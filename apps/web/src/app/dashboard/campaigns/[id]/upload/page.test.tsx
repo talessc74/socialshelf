@@ -68,6 +68,17 @@ describe('CampaignUploadPage', () => {
     vi.clearAllMocks()
   })
 
+  it('shows an error instead of silently rendering an empty list when fetching uploaded photos fails', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockRejectedValue(new Error('9 FAILED_PRECONDITION: The query requires an index.'))
+
+    renderPage()
+
+    expect(
+      await screen.findByText(/Não foi possível carregar as fotos já enviadas/),
+    ).toBeInTheDocument()
+  })
+
   it('shows a thumbnail grid for photos that have already been uploaded', async () => {
     mockedApi.getCampaign.mockResolvedValue(makeCampaign())
     mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])

@@ -88,16 +88,28 @@ export async function campaignsRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
     if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
-    const photos = await photoRepo.findByCampaign(id)
-    return reply.send({ photos })
+    try {
+      const photos = await photoRepo.findByCampaign(id)
+      return reply.send({ photos })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'find campaign photos failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
   })
 
   app.get('/campaigns/:id/timeline', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
     if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
-    const items = await itemRepo.findByCampaign(id)
-    return reply.send({ items })
+    try {
+      const items = await itemRepo.findByCampaign(id)
+      return reply.send({ items })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'find campaign timeline failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
   })
 
   // Upload de uma foto por requisição — o cliente faz o loop por arquivo, mesmo padrão já

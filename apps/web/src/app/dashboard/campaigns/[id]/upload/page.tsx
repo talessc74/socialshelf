@@ -27,7 +27,10 @@ export default function CampaignUploadPage() {
   const [isDragging, setIsDragging] = useState(false)
 
   const { data: campaign } = useQuery({ queryKey: ['campaign', campaignId], queryFn: () => api.getCampaign(campaignId) })
-  const { data: photos } = useQuery({
+  const {
+    data: photos,
+    error: photosError,
+  } = useQuery({
     queryKey: ['campaign-photos', campaignId],
     queryFn: () => api.getCampaignPhotos(campaignId),
   })
@@ -116,6 +119,12 @@ export default function CampaignUploadPage() {
       </label>
 
       {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
+
+      {photosError && (
+        <p className="text-sm text-red-600">
+          Não foi possível carregar as fotos já enviadas: {(photosError as Error).message}
+        </p>
+      )}
 
       {photos && photos.length > 0 && (
         <div>
