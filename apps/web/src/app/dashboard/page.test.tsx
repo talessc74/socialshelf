@@ -277,6 +277,48 @@ describe('DashboardPage - badges dos Atalhos', () => {
   })
 })
 
+describe('DashboardPage - badge de como a conta está sendo tratada', () => {
+  it('não mostra nenhum badge de autonomia enquanto não há perfil de marca configurado', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(null)
+
+    renderPage()
+
+    await screen.findByText('Primeiros passos')
+    expect(screen.queryByText(/Manual|Semi-automático|Automático/)).not.toBeInTheDocument()
+  })
+
+  it('mostra "Manual" quando a marca está no modo manual', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile({ operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 } }))
+
+    renderPage()
+
+    const badge = await screen.findByText(/Manual/)
+    expect(badge.closest('a')).toHaveAttribute('href', '/dashboard/brand')
+  })
+
+  it('mostra "Semi-automático" quando a marca está nesse modo', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(
+      makeBrandProfile({ operation: { autonomyLevel: 'semi-automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 } }),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText(/Semi-automático/)).toBeInTheDocument()
+    expect(await screen.findByText('IA prepara, você aprova antes')).toBeInTheDocument()
+  })
+
+  it('mostra "Automático" quando a marca está nesse modo', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(
+      makeBrandProfile({ operation: { autonomyLevel: 'automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 3 } }),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText(/Automático/)).toBeInTheDocument()
+    expect(await screen.findByText('IA cria e publica sozinha')).toBeInTheDocument()
+  })
+})
+
 describe('DashboardPage - gráfico de Impressões na semana', () => {
   it('mostra aviso de indisponibilidade em vez de gráfico vazio quando há posts medidos mas nenhuma rede reportou impressões', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue({
