@@ -23,11 +23,11 @@ export default function CampaignTimelinePage() {
   const router = useRouter()
 
   const { data: campaign } = useQuery({ queryKey: ['campaign', campaignId], queryFn: () => api.getCampaign(campaignId) })
-  const { data: photos } = useQuery({
+  const { data: photos, error: photosError } = useQuery({
     queryKey: ['campaign-photos', campaignId],
     queryFn: () => api.getCampaignPhotos(campaignId),
   })
-  const { data: serverItems } = useQuery({
+  const { data: serverItems, error: timelineError } = useQuery({
     queryKey: ['campaign-timeline', campaignId],
     queryFn: () => api.getCampaignTimeline(campaignId),
   })
@@ -75,6 +75,12 @@ export default function CampaignTimelinePage() {
           Confira a linha do tempo sugerida. Edite a legenda de qualquer item antes de ativar a campanha.
         </p>
       </div>
+
+      {(photosError || timelineError) && (
+        <p className="text-sm text-red-600">
+          Não foi possível carregar a linha do tempo: {((timelineError ?? photosError) as Error).message}
+        </p>
+      )}
 
       {!items || items.length === 0 ? (
         <p className="rounded-2xl border border-line bg-card p-6 text-sm text-muted">

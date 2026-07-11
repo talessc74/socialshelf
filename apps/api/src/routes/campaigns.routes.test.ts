@@ -20,19 +20,21 @@ vi.mock('../infrastructure/firestore/FirestorePhotoCampaignRepository.js', () =>
   })),
 }))
 
+const mockPhotoFindByCampaign = vi.fn().mockResolvedValue([])
 vi.mock('../infrastructure/firestore/FirestoreCampaignPhotoRepository.js', () => ({
   FirestoreCampaignPhotoRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     saveAll: vi.fn().mockResolvedValue(undefined),
-    findByCampaign: vi.fn().mockResolvedValue([]),
+    findByCampaign: mockPhotoFindByCampaign,
   })),
 }))
 
+const mockItemFindByCampaign = vi.fn().mockResolvedValue([])
 vi.mock('../infrastructure/firestore/FirestoreCampaignItemRepository.js', () => ({
   FirestoreCampaignItemRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     saveAll: vi.fn().mockResolvedValue(undefined),
-    findByCampaign: vi.fn().mockResolvedValue([]),
+    findByCampaign: mockItemFindByCampaign,
     deleteByCampaign: vi.fn().mockResolvedValue(undefined),
   })),
 }))
@@ -146,6 +148,48 @@ describe('Campaigns routes', () => {
       })
 
       expect(response.statusCode).toBe(404)
+    })
+  })
+
+  describe('GET /campaigns/:id/photos', () => {
+    it('returns 500 with a detail message instead of hanging/silently failing when the repository query errors (e.g. a missing Firestore index)', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1' })
+      mockPhotoFindByCampaign.mockRejectedValueOnce(
+        new Error('9 FAILED_PRECONDITION: The query requires an index.'),
+      )
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/campaigns/campaign-1/photos',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(500)
+      expect(response.json()).toEqual({
+        error: 'Internal error',
+        detail: '9 FAILED_PRECONDITION: The query requires an index.',
+      })
+    })
+  })
+
+  describe('GET /campaigns/:id/timeline', () => {
+    it('returns 500 with a detail message instead of hanging/silently failing when the repository query errors', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1' })
+      mockItemFindByCampaign.mockRejectedValueOnce(
+        new Error('9 FAILED_PRECONDITION: The query requires an index.'),
+      )
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/campaigns/campaign-1/timeline',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(500)
+      expect(response.json()).toEqual({
+        error: 'Internal error',
+        detail: '9 FAILED_PRECONDITION: The query requires an index.',
+      })
     })
   })
 })
