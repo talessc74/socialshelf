@@ -9,10 +9,20 @@ function UploadedPhotoThumbnail({
   url,
   deleting,
   onDelete,
+  moving,
+  canMoveLeft,
+  canMoveRight,
+  onMoveLeft,
+  onMoveRight,
 }: {
   url: string | undefined
   deleting: boolean
   onDelete: () => void
+  moving: boolean
+  canMoveLeft: boolean
+  canMoveRight: boolean
+  onMoveLeft: () => void
+  onMoveRight: () => void
 }) {
   if (!url) {
     return <div className="aspect-square w-full animate-pulse rounded-lg bg-card-2" />
@@ -31,6 +41,26 @@ function UploadedPhotoThumbnail({
       >
         {deleting ? '…' : '×'}
       </button>
+      <div className="absolute bottom-1 left-1 right-1 flex justify-between">
+        <button
+          type="button"
+          onClick={onMoveLeft}
+          disabled={moving || !canMoveLeft}
+          aria-label="Mover foto para a posição anterior"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
+        >
+          ‹
+        </button>
+        <button
+          type="button"
+          onClick={onMoveRight}
+          disabled={moving || !canMoveRight}
+          aria-label="Mover foto para a próxima posição"
+          className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
+        >
+          ›
+        </button>
+      </div>
     </div>
   )
 }
@@ -73,6 +103,20 @@ export default function CampaignUploadPage() {
     mutationFn: (photoId: string) => api.deleteCampaignPhoto(campaignId, photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
   })
+
+  const reorderPhotos = useMutation({
+    mutationFn: (photoIds: string[]) => api.reorderCampaignPhotos(campaignId, photoIds),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
+  })
+
+  function movePhoto(index: number, direction: -1 | 1) {
+    if (!photos) return
+    const target = index + direction
+    if (target < 0 || target >= photos.length) return
+    const ids = photos.map((p) => p.id)
+    ;[ids[index], ids[target]] = [ids[target]!, ids[index]!]
+    reorderPhotos.mutate(ids)
+  }
 
   // Um arquivo por requisição, o cliente faz o loop — mesmo padrão já usado no upload de
   // imagem manual (compose/generate), já que o multipart do api-service aceita 1 arquivo por vez.
@@ -163,10 +207,11 @@ export default function CampaignUploadPage() {
       {photos && photos.length > 0 && (
         <div>
           <p className="mb-2 text-sm font-medium text-ink">
-            {photos.length} foto{photos.length > 1 ? 's' : ''} enviada{photos.length > 1 ? 's' : ''}
+            {photos.length} foto{photos.length > 1 ? 's' : ''} enviada{photos.length > 1 ? 's' : ''} — use as setas
+            pra reordenar
           </p>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <UploadedPhotoThumbnail
                 key={photo.id}
                 url={imageUrls?.[photo.storagePath]}
@@ -174,6 +219,11 @@ export default function CampaignUploadPage() {
                 onDelete={() => {
                   if (confirm('Remover esta foto da campanha?')) deletePhoto.mutate(photo.id)
                 }}
+                moving={reorderPhotos.isPending}
+                canMoveLeft={index > 0}
+                canMoveRight={index < photos.length - 1}
+                onMoveLeft={() => movePhoto(index, -1)}
+                onMoveRight={() => movePhoto(index, 1)}
               />
             ))}
           </div>
@@ -181,6 +231,8 @@ export default function CampaignUploadPage() {
       )}
 
       {deletePhoto.isError && <p className="text-sm text-red-600">{(deletePhoto.error as Error).message}</p>}
+
+      {reorderPhotos.isError && <p className="text-sm text-red-600">{(reorderPhotos.error as Error).message}</p>}
 
       {generateTimeline.isError && (
         <p className="text-sm text-red-600">{(generateTimeline.error as Error).message}</p>

@@ -14,7 +14,13 @@ const STATUS_LABELS: Record<ApiPhotoCampaign['status'], { label: string; classNa
 }
 
 function nextStepFor(campaign: ApiPhotoCampaign): { href: string; label: string } {
-  if (campaign.status === 'draft') return { href: `/dashboard/campaigns/${campaign.id}/upload`, label: 'Subir fotos' }
+  if (campaign.status === 'draft') {
+    // "Subir fotos" só faz sentido pra um rascunho vazio — um rascunho que já tem fotos
+    // (upload interrompido, ou timeline ainda não gerada) precisa de um rótulo diferente,
+    // senão parece que ele vai perder o que já subiu.
+    const label = campaign.photoCount && campaign.photoCount > 0 ? 'Continuar upload' : 'Subir fotos'
+    return { href: `/dashboard/campaigns/${campaign.id}/upload`, label }
+  }
   if (campaign.status === 'reviewing') return { href: `/dashboard/campaigns/${campaign.id}/timeline`, label: 'Revisar linha do tempo' }
   return { href: `/dashboard/campaigns/${campaign.id}/timeline`, label: 'Ver linha do tempo' }
 }
@@ -69,6 +75,12 @@ export default function CampaignsPage() {
                       </span>
                     </div>
                     {campaign.description && <p className="mt-1 text-sm text-muted">{campaign.description}</p>}
+                    {campaign.photoCount !== undefined && campaign.photoCount > 0 && (
+                      <p className="mt-1 text-xs text-muted">
+                        {campaign.photoCount} foto{campaign.photoCount > 1 ? 's' : ''} enviada
+                        {campaign.photoCount > 1 ? 's' : ''}
+                      </p>
+                    )}
                   </div>
                   <Link
                     href={nextStep.href}

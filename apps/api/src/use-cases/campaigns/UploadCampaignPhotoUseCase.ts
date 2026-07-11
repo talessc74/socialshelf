@@ -23,6 +23,9 @@ export class UploadCampaignPhotoUseCase {
     const campaign = await this.campaignRepo.findByIdAndBrand(input.campaignId, input.userId, input.brandId)
     if (!campaign) throw new Error('Campaign not found')
 
+    // Próxima posição da sequência manual (ver CampaignPhoto.order) — contagem em vez de
+    // buscar todas as fotos, pra não virar O(n²) num lote grande de upload.
+    const order = await this.photoRepo.countByCampaign(input.userId, input.brandId, input.campaignId)
     const metadata = await extractPhotoMetadata(input.buffer)
 
     // Reaproveita o mesmo endpoint interno de storage já usado pelo upload manual de imagens
@@ -54,6 +57,7 @@ export class UploadCampaignPhotoUseCase {
       gpsLng: metadata.gpsLng,
       locationClusterId: null,
       createdAt: new Date(),
+      order,
     }
 
     await this.photoRepo.save(photo)

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import CampaignTimelinePage from './page'
@@ -33,6 +33,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     gpsLng: null,
     locationClusterId: null,
     createdAt: new Date().toISOString(),
+    order: null,
   }
 }
 
@@ -104,5 +105,76 @@ describe('CampaignTimelinePage', () => {
     await waitFor(() => expect(container.querySelectorAll('img')).toHaveLength(2))
     expect(mockedApi.getImageUrls).toHaveBeenCalledTimes(1)
     expect(mockedApi.getImageUrls).toHaveBeenCalledWith(['photo-1.jpg', 'photo-2.jpg'])
+  })
+
+  it('reorders photos within a post using the move-forward arrow', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1', 'photo-2'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+    mockedApi.updateCampaignTimeline.mockResolvedValue([])
+
+    renderPage()
+
+    const moveForwardButtons = await screen.findAllByRole('button', {
+      name: 'Mover foto para frente (pode passar pro próximo post)',
+    })
+    fireEvent.click(moveForwardButtons[0]!)
+
+    fireEvent.click(await screen.findByText('Salvar alterações'))
+
+    await waitFor(() =>
+      expect(mockedApi.updateCampaignTimeline).toHaveBeenCalledWith(
+        'campaign-1',
+        expect.arrayContaining([expect.objectContaining({ id: 'item-1', photoIds: ['photo-2', 'photo-1'] })]),
+      ),
+    )
+  })
+
+  it('spills a photo into the next post when moved past the edge of a single-photo post', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([
+      makeItem('item-1', ['photo-1']),
+      makeItem('item-2', ['photo-2']),
+    ])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+    mockedApi.updateCampaignTimeline.mockResolvedValue([])
+
+    renderPage()
+
+    const moveForwardButtons = await screen.findAllByRole('button', {
+      name: 'Mover foto para frente (pode passar pro próximo post)',
+    })
+    fireEvent.click(moveForwardButtons[0]!)
+
+    fireEvent.click(await screen.findByText('Salvar alterações'))
+
+    await waitFor(() =>
+      expect(mockedApi.updateCampaignTimeline).toHaveBeenCalledWith('campaign-1', [
+        expect.objectContaining({ id: 'item-2', photoIds: ['photo-1', 'photo-2'] }),
+      ]),
+    )
+  })
+
+  it('removing a photo leaves the post with a single photo instead of a carousel', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1', 'photo-2'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText('Carrossel · 2 fotos')).toBeInTheDocument()
+    const removeButtons = await screen.findAllByRole('button', { name: 'Remover foto deste post' })
+    fireEvent.click(removeButtons[0]!)
+
+    expect(await screen.findByText('1 foto')).toBeInTheDocument()
   })
 })

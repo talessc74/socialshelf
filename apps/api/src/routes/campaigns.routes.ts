@@ -4,6 +4,7 @@ import { Platform } from '@socialshelf/domain'
 import { CreatePhotoCampaignUseCase } from '../use-cases/campaigns/CreatePhotoCampaignUseCase.js'
 import { UploadCampaignPhotoUseCase } from '../use-cases/campaigns/UploadCampaignPhotoUseCase.js'
 import { DeleteCampaignPhotoUseCase } from '../use-cases/campaigns/DeleteCampaignPhotoUseCase.js'
+import { ReorderCampaignPhotosUseCase } from '../use-cases/campaigns/ReorderCampaignPhotosUseCase.js'
 import { GenerateCampaignTimelineUseCase } from '../use-cases/campaigns/GenerateCampaignTimelineUseCase.js'
 import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
 import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
@@ -22,6 +23,10 @@ const createCampaignSchema = z.object({
   platforms: z.array(platformEnum).min(1),
   postsPerDay: z.number().int().min(1).max(10),
   carouselSizeDefault: z.number().int().min(1).max(20),
+})
+
+const reorderPhotosSchema = z.object({
+  photoIds: z.array(z.string().min(1)).min(1),
 })
 
 const updateTimelineSchema = z.object({
@@ -51,6 +56,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const createCampaign = new CreatePhotoCampaignUseCase(campaignRepo)
   const uploadPhoto = new UploadCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
   const deletePhoto = new DeleteCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
+  const reorderPhotos = new ReorderCampaignPhotosUseCase(campaignRepo, photoRepo)
   const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo)
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
@@ -77,7 +83,16 @@ export async function campaignsRoutes(app: FastifyInstance) {
   app.get('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
     try {
       const campaigns = await campaignRepo.findByBrand(request.userId, request.brandId)
-      return reply.send({ campaigns })
+      // photoCount é o que diferencia, pro usuário, um rascunho vazio de um rascunho que já
+      // tem fotos esperando a próxima etapa — sem isso a tela não tem como saber a diferença
+      // e o botão de próximo passo (ex: "Subir fotos" vs "Continuar upload") fica errado.
+      const withPhotoCount = await Promise.all(
+        campaigns.map(async (campaign) => ({
+          ...campaign,
+          photoCount: await photoRepo.countByCampaign(request.userId, request.brandId, campaign.id),
+        })),
+      )
+      return reply.send({ campaigns: withPhotoCount })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'find campaigns failed')
@@ -165,6 +180,28 @@ export async function campaignsRoutes(app: FastifyInstance) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       const status = message === 'Campaign not found' || message === 'Photo not found' ? 404 : 500
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.put('/campaigns/:id/photos/order', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const parsed = reorderPhotosSchema.safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      await reorderPhotos.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        campaignId: id,
+        photoIds: parsed.data.photoIds,
+      })
+      return reply.status(204).send()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
       return reply.status(status).send({ error: message })
     }
   })

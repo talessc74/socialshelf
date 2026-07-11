@@ -22,12 +22,16 @@ vi.mock('../infrastructure/firestore/FirestorePhotoCampaignRepository.js', () =>
 
 const mockPhotoFindByCampaign = vi.fn().mockResolvedValue([])
 const mockPhotoDelete = vi.fn().mockResolvedValue(null)
+const mockPhotoCountByCampaign = vi.fn().mockResolvedValue(0)
+const mockPhotoReorder = vi.fn().mockResolvedValue(undefined)
 vi.mock('../infrastructure/firestore/FirestoreCampaignPhotoRepository.js', () => ({
   FirestoreCampaignPhotoRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
     saveAll: vi.fn().mockResolvedValue(undefined),
     findByCampaign: mockPhotoFindByCampaign,
     delete: mockPhotoDelete,
+    countByCampaign: mockPhotoCountByCampaign,
+    reorder: mockPhotoReorder,
   })),
 }))
 
@@ -139,6 +143,21 @@ describe('Campaigns routes', () => {
       expect(response.statusCode).toBe(200)
       expect(mockCampaignFindByBrand).toHaveBeenCalled()
     })
+
+    it('includes a photoCount per campaign so the UI can tell an empty draft from one with photos already uploaded', async () => {
+      mockCampaignFindByBrand.mockResolvedValueOnce([{ id: 'campaign-1', status: 'draft' }])
+      mockPhotoCountByCampaign.mockResolvedValueOnce(148)
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/campaigns',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ campaigns: Array<{ id: string; photoCount: number }> }>()
+      expect(body.campaigns[0]!.photoCount).toBe(148)
+    })
   })
 
   describe('GET /campaigns/:id', () => {
@@ -212,6 +231,62 @@ describe('Campaigns routes', () => {
       })
 
       expect(response.statusCode).toBe(404)
+    })
+  })
+
+  describe('PUT /campaigns/:id/photos/order', () => {
+    it('persists the new photo order and returns 204', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'draft' })
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/campaigns/campaign-1/photos/order',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { photoIds: ['photo-2', 'photo-1'] },
+      })
+
+      expect(response.statusCode).toBe(204)
+      expect(mockPhotoReorder).toHaveBeenCalledWith('user-test-123', expect.any(String), 'campaign-1', [
+        'photo-2',
+        'photo-1',
+      ])
+    })
+
+    it('rejects an empty photoIds array with 400', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/campaigns/campaign-1/photos/order',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { photoIds: [] },
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 404 when the campaign does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/campaigns/missing/photos/order',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { photoIds: ['photo-1'] },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 422 once the campaign is active', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'active' })
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/campaigns/campaign-1/photos/order',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { photoIds: ['photo-1'] },
+      })
+
+      expect(response.statusCode).toBe(422)
     })
   })
 
