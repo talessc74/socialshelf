@@ -155,7 +155,15 @@ function CalendarView({ posts, onSelectPost }: { posts: ApiPost[]; onSelectPost:
   )
 }
 
-function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }) {
+function PostCard({
+  post,
+  highlighted,
+  isDraft = false,
+}: {
+  post: ApiPost
+  highlighted: boolean
+  isDraft?: boolean
+}) {
   const queryClient = useQueryClient()
   const firstImage = post.imageStoragePaths[0]
 
@@ -167,12 +175,21 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   const [newPhotoFiles, setNewPhotoFiles] = useState<File[]>([])
   const [scheduledAtInput, setScheduledAtInput] = useState(toDatetimeLocalValue(post.scheduledAt))
 
+  // Todas as mutações mexem em campos que podem mudar qual lista (agendados/publicados/
+  // rascunhos automáticos) o post pertence — mais simples invalidar as três do que rastrear
+  // qual state transition aconteceu em cada caso.
+  const invalidateAllLists = () => {
+    queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
+    queryClient.invalidateQueries({ queryKey: ['posts', 'published'] })
+    queryClient.invalidateQueries({ queryKey: ['posts', 'ai-draft'] })
+  }
+
   const updateMutation = useMutation({
     mutationFn: async (input: {
       content: PostContent[]
       images: string[]
       newPhotoFiles: File[]
-      scheduledAt: Date
+      scheduledAt: Date | undefined
     }) => {
       const uploadedPaths =
         input.newPhotoFiles.length > 0
@@ -182,7 +199,7 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
       return api.updatePost(post.id, input.content, imageStoragePaths, input.scheduledAt)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
+      invalidateAllLists()
       setNewPhotoFiles([])
       setIsEditing(false)
     },
@@ -191,15 +208,14 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   const publishMutation = useMutation({
     mutationFn: () => api.publishPost(post.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
-      queryClient.invalidateQueries({ queryKey: ['posts', 'published'] })
+      invalidateAllLists()
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deletePost(post.id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
+      invalidateAllLists()
     },
   })
 
@@ -207,8 +223,10 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   const scheduledAtValid =
     scheduledDate !== null && !Number.isNaN(scheduledDate.getTime()) && scheduledDate.getTime() > Date.now()
 
+  // Rascunho automático sem data pode ser salvo (fica pendente, aguardando aprovação) —
+  // um post já agendado sempre precisa de uma data futura válida pra ser salvo.
   const canSave =
-    scheduledAtValid &&
+    (isDraft ? scheduledAtInput === '' || scheduledAtValid : scheduledAtValid) &&
     post.content.every((c) => {
       const t = texts[c.platform] ?? ''
       return t.trim().length > 0 && t.length <= PLATFORM_CHARACTER_LIMITS[c.platform]
@@ -223,9 +241,12 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
   }
 
   const handleSave = () => {
-    if (!canSave || !scheduledDate) return
+    if (!canSave) return
     const content = post.content.map((c) => ({ platform: c.platform, text: texts[c.platform] ?? '' }))
-    updateMutation.mutate({ content, images, newPhotoFiles, scheduledAt: scheduledDate })
+    // scheduledAt "undefined" (não "null") preserva o status atual do post no backend —
+    // pra um rascunho sem data isso significa "continua ai-draft", não "vira draft solto".
+    const scheduledAt = isDraft && scheduledDate === null ? undefined : (scheduledDate ?? undefined)
+    updateMutation.mutate({ content, images, newPhotoFiles, scheduledAt })
   }
 
   return (
@@ -238,11 +259,17 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
       {!isEditing && firstImage && <PostThumbnail path={firstImage} />}
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
-            {post.scheduledAt
-              ? new Date(post.scheduledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-              : '—'}
-          </span>
+          {isDraft ? (
+            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
+              🤖 Aguardando aprovação
+            </span>
+          ) : (
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
+              {post.scheduledAt
+                ? new Date(post.scheduledAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+                : '—'}
+            </span>
+          )}
           {post.content.map((c) => (
             <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
               {PLATFORM_LABELS[c.platform]}
@@ -342,6 +369,11 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                 onChange={(e) => setScheduledAtInput(e.target.value)}
                 className="rounded-lg border border-line px-3 py-2 text-sm"
               />
+              {isDraft && !scheduledAtInput && (
+                <p className="mt-1 text-xs text-muted">
+                  Deixe em branco pra continuar como rascunho aguardando aprovação, ou escolha uma data pra agendar.
+                </p>
+              )}
               {scheduledAtInput && !scheduledAtValid && (
                 <p className="mt-1 text-xs text-red-600">A data de publicação deve ser no futuro.</p>
               )}
@@ -389,18 +421,31 @@ function PostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }
                 disabled={publishMutation.isPending}
                 className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
               >
-                {publishMutation.isPending ? 'Publicando…' : 'Publicar agora'}
+                {publishMutation.isPending
+                  ? 'Publicando…'
+                  : isDraft
+                    ? 'Aprovar e publicar agora'
+                    : 'Publicar agora'}
               </button>
               <button
                 onClick={() => {
-                  if (confirm('Tem certeza que deseja cancelar este agendamento? O post será deletado.')) {
+                  const message = isDraft
+                    ? 'Tem certeza que deseja descartar este rascunho? Ele não será publicado.'
+                    : 'Tem certeza que deseja cancelar este agendamento? O post será deletado.'
+                  if (confirm(message)) {
                     deleteMutation.mutate()
                   }
                 }}
                 disabled={deleteMutation.isPending}
                 className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
               >
-                {deleteMutation.isPending ? 'Cancelando…' : 'Cancelar agendamento'}
+                {deleteMutation.isPending
+                  ? isDraft
+                    ? 'Descartando…'
+                    : 'Cancelando…'
+                  : isDraft
+                    ? 'Descartar'
+                    : 'Cancelar agendamento'}
               </button>
             </div>
           </>
@@ -490,6 +535,10 @@ export default function ScheduledPostsPage() {
     queryKey: ['posts', 'published'],
     queryFn: () => api.getPosts('published'),
   })
+  const draftQuery = useQuery({
+    queryKey: ['posts', 'ai-draft'],
+    queryFn: () => api.getPosts('ai-draft'),
+  })
 
   const scheduledPosts = sortByWhen(
     (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled'),
@@ -499,6 +548,13 @@ export default function ScheduledPostsPage() {
     (publishedQuery.data ?? []).filter((p) => p.status === 'published'),
     sortDirection,
   )
+  // Só rascunhos do tick de autonomia (modo semi-automático) — geração manual via
+  // /dashboard/generate também passa por status 'ai-draft', mas nunca fica pendente: o
+  // próprio fluxo de publicar/agendar já cria um Post novo na hora, deixando esse rascunho
+  // original órfão. Sem o filtro por origin, esta lista ficaria cheia de lixo antigo.
+  const draftPosts = [...(draftQuery.data ?? [])]
+    .filter((p) => p.status === 'ai-draft' && p.origin === 'autonomy-tick')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
   const calendarPosts = [...scheduledPosts, ...publishedPosts]
   const isLoading = scheduledQuery.isLoading || publishedQuery.isLoading
   const error = scheduledQuery.error ?? publishedQuery.error
@@ -540,6 +596,27 @@ export default function ScheduledPostsPage() {
           </button>
         </div>
       </div>
+
+      {draftPosts.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">🤖 Aguardando sua aprovação</h2>
+            <p className="text-xs text-muted">
+              O modo semi-automático gerou{' '}
+              {draftPosts.length === 1 ? 'este post' : `estes ${draftPosts.length} posts`} e está esperando você
+              revisar antes de publicar — aprove, edite, agende para depois ou descarte.
+            </p>
+          </div>
+          <ul className="space-y-3">
+            {draftPosts.map((post) => (
+              <PostCard key={post.id} post={post} highlighted={false} isDraft />
+            ))}
+          </ul>
+        </div>
+      )}
+      {draftQuery.isError && (
+        <p className="text-xs text-red-600">Não foi possível carregar os rascunhos automáticos aguardando aprovação.</p>
+      )}
 
       {isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted">
