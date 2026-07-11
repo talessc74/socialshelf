@@ -79,6 +79,32 @@ describe('CampaignUploadPage', () => {
     await waitFor(() => expect(container.querySelectorAll('img')).toHaveLength(2))
   })
 
+  it('shows how many photos of the batch have been uploaded so far, not just a static "sending" message', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([])
+    let resolveFirstUpload!: (photo: ApiCampaignPhoto) => void
+    const firstUpload = new Promise<ApiCampaignPhoto>((resolve) => {
+      resolveFirstUpload = resolve
+    })
+    mockedApi.uploadCampaignPhoto
+      .mockImplementationOnce(() => firstUpload)
+      .mockResolvedValueOnce(makePhoto('photo-2'))
+
+    renderPage()
+
+    const dropzone = await screen.findByText(/Clique ou arraste as fotos aqui/)
+    const fileA = new File(['a'], 'a.jpg', { type: 'image/jpeg' })
+    const fileB = new File(['b'], 'b.jpg', { type: 'image/jpeg' })
+    fireEvent.drop(dropzone, { dataTransfer: { files: [fileA, fileB] } })
+
+    expect(await screen.findByText('Enviando fotos… (0/2)')).toBeInTheDocument()
+
+    resolveFirstUpload(makePhoto('photo-1'))
+    expect(await screen.findByText('Enviando fotos… (1/2)')).toBeInTheDocument()
+
+    await waitFor(() => expect(mockedApi.uploadCampaignPhoto).toHaveBeenCalledTimes(2))
+  })
+
   it('uploads a file dropped onto the dropzone', async () => {
     mockedApi.getCampaign.mockResolvedValue(makeCampaign())
     mockedApi.getCampaignPhotos.mockResolvedValue([])
