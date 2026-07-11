@@ -8,13 +8,13 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 ## Conteúdo
 
-### ADRs — Decisões Arquiteturais (37 documentos)
+### ADRs — Decisões Arquiteturais (40 documentos)
 
-Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes, Cloud Scheduler para publicação agendada com scale-to-zero, integração TikTok (OAuth, publicação multi-etapa) e geração de vídeo assíncrona com sincronização de áudio.
+Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes, Cloud Scheduler para publicação agendada com scale-to-zero, integração TikTok (OAuth, publicação multi-etapa), geração de vídeo assíncrona com sincronização de áudio, ativação do modo automático de publicação e a espinha dorsal de campanhas de fotos.
 
-### EDRs — Decisões de Engenharia (30 documentos)
+### EDRs — Decisões de Engenharia (42 documentos)
 
-Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato, testes de componente em apps/web, testes visuais de regressão por viewport, tolerância a variação de formato na resposta do Gemini, pipeline de vídeo TikTok e consentimento de conteúdo de terceiros no upload.
+Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato, testes de componente em apps/web, testes visuais de regressão por viewport, tolerância a variação de formato na resposta do Gemini, pipeline de vídeo TikTok, consentimento de conteúdo de terceiros no upload, tick diário/horário de autonomia (frequência, teto por dia, histórico de tentativas), implementação e curadoria de campanhas de fotos e ordenação/visibilidade da lista de posts agendados.
 
 ### BDRs — Decisões de Negócio (10 policies + 2 planos)
 

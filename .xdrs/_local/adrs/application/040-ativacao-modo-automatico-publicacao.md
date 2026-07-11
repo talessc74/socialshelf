@@ -15,13 +15,13 @@ O mesmo roadmap, na Fase 4, já registra o risco de ativar isso sem cuidado: "Pu
 
 ## Decision Outcome
 
-**Um tick diário no publisher-service processa marcas com `autonomyLevel` diferente de `manual`, gerando 1 post por marca a partir da pauta de maior aderência do dia. Três guardrails são pré-condição de qualquer publicação sem revisão: teto diário definido pelo próprio usuário (não um valor fixo do sistema), classificação semântica de bloqueio antes de qualquer rascunho, e escopo do modo automático restrito aos tópicos explicitamente liberados.**
+**Um tick periódico no publisher-service processa marcas com `autonomyLevel` diferente de `manual`, gerando até `maxAutoPostsPerDay` posts por marca a partir da pauta de maior aderência do dia. Três guardrails são pré-condição de qualquer publicação sem revisão: teto diário definido pelo próprio usuário (não um valor fixo do sistema), classificação semântica de bloqueio antes de qualquer rascunho, e escopo do modo automático restrito aos tópicos explicitamente liberados.**
 
 ### Details
 
-**Por que um tick diário, não uma fila reativa a eventos**
+**Por que um tick periódico, não uma fila reativa a eventos**
 
-Notícia nova não é um evento discreto e barato de observar (ao contrário de "post agendado venceu", que já tem um poller de minuto no publisher-service) — encontrar pauta relevante exige buscar, verificar e pontuar notícia via IA, um custo que não vale repetir a cada minuto por marca. Cadência diária equilibra atualidade com custo, e replica o mesmo padrão operacional já em produção para outros ticks periódicos (limpeza de vídeo de 7 dias, publicação agendada).
+Notícia nova não é um evento discreto e barato de observar (ao contrário de "post agendado venceu", que já tem um poller de minuto no publisher-service) — encontrar pauta relevante exige buscar, verificar e pontuar notícia via IA, um custo que não vale repetir a cada minuto por marca. Cadência periódica equilibra atualidade com custo, e replica o mesmo padrão operacional já em produção para outros ticks periódicos (limpeza de vídeo de 7 dias, publicação agendada). A cadência específica (1x/dia na ativação inicial, de hora em hora desde então, para que `maxAutoPostsPerDay` > 1 tenha efeito real) é detalhe operacional que evolui sem mudar esta decisão estrutural — ver `_local-edr-policy-038` para o estado atual.
 
 **Guardrail 1 — teto diário definido pelo usuário, não fixo pelo sistema**
 
@@ -53,3 +53,4 @@ Música/vídeo no pipeline automático (o tick só gera post de imagem/texto —
 - [_local-adr-policy-018-post-maquina-de-estados-de-publicacao](018-post-state-machine.md) - Estado `ai-draft` reaproveitado sem alteração pelo tick
 - [_local-adr-policy-019-generation-request-maquina-de-estados](019-generation-state-machine.md) - Pipeline de geração reaproveitado sem alteração pelo tick
 - [_local-edr-policy-037-publicar-em-mais-redes-apos-o-video](../../edrs/application/037-publicar-em-outras-redes-apos-video.md) - Mesma exclusão de TikTok e mesmo padrão "sempre cria Post novo"
+- [_local-edr-policy-038-tick-de-autonomia-implementacao](../../edrs/application/038-tick-autonomia-implementacao.md) - Implementação concreta do tick e cadência atual (de hora em hora, com gate de slots de horário)

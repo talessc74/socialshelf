@@ -72,4 +72,4 @@ Pausar/retomar campanha em andamento — ativar hoje é definitivo, sem botão d
 ## References
 
 - [_local-adr-policy-041-campanha-de-fotos-espinha-dorsal-fase-1](../../adrs/application/041-campanha-de-fotos-espinha-dorsal.md) - Decisão estrutural que esta fatia implementa
-- [_local-edr-policy-038-tick-diario-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - Mesmo padrão de isolamento de falha por unidade e reaproveitamento de índice/pipeline existente
+- [_local-edr-policy-038-tick-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - Mesmo padrão de isolamento de falha por unidade e reaproveitamento de índice/pipeline existente

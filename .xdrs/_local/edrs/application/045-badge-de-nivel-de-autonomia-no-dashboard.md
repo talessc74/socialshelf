@@ -39,4 +39,4 @@ Não indica o `maxAutoPostsPerDay` configurado nem quantos posts automáticos j�
 
 ## References
 
-- [_local-edr-policy-038-tick-diario-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - Mesma paleta/emoji do selo "Automático"; contexto do tick de hora em hora que motivou o pedido de visibilidade
+- [_local-edr-policy-038-tick-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - Mesma paleta/emoji do selo "Automático"; contexto do tick de hora em hora que motivou o pedido de visibilidade

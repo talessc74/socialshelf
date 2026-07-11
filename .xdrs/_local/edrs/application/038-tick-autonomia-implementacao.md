@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-038-tick-diario-de-autonomia-implementacao
-description: Implementação do tick diário de autonomia (_local-adr-policy-040) — novas portas de domínio, discovery de marcas via collectionGroup, contador diário atômico, e cliente HTTP entre publisher-service e generator-service. Use ao mexer em qualquer peça do pipeline automático/semi-automático ou ao investigar por que um post automático não foi gerado/publicado.
+name: _local-edr-policy-038-tick-de-autonomia-implementacao
+description: Implementação do tick de autonomia (_local-adr-policy-040) — novas portas de domínio, discovery de marcas via collectionGroup, contador diário atômico, cliente HTTP entre publisher-service e generator-service, e a evolução de 1x/dia para de hora em hora com gate de horário. Use ao mexer em qualquer peça do pipeline automático/semi-automático ou ao investigar por que um post automático não foi gerado/publicado.
 apply-to: packages/domain — novas portas; apps/generator — classificação semântica; apps/publisher — orquestração do tick; apps/api — validação de maxAutoPostsPerDay; apps/web — configuração em /dashboard/brand
 valid-from: 2026-07-10
 ---
 
-# _local-edr-policy-038: Tick Diário de Autonomia — Implementação
+# _local-edr-policy-038: Tick de Autonomia — Implementação
 
 ## Context and Problem Statement
 
