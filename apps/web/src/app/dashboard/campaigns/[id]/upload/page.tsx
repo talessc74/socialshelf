@@ -6,17 +6,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 
 function UploadedPhotoThumbnail({
-  path,
+  url,
   deleting,
   onDelete,
 }: {
-  path: string
+  url: string | undefined
   deleting: boolean
   onDelete: () => void
 }) {
-  const { data: url, isLoading } = useQuery({ queryKey: ['image-url', path], queryFn: () => api.getImageUrl(path) })
-
-  if (isLoading || !url) {
+  if (!url) {
     return <div className="aspect-square w-full animate-pulse rounded-lg bg-card-2" />
   }
 
@@ -54,6 +52,16 @@ export default function CampaignUploadPage() {
   } = useQuery({
     queryKey: ['campaign-photos', campaignId],
     queryFn: () => api.getCampaignPhotos(campaignId),
+  })
+
+  // Uma única requisição pro lote inteiro de miniaturas em vez de uma por foto — telas de
+  // campanha podem ter centenas de fotos, e uma requisição por miniatura esgota sozinha o
+  // rate limit global de 100/min do api-service (ver _local-edr-policy-039).
+  const photoPaths = (photos ?? []).map((p) => p.storagePath)
+  const { data: imageUrls } = useQuery({
+    queryKey: ['campaign-photo-urls', campaignId, photoPaths.join(',')],
+    queryFn: () => api.getImageUrls(photoPaths),
+    enabled: photoPaths.length > 0,
   })
 
   const generateTimeline = useMutation({
@@ -161,7 +169,7 @@ export default function CampaignUploadPage() {
             {photos.map((photo) => (
               <UploadedPhotoThumbnail
                 key={photo.id}
-                path={photo.storagePath}
+                url={imageUrls?.[photo.storagePath]}
                 deleting={deletePhoto.isPending && deletePhoto.variables === photo.id}
                 onDelete={() => {
                   if (confirm('Remover esta foto da campanha?')) deletePhoto.mutate(photo.id)

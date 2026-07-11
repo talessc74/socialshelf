@@ -255,4 +255,37 @@ export async function generationRoutes(app: FastifyInstance) {
       return reply.send(await res.json())
     },
   )
+
+  // Uma requisição por foto (mesmo padrão de /signed-url) esgota o rate limit global de
+  // 100/min sozinho em telas com muitas imagens, como a grade de upload de campanha (até
+  // centenas de fotos) — ver _local-edr-policy-039. Este endpoint resolve o lote inteiro
+  // de uma tela numa única chamada, contando como 1 requisição pro rate limiter.
+  app.post(
+    '/generation-images/signed-urls',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const parsed = z.object({ paths: z.array(z.string().min(1)).min(1).max(500) }).safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      if (!parsed.data.paths.every((path) => path.startsWith(`${request.userId}/`))) {
+        return reply.status(403).send({ error: 'Forbidden' })
+      }
+
+      const res = await fetchInternal(`${generatorUrl}/images/signed-urls`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Internal-Secret': internalSecret },
+        body: JSON.stringify({ paths: parsed.data.paths }),
+      })
+
+      if (!res.ok) {
+        const body = await res.text()
+        app.log.error(`Generator error ${res.status}: ${body}`)
+        return reply.status(502).send({ error: 'Generator error', detail: body })
+      }
+
+      return reply.send(await res.json())
+    },
+  )
 }

@@ -309,4 +309,32 @@ export async function generationRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: 'Internal error', detail })
     }
   })
+
+  // Uma requisição por foto pra resolver miniatura explode o rate limit global do api-service
+  // (100/min) em telas com muitas imagens de uma vez, como a grade de upload de campanha
+  // (ver _local-edr-policy-039) — este endpoint resolve todos os paths de uma tela em uma
+  // única chamada. Assinar uma URL é uma operação criptográfica local (chave da service
+  // account), sem round-trip de rede por item, então o lote inteiro é barato.
+  app.post('/images/signed-urls', async (request, reply) => {
+    const header = request.headers['x-internal-secret']
+    if (header !== internalSecret) {
+      return reply.status(401).send({ error: 'Unauthorized' })
+    }
+
+    const parsed = z.object({ paths: z.array(z.string().min(1)).min(1).max(500) }).safeParse(request.body)
+    if (!parsed.success) {
+      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+    }
+
+    try {
+      const entries = await Promise.all(
+        parsed.data.paths.map(async (path) => [path, await imageStorage.getSignedUrl(path, 3600)] as const),
+      )
+      return reply.send({ urls: Object.fromEntries(entries) })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'batch getSignedUrl failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
+  })
 }

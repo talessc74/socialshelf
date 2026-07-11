@@ -17,11 +17,17 @@ vi.mock('../../../../../lib/api', () => ({
     uploadCampaignPhoto: vi.fn(),
     deleteCampaignPhoto: vi.fn(),
     generateCampaignTimeline: vi.fn(),
-    getImageUrl: vi.fn(),
+    getImageUrls: vi.fn(),
   },
 }))
 
 const mockedApi = vi.mocked(api, true)
+
+function mockImageUrls() {
+  mockedApi.getImageUrls.mockImplementation(async (paths) =>
+    Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+  )
+}
 
 function makeCampaign(): ApiPhotoCampaign {
   return {
@@ -83,7 +89,7 @@ describe('CampaignUploadPage', () => {
   it('shows a thumbnail grid for photos that have already been uploaded', async () => {
     mockedApi.getCampaign.mockResolvedValue(makeCampaign())
     mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
-    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+    mockImageUrls()
 
     const { container } = renderPage()
 
@@ -96,7 +102,7 @@ describe('CampaignUploadPage', () => {
     mockedApi.getCampaignPhotos
       .mockResolvedValueOnce([makePhoto('photo-1'), makePhoto('photo-2')])
       .mockResolvedValue([makePhoto('photo-2')])
-    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+    mockImageUrls()
     mockedApi.deleteCampaignPhoto.mockResolvedValue(undefined)
     vi.spyOn(window, 'confirm').mockReturnValue(true)
 
@@ -114,7 +120,7 @@ describe('CampaignUploadPage', () => {
   it('does not delete a photo when the confirmation is declined', async () => {
     mockedApi.getCampaign.mockResolvedValue(makeCampaign())
     mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1')])
-    mockedApi.getImageUrl.mockImplementation(async (path) => `https://example.com/${path}`)
+    mockImageUrls()
     vi.spyOn(window, 'confirm').mockReturnValue(false)
 
     renderPage()

@@ -16,7 +16,10 @@ export default function NewCampaignPage() {
   const [postsPerDay, setPostsPerDay] = useState(2)
   const [carouselSizeDefault, setCarouselSizeDefault] = useState(5)
 
-  const { data: connections } = useQuery({ queryKey: ['connections'], queryFn: api.getConnections })
+  const { data: connections, error: connectionsError } = useQuery({
+    queryKey: ['connections'],
+    queryFn: api.getConnections,
+  })
   // X (Twitter) não publica nenhuma imagem hoje (_local-adr-policy-041) — fica fora do
   // seletor de campanha de fotos, mesmo se estiver conectado.
   const connectedPlatforms = (connections ?? [])
@@ -112,7 +115,11 @@ export default function NewCampaignPage() {
 
         <div>
           <span className="mb-1.5 block text-sm font-semibold text-ink">Redes desta campanha</span>
-          {connectedPlatforms.length === 0 ? (
+          {connectionsError ? (
+            <p className="text-sm text-red-600">
+              Não foi possível carregar as redes conectadas: {(connectionsError as Error).message}
+            </p>
+          ) : connectedPlatforms.length === 0 ? (
             <p className="text-sm text-muted">Nenhuma plataforma conectada que aceite fotos.</p>
           ) : (
             <div className="flex flex-wrap gap-2">

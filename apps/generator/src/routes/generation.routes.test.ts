@@ -502,3 +502,55 @@ describe('GET /images/signed-url', () => {
     expect(response.statusCode).toBe(401)
   })
 })
+
+describe('POST /images/signed-urls', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['INTERNAL_SECRET'] = 'test-internal-secret'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+    delete process.env['INTERNAL_SECRET']
+  })
+
+  it('returns a signed url for every requested path in one call', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/images/signed-urls',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: { paths: ['brand-1/generated/a.png', 'brand-1/generated/b.png'] },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ urls: Record<string, string> }>()
+    expect(body.urls).toEqual({
+      'brand-1/generated/a.png': 'https://storage.googleapis.com/signed-url',
+      'brand-1/generated/b.png': 'https://storage.googleapis.com/signed-url',
+    })
+  })
+
+  it('returns 400 when paths is empty', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/images/signed-urls',
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+      payload: { paths: [] },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without internal secret', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/images/signed-urls',
+      payload: { paths: ['brand-1/generated/a.png'] },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
