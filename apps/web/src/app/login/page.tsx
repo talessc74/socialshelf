@@ -97,6 +97,12 @@ export default function LoginPage() {
           >
             {busy ? 'Entrando…' : 'Entrar'}
           </button>
+
+          <p className="text-center text-sm">
+            <Link href="/forgot-password" className="text-ink/60 hover:underline">
+              Esqueci minha senha
+            </Link>
+          </p>
         </form>
 
         <div className="my-4 flex items-center gap-2">
