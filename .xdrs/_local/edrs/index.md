@@ -45,7 +45,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-042-campanha-revisao-pos-saga-do-indice](application/042-campanha-revisao-pos-saga-do-indice.md) - Auditoria de todo o código de campanhas achou mais 2 queries de campo único com o mesmo bug de índice, 2 telas com o mesmo bug de erro engolido, e um N+1 de requisição por miniatura que esgotava sozinho o rate limit global — corrigido com endpoint de signed URL em lote
 - [_local-edr-policy-043-campanha-curadoria-de-fotos-e-posts](application/043-campanha-curadoria-de-fotos-e-posts.md) - CampaignPhoto.order (nullable, sem migração); reordenar/apagar foto na tela de upload; linha do tempo trata a campanha como uma sequência única de fotos onde mover além da borda do post "derrama" pro post vizinho, cobrindo reordenar-no-carrossel e mover-entre-carrosséis com os mesmos botões; photoCount na lista de campanhas
 - [_local-edr-policy-044-ordenacao-da-lista-de-posts-agendados](application/044-ordenacao-da-lista-de-posts-agendados.md) - Lista de /dashboard/scheduled ordenada no cliente por scheduledAt/publishedAt (o mesmo campo exibido no card), decrescente por padrão, com toggle único para agendados+publicados
-- [_local-edr-policy-045-tdd-isolamento-multi-tenant](application/045-tdd-isolamento-multi-tenant.md) - Testes de isolamento multi-tenant obrigatórios: casos positivos (user vê o que deve) e negativos (user não vê o que não deve)
+- [_local-edr-policy-045-tdd-para-isolamento-multi-tenant](application/045-tdd-isolamento-multi-tenant.md) - **DESCARTADA** — dependia da ADR-042 (workspace colaborativo), descartada por entendimento incorreto do pedido do usuário
 
 ### devops
 Pipeline de entrega e práticas de build.

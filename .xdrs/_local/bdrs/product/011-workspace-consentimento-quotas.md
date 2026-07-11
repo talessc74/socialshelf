@@ -7,6 +7,13 @@ valid-from: 2026-07-11
 
 # _local-bdr-policy-011: Workspace, Consentimento e Quotas
 
+> **STATUS: DESCARTADA — não implementada.** Modelo de negócio de workspace
+> colaborativo (RBAC, convites, quotas por equipe) partiu de entendimento incorreto do
+> pedido do usuário. O pedido real era permitir múltiplas contas de usuário totalmente
+> independentes e isoladas entre si (cada uma com suas próprias marcas e redes sociais),
+> sem qualquer forma de colaboração ou compartilhamento — recurso que já existia no
+> sistema. Documento mantido apenas como registro histórico da deliberação.
+
 ## Context and Problem Statement
 
 SocialShelf transiciona para SaaS multi-tenant. Múltiplos usuários pagam mensalidade para usar o sistema. Precisamos definir:

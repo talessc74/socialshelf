@@ -7,6 +7,12 @@ valid-from: 2026-07-11
 
 # _local-edr-policy-045: TDD para Isolamento Multi-Tenant
 
+> **STATUS: DESCARTADA — não implementada.** Depende da arquitetura de workspace
+> definida em `_local-adr-policy-042`, que foi descartada por partir de entendimento
+> incorreto do pedido do usuário (colaboração em equipe, não solicitada). O isolamento
+> real desejado — usuários totalmente independentes, sem colaboração — já existe via
+> `/users/{userId}` + Firestore rules. Documento mantido apenas como registro histórico.
+
 ## Context and Problem Statement
 
 Isolamento de dados entre usuários/workspaces é a propriedade crítica de segurança em SaaS multi-tenant. Testes convencionais (unitários ou integrados) podem passar sem realmente verificar isolamento — é possível testar "user A vê dados do workspace X" sem testar "user A NÃO vê dados do workspace Y". Falha silenciosa.

@@ -7,6 +7,15 @@ valid-from: 2026-07-11
 
 # _local-adr-policy-042: Arquitetura Multi-Tenant Workspace
 
+> **STATUS: DESCARTADA — não implementada.** Deliberação ARGUS partiu de entendimento
+> incorreto do pedido do usuário: interpretou "multi-usuário" como colaboração em equipe
+> (workspace compartilhado, convites, RBAC). O pedido real era usuários totalmente
+> isolados entre si, sem qualquer forma de colaboração — o que já existia no sistema via
+> `/users/{userId}` + Firestore rules com `isOwner()`. Todo código gerado a partir desta
+> policy (entities Workspace/WorkspaceMember/AuditLog, ports, adapters Firestore,
+> middleware, security rules) foi revertido. Documento mantido apenas como registro
+> histórico da deliberação e da correção de rumo.
+
 ## Context and Problem Statement
 
 SocialShelf evoluiu de um aplicativo pessoal (single-user) para uma plataforma SaaS onde múltiplos usuários pagam mensalidade para gerenciar suas marcas. Isso requer isolamento total de dados entre usuários/equipes, validação em cada operação e rastreamento de acesso.
