@@ -1,66 +1,55 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
+import type { ApiCampaignPhoto } from '../../../../../lib/api'
 
 function UploadedPhotoThumbnail({
   url,
   deleting,
+  dragging,
   onDelete,
-  moving,
-  canMoveLeft,
-  canMoveRight,
-  onMoveLeft,
-  onMoveRight,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  registerRef,
 }: {
   url: string | undefined
   deleting: boolean
+  dragging: boolean
   onDelete: () => void
-  moving: boolean
-  canMoveLeft: boolean
-  canMoveRight: boolean
-  onMoveLeft: () => void
-  onMoveRight: () => void
+  onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void
+  onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void
+  onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void
+  registerRef: (el: HTMLDivElement | null) => void
 }) {
   if (!url) {
     return <div className="aspect-square w-full animate-pulse rounded-lg bg-card-2" />
   }
 
   return (
-    <div className="relative">
+    <div
+      ref={registerRef}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      className={`relative touch-none select-none transition-transform ${dragging ? 'z-10 scale-105 opacity-70' : ''}`}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={url} alt="" className="aspect-square w-full rounded-lg object-cover" />
+      <img src={url} alt="" draggable={false} className="aspect-square w-full cursor-grab rounded-lg object-cover active:cursor-grabbing" />
       <button
         type="button"
         onClick={onDelete}
+        onPointerDown={(e) => e.stopPropagation()}
         disabled={deleting}
         aria-label="Remover foto"
         className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-50"
       >
         {deleting ? '…' : '×'}
       </button>
-      <div className="absolute bottom-1 left-1 right-1 flex justify-between">
-        <button
-          type="button"
-          onClick={onMoveLeft}
-          disabled={moving || !canMoveLeft}
-          aria-label="Mover foto para a posição anterior"
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
-        >
-          ‹
-        </button>
-        <button
-          type="button"
-          onClick={onMoveRight}
-          disabled={moving || !canMoveRight}
-          aria-label="Mover foto para a próxima posição"
-          className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-xs leading-none text-white hover:bg-black/80 disabled:opacity-30"
-        >
-          ›
-        </button>
-      </div>
     </div>
   )
 }
@@ -106,16 +95,67 @@ export default function CampaignUploadPage() {
 
   const reorderPhotos = useMutation({
     mutationFn: (photoIds: string[]) => api.reorderCampaignPhotos(campaignId, photoIds),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
+    // Grava a nova ordem direto no cache em vez de só invalidar — invalidar faria a grade
+    // "voltar" pra ordem antiga por um instante até o refetch chegar, desfazendo visualmente
+    // o arraste que acabou de acontecer.
+    onSuccess: (_data, photoIds) => {
+      queryClient.setQueryData<ApiCampaignPhoto[]>(['campaign-photos', campaignId], (current) => {
+        if (!current) return current
+        const byId = new Map(current.map((p) => [p.id, p]))
+        return photoIds.map((id) => byId.get(id)).filter((p): p is ApiCampaignPhoto => p !== undefined)
+      })
+    },
   })
 
-  function movePhoto(index: number, direction: -1 | 1) {
-    if (!photos) return
-    const target = index + direction
-    if (target < 0 || target >= photos.length) return
-    const ids = photos.map((p) => p.id)
-    ;[ids[index], ids[target]] = [ids[target]!, ids[index]!]
-    reorderPhotos.mutate(ids)
+  // Arraste com Pointer Events em vez de HTML5 drag-and-drop nativo (que não funciona direito
+  // em touch sem polyfill) — um único conjunto de handlers cobre mouse e dedo. setPointerCapture
+  // garante que o elemento arrastado continua recebendo move/up mesmo se o ponteiro sair da sua
+  // área. A cada frame, a foto arrastada troca de posição com a miniatura mais próxima do
+  // ponteiro; ao soltar, persiste a ordem final.
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragPreview, setDragPreview] = useState<typeof photos>(undefined)
+  const thumbnailRefs = useRef(new Map<string, HTMLDivElement>())
+  const orderedPhotos = dragPreview ?? photos
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, photoId: string) {
+    if (!orderedPhotos) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setDraggedId(photoId)
+    setDragPreview(orderedPhotos)
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!draggedId || !dragPreview) return
+    const draggedIndex = dragPreview.findIndex((p) => p.id === draggedId)
+    if (draggedIndex === -1) return
+
+    let closestIndex = draggedIndex
+    let closestDistance = Infinity
+    dragPreview.forEach((photo, index) => {
+      const el = thumbnailRefs.current.get(photo.id)
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const distance = Math.hypot(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2))
+      if (distance < closestDistance) {
+        closestDistance = distance
+        closestIndex = index
+      }
+    })
+
+    if (closestIndex !== draggedIndex) {
+      const next = [...dragPreview]
+      const [moved] = next.splice(draggedIndex, 1)
+      next.splice(closestIndex, 0, moved!)
+      setDragPreview(next)
+    }
+  }
+
+  function handlePointerUp() {
+    if (draggedId && dragPreview) {
+      reorderPhotos.mutate(dragPreview.map((p) => p.id))
+    }
+    setDraggedId(null)
+    setDragPreview(undefined)
   }
 
   // Um arquivo por requisição, o cliente faz o loop — mesmo padrão já usado no upload de
@@ -204,26 +244,29 @@ export default function CampaignUploadPage() {
         </p>
       )}
 
-      {photos && photos.length > 0 && (
+      {orderedPhotos && orderedPhotos.length > 0 && (
         <div>
           <p className="mb-2 text-sm font-medium text-ink">
-            {photos.length} foto{photos.length > 1 ? 's' : ''} enviada{photos.length > 1 ? 's' : ''} — use as setas
-            pra reordenar
+            {orderedPhotos.length} foto{orderedPhotos.length > 1 ? 's' : ''} enviada
+            {orderedPhotos.length > 1 ? 's' : ''} — arraste pra reordenar
           </p>
           <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-            {photos.map((photo, index) => (
+            {orderedPhotos.map((photo) => (
               <UploadedPhotoThumbnail
                 key={photo.id}
                 url={imageUrls?.[photo.storagePath]}
                 deleting={deletePhoto.isPending && deletePhoto.variables === photo.id}
+                dragging={draggedId === photo.id}
                 onDelete={() => {
                   if (confirm('Remover esta foto da campanha?')) deletePhoto.mutate(photo.id)
                 }}
-                moving={reorderPhotos.isPending}
-                canMoveLeft={index > 0}
-                canMoveRight={index < photos.length - 1}
-                onMoveLeft={() => movePhoto(index, -1)}
-                onMoveRight={() => movePhoto(index, 1)}
+                onPointerDown={(e) => handlePointerDown(e, photo.id)}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                registerRef={(el) => {
+                  if (el) thumbnailRefs.current.set(photo.id, el)
+                  else thumbnailRefs.current.delete(photo.id)
+                }}
               />
             ))}
           </div>
