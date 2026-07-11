@@ -318,7 +318,7 @@ jobs:
               --location=${{ env.GCP_REGION }} \
               --uri="${URL}" \
               --http-method=POST \
-              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --update-headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
               --oidc-service-account-email="${SA}" \
               --oidc-token-audience="${{ steps.deploy.outputs.url }}"
           else
@@ -341,7 +341,11 @@ jobs:
       # rodar fora da janela comercial é barato (a marca é pulada sem gerar nada). Mesmo padrão
       # non-blocking do job de scheduler acima, pelo mesmo motivo. IMPORTANTE: --schedule
       # precisa estar em ambos os branches (update E create) — um job já existe em produção
-      # desde a versão 1x/dia, então só o branch update roda a partir de agora.
+      # desde a versão 1x/dia, então só o branch update roda a partir de agora. IMPORTANTE
+      # #2: `gcloud scheduler jobs update http` NÃO aceita --headers (só --update-headers) —
+      # o flag de create e o de update têm nomes diferentes; usar --headers no branch update
+      # falha com "unrecognized arguments" e exit code 2, mascarado pelo continue-on-error
+      # (achado real ao confirmar este deploy: o --schedule novo nunca tinha sido aplicado).
       - name: Create/update Cloud Scheduler job for the hourly autonomy tick
         continue-on-error: true
         run: |
@@ -356,7 +360,7 @@ jobs:
               --schedule="0 * * * *" \
               --uri="${URL}" \
               --http-method=POST \
-              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --update-headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
               --oidc-service-account-email="${SA}" \
               --oidc-token-audience="${{ steps.deploy.outputs.url }}"
           else
@@ -471,7 +475,7 @@ jobs:
               --location=${{ env.GCP_REGION }} \
               --uri="${URL}" \
               --http-method=POST \
-              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --update-headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
               --oidc-service-account-email="${SA}" \
               --oidc-token-audience="${{ steps.deploy.outputs.url }}"
           else
