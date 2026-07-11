@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { Platform } from '@socialshelf/domain'
+import { Platform, computeDailySlotHours } from '@socialshelf/domain'
 import type { CampaignPhoto } from '@socialshelf/domain'
 
 // Teto real de carrossel por rede — Instagram e Facebook aceitam até 10 itens (MetaPublisher),
@@ -106,18 +106,14 @@ export function interleaveGroups(groupsByCluster: string[][][]): string[][] {
   return result
 }
 
-const DAY_START_HOUR = 9
-const DAY_END_HOUR = 21
-
 /**
  * Distribui `itemCount` horários ao longo dos dias a partir de `startDate`, `postsPerDay`
- * por dia, espaçados uniformemente entre 9h e 21h (1x/dia cai às 9h).
+ * por dia, espaçados uniformemente entre 9h e 21h (1x/dia cai às 9h) — mesma janela de
+ * computeDailySlotHours, também usada pelo gate de horário do tick de autonomia
+ * (_local-edr-policy-038, adendo 2026-07-11).
  */
 export function computeScheduledTimes(itemCount: number, postsPerDay: number, startDate: Date): Date[] {
-  const slots =
-    postsPerDay <= 1
-      ? [DAY_START_HOUR]
-      : Array.from({ length: postsPerDay }, (_, i) => DAY_START_HOUR + (i * (DAY_END_HOUR - DAY_START_HOUR)) / (postsPerDay - 1))
+  const slots = computeDailySlotHours(postsPerDay)
 
   const times: Date[] = []
   for (let i = 0; i < itemCount; i++) {

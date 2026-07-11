@@ -333,10 +333,16 @@ jobs:
           fi
 
       # Fase 4 do roadmap (_local-bdr-plan-002): varre marcas com autonomia semi-automática ou
-      # automática e gera (e, quando elegível, publica) 1 post por marca a partir da pauta do
-      # dia. Uma vez por dia é suficiente — não é um tick de minuto como o de publicação
-      # agendada. Mesmo padrão non-blocking do job de scheduler acima, pelo mesmo motivo.
-      - name: Create/update Cloud Scheduler job for the daily autonomy tick
+      # automática e gera (e, quando elegível, publica) até maxAutoPostsPerDay posts por marca,
+      # espaçados ao longo do dia (9h-21h Brasília — mesma janela usada pra distribuir os posts
+      # de uma campanha). De hora em hora, não mais 1x/dia (_local-edr-policy-038, adendo
+      # 2026-07-11) — só assim o teto configurado por marca vira realidade em vez de sempre
+      # parar em 1 post/dia; o próprio use-case decide se já é hora do próximo post, então
+      # rodar fora da janela comercial é barato (a marca é pulada sem gerar nada). Mesmo padrão
+      # non-blocking do job de scheduler acima, pelo mesmo motivo. IMPORTANTE: --schedule
+      # precisa estar em ambos os branches (update E create) — um job já existe em produção
+      # desde a versão 1x/dia, então só o branch update roda a partir de agora.
+      - name: Create/update Cloud Scheduler job for the hourly autonomy tick
         continue-on-error: true
         run: |
           gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
@@ -347,6 +353,7 @@ jobs:
           if gcloud scheduler jobs describe publisher-autonomy-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
             gcloud scheduler jobs update http publisher-autonomy-tick \
               --location=${{ env.GCP_REGION }} \
+              --schedule="0 * * * *" \
               --uri="${URL}" \
               --http-method=POST \
               --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
@@ -355,7 +362,7 @@ jobs:
           else
             gcloud scheduler jobs create http publisher-autonomy-tick \
               --location=${{ env.GCP_REGION }} \
-              --schedule="0 12 * * *" \
+              --schedule="0 * * * *" \
               --uri="${URL}" \
               --http-method=POST \
               --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \

@@ -24,4 +24,17 @@ export class FirestoreAutonomyDailyCounterRepository implements AutonomyDailyCou
       return true
     })
   }
+
+  async getCount(userId: string, brandId: string, date: string): Promise<number> {
+    const ref = db
+      .collection('users')
+      .doc(userId)
+      .collection('brands')
+      .doc(brandId)
+      .collection('autonomy_daily_counters')
+      .doc(date)
+
+    const doc = await ref.get()
+    return doc.exists ? ((doc.data()!['count'] as number) ?? 0) : 0
+  }
 }
