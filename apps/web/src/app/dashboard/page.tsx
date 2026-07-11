@@ -30,6 +30,18 @@ const PLATFORM_COLORS: Record<Platform, string> = {
   [Platform.TIKTOK]: '#000000',
 }
 
+// Mesmo trio de níveis de autonomyLevel já configurável em /dashboard/brand — aqui só
+// exibido, não editável, com o badge servindo de atalho pra tela onde dá pra mudar.
+const AUTONOMY_BADGE: Record<'manual' | 'semi-automatic' | 'automatic', { label: string; hint: string; className: string }> = {
+  manual: { label: '✋ Manual', hint: 'você publica cada post', className: 'bg-card-2 text-ink' },
+  'semi-automatic': {
+    label: '🧑‍💻 Semi-automático',
+    hint: 'IA prepara, você aprova antes',
+    className: 'bg-sky-50 text-sky-700',
+  },
+  automatic: { label: '🤖 Automático', hint: 'IA cria e publica sozinha', className: 'bg-violet-50 text-violet-700' },
+}
+
 const SHORTCUTS = [
   { href: '/dashboard/generate', label: 'Gerar com IA', description: 'Crie posts com inteligência artificial', icon: Sparkles },
   { href: '/dashboard/compose', label: 'Novo Post', description: 'Escreva e publique manualmente', icon: Send },
@@ -161,11 +173,25 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div>
-        <h1 className="text-2xl font-bold text-ink">
-          {greeting()}, <span className="text-accent">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
-        </h1>
-        <p className="mt-1 text-sm text-muted">Sua central para criar e acompanhar posts com a SocialShelf.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">
+            {greeting()}, <span className="text-accent">{user?.email?.split('@')[0] ?? 'bem-vindo'}</span>
+          </h1>
+          <p className="mt-1 text-sm text-muted">Sua central para criar e acompanhar posts com a SocialShelf.</p>
+        </div>
+        {brandProfile && (
+          <Link
+            href="/dashboard/brand"
+            title="Como sua conta está publicando agora — clique para alterar"
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold hover:opacity-90 ${AUTONOMY_BADGE[brandProfile.operation.autonomyLevel].className}`}
+          >
+            {AUTONOMY_BADGE[brandProfile.operation.autonomyLevel].label}
+            <span className="text-xs font-normal opacity-70">
+              {AUTONOMY_BADGE[brandProfile.operation.autonomyLevel].hint}
+            </span>
+          </Link>
+        )}
       </div>
 
       <section className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-card sm:flex-row sm:items-center sm:justify-between">
