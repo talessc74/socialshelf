@@ -47,5 +47,5 @@ Histórico começa a existir só a partir deste deploy — tentativas anteriores
 
 ## References
 
-- [_local-edr-policy-038-tick-diario-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - AutonomyTickUseCase original e o adendo do tick de hora em hora que motivou a pergunta do usuário sobre múltiplos posts/dia
+- [_local-edr-policy-038-tick-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - AutonomyTickUseCase original e o adendo do tick de hora em hora que motivou a pergunta do usuário sobre múltiplos posts/dia
 - [_local-edr-policy-042-campanha-revisao-pos-saga-do-indice](042-campanha-revisao-pos-saga-do-indice.md) - Origem do cuidado com collectionGroup vs. subcoleção direta na hora de escolher como consultar o Firestore
