@@ -187,6 +187,27 @@ export interface ApiGenerationRequest {
   updatedAt: string
 }
 
+export type ApiAutonomyTickAction =
+  | 'skipped-no-platforms'
+  | 'skipped-not-yet-time'
+  | 'skipped-no-suggestions'
+  | 'skipped-blocked'
+  | 'skipped-not-eligible'
+  | 'skipped-daily-limit'
+  | 'draft-created'
+  | 'published'
+  | 'error'
+
+export interface ApiAutonomyTickLogEntry {
+  id: string
+  userId: string
+  brandId: string
+  action: ApiAutonomyTickAction
+  topicHeadline: string | null
+  error: string | null
+  createdAt: string
+}
+
 export interface ApiBrandProfile {
   id: string
   userId: string
@@ -442,6 +463,11 @@ export const api = {
   async getBrandProfile(): Promise<ApiBrandProfile | null> {
     const data = await apiFetch<{ brandProfile: ApiBrandProfile | null }>('/brand-profile')
     return data.brandProfile
+  },
+
+  async getAutonomyTickLog(): Promise<ApiAutonomyTickLogEntry[]> {
+    const data = await apiFetch<{ entries: ApiAutonomyTickLogEntry[] }>('/autonomy-tick-log')
+    return data.entries
   },
 
   async updateBrandProfile(profile: Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>): Promise<ApiBrandProfile> {

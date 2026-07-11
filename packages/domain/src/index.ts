@@ -6,6 +6,7 @@ export type { Post, PostStatus, PostOrigin, PlatformContent } from './entities/P
 export type { PhotoCampaign, PhotoCampaignStatus } from './entities/PhotoCampaign.js'
 export type { CampaignPhoto } from './entities/CampaignPhoto.js'
 export type { CampaignItem, CampaignItemStatus } from './entities/CampaignItem.js'
+export type { AutonomyTickLogEntry, AutonomyTickAction } from './entities/AutonomyTickLogEntry.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,
@@ -79,6 +80,7 @@ export type { GenerationRequestRepository } from './ports/GenerationRequestRepos
 export type { TopicAutonomyMatcherPort, TopicAutonomyMatch } from './ports/TopicAutonomyMatcherPort.js'
 export type { AutonomyBrandDiscoveryPort, AutonomyEligibleBrand } from './ports/AutonomyBrandDiscoveryPort.js'
 export type { AutonomyDailyCounterRepository } from './ports/AutonomyDailyCounterRepository.js'
+export type { AutonomyTickLogRepository } from './ports/AutonomyTickLogRepository.js'
 export type { BrandRepository } from './ports/BrandRepository.js'
 export type { BrandProfileRepository } from './ports/BrandProfileRepository.js'
 export type { AnalyticsReaderPort, PostMetrics } from './ports/AnalyticsReaderPort.js'

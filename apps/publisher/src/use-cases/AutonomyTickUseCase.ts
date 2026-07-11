@@ -1,24 +1,16 @@
+import { randomUUID } from 'crypto'
 import { Platform, computeDailySlotHours } from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
   AutonomyDailyCounterRepository,
+  AutonomyTickAction,
+  AutonomyTickLogRepository,
   OAuthRepository,
   PostRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
 import type { GeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
-
-export type AutonomyTickAction =
-  | 'skipped-no-platforms'
-  | 'skipped-not-yet-time'
-  | 'skipped-no-suggestions'
-  | 'skipped-blocked'
-  | 'skipped-not-eligible'
-  | 'skipped-daily-limit'
-  | 'draft-created'
-  | 'published'
-  | 'error'
 
 export interface AutonomyTickBrandResult {
   userId: string
@@ -71,21 +63,41 @@ export class AutonomyTickUseCase {
     private readonly postRepo: PostRepository,
     private readonly publishPostUseCase: PublishPostUseCase,
     private readonly generatorClient: GeneratorAutonomyClient,
+    private readonly tickLog: AutonomyTickLogRepository,
   ) {}
 
   async execute(): Promise<AutonomyTickBrandResult[]> {
     const brands = await this.brandDiscovery.findEligibleBrands()
     const results: AutonomyTickBrandResult[] = []
     for (const brand of brands) {
+      let result: AutonomyTickBrandResult
       try {
-        results.push(await this.processBrand(brand))
+        result = await this.processBrand(brand)
       } catch (err) {
-        results.push({
+        result = {
           userId: brand.userId,
           brandId: brand.brandId,
           action: 'error',
           error: err instanceof Error ? err.message : String(err),
+        }
+      }
+      results.push(result)
+      // Histórico consultável (_local-edr-policy-038, adendo 2026-07-11) — sem isso o
+      // resultado desaparece junto com a resposta HTTP que só o Cloud Scheduler vê. Falha ao
+      // gravar não deve derrubar o tick nem as marcas seguintes: é observabilidade, não a
+      // função principal.
+      try {
+        await this.tickLog.save({
+          id: randomUUID(),
+          userId: result.userId,
+          brandId: result.brandId,
+          action: result.action,
+          topicHeadline: result.topicHeadline ?? null,
+          error: result.error ?? null,
+          createdAt: new Date(),
         })
+      } catch {
+        // observabilidade — não propaga
       }
     }
     return results

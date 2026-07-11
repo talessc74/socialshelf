@@ -7,6 +7,7 @@ import { api, type ApiBrandProfile } from '../../../lib/api'
 import type { AutonomyLevel } from '@socialshelf/domain'
 import { TagListEditor } from '../../../components/TagListEditor'
 import { TopicChecklist } from '../../../components/TopicChecklist'
+import { AutonomyTickHistory } from '../../../components/AutonomyTickHistory'
 import { BrandPostPreview } from '../../../components/BrandPostPreview'
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
@@ -523,6 +524,7 @@ export default function BrandSettingsPage() {
             setForm((prev) => ({ ...prev, operation: { ...prev.operation, blockedTopics } }))
           }
         />
+        {form.operation.autonomyLevel !== 'manual' && <AutonomyTickHistory />}
       </section>
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
