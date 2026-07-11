@@ -623,15 +623,31 @@ export const api = {
     const token = await getToken()
     const formData = new FormData()
     formData.append('file', file)
-    const res = await fetch(`${API_URL}/campaigns/${campaignId}/photos`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
-      },
-      body: formData,
-    })
+    // Sem timeout, uma única foto travada (rede lenta, cold start do generator-service)
+    // prendia o fetch pra sempre — o loop de upload no chamador nunca seguia pra próxima
+    // foto nem reportava erro nenhum, ficando preso em "Enviando fotos…" indefinidamente.
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 45_000)
+    let res: Response
+    try {
+      res = await fetch(`${API_URL}/campaigns/${campaignId}/photos`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(activeBrandId ? { 'X-Brand-Id': activeBrandId } : {}),
+        },
+        body: formData,
+        signal: controller.signal,
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new Error('Tempo esgotado enviando a foto — tente de novo')
+      }
+      throw err
+    } finally {
+      clearTimeout(timeout)
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`)

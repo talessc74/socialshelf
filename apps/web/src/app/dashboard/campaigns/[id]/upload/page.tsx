@@ -22,6 +22,7 @@ export default function CampaignUploadPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
@@ -40,26 +41,30 @@ export default function CampaignUploadPage() {
   // imagem manual (compose/generate), já que o multipart do api-service aceita 1 arquivo por vez.
   // Cada foto é isolada em try/catch (mesmo padrão de AutonomyTickUseCase/GetPostsPerformanceUseCase):
   // uma falha no meio de um lote grande não pode impedir as demais de subir nem esconder da tela
-  // as que já subiram — por isso a lista é sempre atualizada no final, com sucesso ou não.
+  // as que já subiram — por isso a lista é atualizada a cada foto, não só no final, com sucesso ou não.
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return
+    const fileArray = Array.from(files)
     setUploading(true)
     setUploadError(null)
+    setUploadProgress({ done: 0, total: fileArray.length })
     const failures: string[] = []
-    for (const file of Array.from(files)) {
+    for (const [index, file] of fileArray.entries()) {
       try {
         await api.uploadCampaignPhoto(campaignId, file)
+        await queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] })
       } catch (err) {
         failures.push(`${file.name}: ${err instanceof Error ? err.message : 'falha desconhecida'}`)
       }
+      setUploadProgress({ done: index + 1, total: fileArray.length })
     }
-    await queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] })
     if (failures.length > 0) {
       const shown = failures.slice(0, 3).join('; ')
       const rest = failures.length > 3 ? ` (e mais ${failures.length - 3})` : ''
       setUploadError(`${failures.length} de ${files.length} foto(s) não subiram: ${shown}${rest}`)
     }
     setUploading(false)
+    setUploadProgress(null)
   }
 
   return (
@@ -89,7 +94,11 @@ export default function CampaignUploadPage() {
         }`}
       >
         <span className="text-sm font-semibold text-ink">
-          {uploading ? 'Enviando fotos…' : isDragging ? 'Solte as fotos aqui' : 'Clique ou arraste as fotos aqui'}
+          {uploading
+            ? `Enviando fotos… (${uploadProgress?.done ?? 0}/${uploadProgress?.total ?? 0})`
+            : isDragging
+              ? 'Solte as fotos aqui'
+              : 'Clique ou arraste as fotos aqui'}
         </span>
         <span className="text-xs text-muted">JPEG, PNG ou WEBP — pode selecionar ou arrastar várias de uma vez</span>
         <input
