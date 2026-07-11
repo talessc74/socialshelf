@@ -147,6 +147,7 @@ export default function AccountsPage() {
             {Object.entries(PLATFORM_META).map(([platform, meta]) => {
               const isConnected = connectedPlatforms.has(platform as Platform)
               const isLinkedIn = platform === Platform.LINKEDIN
+              const isInReview = meta.status === 'in_review'
               return (
                 <div
                   key={platform}
@@ -162,6 +163,12 @@ export default function AccountsPage() {
                     </span>
                     <span className="font-semibold text-ink">{meta.label}</span>
                   </div>
+                  {isInReview && !isConnected && (
+                    <p className="mb-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                      Em análise pela plataforma — a conexão pode falhar se sua conta ainda
+                      não foi liberada para testes.
+                    </p>
+                  )}
                   {isConnected ? (
                     <div className="flex flex-col gap-1.5">
                       <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
