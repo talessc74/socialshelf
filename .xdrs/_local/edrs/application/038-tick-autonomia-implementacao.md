@@ -81,6 +81,8 @@ Rodar de hora em hora sozinho geraria um post por hora, não por dia — o gate 
 
 O `getCount` (leitura) e o `incrementIfUnderLimit` (escrita atômica) continuam sendo dois métodos separados de propósito: o primeiro é um gate barato de "ainda não é hora" que evita chamadas de IA desnecessárias fora de horário; o segundo continua como admissão final atômica logo antes de gerar, pra não estourar o teto se duas execuções do tick se sobrepuserem.
 
+**Correção real ao confirmar o deploy: `--headers` não existe em `gcloud scheduler jobs update`** — ao verificar se o `--schedule` novo realmente tinha sido aplicado em produção, o log do passo (mascarado por `continue-on-error: true`, então o job do GitHub Actions aparecia verde) mostrava `ERROR: unrecognized arguments: --headers=*** (did you mean '--clear-headers'?)`, exit code 2 — o branch `update` inteiro falhava antes de aplicar qualquer mudança, então o `--schedule` novo nunca chegava a valer. O flag `--headers` só existe em `gcloud scheduler jobs create http`; o equivalente em `update` é `--update-headers`. Esse bug já existia antes desta mudança (afetava os três jobs de Cloud Scheduler do projeto, não só o de autonomia) — corrigido nos três branches `update` (`publisher-scheduled-tick`, `publisher-autonomy-tick`, `generator-video-cleanup-tick`) na mesma rodada, já que o mesmo padrão errado tinha sido copiado nos três.
+
 ## References
 
 - [_local-adr-policy-040-ativacao-do-modo-automatico-de-publicacao](../../adrs/application/040-ativacao-modo-automatico-publicacao.md) - Decisão estrutural que esta fatia implementa
