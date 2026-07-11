@@ -157,6 +157,77 @@ describe('GET /generation-images/signed-url', () => {
   })
 })
 
+describe('POST /generation-images/signed-urls', () => {
+  let app: FastifyInstance
+
+  beforeAll(async () => {
+    process.env['CSRF_SECRET'] = 'test-secret-64-chars-long-enough-for-hmac-sha256-signing'
+    process.env['WEB_URL'] = 'http://localhost:3000'
+    process.env['GENERATOR_URL'] = 'http://localhost:3003'
+    app = await buildApp()
+    await app.ready()
+  })
+
+  afterAll(async () => {
+    await app.close()
+  })
+
+  it('returns signed urls for a batch of paths owned by the user in a single call', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        urls: {
+          'user-test-123/generated/a.png': 'https://storage.googleapis.com/a',
+          'user-test-123/generated/b.png': 'https://storage.googleapis.com/b',
+        },
+      }),
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-images/signed-urls',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { paths: ['user-test-123/generated/a.png', 'user-test-123/generated/b.png'] },
+    })
+
+    expect(response.statusCode).toBe(200)
+    const body = response.json<{ urls: Record<string, string> }>()
+    expect(body.urls['user-test-123/generated/a.png']).toBe('https://storage.googleapis.com/a')
+  })
+
+  it('returns 403 when any path does not belong to the authenticated user', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-images/signed-urls',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { paths: ['user-test-123/generated/a.png', 'other-brand/generated/b.png'] },
+    })
+
+    expect(response.statusCode).toBe(403)
+  })
+
+  it('returns 400 when paths is empty', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-images/signed-urls',
+      headers: { authorization: 'Bearer valid-token' },
+      payload: { paths: [] },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 401 without auth header', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generation-images/signed-urls',
+      payload: { paths: ['user-test-123/generated/a.png'] },
+    })
+
+    expect(response.statusCode).toBe(401)
+  })
+})
+
 describe('POST /generation-requests/:id/artifacts/:position/edit', () => {
   let app: FastifyInstance
 

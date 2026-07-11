@@ -75,15 +75,27 @@ export async function campaignsRoutes(app: FastifyInstance) {
   })
 
   app.get('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const campaigns = await campaignRepo.findByBrand(request.userId, request.brandId)
-    return reply.send({ campaigns })
+    try {
+      const campaigns = await campaignRepo.findByBrand(request.userId, request.brandId)
+      return reply.send({ campaigns })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'find campaigns failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
   })
 
   app.get('/campaigns/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
-    if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
-    return reply.send({ campaign })
+    try {
+      const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      if (!campaign) return reply.status(404).send({ error: 'Campaign not found' })
+      return reply.send({ campaign })
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : String(err)
+      app.log.error({ err }, 'find campaign failed')
+      return reply.status(500).send({ error: 'Internal error', detail })
+    }
   })
 
   app.get('/campaigns/:id/photos', { preHandler: [app.authenticate] }, async (request, reply) => {

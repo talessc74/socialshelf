@@ -22,7 +22,11 @@ export class FirestoreCampaignItemRepository implements CampaignItemRepository {
   }
 
   async deleteByCampaign(campaignId: string): Promise<void> {
-    const snapshot = await db.collectionGroup('items').where('campaignId', '==', campaignId).get()
+    // orderBy('order') não muda o resultado (apagamos tudo de qualquer forma) mas garante que
+    // esta consulta usa exatamente o mesmo índice composto de findByCampaign, em vez de depender
+    // de o Firestore reaproveitar esse índice como prefixo para uma consulta só com igualdade —
+    // ver _local-edr-policy-039 pro histórico do bug de índice de campo único nesta mesma coleção.
+    const snapshot = await db.collectionGroup('items').where('campaignId', '==', campaignId).orderBy('order').get()
     if (snapshot.empty) return
     const batch = db.batch()
     for (const doc of snapshot.docs) batch.delete(doc.ref)

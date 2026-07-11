@@ -20,7 +20,11 @@ function nextStepFor(campaign: ApiPhotoCampaign): { href: string; label: string 
 }
 
 export default function CampaignsPage() {
-  const { data: campaigns, isLoading } = useQuery({ queryKey: ['campaigns'], queryFn: api.listCampaigns })
+  const {
+    data: campaigns,
+    isLoading,
+    error,
+  } = useQuery({ queryKey: ['campaigns'], queryFn: api.listCampaigns })
 
   return (
     <div className="space-y-6">
@@ -39,7 +43,11 @@ export default function CampaignsPage() {
         </Link>
       </div>
 
-      {isLoading ? (
+      {error ? (
+        <p className="text-sm text-red-600">
+          Não foi possível carregar as campanhas: {(error as Error).message}
+        </p>
+      ) : isLoading ? (
         <p className="text-sm text-muted">Carregando campanhas…</p>
       ) : !campaigns || campaigns.length === 0 ? (
         <p className="rounded-2xl border border-line bg-card p-6 text-sm text-muted">

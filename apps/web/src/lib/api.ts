@@ -32,6 +32,14 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   })
 
   if (!res.ok) {
+    if (res.status === 429) {
+      const retryAfter = Number(res.headers.get('Retry-After'))
+      throw new Error(
+        retryAfter > 0
+          ? `Muitas requisições em pouco tempo — tente de novo em ${retryAfter}s.`
+          : 'Muitas requisições em pouco tempo — tente de novo em instantes.',
+      )
+    }
     const body = await res.json().catch(() => ({ error: res.statusText }))
     const b = body as { error?: string; message?: string; details?: unknown; detail?: string }
     const msg = b.message ?? (b.error && b.detail ? `${b.error}: ${b.detail}` : b.error) ?? `HTTP ${res.status}`
@@ -579,6 +587,18 @@ export const api = {
       `/generation-images/signed-url?path=${encodeURIComponent(path)}`,
     )
     return data.url
+  },
+
+  // Uma tela com centenas de miniaturas (ex: grade de upload de campanha) usando getImageUrl
+  // por foto esgota sozinha o rate limit global de 100 req/min do api-service — este método
+  // resolve o lote inteiro numa única requisição.
+  async getImageUrls(paths: string[]): Promise<Record<string, string>> {
+    if (paths.length === 0) return {}
+    const data = await apiFetch<{ urls: Record<string, string> }>('/generation-images/signed-urls', {
+      method: 'POST',
+      body: JSON.stringify({ paths }),
+    })
+    return data.urls
   },
 
   async getVideoUrl(path: string, download?: boolean): Promise<string> {

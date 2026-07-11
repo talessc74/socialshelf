@@ -6,10 +6,8 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import type { ApiCampaignItem } from '../../../../../lib/api'
 
-function ItemThumbnail({ path }: { path: string }) {
-  const { data: url, isLoading } = useQuery({ queryKey: ['image-url', path], queryFn: () => api.getImageUrl(path) })
-
-  if (isLoading || !url) {
+function ItemThumbnail({ url }: { url: string | undefined }) {
+  if (!url) {
     return <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-card-2" />
   }
 
@@ -38,6 +36,16 @@ export default function CampaignTimelinePage() {
   }, [serverItems])
 
   const photosById = new Map((photos ?? []).map((p) => [p.id, p]))
+
+  // Uma única requisição pro lote inteiro de miniaturas em vez de uma por foto — ver
+  // _local-edr-policy-039 pro rate limit global que uma requisição por miniatura esgota
+  // sozinha numa campanha com muitas fotos.
+  const photoPaths = (photos ?? []).map((p) => p.storagePath)
+  const { data: imageUrls } = useQuery({
+    queryKey: ['campaign-photo-urls', campaignId, photoPaths.join(',')],
+    queryFn: () => api.getImageUrls(photoPaths),
+    enabled: photoPaths.length > 0,
+  })
 
   const saveTimeline = useMutation({
     mutationFn: () =>
@@ -101,7 +109,7 @@ export default function CampaignTimelinePage() {
               <div className="mb-2 flex gap-2 overflow-x-auto">
                 {item.photoIds.map((photoId) => {
                   const photo = photosById.get(photoId)
-                  return photo ? <ItemThumbnail key={photoId} path={photo.storagePath} /> : null
+                  return photo ? <ItemThumbnail key={photoId} url={imageUrls?.[photo.storagePath]} /> : null
                 })}
               </div>
               <textarea

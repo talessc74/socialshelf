@@ -20,7 +20,14 @@ export class FirestorePhotoCampaignRepository implements PhotoCampaignRepository
   }
 
   async findById(id: string): Promise<PhotoCampaign | null> {
-    const snapshot = await db.collectionGroup('photo_campaigns').where('id', '==', id).limit(1).get()
+    // orderBy garante um índice composto de verdade em vez de um filtro de campo único de
+    // escopo COLLECTION_GROUP — ver _local-edr-policy-039 pro histórico desse bug.
+    const snapshot = await db
+      .collectionGroup('photo_campaigns')
+      .where('id', '==', id)
+      .orderBy('createdAt')
+      .limit(1)
+      .get()
     if (snapshot.empty) return null
     return this.fromFirestore(snapshot.docs[0]!.data())
   }

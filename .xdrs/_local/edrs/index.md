@@ -42,6 +42,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-039-campanha-de-fotos-implementacao-fase-1](application/039-campanha-de-fotos-implementacao.md) - EXIF/GPS extraído no api-service sem porta de domínio; clustering guloso por distância haversine (raio 150m); carrossel limitado ao menor teto entre as redes selecionadas; ativação idempotente por item
 - [_local-edr-policy-040-performance-sem-fetch-duplicado](application/040-performance-insights-sem-fetch-duplicado.md) - POST /performance-insights recebe as entradas já buscadas pela tela em vez de rebuscar no publisher, eliminando uma segunda rodada de chamadas ao vivo para Meta/X/LinkedIn a cada carregamento da tela de Performance
 - [_local-edr-policy-041-melhor-janela-com-dado-real-de-horario](application/041-melhor-janela-com-dado-real-de-horario.md) - PostPerformanceSummary ganha publishedAt e o prompt do diagnóstico recebe o horário real (Brasília) de cada post, em vez de "Melhor janela" ser um chute do modelo sem nenhum dado de horário
+- [_local-edr-policy-042-campanha-revisao-pos-saga-do-indice](application/042-campanha-revisao-pos-saga-do-indice.md) - Auditoria de todo o código de campanhas achou mais 2 queries de campo único com o mesmo bug de índice, 2 telas com o mesmo bug de erro engolido, e um N+1 de requisição por miniatura que esgotava sozinho o rate limit global — corrigido com endpoint de signed URL em lote
 
 ### devops
 Pipeline de entrega e práticas de build.
