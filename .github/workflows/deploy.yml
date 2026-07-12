@@ -92,6 +92,14 @@ jobs:
             --role="roles/cloudscheduler.admin" \
             --condition=None 2>/dev/null || true
 
+          # Firebase Hosting nunca foi implantado neste projeto (ver step "Deploy
+          # Firebase Hosting" abaixo) — necessário para o domínio customizado de
+          # autenticação (auth.socialshelf.com.br, correção do login Google no Safari).
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/firebasehosting.admin" \
+            --condition=None 2>/dev/null || true
+
           # roles/cloudscheduler.admin não inclui serviceusage.services.enable — sem
           # isto, "gcloud services enable cloudscheduler.googleapis.com" falha com
           # PERMISSION_DENIED (confirmado em produção nos runs #203 e #204).
@@ -126,6 +134,15 @@ jobs:
         run: |
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
           sleep 60
+
+      # Firebase Hosting nunca tinha sido implantado neste projeto — sem um site de
+      # Hosting existente, o Console não permite anexar um domínio customizado (testado
+      # via Cowork em 2026-07-12). Este deploy só existe pra criar o site padrão
+      # (socialshelf-547da.web.app/.firebaseapp.com) e habilitar o fluxo de "Adicionar
+      # domínio personalizado" no Console — o conteúdo publicado (public/index.html)
+      # nunca é servido pra usuário real, só o site precisa existir.
+      - name: Deploy Firebase Hosting (bootstrap site)
+        run: npx --yes firebase-tools@latest deploy --only hosting --project=${{ env.GCP_PROJECT_ID }} --non-interactive
 
       - name: Deploy Firestore indexes
         run: |

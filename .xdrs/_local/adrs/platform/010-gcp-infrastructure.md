@@ -86,6 +86,10 @@ A tentativa de `bootstrap-iam` executar esse binding resource-level via CI falho
 
 Com `artifactCount` alto (ex: 6 para um carrossel), o front-end recebia `Load failed` (erro de rede genérico do browser, não um erro de aplicação) ao gerar conteúdo. Causa: `GenerateContentUseCase` gerava as imagens uma a uma em um loop sequencial, e o tempo total (cópia + N chamadas sequenciais ao Imagen) frequentemente excedia o `--timeout=30` do Cloud Run do `api-service`, que mata a conexão antes do `generator-service` (timeout 120s) terminar — o navegador então reporta falha de rede em vez de um erro de aplicação. Corrigido em duas frentes: (1) `GenerateContentUseCase` agora gera todos os artefatos em paralelo (`Promise.all`) em vez de sequencialmente; (2) `--timeout` do `api-service` e do `generator-service` aumentado de 30s/120s para 180s em ambos, como margem de segurança para o limite máximo de 10 artefatos permitido pelo schema.
 
+**Firebase Hosting bootstrado só para viabilizar authDomain customizado (2026-07-12)**
+
+O projeto nunca tinha um site de Firebase Hosting implantado (confirmado via Console: tela "Vamos começar", sem `socialshelf-547da.web.app` listado). Sem um site existente, o Console não permite anexar um domínio customizado — pré-requisito para configurar `auth.socialshelf.com.br` como `authDomain` do Firebase Auth (ver `_local-adr-policy-039`, correção do login Google no Safari/ITP). `bootstrap-iam` agora roda `npx firebase-tools deploy --only hosting` publicando um placeholder estático (`public/index.html`, nunca servido a usuário real) só para o site padrão passar a existir. Role `roles/firebasehosting.admin` adicionada ao self-grant idempotente do deployer SA — mesmo padrão de auto-concessão já usado para `cloudscheduler.admin`/`serviceusage.serviceUsageAdmin`; se o deployer não detiver `resourcemanager.projects.setIamPolicy` para isso (Zero Trust, `_local-adr-policy-005`), o erro real na CI vai indicar a concessão manual necessária.
+
 ## References
 
 - [_local-adr-policy-003-service-decomposition](../application/004-service-decomposition.md) - Serviços e seus limites
