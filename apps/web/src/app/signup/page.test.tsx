@@ -70,7 +70,7 @@ describe('SignupPage', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          'Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null).',
+          /Debug: voltou do Google sem erro, mas getRedirectResult\(\) não retornou um usuário \(result=null\)\./,
         ),
       ).toBeInTheDocument()
     })

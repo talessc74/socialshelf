@@ -33,6 +33,28 @@ export default function SignupPage() {
   }, [user, loading, router])
 
   useEffect(() => {
+    // Diagnóstico temporário: captura erros globais (window.onerror,
+    // unhandledrejection) que o Firebase pode disparar fora da promise de
+    // getRedirectResult (ex: falha no iframe oculto __/auth/iframe.html usado
+    // para recuperar o resultado do redirect), enquanto investigamos a falha
+    // do login com Google no Safari.
+    const onError = (event: ErrorEvent) => {
+      setError((prev) => `${prev ? prev + ' | ' : ''}Debug(window.onerror): ${event.message}`)
+    }
+    const onRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason
+      const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)
+      setError((prev) => `${prev ? prev + ' | ' : ''}Debug(unhandledrejection): ${message}`)
+    }
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+    return () => {
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
+    }
+  }, [])
+
+  useEffect(() => {
     // Diagnóstico temporário: mostra o erro real do Firebase (ou a ausência de
     // resultado) em vez da mensagem genérica, enquanto investigamos a falha do
     // login com Google via signInWithRedirect no Safari.
@@ -41,15 +63,17 @@ export default function SignupPage() {
     getRedirectResult(auth)
       .then((result) => {
         if (attempted && !result) {
+          const env = `ua=${navigator.userAgent} | cookiesEnabled=${navigator.cookieEnabled} | indexedDB=${typeof indexedDB !== 'undefined'}`
           setError(
-            'Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null).',
+            (prev) =>
+              `${prev ? prev + ' | ' : ''}Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null). ${env}`,
           )
         }
       })
       .catch((err) => {
         const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : 'sem código'
         const message = err instanceof Error ? err.message : String(err)
-        setError(`Debug: falha no login Google — ${code} — ${message}`)
+        setError((prev) => `${prev ? prev + ' | ' : ''}Debug: falha no login Google — ${code} — ${message}`)
       })
   }, [])
 
