@@ -95,9 +95,18 @@ jobs:
           # Firebase Hosting nunca foi implantado neste projeto (ver step "Deploy
           # Firebase Hosting" abaixo) — necessário para o domínio customizado de
           # autenticação (auth.socialshelf.com.br, correção do login Google no Safari).
+          # roles/firebasehosting.admin sozinha não bastou: firebase-tools falhou com
+          # "Failed to get Firebase project" (run #274) — ele usa a API de gerenciamento
+          # do Firebase (firebase.projects.get) antes de qualquer operação de Hosting,
+          # e essa permissão só vem em roles/firebase.admin (mais ampla).
           gcloud projects add-iam-policy-binding "$PROJECT" \
             --member="serviceAccount:${DEPLOYER_SA}" \
             --role="roles/firebasehosting.admin" \
+            --condition=None 2>/dev/null || true
+
+          gcloud projects add-iam-policy-binding "$PROJECT" \
+            --member="serviceAccount:${DEPLOYER_SA}" \
+            --role="roles/firebase.admin" \
             --condition=None 2>/dev/null || true
 
           # roles/cloudscheduler.admin não inclui serviceusage.services.enable — sem
