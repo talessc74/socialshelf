@@ -124,8 +124,22 @@ Correção: subdomínio próprio `auth.socialshelf.com.br` configurado como dom�
 1. Firebase Hosting bootstrado — nunca tinha um site implantado neste projeto (ver seção "Firebase Hosting bootstrado" em `_local-adr-policy-010`).
 2. `auth.socialshelf.com.br` cadastrado no Hosting via modo "Configuração rápida" — um único CNAME resolve verificação + conexão: `auth.socialshelf.com.br CNAME socialshelf-547da.web.app`, adicionado no registro.br sem tocar nenhum registro existente.
 3. Verificação de DNS concluída automaticamente assim que o CNAME propagou.
-4. **Pendente**: certificado SSL em provisionamento pelo Firebase ("Creating certificate" — até 24h pelo aviso do próprio Console).
-5. **Pendente, após o certificado ficar pronto**: trocar o secret `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` (GitHub Actions) de `socialshelf-547da.firebaseapp.com` para `auth.socialshelf.com.br`, redeploy do `web-service`, e reverter a instrumentação de debug temporária em `login/page.tsx`/`signup/page.tsx` de volta pra mensagens genéricas.
+4. Certificado SSL provisionado ("Connected"), `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` trocado para `auth.socialshelf.com.br` e `web-service` redeployado.
+
+**O `authDomain` customizado não foi suficiente sozinho — duas causas adicionais, reais, descobertas com evidência (2026-07-12)**
+
+Depois do passo 4 acima, o login continuava falhando igual (Safari **e também Chrome**, o que descartou a teoria de que fosse exclusivamente ITP/Safari). Duas causas reais, confirmadas uma a uma antes de qualquer tentativa de correção:
+
+1. **`auth.socialshelf.com.br` faltava em Authentication → Settings → Authorized domains** (lista própria do Firebase Auth, separada da lista de redirect URIs do OAuth Client do Google Cloud). Sem isso, a própria página `__/auth/handler` recusa a origem e nem chega a redirecionar pro Google. Confirmado via chamada direta a `GET https://identitytoolkit.googleapis.com/v1/projects?key=<apiKey>` (endpoint público, sem necessidade de navegador) antes e depois da correção. Corrigido pelo Cowork; resolveu o Chrome, mas não o Safari.
+2. **No Safari, mesmo alcançando o Google e completando o login, `getRedirectResult()` continuava resolvendo `null`.** Causa raiz identificada lendo o código-fonte do `@firebase/auth` instalado (`node_modules`): o SDK recupera o resultado do redirect através de um iframe cross-origin oculto (`BrowserPopupRedirectResolver` → `_openIframe`/`gapi.iframes`, apontando para `auth.socialshelf.com.br`), que troca mensagens via `postMessage` — mecanismo sensível a bloqueio de armazenamento de terceiros no WebKit, mesmo com `authDomain` no mesmo eTLD+1 do app (a partição do Safari se aplica ao contexto de iframe embutido, não apenas à navegação de topo). Não há correção de configuração para isso — é uma limitação estrutural do `signInWithRedirect`/`signInWithPopup` do Firebase Auth combinado com Safari.
+
+**Correção definitiva — Google Identity Services substitui o redirect/popup resolver do Firebase (2026-07-12)**
+
+Trocada a forma de obter a credencial do Google: em vez de `signInWithRedirect`/`getRedirectResult` (que dependem do iframe acima), o app agora usa o **Google Identity Services** (`accounts.google.com/gsi/client`, o mecanismo atual do "Sign in with Google") para obter o ID token direto no navegador, e então `signInWithCredential(auth, GoogleAuthProvider.credential(idToken))` para completar o login — sem depender do iframe/redirect resolver do Firebase em nenhum momento. Implementado em `apps/web/src/components/GoogleSignInButton.tsx`, reutilizado por `login` e `signup`. Precisou de mais uma peça de configuração real, também descoberta por erro concreto (`Erro 400: origin_mismatch`) e não por suposição: `https://socialshelf.com.br` precisou ser adicionado em **Authorized JavaScript origins** do mesmo OAuth Client (distinto de Authorized redirect URIs, que valida o `authDomain`; JavaScript origins valida a página que chama o SDK do Google diretamente). Confirmado funcionando em Safari e Chrome (iPhone) em 2026-07-12, após propagação da mudança de origem (levou uma tentativa a mais na primeira vez).
+
+Requer a variável `NEXT_PUBLIC_GOOGLE_CLIENT_ID` (Client ID OAuth do mesmo "Web client" usado pelo Firebase Auth) como GitHub secret — já cadastrada.
+
+A instrumentação de debug temporária (mensagens `Debug: ...` em `login/page.tsx`/`signup/page.tsx`) foi removida junto com a troca, já que o fluxo antigo (`signInWithRedirect`) deixou de ser usado.
 
 ## References
 
