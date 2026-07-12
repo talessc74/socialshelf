@@ -149,6 +149,21 @@ jobs:
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
           sleep 60
 
+      # Diagnóstico temporário: as tentativas anteriores de bootstrap do Firebase
+      # Hosting (runs #274-276) falharam com "Failed to get Firebase project" mesmo
+      # após conceder roles/firebasehosting.admin e roles/firebase.admin ao deployer
+      # SA — mas o self-grant delas roda com "|| true", então uma falha silenciosa
+      # de permissão pra conceder essas roles nunca apareceria no log. Este step
+      # mostra de fato quais roles o deployer SA tem no projeto agora.
+      - name: Debug — listar roles do deployer SA
+        env:
+          DEPLOYER_SA: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        run: |
+          gcloud projects get-iam-policy ${{ env.GCP_PROJECT_ID }} \
+            --flatten="bindings[].members" \
+            --filter="bindings.members:serviceAccount:${DEPLOYER_SA}" \
+            --format="table(bindings.role)"
+
       # Firebase Hosting nunca tinha sido implantado neste projeto — sem um site de
       # Hosting existente, o Console não permite anexar um domínio customizado (testado
       # via Cowork em 2026-07-12). Este deploy só existe pra criar o site padrão
