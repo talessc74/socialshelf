@@ -2,15 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  createUserWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
-} from 'firebase/auth'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
 import Link from 'next/link'
 import { auth } from '../../lib/firebase'
 import { useAuth } from '../../contexts/AuthContext'
+import GoogleSignInButton from '../../components/GoogleSignInButton'
 
 function authErrorMessage(err: unknown): string {
   const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : ''
@@ -32,51 +28,6 @@ export default function SignupPage() {
     if (!loading && user) router.replace('/dashboard')
   }, [user, loading, router])
 
-  useEffect(() => {
-    // Diagnóstico temporário: captura erros globais (window.onerror,
-    // unhandledrejection) que o Firebase pode disparar fora da promise de
-    // getRedirectResult (ex: falha no iframe oculto __/auth/iframe.html usado
-    // para recuperar o resultado do redirect), enquanto investigamos a falha
-    // do login com Google no Safari.
-    const onError = (event: ErrorEvent) => {
-      setError((prev) => `${prev ? prev + ' | ' : ''}Debug(window.onerror): ${event.message}`)
-    }
-    const onRejection = (event: PromiseRejectionEvent) => {
-      const reason = event.reason
-      const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)
-      setError((prev) => `${prev ? prev + ' | ' : ''}Debug(unhandledrejection): ${message}`)
-    }
-    window.addEventListener('error', onError)
-    window.addEventListener('unhandledrejection', onRejection)
-    return () => {
-      window.removeEventListener('error', onError)
-      window.removeEventListener('unhandledrejection', onRejection)
-    }
-  }, [])
-
-  useEffect(() => {
-    // Diagnóstico temporário: mostra o erro real do Firebase (ou a ausência de
-    // resultado) em vez da mensagem genérica, enquanto investigamos a falha do
-    // login com Google via signInWithRedirect no Safari.
-    const attempted = sessionStorage.getItem('googleSignInAttempted') === '1'
-    sessionStorage.removeItem('googleSignInAttempted')
-    getRedirectResult(auth)
-      .then((result) => {
-        if (attempted && !result) {
-          const env = `ua=${navigator.userAgent} | cookiesEnabled=${navigator.cookieEnabled} | indexedDB=${typeof indexedDB !== 'undefined'}`
-          setError(
-            (prev) =>
-              `${prev ? prev + ' | ' : ''}Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null). ${env}`,
-          )
-        }
-      })
-      .catch((err) => {
-        const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : 'sem código'
-        const message = err instanceof Error ? err.message : String(err)
-        setError((prev) => `${prev ? prev + ' | ' : ''}Debug: falha no login Google — ${code} — ${message}`)
-      })
-  }, [])
-
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -87,21 +38,6 @@ export default function SignupPage() {
     } catch (err) {
       setError(authErrorMessage(err))
     } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleGoogle = async () => {
-    setError('')
-    setBusy(true)
-    sessionStorage.setItem('googleSignInAttempted', '1')
-    try {
-      await signInWithRedirect(auth, new GoogleAuthProvider())
-    } catch (err) {
-      sessionStorage.removeItem('googleSignInAttempted')
-      const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : 'sem código'
-      const message = err instanceof Error ? err.message : String(err)
-      setError(`Debug: falha ao iniciar redirect — ${code} — ${message}`)
       setBusy(false)
     }
   }
@@ -156,31 +92,7 @@ export default function SignupPage() {
           <div className="h-px flex-1 bg-contrast-ink/15" />
         </div>
 
-        <button
-          onClick={handleGoogle}
-          disabled={busy}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-contrast-ink/15 bg-card/90 px-4 py-2 text-sm font-medium text-ink hover:bg-card disabled:opacity-50"
-        >
-          <svg className="h-4 w-4" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-            />
-          </svg>
-          Entrar com Google
-        </button>
+        <GoogleSignInButton onSuccess={() => router.replace('/dashboard')} onError={setError} />
 
         <p className="mt-6 text-center text-sm text-ink/60">
           Já tem conta?{' '}

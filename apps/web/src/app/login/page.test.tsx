@@ -1,10 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import LoginPage from './page'
 
-const { signInWithRedirectMock, getRedirectResultMock, signInWithEmailAndPasswordMock } = vi.hoisted(() => ({
-  signInWithRedirectMock: vi.fn().mockResolvedValue(undefined),
-  getRedirectResultMock: vi.fn().mockResolvedValue(null),
+const { signInWithEmailAndPasswordMock } = vi.hoisted(() => ({
   signInWithEmailAndPasswordMock: vi.fn(),
 }))
 
@@ -22,69 +20,29 @@ vi.mock('../../lib/firebase', () => ({
 
 vi.mock('firebase/auth', () => ({
   signInWithEmailAndPassword: signInWithEmailAndPasswordMock,
-  signInWithRedirect: signInWithRedirectMock,
-  getRedirectResult: getRedirectResultMock,
-  GoogleAuthProvider: vi.fn(),
+}))
+
+vi.mock('../../components/GoogleSignInButton', () => ({
+  default: () => <div data-testid="google-signin-button" />,
 }))
 
 describe('LoginPage', () => {
-  beforeEach(() => {
-    sessionStorage.clear()
-  })
-
-  it('calls getRedirectResult on mount to pick up a pending Google redirect', async () => {
+  it('renders the Google sign-in button', () => {
     render(<LoginPage />)
 
-    await waitFor(() => {
-      expect(getRedirectResultMock).toHaveBeenCalledWith({})
-    })
+    expect(screen.getByTestId('google-signin-button')).toBeInTheDocument()
   })
 
-  it('uses signInWithRedirect (not a popup) when "Entrar com Google" is clicked', async () => {
+  it('shows a generic error when email/password login fails', async () => {
+    signInWithEmailAndPasswordMock.mockRejectedValueOnce(new Error('invalid'))
     render(<LoginPage />)
 
-    fireEvent.click(screen.getByRole('button', { name: /entrar com google/i }))
+    fireEvent.change(screen.getByPlaceholderText('seu@email.com'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByPlaceholderText('••••••••'), { target: { value: 'password' } })
+    fireEvent.click(screen.getByRole('button', { name: /entrar/i }))
 
     await waitFor(() => {
-      expect(signInWithRedirectMock).toHaveBeenCalled()
+      expect(screen.getByText('Email ou senha inválidos.')).toBeInTheDocument()
     })
-    expect(sessionStorage.getItem('googleSignInAttempted')).toBe('1')
-  })
-
-  it('shows the real Firebase error code when the pending redirect result fails', async () => {
-    getRedirectResultMock.mockRejectedValueOnce(
-      Object.assign(new Error('The domain is not authorized'), { code: 'auth/unauthorized-domain' }),
-    )
-    render(<LoginPage />)
-
-    await waitFor(() => {
-      expect(
-        screen.getByText('Debug: falha no login Google — auth/unauthorized-domain — The domain is not authorized'),
-      ).toBeInTheDocument()
-    })
-  })
-
-  it('shows a debug message when returning from an attempted Google redirect with no result', async () => {
-    sessionStorage.setItem('googleSignInAttempted', '1')
-    getRedirectResultMock.mockResolvedValueOnce(null)
-    render(<LoginPage />)
-
-    await waitFor(() => {
-      expect(
-        screen.getByText(
-          /Debug: voltou do Google sem erro, mas getRedirectResult\(\) não retornou um usuário \(result=null\)\./,
-        ),
-      ).toBeInTheDocument()
-    })
-  })
-
-  it('shows no error on a normal page load with no pending redirect attempt', async () => {
-    getRedirectResultMock.mockResolvedValueOnce(null)
-    render(<LoginPage />)
-
-    await waitFor(() => {
-      expect(getRedirectResultMock).toHaveBeenCalled()
-    })
-    expect(screen.queryByText(/Debug:/)).not.toBeInTheDocument()
   })
 })
