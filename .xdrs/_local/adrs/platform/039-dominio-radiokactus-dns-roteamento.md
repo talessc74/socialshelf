@@ -108,9 +108,9 @@ Ao introduzir `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com` 
 
 **Consequência**: o deploy #269 (commit `f5e33a7`) buildou e passou em todos os outros serviços (web, generator, publisher), mas o `api-service` nunca recebeu o código novo — continuou rodando a imagem anterior, sem a variável `CORS_ORIGINS` (só aceitando `radiokactus.com`). Isso não afeta a página em si nem o login com Google (que fala direto com Firebase/Google, sem passar pelo `api-service`), mas quebraria qualquer chamada autenticada do frontend em `socialshelf.com.br` pro `api-service` (buscar perfil de marca, conexões, etc.) até o deploy seguinte corrigir o delimitador.
 
-**Código ainda não migrado — intencional**
+**Código restante migrado para socialshelf.com.br (2026-07-12)**
 
-`WEB_URL`, `NEXT_PUBLIC_API_URL` (ambos em `deploy.yml`) e o fallback hardcoded em `apps/publisher/src/routes/publish.routes.ts` continuam apontando para `radiokactus.com`, assim como o e-mail de contato em `terms/page.tsx` e `privacy/page.tsx`. Decisão deliberada: não trocar `WEB_URL`/CORS para `socialshelf.com.br` em produção antes de LinkedIn e TikTok aceitarem o redirect novo — trocar antes quebraria OAuth dessas duas plataformas.
+Com Meta, X, LinkedIn e TikTok já aceitando o redirect de `socialshelf.com.br` (seção acima), a condição que impedia a troca deixou de existir. Migrados: `WEB_URL` (`api-service` e `publisher-service`, em `deploy.yml`) e `NEXT_PUBLIC_API_URL` (`web-service`, build-arg em `deploy.yml`) de `radiokactus.com`/`api.radiokactus.com` para `socialshelf.com.br`/`api.socialshelf.com.br`; o fallback hardcoded de URL de vídeo do TikTok em `apps/publisher/src/routes/publish.routes.ts`; e o e-mail de contato em `terms/page.tsx` e `privacy/page.tsx` (`contato@socialshelf.com.br`, confirmado com caixa de entrada já ativa antes da troca). `CORS_ORIGINS` do `api-service` permanece com os dois domínios — `radiokactus.com` não foi removido de nenhuma configuração, apenas deixou de ser o valor padrão/fallback.
 
 **Meta App Review — bloqueio não relacionado a DNS**
 

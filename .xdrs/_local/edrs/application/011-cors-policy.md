@@ -36,6 +36,10 @@ Em produção: `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com`
 
 **Redirect pós-OAuth de volta pro domínio de origem**: resolvido — ver `_local-adr-policy-014` (seção "webOrigin embarcado"). O mesmo array retornado por `getAllowedWebOrigins()` é reaproveitado para validar o header `Origin` recebido em `/oauth/{platform}/authorize` antes de embarcá-lo no state assinado.
 
+**`WEB_URL` migrado para socialshelf.com.br (2026-07-12)**
+
+Com Meta, X, LinkedIn e TikTok já aceitando o redirect de `socialshelf.com.br` (ver `_local-adr-policy-039`), `WEB_URL` do `api-service` e do `publisher-service` deixou de apontar para `radiokactus.com` e passou a ser `https://socialshelf.com.br` — esse é agora o valor de fallback usado nas rotas de callback OAuth (`apps/api/src/routes/oauth/*.routes.ts`) quando `validated.webOrigin` não está presente. `CORS_ORIGINS` não muda: continua com os dois domínios (`radiokactus.com` segue aceito via CORS/redirect URIs paralelos, apenas deixou de ser o padrão).
+
 **Por que `credentials: true`**
 
 O frontend envia o Firebase ID Token no header `Authorization: Bearer`. Sem `credentials: true`, o browser bloqueia requisições com headers personalizados em contexto cross-origin.
