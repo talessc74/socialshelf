@@ -25,12 +25,24 @@ export default function LoginPage() {
   }, [user, loading, router])
 
   useEffect(() => {
-    // Safari (ITP) bloqueia a comunicação entre a janela principal e o pop-up do
-    // signInWithPopup — o login com Google usa signInWithRedirect em vez disso, e o
-    // resultado só chega aqui, ao voltar do Google.
-    getRedirectResult(auth).catch(() => {
-      setError('Não foi possível entrar com Google.')
-    })
+    // Diagnóstico temporário: mostra o erro real do Firebase (ou a ausência de
+    // resultado) em vez da mensagem genérica, enquanto investigamos a falha do
+    // login com Google via signInWithRedirect no Safari.
+    const attempted = sessionStorage.getItem('googleSignInAttempted') === '1'
+    sessionStorage.removeItem('googleSignInAttempted')
+    getRedirectResult(auth)
+      .then((result) => {
+        if (attempted && !result) {
+          setError(
+            'Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null).',
+          )
+        }
+      })
+      .catch((err) => {
+        const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : 'sem código'
+        const message = err instanceof Error ? err.message : String(err)
+        setError(`Debug: falha no login Google — ${code} — ${message}`)
+      })
   }, [])
 
   const handleEmail = async (e: React.FormEvent) => {
@@ -50,10 +62,14 @@ export default function LoginPage() {
   const handleGoogle = async () => {
     setError('')
     setBusy(true)
+    sessionStorage.setItem('googleSignInAttempted', '1')
     try {
       await signInWithRedirect(auth, new GoogleAuthProvider())
-    } catch {
-      setError('Não foi possível entrar com Google.')
+    } catch (err) {
+      sessionStorage.removeItem('googleSignInAttempted')
+      const code = err instanceof Error && 'code' in err ? String((err as { code: unknown }).code) : 'sem código'
+      const message = err instanceof Error ? err.message : String(err)
+      setError(`Debug: falha ao iniciar redirect — ${code} — ${message}`)
       setBusy(false)
     }
   }

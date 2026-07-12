@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import LoginPage from './page'
 
@@ -28,6 +28,10 @@ vi.mock('firebase/auth', () => ({
 }))
 
 describe('LoginPage', () => {
+  beforeEach(() => {
+    sessionStorage.clear()
+  })
+
   it('calls getRedirectResult on mount to pick up a pending Google redirect', async () => {
     render(<LoginPage />)
 
@@ -44,14 +48,43 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(signInWithRedirectMock).toHaveBeenCalled()
     })
+    expect(sessionStorage.getItem('googleSignInAttempted')).toBe('1')
   })
 
-  it('shows a generic error when the pending redirect result fails', async () => {
-    getRedirectResultMock.mockRejectedValueOnce(new Error('unauthorized-domain'))
+  it('shows the real Firebase error code when the pending redirect result fails', async () => {
+    getRedirectResultMock.mockRejectedValueOnce(
+      Object.assign(new Error('The domain is not authorized'), { code: 'auth/unauthorized-domain' }),
+    )
     render(<LoginPage />)
 
     await waitFor(() => {
-      expect(screen.getByText('Não foi possível entrar com Google.')).toBeInTheDocument()
+      expect(
+        screen.getByText('Debug: falha no login Google — auth/unauthorized-domain — The domain is not authorized'),
+      ).toBeInTheDocument()
     })
+  })
+
+  it('shows a debug message when returning from an attempted Google redirect with no result', async () => {
+    sessionStorage.setItem('googleSignInAttempted', '1')
+    getRedirectResultMock.mockResolvedValueOnce(null)
+    render(<LoginPage />)
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'Debug: voltou do Google sem erro, mas getRedirectResult() não retornou um usuário (result=null).',
+        ),
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('shows no error on a normal page load with no pending redirect attempt', async () => {
+    getRedirectResultMock.mockResolvedValueOnce(null)
+    render(<LoginPage />)
+
+    await waitFor(() => {
+      expect(getRedirectResultMock).toHaveBeenCalled()
+    })
+    expect(screen.queryByText(/Debug:/)).not.toBeInTheDocument()
   })
 })
