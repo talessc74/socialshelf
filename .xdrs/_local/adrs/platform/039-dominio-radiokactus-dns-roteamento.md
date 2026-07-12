@@ -116,6 +116,17 @@ Ao introduzir `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com` 
 
 Fora do escopo desta ADR: a submissão à Meta Business Verification está bloqueada pela falta de CNPJ regularizado da Rádio Kactus, independente do estado do domínio.
 
+**Login com Google no Safari — causa raiz confirmada e correção em andamento (2026-07-12)**
+
+Após migrar `signInWithPopup` para `signInWithRedirect` (ver `_local-edr-policy-011`), o login com Google em `socialshelf.com.br` continuava falhando no Safari (completa a ida ao Google, `getRedirectResult()` retorna `null` sem erro). Causa raiz confirmada via instrumentação de debug: o Safari (ITP) particiona o armazenamento usado pelo Firebase Auth para completar o redirect, porque o `authDomain` do projeto (`socialshelf-547da.firebaseapp.com`) é um domínio de terceiro em relação a `socialshelf.com.br` — problema documentado pelo próprio Firebase ("Redirect best practices for authentication"), que afeta qualquer domínio usando o `authDomain` padrão, não é exclusivo de `socialshelf.com.br` (também afetaria `radiokactus.com` sob o mesmo teste, nunca verificado).
+
+Correção: subdomínio próprio `auth.socialshelf.com.br` configurado como domínio customizado do Firebase Hosting (mesmo eTLD+1 do app — Safari trata como primeira parte, não particiona). Passos concluídos:
+1. Firebase Hosting bootstrado — nunca tinha um site implantado neste projeto (ver seção "Firebase Hosting bootstrado" em `_local-adr-policy-010`).
+2. `auth.socialshelf.com.br` cadastrado no Hosting via modo "Configuração rápida" — um único CNAME resolve verificação + conexão: `auth.socialshelf.com.br CNAME socialshelf-547da.web.app`, adicionado no registro.br sem tocar nenhum registro existente.
+3. Verificação de DNS concluída automaticamente assim que o CNAME propagou.
+4. **Pendente**: certificado SSL em provisionamento pelo Firebase ("Creating certificate" — até 24h pelo aviso do próprio Console).
+5. **Pendente, após o certificado ficar pronto**: trocar o secret `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` (GitHub Actions) de `socialshelf-547da.firebaseapp.com` para `auth.socialshelf.com.br`, redeploy do `web-service`, e reverter a instrumentação de debug temporária em `login/page.tsx`/`signup/page.tsx` de volta pra mensagens genéricas.
+
 ## References
 
 - [_local-adr-policy-010-gcp-infrastructure-baseline](010-gcp-infrastructure.md) - Cloud Run como runtime do `web-service` que hoje responde por este domínio
