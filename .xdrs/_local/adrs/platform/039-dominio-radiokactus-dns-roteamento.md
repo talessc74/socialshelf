@@ -94,8 +94,8 @@ Redirect URIs de `https://api.socialshelf.com.br/...` foram adicionadas (mantend
 
 - Meta for Developers — ✅ adicionado
 - X (Twitter) Developer Portal (app 33038648) — ✅ adicionado
-- LinkedIn Developer Portal — ⏳ pendente (sessão de login necessária no painel)
-- TikTok for Developers — ⏳ pendente (sessão de login necessária no painel; inclui também a reverificação de domínio separada exigida pelo Content Posting API, ver `_local-edr-policy-035`)
+- LinkedIn Developer Portal — ✅ adicionado nos dois apps existentes: "SocialShelf" (pessoal, `linkedin/callback`) e "SocialShelf Pages" (`linkedin-page/callback`)
+- TikTok for Developers — ⏳ pendente. Login via Chrome (navegador usado pelo Cowork) retornou erro anômalo de "conta não existe" com as mesmas credenciais que funcionam no Safari — suspeita de detecção de automação (extensão Claude for Chrome) pelo anti-bot do TikTok. Usuário optou por concluir esta etapa manualmente, fora do Cowork. Inclui também a reverificação de domínio separada exigida pelo Content Posting API (ver `_local-edr-policy-035`)
 
 **Código ainda não migrado — intencional**
 
