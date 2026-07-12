@@ -102,6 +102,12 @@ Redirect URIs de `https://api.socialshelf.com.br/...` foram adicionadas (mantend
 
 Com isso, **todas as 4 integrações OAuth e a verificação de domínio do TikTok já migraram para `socialshelf.com.br`.** Falta apenas confirmar se "Apply changes" foi salvo no Sandbox-1 do TikTok, e então aplicar as mudanças de código (`WEB_URL`, `NEXT_PUBLIC_API_URL`, e-mail em terms/privacy, fallback do publisher).
 
+**Drift de deploy — `--set-env-vars` com vírgula dentro do valor de `CORS_ORIGINS` quebra o parsing do gcloud (2026-07-12)**
+
+Ao introduzir `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com` no `api-service` (`_local-edr-policy-011`), o deploy #269 falhou no step "Deploy api-service to Cloud Run" com `Bad syntax for dict arg: [https://radiokactus.com]`. Causa: `gcloud run deploy --set-env-vars` usa vírgula como separador entre pares `KEY=VALUE`; uma vírgula dentro do próprio valor quebra o parsing — o mesmo problema que o `generator-service` já contornava para `TRUSTED_NEWS_DOMAINS` usando delimitador alternativo (`--set-env-vars="^#^${VARS}"`, com `#` no lugar de `,` entre variáveis). Corrigido aplicando o mesmo padrão ao `api-service`: delimitador trocado para `;` (`--set-env-vars="^;^${VARS}"`), liberando a vírgula para uso dentro do valor de `CORS_ORIGINS`.
+
+**Consequência**: o deploy #269 (commit `f5e33a7`) buildou e passou em todos os outros serviços (web, generator, publisher), mas o `api-service` nunca recebeu o código novo — continuou rodando a imagem anterior, sem a variável `CORS_ORIGINS` (só aceitando `radiokactus.com`). Isso não afeta a página em si nem o login com Google (que fala direto com Firebase/Google, sem passar pelo `api-service`), mas quebraria qualquer chamada autenticada do frontend em `socialshelf.com.br` pro `api-service` (buscar perfil de marca, conexões, etc.) até o deploy seguinte corrigir o delimitador.
+
 **Código ainda não migrado — intencional**
 
 `WEB_URL`, `NEXT_PUBLIC_API_URL` (ambos em `deploy.yml`) e o fallback hardcoded em `apps/publisher/src/routes/publish.routes.ts` continuam apontando para `radiokactus.com`, assim como o e-mail de contato em `terms/page.tsx` e `privacy/page.tsx`. Decisão deliberada: não trocar `WEB_URL`/CORS para `socialshelf.com.br` em produção antes de LinkedIn e TikTok aceitarem o redirect novo — trocar antes quebraria OAuth dessas duas plataformas.

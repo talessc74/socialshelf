@@ -181,36 +181,40 @@ jobs:
 
       - name: Deploy api-service to Cloud Run
         run: |
+          # Delimitador trocado de vírgula para ';' (sintaxe --set-env-vars="^;^...") porque
+          # CORS_ORIGINS carrega uma lista separada por vírgula (socialshelf.com.br,radiokactus.com) —
+          # com o delimitador padrão, gcloud interpreta cada vírgula como um novo par KEY=VALUE e
+          # falha com "Bad syntax for dict arg" (visto no run 269/#f5e33a7).
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
-          VARS="${VARS},GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
-          VARS="${VARS},WEB_URL=https://radiokactus.com"
-          VARS="${VARS},CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com"
-          VARS="${VARS},X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
-          VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
-          VARS="${VARS},X_REDIRECT_URI=https://api.socialshelf.com.br/oauth/x/callback"
-          VARS="${VARS},LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}"
-          VARS="${VARS},LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}"
-          VARS="${VARS},LINKEDIN_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin/callback"
-          VARS="${VARS},LINKEDIN_PAGE_CLIENT_ID=${{ secrets.LINKEDIN_PAGE_CLIENT_ID }}"
-          VARS="${VARS},LINKEDIN_PAGE_CLIENT_SECRET=${{ secrets.LINKEDIN_PAGE_CLIENT_SECRET }}"
-          VARS="${VARS},LINKEDIN_PAGE_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin-page/callback"
-          VARS="${VARS},META_APP_ID=${{ secrets.META_APP_ID }}"
-          VARS="${VARS},META_APP_SECRET=${{ secrets.META_APP_SECRET }}"
-          VARS="${VARS},META_REDIRECT_URI=https://api.socialshelf.com.br/oauth/meta/callback"
-          VARS="${VARS},TIKTOK_CLIENT_KEY=${{ secrets.TIKTOK_CLIENT_KEY }}"
-          VARS="${VARS},TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}"
-          VARS="${VARS},TIKTOK_REDIRECT_URI=https://api.socialshelf.com.br/oauth/tiktok/callback"
-          VARS="${VARS},PUBLISHER_URL=${{ needs.deploy-publisher.outputs.service-url }}"
-          VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
-          VARS="${VARS},INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
-          VARS="${VARS},CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
+          VARS="${VARS};GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          VARS="${VARS};WEB_URL=https://radiokactus.com"
+          VARS="${VARS};CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com"
+          VARS="${VARS};X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
+          VARS="${VARS};X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
+          VARS="${VARS};X_REDIRECT_URI=https://api.socialshelf.com.br/oauth/x/callback"
+          VARS="${VARS};LINKEDIN_CLIENT_ID=${{ secrets.LINKEDIN_CLIENT_ID }}"
+          VARS="${VARS};LINKEDIN_CLIENT_SECRET=${{ secrets.LINKEDIN_CLIENT_SECRET }}"
+          VARS="${VARS};LINKEDIN_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin/callback"
+          VARS="${VARS};LINKEDIN_PAGE_CLIENT_ID=${{ secrets.LINKEDIN_PAGE_CLIENT_ID }}"
+          VARS="${VARS};LINKEDIN_PAGE_CLIENT_SECRET=${{ secrets.LINKEDIN_PAGE_CLIENT_SECRET }}"
+          VARS="${VARS};LINKEDIN_PAGE_REDIRECT_URI=https://api.socialshelf.com.br/oauth/linkedin-page/callback"
+          VARS="${VARS};META_APP_ID=${{ secrets.META_APP_ID }}"
+          VARS="${VARS};META_APP_SECRET=${{ secrets.META_APP_SECRET }}"
+          VARS="${VARS};META_REDIRECT_URI=https://api.socialshelf.com.br/oauth/meta/callback"
+          VARS="${VARS};TIKTOK_CLIENT_KEY=${{ secrets.TIKTOK_CLIENT_KEY }}"
+          VARS="${VARS};TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}"
+          VARS="${VARS};TIKTOK_REDIRECT_URI=https://api.socialshelf.com.br/oauth/tiktok/callback"
+          VARS="${VARS};PUBLISHER_URL=${{ needs.deploy-publisher.outputs.service-url }}"
+          VARS="${VARS};GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
+          VARS="${VARS};INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}"
+          VARS="${VARS};CSRF_SECRET=${{ secrets.CSRF_SECRET }}"
           gcloud run deploy api-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/api:${{ github.sha }} \
             --region=${{ env.GCP_REGION }} \
             --platform=managed \
             --allow-unauthenticated \
             --service-account=api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com \
-            --set-env-vars="${VARS}" \
+            --set-env-vars="^;^${VARS}" \
             --min-instances=0 \
             --max-instances=3 \
             --memory=512Mi \
