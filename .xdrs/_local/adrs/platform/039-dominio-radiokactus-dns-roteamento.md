@@ -92,10 +92,10 @@ Mapeamento confirmado com status ativo (certificado provisionado e verificado) e
 
 Redirect URIs de `https://api.socialshelf.com.br/...` foram adicionadas (mantendo as de `radiokactus.com` em paralelo, sem remoção):
 
-- Meta for Developers — ✅ adicionado
-- X (Twitter) Developer Portal (app 33038648) — ✅ adicionado
-- LinkedIn Developer Portal — ✅ adicionado nos dois apps existentes: "SocialShelf" (pessoal, `linkedin/callback`) e "SocialShelf Pages" (`linkedin-page/callback`)
-- TikTok for Developers — ✅ concluído manualmente pelo usuário (login via Chrome do Cowork apresentava erro anômalo de "conta não existe", suspeita de detecção de automação pelo anti-bot do TikTok):
+- Meta for Developers — adicionado
+- X (Twitter) Developer Portal (app 33038648) — adicionado
+- LinkedIn Developer Portal — adicionado nos dois apps existentes: "SocialShelf" (pessoal, `linkedin/callback`) e "SocialShelf Pages" (`linkedin-page/callback`)
+- TikTok for Developers — concluído manualmente pelo usuário (login via Chrome do Cowork apresentava erro anômalo de "conta não existe", suspeita de detecção de automação pelo anti-bot do TikTok):
   - Redirect URI `https://api.socialshelf.com.br/oauth/tiktok/callback` já presente no Sandbox-1.
   - App details (Sandbox-1) atualizado: Terms of Service, Privacy Policy e Web/Desktop URL apontam agora para `socialshelf.com.br`.
   - Verificação de domínio do Content Posting API (pull_by_url, ver `_local-edr-policy-035`) — tipo "Domain", método DNS TXT record. Registro `tiktok-developers-site-verification=YgzlKtkb1M4hAC34VA1KSYCXwjCZ8FBA` adicionado na raiz da zona DNS de `socialshelf.com.br` (via Cowork, registro.br) e verificado com sucesso ("Your property has been verified").

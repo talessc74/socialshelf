@@ -8,9 +8,9 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 ## Conteúdo
 
-### ADRs — Decisões Arquiteturais (40 documentos)
+### ADRs — Decisões Arquiteturais (41 documentos)
 
-Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes, Cloud Scheduler para publicação agendada com scale-to-zero, integração TikTok (OAuth, publicação multi-etapa), geração de vídeo assíncrona com sincronização de áudio, ativação do modo automático de publicação e a espinha dorsal de campanhas de fotos.
+Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes, Cloud Scheduler para publicação agendada com scale-to-zero, integração TikTok (OAuth, publicação multi-etapa), geração de vídeo assíncrona com sincronização de áudio, ativação do modo automático de publicação, a espinha dorsal de campanhas de fotos e login com Google via Google Identity Services.
 
 ### EDRs — Decisões de Engenharia (42 documentos)
 

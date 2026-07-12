@@ -66,6 +66,7 @@ Infraestrutura de plataforma e serviços GCP.
 - [_local-adr-policy-023-iam-papeis-por-servico](platform/023-iam-policies.md) - Papéis IAM mínimos por service account: princípio do mínimo privilégio por serviço
 - [_local-adr-policy-033-cloud-scheduler-wake-up-do-publisher](platform/033-cloud-scheduler-scale-to-zero.md) - Cloud Scheduler acorda o publisher-service a cada minuto via HTTP para garantir publicação agendada com min-instances=0
 - [_local-adr-policy-039-dominio-radiokactus-com-dns-e-roteamento](platform/039-dominio-radiokactus-dns-roteamento.md) - Estado real do DNS de radiokactus.com: registrador Hostgator, raiz respondida pelo Google (Cloud Run), entrada Vercel legada não removida
+- [_local-adr-policy-042-google-sign-in-identity-services](platform/042-google-sign-in-identity-services.md) - Login com Google via Google Identity Services + signInWithCredential, substituindo signInWithRedirect do Firebase Auth (iframe cross-origin bloqueado no Safari)
 
 ### operations
 Decisões operacionais e de resposta a incidentes.
