@@ -47,10 +47,10 @@ export function buildPublishPostUseCase(): PublishPostUseCase {
   }
 
   // TikTok exige domínio verificado no vídeo servido via PULL_FROM_URL
-  // (_local-adr-policy-035) — radiokactus.com já é verificado (_local-adr-policy-039),
+  // (_local-adr-policy-035) — socialshelf.com.br já é verificado (_local-adr-policy-039),
   // então a URL aponta para o proxy em apps/web, não direto para o Cloud Storage
   // (que exigiria verificar o domínio do bucket separadamente).
-  const webUrl = process.env['WEB_URL'] ?? 'https://radiokactus.com'
+  const webUrl = process.env['WEB_URL'] ?? 'https://socialshelf.com.br'
   // Token assinado com TTL curto (_local-adr-policy-035 — risco aceito na EDR-035 original,
   // fechado aqui): sem ele, o path do vídeo funcionaria como acesso indefinido ao arquivo.
   const resolveTikTokVideoUrl = async (path: string): Promise<string> =>

@@ -162,8 +162,8 @@ export default function PrivacyPage() {
             <p>
               Dúvidas sobre esta política ou solicitações relacionadas aos seus dados
               podem ser enviadas para{' '}
-              <a href="mailto:contato@radiokactus.com" className="font-medium text-accent hover:underline">
-                contato@radiokactus.com
+              <a href="mailto:contato@socialshelf.com.br" className="font-medium text-accent hover:underline">
+                contato@socialshelf.com.br
               </a>
               .
             </p>

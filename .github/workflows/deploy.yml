@@ -241,7 +241,7 @@ jobs:
           # falha com "Bad syntax for dict arg" (visto no run 269/#f5e33a7).
           VARS="FIREBASE_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
           VARS="${VARS};GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
-          VARS="${VARS};WEB_URL=https://radiokactus.com"
+          VARS="${VARS};WEB_URL=https://socialshelf.com.br"
           VARS="${VARS};CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com"
           VARS="${VARS};X_CLIENT_ID=${{ secrets.X_CLIENT_ID }}"
           VARS="${VARS};X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
@@ -321,7 +321,7 @@ jobs:
           VARS="${VARS},X_CLIENT_SECRET=${{ secrets.X_CLIENT_SECRET }}"
           VARS="${VARS},TIKTOK_CLIENT_KEY=${{ secrets.TIKTOK_CLIENT_KEY }}"
           VARS="${VARS},TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}"
-          VARS="${VARS},WEB_URL=https://radiokactus.com"
+          VARS="${VARS},WEB_URL=https://socialshelf.com.br"
           VARS="${VARS},GENERATOR_URL=${{ needs.deploy-generator.outputs.service-url }}"
           gcloud run deploy publisher-service \
             --image=${{ env.ARTIFACT_REGISTRY }}/publisher:${{ github.sha }} \
@@ -580,7 +580,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=https://api.radiokactus.com
+            NEXT_PUBLIC_API_URL=https://api.socialshelf.com.br
             NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
             NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
             NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}

@@ -113,8 +113,8 @@ export default function TermsPage() {
             <h2 className="mb-2 text-lg font-semibold text-ink">9. Contato</h2>
             <p>
               Dúvidas sobre estes termos podem ser enviadas para{' '}
-              <a href="mailto:contato@radiokactus.com" className="font-medium text-accent hover:underline">
-                contato@radiokactus.com
+              <a href="mailto:contato@socialshelf.com.br" className="font-medium text-accent hover:underline">
+                contato@socialshelf.com.br
               </a>
               .
             </p>
