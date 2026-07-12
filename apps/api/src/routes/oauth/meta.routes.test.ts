@@ -25,7 +25,9 @@ vi.mock('../../infrastructure/firestore/FirestoreTokenVault.js', () => ({
 }))
 
 vi.mock('../../lib/meta-client.js', () => ({
-  buildMetaAuthUrl: vi.fn().mockReturnValue('https://www.facebook.com/dialog/oauth?mocked=1'),
+  buildMetaAuthUrl: vi
+    .fn()
+    .mockImplementation((state: string) => `https://www.facebook.com/dialog/oauth?state=${encodeURIComponent(state)}`),
   exchangeCodeForShortLivedToken: vi.fn().mockResolvedValue({
     access_token: 'short-token',
     token_type: 'bearer',
@@ -144,6 +146,39 @@ describe('Meta OAuth routes', () => {
       const location = response.headers['location'] as string
       expect(location).toContain('error=oauth_denied')
       expect(location).toContain('detail=user_denied')
+    })
+
+    it('embeds the request Origin in state when allowed, and the callback redirects back to it', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/meta/authorize',
+        headers: { authorization: 'Bearer valid-token', origin: 'http://localhost:3000' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://facebook.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toContain('http://localhost:3000/dashboard?connected=')
+    })
+
+    it('recovers webOrigin from state even when the user denies permissions', async () => {
+      const state = generateState('user-test-123', 'user-test-123', undefined, 'https://socialshelf.com.br')
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?error=access_denied&error_reason=user_denied&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers['location']).toBe(
+        'https://socialshelf.com.br/dashboard?error=oauth_denied&detail=user_denied',
+      )
     })
   })
 })

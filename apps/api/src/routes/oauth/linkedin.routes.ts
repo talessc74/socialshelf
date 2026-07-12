@@ -43,7 +43,15 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
 
     if (error || !code) {
       app.log.error({ error, error_description: result.data.error_description }, 'LinkedIn OAuth error')
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)
+      // state ainda é o mesmo valor assinado emitido no /authorize, mesmo quando o
+      // usuário nega a permissão — seguro extrair webOrigin dele para o redirect.
+      let webOrigin: string | undefined
+      try {
+        webOrigin = validateState(state).webOrigin
+      } catch {
+        webOrigin = undefined
+      }
+      return reply.redirect(`${webOrigin ?? webUrl}/dashboard?error=oauth_failed`)
     }
 
     try {

@@ -29,7 +29,9 @@ vi.mock('../../lib/tiktok-client.js', () => ({
     codeVerifier: 'test-verifier-32-bytes-base64url',
     codeChallenge: 'test-challenge-s256',
   }),
-  buildTikTokAuthUrl: vi.fn().mockReturnValue('https://www.tiktok.com/v2/auth/authorize/?mocked=1'),
+  buildTikTokAuthUrl: vi
+    .fn()
+    .mockImplementation((state: string) => `https://www.tiktok.com/v2/auth/authorize/?state=${encodeURIComponent(state)}`),
   exchangeCodeForTikTokToken: vi.fn().mockResolvedValue({
     access_token: 'tiktok-access-token',
     refresh_token: 'tiktok-refresh-token',
@@ -120,6 +122,50 @@ describe('TikTok OAuth routes', () => {
       for (const [connection] of newCalls) {
         expect(connection.brandId).toBe('brand-456')
       }
+    })
+
+    it('embeds the request Origin in state when allowed, and the callback redirects back to it', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/tiktok/authorize',
+        headers: { authorization: 'Bearer valid-token', origin: 'http://localhost:3000' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://tiktok.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/tiktok/callback?code=tt-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=tiktok',
+      )
+    })
+
+    it('ignores an untrusted Origin header, falling back to the default WEB_URL', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/tiktok/authorize',
+        headers: { authorization: 'Bearer valid-token', origin: 'https://attacker.example' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://tiktok.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/tiktok/callback?code=tt-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=tiktok',
+      )
     })
 
     it('redirects with error=oauth_failed when state has no embedded codeVerifier', async () => {

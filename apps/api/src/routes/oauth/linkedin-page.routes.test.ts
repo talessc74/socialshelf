@@ -32,7 +32,9 @@ vi.mock('../../infrastructure/firestore/FirestoreTokenVault.js', () => ({
 }))
 
 vi.mock('../../lib/linkedin-page-client.js', () => ({
-  buildLinkedInPageAuthUrl: vi.fn().mockReturnValue('https://www.linkedin.com/oauth/v2/authorization?mocked=1'),
+  buildLinkedInPageAuthUrl: vi
+    .fn()
+    .mockImplementation((state: string) => `https://www.linkedin.com/oauth/v2/authorization?state=${encodeURIComponent(state)}`),
   exchangeCodeForPageToken: vi.fn().mockResolvedValue({
     access_token: 'page-access-token',
     expires_in: 5183944,
@@ -96,6 +98,39 @@ describe('LinkedIn Page OAuth routes', () => {
       expect(response.statusCode).toBe(302)
       expect(response.headers['location']).toContain('linkedinPagePending=')
       expect(saveSpy).not.toHaveBeenCalled()
+    })
+
+    it('embeds the request Origin in state when allowed, and the callback redirects back to it', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/linkedin-page/authorize',
+        headers: { authorization: 'Bearer valid-firebase-token', origin: 'http://localhost:3000' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://linkedin.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin-page/callback?code=valid-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toContain('http://localhost:3000/dashboard/accounts?')
+    })
+
+    it('recovers webOrigin from state even when the user denies permission', async () => {
+      const state = generateState('user-test-123', 'brand-456', undefined, 'https://socialshelf.com.br')
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin-page/callback?error=user_cancelled_authorize&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers['location']).toBe(
+        'https://socialshelf.com.br/dashboard/accounts?error=oauth_failed',
+      )
     })
 
     it('redirects to dashboard with error=oauth_failed on invalid state', async () => {

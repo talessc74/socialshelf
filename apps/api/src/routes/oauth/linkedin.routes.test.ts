@@ -25,7 +25,9 @@ vi.mock('../../infrastructure/firestore/FirestoreTokenVault.js', () => ({
 }))
 
 vi.mock('../../lib/linkedin-client.js', () => ({
-  buildLinkedInAuthUrl: vi.fn().mockReturnValue('https://www.linkedin.com/oauth/v2/authorization?mocked=1'),
+  buildLinkedInAuthUrl: vi
+    .fn()
+    .mockImplementation((state: string) => `https://www.linkedin.com/oauth/v2/authorization?state=${encodeURIComponent(state)}`),
   exchangeCodeForToken: vi.fn().mockResolvedValue({
     access_token: 'access-token',
     expires_in: 5183944,
@@ -92,6 +94,63 @@ describe('LinkedIn OAuth routes', () => {
 
       expect(response.statusCode).toBe(302)
       expect(response.headers['location']).toContain('connected=linkedin')
+    })
+
+    it('embeds the request Origin in state when allowed, and the callback redirects back to it', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/linkedin/authorize',
+        headers: { authorization: 'Bearer valid-firebase-token', origin: 'http://localhost:3000' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://linkedin.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=linkedin',
+      )
+    })
+
+    it('ignores an untrusted Origin header, falling back to the default WEB_URL', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/linkedin/authorize',
+        headers: { authorization: 'Bearer valid-firebase-token', origin: 'https://attacker.example' },
+      })
+      const state = new URL(
+        authorizeResponse.json<{ url: string }>().url,
+        'https://linkedin.com',
+      ).searchParams.get('state')
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin/callback?code=valid-code&state=${encodeURIComponent(state ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=linkedin',
+      )
+    })
+
+    it('recovers webOrigin from state even when the user denies permission', async () => {
+      const state = generateState('user-test-123', 'user-test-123', undefined, 'https://socialshelf.com.br')
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/linkedin/callback?error=user_cancelled_authorize&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers['location']).toBe(
+        'https://socialshelf.com.br/dashboard?error=oauth_failed',
+      )
     })
 
     it('ignores an unsigned brandId query param and saves using the brandId embedded in state', async () => {

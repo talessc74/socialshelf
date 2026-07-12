@@ -55,7 +55,13 @@ export async function linkedinPageOAuthRoutes(app: FastifyInstance) {
 
     if (error || !code) {
       app.log.error({ error, error_description: result.data.error_description }, 'LinkedIn page OAuth error')
-      return reply.redirect(`${webUrl}/dashboard/accounts?error=oauth_failed`)
+      let webOrigin: string | undefined
+      try {
+        webOrigin = validateState(state).webOrigin
+      } catch {
+        webOrigin = undefined
+      }
+      return reply.redirect(`${webOrigin ?? webUrl}/dashboard/accounts?error=oauth_failed`)
     }
 
     try {

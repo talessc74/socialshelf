@@ -15,6 +15,7 @@ const callbackQuerySchema = z.object({
 const callbackErrorQuerySchema = z.object({
   error: z.string().min(1),
   error_reason: z.string().optional(),
+  state: z.string().optional(),
 })
 
 export async function metaOAuthRoutes(app: FastifyInstance) {
@@ -38,8 +39,16 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
   app.get('/oauth/meta/callback', async (request, reply) => {
     const deniedResult = callbackErrorQuerySchema.safeParse(request.query)
     if (deniedResult.success) {
+      let webOrigin: string | undefined
+      if (deniedResult.data.state) {
+        try {
+          webOrigin = validateState(deniedResult.data.state).webOrigin
+        } catch {
+          webOrigin = undefined
+        }
+      }
       return reply.redirect(
-        `${webUrl}/dashboard?error=oauth_denied&detail=${encodeURIComponent(deniedResult.data.error_reason ?? deniedResult.data.error)}`,
+        `${webOrigin ?? webUrl}/dashboard?error=oauth_denied&detail=${encodeURIComponent(deniedResult.data.error_reason ?? deniedResult.data.error)}`,
       )
     }
 
