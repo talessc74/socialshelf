@@ -139,6 +139,11 @@ jobs:
         run: |
           gcloud services enable texttospeech.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
 
+      - name: Enable Firebase Management API
+        continue-on-error: true
+        run: |
+          gcloud services enable firebase.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
       - name: Wait for IAM propagation
         run: |
           echo "Aguardando 60s para o IAM propagar antes dos deploys..."
@@ -151,7 +156,15 @@ jobs:
       # domínio personalizado" no Console — o conteúdo publicado (public/index.html)
       # nunca é servido pra usuário real, só o site precisa existir.
       - name: Deploy Firebase Hosting (bootstrap site)
-        run: npx --yes firebase-tools@latest deploy --only hosting --project=${{ env.GCP_PROJECT_ID }} --non-interactive
+        run: |
+          # firebase-tools falhou com "Failed to get Firebase project" usando a
+          # credencial ADC padrão (external_account de Workload Identity Federation,
+          # runs #274/#275) — provável falta de suporte a esse tipo de credencial no
+          # cliente de auth interno do firebase-tools. gcloud lida bem com WIF, então
+          # geramos um access token via gcloud e passamos direto, contornando a
+          # resolução de credencial própria do firebase-tools.
+          TOKEN=$(gcloud auth print-access-token)
+          npx --yes firebase-tools@latest deploy --only hosting --project=${{ env.GCP_PROJECT_ID }} --non-interactive --token "$TOKEN"
 
       - name: Deploy Firestore indexes
         run: |
