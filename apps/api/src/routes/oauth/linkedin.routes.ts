@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { validateState } from '../../lib/csrf.js'
+import { resolveWebOrigin } from '../../lib/webOrigin.js'
 import { GenerateLinkedInAuthUrlUseCase } from '../../use-cases/oauth/GenerateLinkedInAuthUrlUseCase.js'
 import { HandleLinkedInCallbackUseCase } from '../../use-cases/oauth/HandleLinkedInCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
@@ -25,7 +26,8 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
     '/oauth/linkedin/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId, request.brandId)
+      const webOrigin = resolveWebOrigin(request.headers.origin)
+      const { url } = generateUrl.execute(request.userId, request.brandId, webOrigin)
       app.log.info({ url }, 'LinkedIn auth URL generated')
       return reply.send({ url })
     },
@@ -45,9 +47,9 @@ export async function linkedinOAuthRoutes(app: FastifyInstance) {
     }
 
     try {
-      const { userId, brandId } = validateState(state)
+      const { userId, brandId, webOrigin } = validateState(state)
       await handleCallback.execute(code, userId, brandId)
-      return reply.redirect(`${webUrl}/dashboard?connected=linkedin`)
+      return reply.redirect(`${webOrigin ?? webUrl}/dashboard?connected=linkedin`)
     } catch (err) {
       app.log.error(err)
       return reply.redirect(`${webUrl}/dashboard?error=oauth_failed`)

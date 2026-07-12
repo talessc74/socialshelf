@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { validateState } from '../../lib/csrf.js'
+import { resolveWebOrigin } from '../../lib/webOrigin.js'
 import { GenerateLinkedInPageAuthUrlUseCase } from '../../use-cases/oauth/GenerateLinkedInPageAuthUrlUseCase.js'
 import { HandleLinkedInPageCallbackUseCase } from '../../use-cases/oauth/HandleLinkedInPageCallbackUseCase.js'
 import { GetPendingLinkedInPageSelectionUseCase } from '../../use-cases/oauth/GetPendingLinkedInPageSelectionUseCase.js'
@@ -38,7 +39,8 @@ export async function linkedinPageOAuthRoutes(app: FastifyInstance) {
     '/oauth/linkedin-page/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId, request.brandId)
+      const webOrigin = resolveWebOrigin(request.headers.origin)
+      const { url } = generateUrl.execute(request.userId, request.brandId, webOrigin)
       return reply.send({ url })
     },
   )
@@ -57,13 +59,14 @@ export async function linkedinPageOAuthRoutes(app: FastifyInstance) {
     }
 
     try {
-      const { userId, brandId } = validateState(state)
+      const { userId, brandId, webOrigin } = validateState(state)
+      const redirectBase = webOrigin ?? webUrl
       const outcome = await handleCallback.execute(code, userId, brandId)
 
       if (outcome.status === 'pending') {
-        return reply.redirect(`${webUrl}/dashboard/accounts?linkedinPagePending=${outcome.pendingId}`)
+        return reply.redirect(`${redirectBase}/dashboard/accounts?linkedinPagePending=${outcome.pendingId}`)
       }
-      return reply.redirect(`${webUrl}/dashboard/accounts?connected=linkedin-page`)
+      return reply.redirect(`${redirectBase}/dashboard/accounts?connected=linkedin-page`)
     } catch (err) {
       app.log.error(err)
       const detail = err instanceof Error ? err.message : 'oauth_failed'

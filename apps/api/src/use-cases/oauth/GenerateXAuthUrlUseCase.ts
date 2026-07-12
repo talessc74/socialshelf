@@ -7,9 +7,9 @@ export interface XAuthUrlResult {
 }
 
 export class GenerateXAuthUrlUseCase {
-  execute(userId: string, brandId: string): XAuthUrlResult {
+  execute(userId: string, brandId: string, webOrigin?: string): XAuthUrlResult {
     const { codeVerifier, codeChallenge } = generatePkce()
-    const state = generateState(userId, brandId, codeVerifier)
+    const state = generateState(userId, brandId, codeVerifier, webOrigin)
     const url = buildXAuthUrl(state, codeChallenge)
     return { url, state }
   }

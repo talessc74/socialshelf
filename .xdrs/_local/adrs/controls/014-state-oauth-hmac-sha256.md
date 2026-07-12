@@ -29,8 +29,13 @@ interface StatePayload {
   nonce: string      // randomBytes(16) em hex — unicidade por requisição
   iat: number        // timestamp Unix — base para expiração
   codeVerifier?: string  // presente apenas para X (Twitter)
+  webOrigin?: string     // ver "webOrigin embarcado" abaixo (atualização 2026-07-12)
 }
 ```
+
+**`webOrigin` embarcado — redirect pós-OAuth de volta pro domínio de origem (atualização 2026-07-12)**
+
+Com dois domínios ativos simultaneamente (`radiokactus.com` e `socialshelf.com.br`, ver `_local-adr-policy-039`), o redirect pós-callback precisava voltar pro mesmo domínio que iniciou o fluxo, não sempre para um `WEB_URL` fixo. O endpoint `/oauth/{platform}/authorize` agora lê o header `Origin` da requisição (`request.headers.origin`) e valida contra a mesma allow-list usada pelo CORS (`getAllowedWebOrigins()`, `apps/api/src/lib/webOrigin.ts`) antes de embarcar no state — **nunca confia no header cru**: se a origem não estiver na allow-list, `webOrigin` fica `undefined` e o callback cai no `WEB_URL` padrão. Isso evita que o `Origin` (controlável pelo requisitante) vire um open redirect arbitrário — o valor só é aceito se já for um dos domínios explicitamente configurados no deploy. No callback, `validated.webOrigin ?? webUrl` decide a base do redirect.
 
 **Serialização**
 

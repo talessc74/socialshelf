@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { validateState } from '../../lib/csrf.js'
+import { resolveWebOrigin } from '../../lib/webOrigin.js'
 import { GenerateTikTokAuthUrlUseCase } from '../../use-cases/oauth/GenerateTikTokAuthUrlUseCase.js'
 import { HandleTikTokCallbackUseCase } from '../../use-cases/oauth/HandleTikTokCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
@@ -23,7 +24,8 @@ export async function tiktokOAuthRoutes(app: FastifyInstance) {
     '/oauth/tiktok/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId, request.brandId)
+      const webOrigin = resolveWebOrigin(request.headers.origin)
+      const { url } = generateUrl.execute(request.userId, request.brandId, webOrigin)
       return reply.send({ url })
     },
   )
@@ -39,14 +41,16 @@ export async function tiktokOAuthRoutes(app: FastifyInstance) {
     let userId: string
     let brandId: string
     let codeVerifier: string
+    let redirectBase = webUrl
 
     try {
       const validated = validateState(state)
       userId = validated.userId
       brandId = validated.brandId
+      redirectBase = validated.webOrigin ?? webUrl
       if (!validated.codeVerifier) {
         app.log.error('codeVerifier missing from state')
-        return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=no_verifier`)
+        return reply.redirect(`${redirectBase}/dashboard?error=oauth_failed&detail=no_verifier`)
       }
       codeVerifier = validated.codeVerifier
     } catch (err) {
@@ -56,11 +60,11 @@ export async function tiktokOAuthRoutes(app: FastifyInstance) {
 
     try {
       await handleCallback.execute(code, codeVerifier, userId, brandId)
-      return reply.redirect(`${webUrl}/dashboard?connected=tiktok`)
+      return reply.redirect(`${redirectBase}/dashboard?connected=tiktok`)
     } catch (err) {
       const msg = err instanceof Error ? err.message.slice(0, 120) : String(err).slice(0, 120)
       app.log.error({ err }, 'TikTok callback handler failed')
-      return reply.redirect(`${webUrl}/dashboard?error=oauth_failed&detail=${encodeURIComponent(msg)}`)
+      return reply.redirect(`${redirectBase}/dashboard?error=oauth_failed&detail=${encodeURIComponent(msg)}`)
     }
   })
 }

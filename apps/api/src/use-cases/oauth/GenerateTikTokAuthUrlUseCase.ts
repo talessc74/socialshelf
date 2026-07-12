@@ -7,9 +7,9 @@ export interface TikTokAuthUrlResult {
 }
 
 export class GenerateTikTokAuthUrlUseCase {
-  execute(userId: string, brandId: string): TikTokAuthUrlResult {
+  execute(userId: string, brandId: string, webOrigin?: string): TikTokAuthUrlResult {
     const { codeVerifier, codeChallenge } = generatePkce()
-    const state = generateState(userId, brandId, codeVerifier)
+    const state = generateState(userId, brandId, codeVerifier, webOrigin)
     const url = buildTikTokAuthUrl(state, codeChallenge)
     return { url, state }
   }

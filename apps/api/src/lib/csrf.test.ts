@@ -33,6 +33,18 @@ describe('csrf', () => {
       const { codeVerifier } = validateState(state)
       expect(codeVerifier).toBeUndefined()
     })
+
+    it('embeds webOrigin when provided', () => {
+      const state = generateState('user-123', 'brand-123', undefined, 'https://socialshelf.com.br')
+      const { webOrigin } = validateState(state)
+      expect(webOrigin).toBe('https://socialshelf.com.br')
+    })
+
+    it('omits webOrigin when not provided', () => {
+      const state = generateState('user-123', 'brand-123')
+      const { webOrigin } = validateState(state)
+      expect(webOrigin).toBeUndefined()
+    })
   })
 
   describe('validateState', () => {

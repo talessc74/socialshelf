@@ -1,5 +1,6 @@
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import { getAllowedWebOrigins } from './lib/webOrigin.js'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
 import multipart from '@fastify/multipart'
@@ -33,9 +34,7 @@ export async function buildApp() {
 
   await app.register(helmet)
   await app.register(cors, {
-    origin: (process.env['CORS_ORIGINS'] ?? process.env['WEB_URL'] ?? 'http://localhost:3000')
-      .split(',')
-      .map((url) => url.trim()),
+    origin: getAllowedWebOrigins(),
     credentials: true,
   })
   await app.register(rateLimit, {

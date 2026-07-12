@@ -29,7 +29,9 @@ vi.mock('../../lib/x-client.js', () => ({
     codeVerifier: 'test-verifier-32-bytes-base64url',
     codeChallenge: 'test-challenge-s256',
   }),
-  buildXAuthUrl: vi.fn().mockReturnValue('https://x.com/i/oauth2/authorize?mocked=1'),
+  buildXAuthUrl: vi
+    .fn()
+    .mockImplementation((state: string) => `https://x.com/i/oauth2/authorize?state=${encodeURIComponent(state)}`),
   exchangeCodeForXToken: vi.fn().mockResolvedValue({
     access_token: 'x-access-token',
     refresh_token: 'x-refresh-token',
@@ -67,6 +69,44 @@ describe('X OAuth routes', () => {
       expect(response.statusCode).toBe(200)
       const body = response.json<{ url: string }>()
       expect(body.url).toContain('x.com')
+    })
+
+    it('embeds the request Origin in state when it is an allowed origin, and the callback redirects back to it', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/x/authorize',
+        headers: { authorization: 'Bearer valid-token', origin: 'http://localhost:3000' },
+      })
+      const state = new URL(authorizeResponse.json<{ url: string }>().url, 'https://x.com').searchParams
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state.get('state') ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=twitter',
+      )
+    })
+
+    it('ignores an untrusted Origin header, falling back to the default WEB_URL on callback', async () => {
+      const authorizeResponse = await app.inject({
+        method: 'GET',
+        url: '/oauth/x/authorize',
+        headers: { authorization: 'Bearer valid-token', origin: 'https://attacker.example' },
+      })
+      const state = new URL(authorizeResponse.json<{ url: string }>().url, 'https://x.com').searchParams
+
+      const callbackResponse = await app.inject({
+        method: 'GET',
+        url: `/oauth/x/callback?code=x-code&state=${encodeURIComponent(state.get('state') ?? '')}`,
+      })
+
+      expect(callbackResponse.statusCode).toBe(302)
+      expect(callbackResponse.headers['location']).toBe(
+        'http://localhost:3000/dashboard?connected=twitter',
+      )
     })
 
     it('does not set pkce_verifier or oauth_state cookies', async () => {

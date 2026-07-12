@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { validateState } from '../../lib/csrf.js'
+import { resolveWebOrigin } from '../../lib/webOrigin.js'
 import { GenerateMetaAuthUrlUseCase } from '../../use-cases/oauth/GenerateMetaAuthUrlUseCase.js'
 import { HandleMetaCallbackUseCase } from '../../use-cases/oauth/HandleMetaCallbackUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
@@ -28,7 +29,8 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
     '/oauth/meta/authorize',
     { preHandler: [app.authenticate] },
     async (request, reply) => {
-      const { url } = generateUrl.execute(request.userId, request.brandId)
+      const webOrigin = resolveWebOrigin(request.headers.origin)
+      const { url } = generateUrl.execute(request.userId, request.brandId, webOrigin)
       return reply.send({ url })
     },
   )
@@ -49,7 +51,7 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
     const { code, state } = result.data
 
     try {
-      const { brandId } = validateState(state)
+      const { brandId, webOrigin } = validateState(state)
       const { facebook, instagram } = await handleCallback.execute(code, state, brandId)
       const connected = [
         facebook ? 'facebook' : null,
@@ -58,7 +60,7 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
         .filter(Boolean)
         .join(',')
 
-      return reply.redirect(`${webUrl}/dashboard?connected=${connected}`)
+      return reply.redirect(`${webOrigin ?? webUrl}/dashboard?connected=${connected}`)
     } catch (err) {
       app.log.error(err)
       const detail = err instanceof Error ? err.message : 'unknown_error'

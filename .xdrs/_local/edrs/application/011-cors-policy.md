@@ -34,7 +34,7 @@ Durante a migração de `radiokactus.com` para `socialshelf.com.br` (ver `_local
 
 Em produção: `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com`. Em desenvolvimento local, nenhuma variável nova é necessária — o fallback para `WEB_URL=http://localhost:3000` (ou o padrão do código) continua válido.
 
-**Consequência aceita**: fluxos de reconexão OAuth (LinkedIn, X, Meta, TikTok) iniciados a partir de `socialshelf.com.br` redirecionam de volta para `radiokactus.com/dashboard` ao final (porque `WEB_URL` não mudou) — cosmético, não bloqueia o uso do produto em nenhum dos dois domínios. Corrigir isso exigiria montar a URL de redirect a partir da origem da requisição original, fora do escopo desta etapa.
+**Redirect pós-OAuth de volta pro domínio de origem**: resolvido — ver `_local-adr-policy-014` (seção "webOrigin embarcado"). O mesmo array retornado por `getAllowedWebOrigins()` é reaproveitado para validar o header `Origin` recebido em `/oauth/{platform}/authorize` antes de embarcá-lo no state assinado.
 
 **Por que `credentials: true`**
 
