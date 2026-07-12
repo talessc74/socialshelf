@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   createUserWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
 } from 'firebase/auth'
 import Link from 'next/link'
@@ -31,6 +32,15 @@ export default function SignupPage() {
     if (!loading && user) router.replace('/dashboard')
   }, [user, loading, router])
 
+  useEffect(() => {
+    // Safari (ITP) bloqueia a comunicação entre a janela principal e o pop-up do
+    // signInWithPopup — o login com Google usa signInWithRedirect em vez disso, e o
+    // resultado só chega aqui, ao voltar do Google.
+    getRedirectResult(auth).catch((err) => {
+      setError(authErrorMessage(err))
+    })
+  }, [])
+
   const handleEmail = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -49,11 +59,9 @@ export default function SignupPage() {
     setError('')
     setBusy(true)
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider())
-      router.replace('/dashboard')
-    } catch {
-      setError('Não foi possível entrar com Google.')
-    } finally {
+      await signInWithRedirect(auth, new GoogleAuthProvider())
+    } catch (err) {
+      setError(authErrorMessage(err))
       setBusy(false)
     }
   }
