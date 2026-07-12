@@ -33,7 +33,9 @@ export async function buildApp() {
 
   await app.register(helmet)
   await app.register(cors, {
-    origin: process.env['WEB_URL'] ?? 'http://localhost:3000',
+    origin: (process.env['CORS_ORIGINS'] ?? process.env['WEB_URL'] ?? 'http://localhost:3000')
+      .split(',')
+      .map((url) => url.trim()),
     credentials: true,
   })
   await app.register(rateLimit, {

@@ -15,20 +15,26 @@ Como restringir o acesso CORS ao mínimo necessário para o funcionamento do pro
 
 ## Decision Outcome
 
-**`origin` restrito à variável `WEB_URL` com `credentials: true`**
+**`origin` restrito a uma lista de origens permitidas (`CORS_ORIGINS`, com fallback para `WEB_URL`) com `credentials: true`**
 
 ```typescript
 await app.register(cors, {
-  origin: process.env['WEB_URL'],
+  origin: (process.env['CORS_ORIGINS'] ?? process.env['WEB_URL'] ?? 'http://localhost:3000')
+    .split(',')
+    .map((url) => url.trim()),
   credentials: true,
 })
 ```
 
 ### Details
 
-**`WEB_URL` como única origem permitida**
+**`CORS_ORIGINS` como lista de origens permitidas (atualização 2026-07-12 — migração de domínio)**
 
-`WEB_URL` é injetado como variável de ambiente no deploy (Cloud Run). Em produção, aponta para `https://radiokactus.com`. Em desenvolvimento local, deve ser configurado como `http://localhost:3000`.
+Durante a migração de `radiokactus.com` para `socialshelf.com.br` (ver `_local-adr-policy-039`), o `api-service` precisa aceitar requisições vindas de **ambos** os domínios simultaneamente — o produto continua em produção com usuários reais em `radiokactus.com` enquanto `socialshelf.com.br` é testado. `WEB_URL` continua existindo como variável separada (single-value) porque também é usada para montar URLs de redirecionamento pós-OAuth (`apps/api/src/routes/oauth/*.routes.ts`) — essas não suportam lista, e por isso não foram alteradas nesta atualização. `CORS_ORIGINS` é uma variável nova, dedicada exclusivamente ao CORS, com fallback para `WEB_URL` caso não esteja definida (mantém compatibilidade em desenvolvimento local).
+
+Em produção: `CORS_ORIGINS=https://socialshelf.com.br,https://radiokactus.com`. Em desenvolvimento local, nenhuma variável nova é necessária — o fallback para `WEB_URL=http://localhost:3000` (ou o padrão do código) continua válido.
+
+**Consequência aceita**: fluxos de reconexão OAuth (LinkedIn, X, Meta, TikTok) iniciados a partir de `socialshelf.com.br` redirecionam de volta para `radiokactus.com/dashboard` ao final (porque `WEB_URL` não mudou) — cosmético, não bloqueia o uso do produto em nenhum dos dois domínios. Corrigir isso exigiria montar a URL de redirect a partir da origem da requisição original, fora do escopo desta etapa.
 
 **Por que `credentials: true`**
 
