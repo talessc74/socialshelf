@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto'
-import { Platform, computeDailySlotHours } from '@socialshelf/domain'
+import { ALL_PLATFORMS, Platform, computeDailySlotHours } from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
@@ -109,7 +109,13 @@ export class AutonomyTickUseCase {
     // TikTok fica fora do alvo automático: exige vídeo, e este pipeline só compõe post de
     // imagem/texto — mesma exclusão já aplicada em "publicar também em" na tela de resultado.
     const connections = await this.oauthRepo.findByBrand(brand.userId, brand.brandId)
-    const targetPlatforms = [...new Set(connections.map((c) => c.platform))].filter((p) => p !== Platform.TIKTOK)
+    // Nunca confiar cegamente no valor de `platform` salvo em oauth_connections: uma conexão
+    // órfã/legada com um valor fora do enum (ex: "TWITTER" maiúsculo, achado em produção)
+    // faz o schema de /generate rejeitar o array inteiro com 400, não só a plataforma
+    // inválida — derrubando a geração pras plataformas válidas também.
+    const targetPlatforms = [...new Set(connections.map((c) => c.platform))].filter(
+      (p) => p !== Platform.TIKTOK && ALL_PLATFORMS.includes(p),
+    )
     if (targetPlatforms.length === 0) return { ...base, action: 'skipped-no-platforms' }
 
     const now = new Date()

@@ -144,6 +144,24 @@ describe('AutonomyTickUseCase', () => {
     expect(generatorClient.suggestTopics).not.toHaveBeenCalled()
   })
 
+  it('drops a connection with a platform value outside the enum instead of poisoning the whole generate request', async () => {
+    // Achado real em produção: uma conexão órfã/legada guardava platform: "TWITTER" (fora do
+    // enum, que só aceita 'twitter' minúsculo) — o schema de /generate valida targetPlatforms
+    // como um array só, então essa entrada inválida derrubava a geração inteira com 400,
+    // mesmo havendo Facebook/LinkedIn/Instagram válidos na mesma marca.
+    oauthRepo.findByBrand = vi.fn().mockResolvedValue([
+      makeConnection(Platform.FACEBOOK),
+      { ...makeConnection(Platform.LINKEDIN), platform: 'TWITTER' as Platform },
+    ])
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'draft-created' })
+    expect(generatorClient.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ targetPlatforms: [Platform.FACEBOOK] }),
+    )
+  })
+
   it('skips a brand with no topic suggestions', async () => {
     generatorClient.suggestTopics = vi.fn().mockResolvedValue([])
 
