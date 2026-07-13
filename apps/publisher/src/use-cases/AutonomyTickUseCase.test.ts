@@ -205,6 +205,20 @@ describe('AutonomyTickUseCase', () => {
     expect(generatorClient.generate).not.toHaveBeenCalled()
   })
 
+  it('keys the daily counter by the Brasília calendar date, not the UTC date, right after UTC midnight', async () => {
+    // Achado real em produção: às 23h30 em Brasília (2h30 UTC do dia seguinte), o gate de
+    // horário já considera o dia "no fim" (todos os slots abertos), mas o calendário UTC já
+    // virou pro dia seguinte. Usar a data UTC como chave do contador fazia o dia seguinte
+    // (em Brasília) começar já com o contador saturado, antes do horário comercial dele
+    // sequer começar.
+    vi.setSystemTime(new Date('2026-07-13T02:30:00.000Z')) // 23h30 em Brasília (UTC-3) — ainda 12/07 lá
+
+    await useCase.execute()
+
+    expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', '2026-07-12')
+    expect(dailyCounter.incrementIfUnderLimit).toHaveBeenCalledWith('user-1', 'brand-1', '2026-07-12', 1)
+  })
+
   it('opens the second slot of the day for a brand configured with more than one post per day', async () => {
     brandDiscovery.findEligibleBrands = vi
       .fn()

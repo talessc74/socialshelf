@@ -42,6 +42,26 @@ function slotsOpenByNow(postsPerDay: number, now: Date): number {
   return computeDailySlotHours(postsPerDay).filter((slotHour) => slotHour <= nowHour).length
 }
 
+// A chave do contador diário tem que usar o mesmo calendário do gate de horário acima
+// (Brasília), não o calendário UTC — achado real em produção: entre 21h-24h de Brasília
+// (0h-3h UTC do dia seguinte), o gate já considera todos os slots do dia "abertos" (é fim
+// de tarde/noite em Brasília), mas `new Date().toISOString().slice(0, 10)` já tinha virado
+// pra data UTC do dia seguinte. O contador desse dia seguinte saturava (maxAutoPostsPerDay)
+// ainda de madrugada, antes do horário comercial de Brasília daquele dia sequer começar —
+// bloqueando a marca o dia inteiro com "skipped-not-yet-time"/limite diário.
+function brasiliaDateNow(now: Date): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now)
+  const year = parts.find((p) => p.type === 'year')?.value
+  const month = parts.find((p) => p.type === 'month')?.value
+  const day = parts.find((p) => p.type === 'day')?.value
+  return `${year}-${month}-${day}`
+}
+
 // Fase 4 do roadmap (_local-bdr-plan-002): ativa o dial de autonomia com os guardrails
 // exigidos como pré-condição — teto diário configurável por marca (não um ajuste
 // posterior), classificação semântica de bloqueio antes de qualquer rascunho, e modo
@@ -119,7 +139,7 @@ export class AutonomyTickUseCase {
     if (targetPlatforms.length === 0) return { ...base, action: 'skipped-no-platforms' }
 
     const now = new Date()
-    const today = now.toISOString().slice(0, 10)
+    const today = brasiliaDateNow(now)
     const alreadyToday = await this.dailyCounter.getCount(brand.userId, brand.brandId, today)
     if (alreadyToday >= slotsOpenByNow(brand.maxAutoPostsPerDay, now)) {
       return { ...base, action: 'skipped-not-yet-time' }
