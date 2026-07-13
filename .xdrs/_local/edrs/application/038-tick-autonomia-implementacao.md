@@ -87,3 +87,4 @@ O `getCount` (leitura) e o `incrementIfUnderLimit` (escrita atômica) continuam 
 
 - [_local-adr-policy-040-ativacao-do-modo-automatico-de-publicacao](../../adrs/application/040-ativacao-modo-automatico-publicacao.md) - Decisão estrutural que esta fatia implementa
 - [_local-edr-policy-037-publicar-em-mais-redes-apos-o-video](037-publicar-em-outras-redes-apos-video.md) - Mesma exclusão de TikTok, mesmo padrão de reaproveitar índice/método existente em vez de mudar contrato
+- [_local-edr-policy-047-plataforma-e-fuso-do-contador](047-plataforma-e-fuso-do-contador.md) - Dois bugs reais de produção encontrados ao investigar por que o modo automático não publicava nada, além do que este documento já cobre
