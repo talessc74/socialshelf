@@ -226,8 +226,21 @@ describe('AutonomyTickUseCase', () => {
 
     await useCase.execute()
 
-    expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', '2026-07-12')
-    expect(dailyCounter.incrementIfUnderLimit).toHaveBeenCalledWith('user-1', 'brand-1', '2026-07-12', 1)
+    expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', 'br-2026-07-12')
+    expect(dailyCounter.incrementIfUnderLimit).toHaveBeenCalledWith('user-1', 'brand-1', 'br-2026-07-12', 1)
+  })
+
+  it('prefixes the counter key so it never collides with a pre-fix document written under the bare UTC date string', async () => {
+    // Achado real em produção (2026-07-13): documentos gravados pelo código antigo usavam a
+    // data UTC crua como chave — e essa string coincide com a data de Brasília na maior parte
+    // do dia. Sem o prefixo "br-", o contador de hoje herdaria de graça as tentativas que já
+    // tinham incrementado esse mesmo documento de madrugada, antes desta correção existir,
+    // deixando a marca "no teto" antes do horário comercial começar.
+    vi.setSystemTime(new Date('2026-07-13T13:00:00.000Z')) // 10h em Brasília — já dentro do expediente
+
+    await useCase.execute()
+
+    expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', 'br-2026-07-13')
   })
 
   it('opens the second slot of the day for a brand configured with more than one post per day', async () => {
