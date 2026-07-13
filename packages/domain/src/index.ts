@@ -108,6 +108,11 @@ export type {
   ProfileDiagnosticActionStep,
 } from './ports/PatternAnalyzerPort.js'
 export type { BrandDocumentExtractorPort, BrandProfileExtraction } from './ports/BrandDocumentExtractorPort.js'
+export type {
+  CampaignCaptionWriterPort,
+  CampaignCaptionWriterInput,
+  CampaignCaptionWriterResult,
+} from './ports/CampaignCaptionWriterPort.js'
 export type { ProfileDiagnosticRepository, ProfileDiagnosticRecord } from './ports/ProfileDiagnosticRepository.js'
 export type { PhotoCampaignRepository } from './ports/PhotoCampaignRepository.js'
 export type { CampaignPhotoRepository } from './ports/CampaignPhotoRepository.js'

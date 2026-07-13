@@ -8,6 +8,7 @@ import { videoRoutes } from './routes/video.routes.js'
 import { performanceInsightsRoutes } from './routes/performance-insights.routes.js'
 import { performanceSuggestionsRoutes } from './routes/performance-suggestions.routes.js'
 import { brandProfileRoutes } from './routes/brand-profile.routes.js'
+import { campaignCaptionRoutes } from './routes/campaign-caption.routes.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -33,6 +34,7 @@ export async function buildApp() {
   await app.register(performanceInsightsRoutes)
   await app.register(performanceSuggestionsRoutes)
   await app.register(brandProfileRoutes)
+  await app.register(campaignCaptionRoutes)
 
   return app
 }
