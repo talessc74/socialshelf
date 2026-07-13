@@ -81,7 +81,9 @@ vi.mock('../infrastructure/news/OgImageThumbnailFetcher.js', () => ({
   })),
 }))
 
-const mockClassify = vi.fn().mockResolvedValue({ blocked: false, autoPublishEligible: true })
+const mockClassify = vi
+  .fn()
+  .mockResolvedValue({ blocked: false, autoPublishEligible: true, recommendedStyle: 'bold-bottom' })
 
 vi.mock('../infrastructure/vertexai/GeminiTopicAutonomyMatcher.js', () => ({
   GeminiTopicAutonomyMatcher: vi.fn().mockImplementation(() => ({
@@ -235,19 +237,35 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: ['Caso do Dia'], blockedTopics: [] },
+      payload: { topic, autoPublishTopics: ['Caso do Dia'], blockedTopics: [], stylePreferences: ['bold-bottom'] },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
     expect(response.statusCode).toBe(200)
-    expect(response.json()).toEqual({ blocked: false, autoPublishEligible: true })
+    expect(response.json()).toEqual({ blocked: false, autoPublishEligible: true, recommendedStyle: 'bold-bottom' })
   })
 
   it('returns 400 when topic.headline is missing', async () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic: { headline: '', summary: '', rationale: '' }, autoPublishTopics: [], blockedTopics: [] },
+      payload: {
+        topic: { headline: '', summary: '', rationale: '' },
+        autoPublishTopics: [],
+        blockedTopics: [],
+        stylePreferences: ['bold-bottom'],
+      },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 400 when stylePreferences contains a value outside the enum', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['not-a-real-style'] },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
@@ -258,7 +276,7 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: [], blockedTopics: [] },
+      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['bold-bottom'] },
     })
 
     expect(response.statusCode).toBe(401)
@@ -270,7 +288,7 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: [], blockedTopics: [] },
+      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['bold-bottom'] },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 

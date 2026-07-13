@@ -12,6 +12,7 @@ export interface AutonomyTopicSuggestion {
 export interface AutonomyClassification {
   blocked: boolean
   autoPublishEligible: boolean
+  recommendedStyle: TemplateStyle
 }
 
 // Fronteira de infraestrutura do tick de autonomia com o generator-service — não é uma porta
@@ -24,11 +25,18 @@ export interface GeneratorAutonomyClient {
     topic: { headline: string; summary: string; rationale: string }
     autoPublishTopics: string[]
     blockedTopics: string[]
+    stylePreferences: TemplateStyle[]
   }): Promise<AutonomyClassification>
   // Reaproveita o mesmo /generate usado pelo fluxo manual — sem foto própria (o pipeline
   // automático não tem de onde tirar uma), então a IA gera a imagem, igual ao caso "sem
   // fotos" já suportado hoje.
-  generate(input: { brandId: string; description: string; targetPlatforms: Platform[]; topicSuggestionId: string }): Promise<{
+  generate(input: {
+    brandId: string
+    description: string
+    targetPlatforms: Platform[]
+    topicSuggestionId: string
+    style: TemplateStyle
+  }): Promise<{
     status: string
   }>
 }
@@ -54,6 +62,7 @@ export class HttpGeneratorAutonomyClient implements GeneratorAutonomyClient {
     topic: { headline: string; summary: string; rationale: string }
     autoPublishTopics: string[]
     blockedTopics: string[]
+    stylePreferences: TemplateStyle[]
   }): Promise<AutonomyClassification> {
     const res = await fetchInternal(`${this.generatorUrl}/pauta/classify-autonomy`, {
       method: 'POST',
@@ -69,6 +78,7 @@ export class HttpGeneratorAutonomyClient implements GeneratorAutonomyClient {
     description: string
     targetPlatforms: Platform[]
     topicSuggestionId: string
+    style: TemplateStyle
   }): Promise<{ status: string }> {
     const res = await fetchInternal(`${this.generatorUrl}/generate`, {
       method: 'POST',
@@ -78,7 +88,7 @@ export class HttpGeneratorAutonomyClient implements GeneratorAutonomyClient {
         description: input.description,
         targetPlatforms: input.targetPlatforms,
         topicSuggestionId: input.topicSuggestionId,
-        style: TemplateStyle.BOLD_BOTTOM,
+        style: input.style,
         aspectRatio: AspectRatio.SQUARE,
         includeBodyText: false,
         origin: 'autonomy-tick',

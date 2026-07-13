@@ -38,7 +38,7 @@ export {
   MAX_GENERATION_ARTIFACTS,
 } from './entities/Platform.js'
 export type { PlatformMediaSupport } from './entities/Platform.js'
-export { TemplateStyle, ALL_TEMPLATE_STYLES } from './entities/TemplateStyle.js'
+export { TemplateStyle, ALL_TEMPLATE_STYLES, TEMPLATE_STYLE_LABELS } from './entities/TemplateStyle.js'
 export { AspectRatio, ALL_ASPECT_RATIOS } from './entities/AspectRatio.js'
 
 // Ports

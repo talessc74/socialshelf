@@ -1,5 +1,16 @@
 import { db } from '../firebase-admin.js'
+import { TemplateStyle } from '@socialshelf/domain'
 import type { AutonomyBrandDiscoveryPort, AutonomyEligibleBrand, BrandProfileOperation } from '@socialshelf/domain'
+
+// Ordem que reproduz o comportamento hardcoded de antes desta feature (sempre "Faixa
+// inferior") pra qualquer BrandProfile salvo antes do campo existir — sem migração de dado,
+// só um default de leitura.
+const DEFAULT_STYLE_PREFERENCES: TemplateStyle[] = [
+  TemplateStyle.BOLD_BOTTOM,
+  TemplateStyle.CENTERED_OVERLAY,
+  TemplateStyle.TOP_STRIP,
+  TemplateStyle.NO_TEXT,
+]
 
 // Único lugar do sistema hoje que precisa descobrir marcas através de todos os usuários —
 // BrandProfileRepository (api, generator) sempre opera com userId/brandId já conhecidos.
@@ -43,6 +54,10 @@ export class FirestoreAutonomyBrandDiscovery implements AutonomyBrandDiscoveryPo
         autoPublishTopics: operation.autoPublishTopics,
         blockedTopics: operation.blockedTopics,
         maxAutoPostsPerDay: operation.maxAutoPostsPerDay,
+        stylePreferences:
+          operation.stylePreferences && operation.stylePreferences.length > 0
+            ? operation.stylePreferences
+            : DEFAULT_STYLE_PREFERENCES,
       })
     }
     return eligible

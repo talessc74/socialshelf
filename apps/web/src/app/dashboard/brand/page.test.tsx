@@ -30,7 +30,13 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
     visual: { primaryColor: '#000', secondaryColor: '#fff', typography: 'Inter', logoStoragePath: null },
     voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
     narrative: { recurringThemes: [] },
-    operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+    operation: {
+      autonomyLevel: 'manual',
+      autoPublishTopics: [],
+      blockedTopics: [],
+      maxAutoPostsPerDay: 1,
+      stylePreferences: [],
+    },
     createdAt: new Date().toISOString(),
     ...overrides,
   }
@@ -81,7 +87,11 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
   })
 
   it('envia maxAutoPostsPerDay ao salvar', async () => {
-    mockedApi.updateBrandProfile.mockResolvedValue(makeBrandProfile({ operation: { autonomyLevel: 'automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 3 } }))
+    mockedApi.updateBrandProfile.mockResolvedValue(
+      makeBrandProfile({
+        operation: { autonomyLevel: 'automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 3, stylePreferences: [] },
+      }),
+    )
 
     renderPage()
 

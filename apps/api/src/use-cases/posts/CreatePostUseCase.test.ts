@@ -129,7 +129,13 @@ describe('CreatePostUseCase', () => {
       visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
       voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
       narrative: { recurringThemes: [] },
-      operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+      operation: {
+        autonomyLevel: 'manual',
+        autoPublishTopics: [],
+        blockedTopics: [],
+        maxAutoPostsPerDay: 1,
+        stylePreferences: [],
+      },
       createdAt: new Date(),
     })
 
@@ -153,7 +159,13 @@ describe('CreatePostUseCase', () => {
       visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
       voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
       narrative: { recurringThemes: [] },
-      operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+      operation: {
+        autonomyLevel: 'manual',
+        autoPublishTopics: [],
+        blockedTopics: [],
+        maxAutoPostsPerDay: 1,
+        stylePreferences: [],
+      },
       createdAt: new Date(),
     })
 

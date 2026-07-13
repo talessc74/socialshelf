@@ -1,3 +1,5 @@
+import type { TemplateStyle } from './TemplateStyle.js'
+
 export interface BrandProfileBusiness {
   name: string
   segment: string
@@ -37,6 +39,11 @@ export interface BrandProfileOperation {
   // Só é imposto de fato quando autonomyLevel é 'automatic'; nos demais níveis o campo
   // existe mas não é lido por nenhuma verificação.
   maxAutoPostsPerDay: number
+  // Ordem de preferência de estilo visual do card pra geração automática/semi-automática —
+  // sempre os 4 TemplateStyle, sem repetir e sem faltar nenhum (validado como permutação em
+  // apps/api). O tick não usa sempre o primeiro: TopicAutonomyMatcherPort escolhe, dentro
+  // desta ordem, o que combina melhor com o assunto de cada pauta.
+  stylePreferences: TemplateStyle[]
 }
 
 export interface BrandProfile {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AutonomyTickUseCase } from './AutonomyTickUseCase.js'
-import { Platform } from '@socialshelf/domain'
+import { Platform, TemplateStyle } from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
@@ -22,6 +22,7 @@ function makeBrand(overrides: Partial<AutonomyEligibleBrand> = {}): AutonomyElig
     autoPublishTopics: [],
     blockedTopics: [],
     maxAutoPostsPerDay: 1,
+    stylePreferences: [TemplateStyle.BOLD_BOTTOM, TemplateStyle.CENTERED_OVERLAY],
     ...overrides,
   }
 }
@@ -116,7 +117,9 @@ describe('AutonomyTickUseCase', () => {
     } as unknown as PublishPostUseCase
     generatorClient = {
       suggestTopics: vi.fn().mockResolvedValue([suggestion]),
-      classifyAutonomy: vi.fn().mockResolvedValue({ blocked: false, autoPublishEligible: true }),
+      classifyAutonomy: vi
+        .fn()
+        .mockResolvedValue({ blocked: false, autoPublishEligible: true, recommendedStyle: TemplateStyle.CENTERED_OVERLAY }),
       generate: vi.fn().mockResolvedValue({ status: 'ready' }),
     }
     tickLog = { save: vi.fn().mockResolvedValue(undefined), findRecentByBrand: vi.fn().mockResolvedValue([]) }
@@ -188,6 +191,14 @@ describe('AutonomyTickUseCase', () => {
     expect(result).toMatchObject({ action: 'draft-created', topicHeadline: suggestion.headline })
     expect(generatorClient.generate).toHaveBeenCalledTimes(1)
     expect(publishPostUseCase.execute).not.toHaveBeenCalled()
+    // O estilo vem do que o classificador recomendou (dentro da ordem de preferência da
+    // marca), não de um valor fixo — cobre a troca do TemplateStyle.BOLD_BOTTOM hardcoded.
+    expect(generatorClient.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ style: TemplateStyle.CENTERED_OVERLAY }),
+    )
+    expect(generatorClient.classifyAutonomy).toHaveBeenCalledWith(
+      expect.objectContaining({ stylePreferences: [TemplateStyle.BOLD_BOTTOM, TemplateStyle.CENTERED_OVERLAY] }),
+    )
     // O contador diário passa a valer pros dois níveis de autonomia (não só automático) —
     // agora que o tick roda de hora em hora, sem isso semi-automático geraria um rascunho
     // novo a cada execução.

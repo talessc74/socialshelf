@@ -1,10 +1,24 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { TemplateStyle, ALL_TEMPLATE_STYLES } from '@socialshelf/domain'
 import { CreateBrandProfileVersionUseCase } from '../use-cases/brand-profile/CreateBrandProfileVersionUseCase.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { fetchInternal } from '../lib/serviceAuth.js'
 
 const autonomyLevelEnum = z.enum(['manual', 'semi-automatic', 'automatic'])
+
+// Sempre uma permutação dos 4 TemplateStyle — nunca menos (o tick de autonomia sempre
+// precisa de uma ordem completa pra escolher) nem repetido (não faz sentido "preferir mais"
+// o mesmo estilo duas vezes).
+const stylePreferencesSchema = z
+  .array(z.nativeEnum(TemplateStyle))
+  .length(ALL_TEMPLATE_STYLES.length)
+  .refine((styles) => new Set(styles).size === styles.length, {
+    message: 'stylePreferences must not contain duplicate styles',
+  })
+  .refine((styles) => ALL_TEMPLATE_STYLES.every((style) => styles.includes(style)), {
+    message: 'stylePreferences must include every TemplateStyle exactly once',
+  })
 
 const brandProfileSchema = z.object({
   business: z.object({
@@ -37,6 +51,7 @@ const brandProfileSchema = z.object({
     // Teto de segurança fixo além do que a UI já orienta — mesmo que o cliente envie algo
     // fora da faixa, o modo automático nunca publica mais que 10 posts por dia por marca.
     maxAutoPostsPerDay: z.number().int().min(1).max(10),
+    stylePreferences: stylePreferencesSchema,
   }),
 })
 

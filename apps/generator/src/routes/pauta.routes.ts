@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import { TemplateStyle } from '@socialshelf/domain'
 import { SuggestTopicsUseCase } from '../use-cases/SuggestTopicsUseCase.js'
 import { SearchNewsUseCase } from '../use-cases/SearchNewsUseCase.js'
 import { GoogleNewsRssReader } from '../infrastructure/news/GoogleNewsRssReader.js'
@@ -23,6 +24,7 @@ const classifyAutonomySchema = z.object({
   }),
   autoPublishTopics: z.array(z.string()),
   blockedTopics: z.array(z.string()),
+  stylePreferences: z.array(z.nativeEnum(TemplateStyle)),
 })
 
 export async function pautaRoutes(app: FastifyInstance) {
