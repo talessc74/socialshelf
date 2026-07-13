@@ -139,7 +139,13 @@ export class AutonomyTickUseCase {
     if (targetPlatforms.length === 0) return { ...base, action: 'skipped-no-platforms' }
 
     const now = new Date()
-    const today = brasiliaDateNow(now)
+    // Prefixo "br-" evita colidir com os documentos antigos, escritos antes desta correção,
+    // cuja chave era a mesma string de data mas calculada em UTC — sem o prefixo, o contador
+    // de hoje herdaria de graça a contagem de tentativas que já tinham acontecido de
+    // madrugada sob o esquema antigo (mesma data-string em UTC e em Brasília na maior parte
+    // do dia), deixando a marca "no teto" antes do horário comercial nem começar. Documentos
+    // antigos (sem o prefixo) ficam órfãos — não precisam de limpeza, nunca mais são lidos.
+    const today = `br-${brasiliaDateNow(now)}`
     const alreadyToday = await this.dailyCounter.getCount(brand.userId, brand.brandId, today)
     if (alreadyToday >= slotsOpenByNow(brand.maxAutoPostsPerDay, now)) {
       return { ...base, action: 'skipped-not-yet-time' }
