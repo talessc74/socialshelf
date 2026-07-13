@@ -223,6 +223,7 @@ export interface ApiBrandProfile {
     autoPublishTopics: string[]
     blockedTopics: string[]
     maxAutoPostsPerDay: number
+    stylePreferences: TemplateStyle[]
   }
   createdAt: string
 }

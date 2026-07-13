@@ -1,4 +1,5 @@
 import type { AutonomyLevel } from '../entities/BrandProfile.js'
+import type { TemplateStyle } from '../entities/TemplateStyle.js'
 
 export interface AutonomyEligibleBrand {
   userId: string
@@ -9,6 +10,7 @@ export interface AutonomyEligibleBrand {
   autoPublishTopics: string[]
   blockedTopics: string[]
   maxAutoPostsPerDay: number
+  stylePreferences: TemplateStyle[]
 }
 
 // Porta dedicada (em vez de estender BrandProfileRepository) porque só o publisher-service

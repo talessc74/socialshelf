@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiBrandProfile } from '../../../lib/api'
-import type { AutonomyLevel } from '@socialshelf/domain'
+import { ALL_TEMPLATE_STYLES, type AutonomyLevel } from '@socialshelf/domain'
 import { TagListEditor } from '../../../components/TagListEditor'
 import { TopicChecklist } from '../../../components/TopicChecklist'
 import { AutonomyTickHistory } from '../../../components/AutonomyTickHistory'
 import { BrandPostPreview } from '../../../components/BrandPostPreview'
+import { StylePreferenceRanking } from '../../../components/StylePreferenceRanking'
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
 
@@ -18,7 +19,13 @@ const EMPTY_FORM: BrandProfileForm = {
   visual: { primaryColor: '#9d174d', secondaryColor: '#1f2937', typography: 'Inter', logoStoragePath: null },
   voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+  operation: {
+    autonomyLevel: 'manual',
+    autoPublishTopics: [],
+    blockedTopics: [],
+    maxAutoPostsPerDay: 1,
+    stylePreferences: ALL_TEMPLATE_STYLES,
+  },
 }
 
 const PALETTE_PRESETS: Array<{ label: string; description: string; primaryColor: string; secondaryColor: string }> = [
@@ -94,7 +101,15 @@ export default function BrandSettingsPage() {
         visual: brandProfile.visual,
         voice: brandProfile.voice,
         narrative: brandProfile.narrative,
-        operation: brandProfile.operation,
+        operation: {
+          ...brandProfile.operation,
+          // Perfis salvos antes desta feature não têm o campo — mesmo default de leitura já
+          // usado no tick de autonomia (apps/publisher/FirestoreAutonomyBrandDiscovery).
+          stylePreferences:
+            brandProfile.operation.stylePreferences && brandProfile.operation.stylePreferences.length > 0
+              ? brandProfile.operation.stylePreferences
+              : ALL_TEMPLATE_STYLES,
+        },
       })
     }
   }, [brandProfile])
@@ -524,6 +539,14 @@ export default function BrandSettingsPage() {
             setForm((prev) => ({ ...prev, operation: { ...prev.operation, blockedTopics } }))
           }
         />
+        {form.operation.autonomyLevel !== 'manual' && (
+          <StylePreferenceRanking
+            values={form.operation.stylePreferences}
+            onChange={(stylePreferences) =>
+              setForm((prev) => ({ ...prev, operation: { ...prev.operation, stylePreferences } }))
+            }
+          />
+        )}
         {form.operation.autonomyLevel !== 'manual' && <AutonomyTickHistory />}
       </section>
 

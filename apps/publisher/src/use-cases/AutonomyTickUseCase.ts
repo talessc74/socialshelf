@@ -160,6 +160,7 @@ export class AutonomyTickUseCase {
       },
       autoPublishTopics: brand.autoPublishTopics,
       blockedTopics: brand.blockedTopics,
+      stylePreferences: brand.stylePreferences,
     })
     if (classification.blocked) {
       return { ...base, action: 'skipped-blocked', topicHeadline: topSuggestion.headline }
@@ -189,6 +190,7 @@ export class AutonomyTickUseCase {
       description: `${topSuggestion.headline}. ${topSuggestion.rationale}`,
       targetPlatforms,
       topicSuggestionId: topSuggestion.id,
+      style: classification.recommendedStyle,
     })
     if (generateResult.status !== 'ready') {
       return {

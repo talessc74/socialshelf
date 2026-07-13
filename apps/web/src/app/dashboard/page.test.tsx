@@ -101,7 +101,13 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
     visual: { primaryColor: '#000', secondaryColor: '#fff', typography: '', logoStoragePath: null },
     voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
     narrative: { recurringThemes: [] },
-    operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+    operation: {
+      autonomyLevel: 'manual',
+      autoPublishTopics: [],
+      blockedTopics: [],
+      maxAutoPostsPerDay: 1,
+      stylePreferences: [],
+    },
     createdAt: new Date().toISOString(),
     ...overrides,
   }
@@ -288,7 +294,11 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
   })
 
   it('mostra "Manual" quando a marca está no modo manual', async () => {
-    mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile({ operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 } }))
+    mockedApi.getBrandProfile.mockResolvedValue(
+      makeBrandProfile({
+        operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [] },
+      }),
+    )
 
     renderPage()
 
@@ -298,7 +308,15 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
 
   it('mostra "Semi-automático" quando a marca está nesse modo', async () => {
     mockedApi.getBrandProfile.mockResolvedValue(
-      makeBrandProfile({ operation: { autonomyLevel: 'semi-automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 } }),
+      makeBrandProfile({
+        operation: {
+          autonomyLevel: 'semi-automatic',
+          autoPublishTopics: [],
+          blockedTopics: [],
+          maxAutoPostsPerDay: 1,
+          stylePreferences: [],
+        },
+      }),
     )
 
     renderPage()
@@ -309,7 +327,15 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
 
   it('mostra "Automático" quando a marca está nesse modo', async () => {
     mockedApi.getBrandProfile.mockResolvedValue(
-      makeBrandProfile({ operation: { autonomyLevel: 'automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 3 } }),
+      makeBrandProfile({
+        operation: {
+          autonomyLevel: 'automatic',
+          autoPublishTopics: [],
+          blockedTopics: [],
+          maxAutoPostsPerDay: 3,
+          stylePreferences: [],
+        },
+      }),
     )
 
     renderPage()

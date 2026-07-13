@@ -58,7 +58,13 @@ const validSections = {
   },
   voice: { tone: 'informal', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1 },
+  operation: {
+    autonomyLevel: 'manual',
+    autoPublishTopics: [],
+    blockedTopics: [],
+    maxAutoPostsPerDay: 1,
+    stylePreferences: ['bold-bottom', 'centered-overlay', 'top-strip', 'no-text'],
+  },
 }
 
 describe('Brand profile routes', () => {
@@ -143,6 +149,37 @@ describe('Brand profile routes', () => {
         url: '/brand-profile',
         headers: { authorization: 'Bearer valid-token' },
         payload: incomplete,
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 400 when stylePreferences is missing a style (not a full permutation)', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {
+          ...validSections,
+          operation: { ...validSections.operation, stylePreferences: ['bold-bottom', 'centered-overlay'] },
+        },
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 400 when stylePreferences repeats a style', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {
+          ...validSections,
+          operation: {
+            ...validSections.operation,
+            stylePreferences: ['bold-bottom', 'bold-bottom', 'top-strip', 'no-text'],
+          },
+        },
       })
 
       expect(response.statusCode).toBe(400)
