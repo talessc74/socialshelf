@@ -13,7 +13,7 @@ const ALL_ORDER = [
 
 describe('StylePreferenceRanking', () => {
   it('renders the styles in the given order with their rank number', () => {
-    render(<StylePreferenceRanking values={ALL_ORDER} onChange={vi.fn()} />)
+    render(<StylePreferenceRanking values={ALL_ORDER} onChange={vi.fn()} primaryColor="#22e5e5" />)
 
     const items = screen.getAllByRole('listitem')
     expect(items).toHaveLength(4)
@@ -25,7 +25,7 @@ describe('StylePreferenceRanking', () => {
 
   it('swaps with the previous item when moved up', () => {
     const onChange = vi.fn()
-    render(<StylePreferenceRanking values={ALL_ORDER} onChange={onChange} />)
+    render(<StylePreferenceRanking values={ALL_ORDER} onChange={onChange} primaryColor="#22e5e5" />)
 
     fireEvent.click(screen.getByLabelText('Subir Overlay escuro'))
 
@@ -39,7 +39,7 @@ describe('StylePreferenceRanking', () => {
 
   it('swaps with the next item when moved down', () => {
     const onChange = vi.fn()
-    render(<StylePreferenceRanking values={ALL_ORDER} onChange={onChange} />)
+    render(<StylePreferenceRanking values={ALL_ORDER} onChange={onChange} primaryColor="#22e5e5" />)
 
     fireEvent.click(screen.getByLabelText('Descer Faixa inferior'))
 
@@ -52,7 +52,7 @@ describe('StylePreferenceRanking', () => {
   })
 
   it('disables the up arrow on the first item and the down arrow on the last item', () => {
-    render(<StylePreferenceRanking values={ALL_ORDER} onChange={vi.fn()} />)
+    render(<StylePreferenceRanking values={ALL_ORDER} onChange={vi.fn()} primaryColor="#22e5e5" />)
 
     expect(screen.getByLabelText('Subir Faixa inferior')).toBeDisabled()
     expect(screen.getByLabelText('Descer Sem texto')).toBeDisabled()

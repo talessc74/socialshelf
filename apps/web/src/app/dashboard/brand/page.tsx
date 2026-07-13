@@ -542,6 +542,7 @@ export default function BrandSettingsPage() {
         {form.operation.autonomyLevel !== 'manual' && (
           <StylePreferenceRanking
             values={form.operation.stylePreferences}
+            primaryColor={form.visual.primaryColor}
             onChange={(stylePreferences) =>
               setForm((prev) => ({ ...prev, operation: { ...prev.operation, stylePreferences } }))
             }
