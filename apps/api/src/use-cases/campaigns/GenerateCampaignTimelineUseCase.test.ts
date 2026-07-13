@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Platform } from '@socialshelf/domain'
 import type { CampaignItemRepository, CampaignPhoto, CampaignPhotoRepository, PhotoCampaign, PhotoCampaignRepository } from '@socialshelf/domain'
 import { GenerateCampaignTimelineUseCase } from './GenerateCampaignTimelineUseCase.js'
+import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
   return {
@@ -44,9 +45,11 @@ describe('GenerateCampaignTimelineUseCase', () => {
   let campaignRepo: PhotoCampaignRepository
   let photoRepo: CampaignPhotoRepository
   let itemRepo: CampaignItemRepository
+  let captionClient: CampaignCaptionClient
   let useCase: GenerateCampaignTimelineUseCase
 
   beforeEach(() => {
+    captionClient = { suggestCaption: vi.fn().mockResolvedValue({ caption: 'Legenda escrita pela IA a partir da foto' }) }
     campaignRepo = {
       save: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn(),
@@ -67,7 +70,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
       findByCampaign: vi.fn(),
       deleteByCampaign: vi.fn().mockResolvedValue(undefined),
     }
-    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo)
+    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
   })
 
   it('throws when the campaign has no photos', async () => {
@@ -105,9 +108,32 @@ describe('GenerateCampaignTimelineUseCase', () => {
     expect(campaignRepo.save).toHaveBeenCalledWith(expect.objectContaining({ status: 'reviewing' }))
   })
 
-  it('seeds each item with a caption template from campaign name/description/keywords', async () => {
+  it('writes each item caption via AI, looking at that item cover photo', async () => {
     const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(items[0]!.caption).toBe('Legenda escrita pela IA a partir da foto')
+    expect(captionClient.suggestCaption).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', brandId: 'brand-1', storagePath: 'path.jpg' }),
+    )
+  })
+
+  it('falls back to the deterministic template caption when the AI caption call fails', async () => {
+    vi.mocked(captionClient.suggestCaption).mockRejectedValueOnce(new Error('generator-service unavailable'))
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
     expect(items[0]!.caption).toContain('Fotos da viagem')
     expect(items[0]!.caption).toContain('#viagem')
+  })
+
+  it('writes captions for all items in parallel, isolating one item failure from the rest', async () => {
+    vi.mocked(captionClient.suggestCaption)
+      .mockResolvedValueOnce({ caption: 'Legenda do item 1' })
+      .mockRejectedValueOnce(new Error('generator-service unavailable'))
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(items[0]!.caption).toBe('Legenda do item 1')
+    expect(items[1]!.caption).toContain('Fotos da viagem')
   })
 })

@@ -13,6 +13,7 @@ import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/Fi
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { HttpCampaignCaptionClient } from '../infrastructure/generator/CampaignCaptionClient.js'
 
 const platformEnum = z.enum([Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER, Platform.TIKTOK])
 
@@ -57,7 +58,8 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const uploadPhoto = new UploadCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
   const deletePhoto = new DeleteCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
   const reorderPhotos = new ReorderCampaignPhotosUseCase(campaignRepo, photoRepo)
-  const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo)
+  const captionClient = new HttpCampaignCaptionClient(generatorUrl, internalSecret)
+  const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
 
