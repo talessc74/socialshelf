@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { useWakeLock } from '../../../lib/useWakeLock'
+import { useSelfieNarration } from '../../../contexts/AssistantContext'
 import {
   Platform,
   PLATFORM_MEDIA_SUPPORT,
@@ -509,6 +510,18 @@ export default function GenerateContentPage() {
 
   const { stages, stageIndex } = useGenerationProgress(generating, photoFiles.length > 0 ? photoFiles.length : null)
   useWakeLock(generating)
+
+  // Publica o estágio atual da geração para o Selfie narrar (BDR-011). Gatilho
+  // por evento de estado real (generating/stageIndex), nunca por ociosidade.
+  // Depende da string derivada, não do array `stages` (que é recriado a cada
+  // render) — evitando um loop de efeito.
+  const { narrate, clearNarration } = useSelfieNarration()
+  const currentNarration = generating ? (stages[stageIndex] ?? null) : null
+  useEffect(() => {
+    if (currentNarration) narrate(currentNarration)
+    else clearNarration()
+  }, [currentNarration, narrate, clearNarration])
+  useEffect(() => () => clearNarration(), [clearNarration])
 
   const validPlatforms = new Set(Object.values(Platform))
   const connectedPlatforms = connections

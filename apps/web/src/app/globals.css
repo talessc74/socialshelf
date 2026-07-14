@@ -69,6 +69,23 @@ body {
   }
 }
 
+/* Flutuação sutil do Selfie enquanto ele narra o trabalho da IA (BDR-011).
+   Só anima quando o usuário não pediu redução de movimento. */
+@keyframes ss-selfie-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ss-selfie-float {
+    animation: ss-selfie-float 3s ease-in-out infinite;
+  }
+}
+
 /* Suaviza a transição ao acender/apagar a lanterna. */
 .ss-theme-transition,
 .ss-theme-transition * {

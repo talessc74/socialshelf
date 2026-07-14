@@ -4,7 +4,9 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBrand } from '../../contexts/BrandContext'
+import { AssistantProvider } from '../../contexts/AssistantContext'
 import { TopNav } from '../../components/TopNav'
+import { Selfie } from '../../components/Selfie'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth()
@@ -24,15 +26,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen bg-bg">
-      <TopNav
-        email={user.email ?? ''}
-        onLogout={logout}
-        brands={brands}
-        activeBrandId={activeBrandId}
-        onBrandChange={setActiveBrandId}
-      />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
-    </div>
+    <AssistantProvider>
+      <div className="min-h-screen bg-bg">
+        <TopNav
+          email={user.email ?? ''}
+          onLogout={logout}
+          brands={brands}
+          activeBrandId={activeBrandId}
+          onBrandChange={setActiveBrandId}
+        />
+        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+        <Selfie />
+      </div>
+    </AssistantProvider>
   )
 }
