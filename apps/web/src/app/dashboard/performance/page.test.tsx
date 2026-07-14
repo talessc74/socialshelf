@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import type { ProfileDiagnostic } from '@socialshelf/domain'
 import PerformanceDashboardPage from './page'
 import { api, type ApiPostPerformanceEntry, type ApiPostsPerformanceResult } from '../../../lib/api'
+import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 
 const pushMock = vi.fn()
 
@@ -62,7 +63,27 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <PerformanceDashboardPage />
+      <AssistantProvider>
+        <PerformanceDashboardPage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
+}
+
+/** Sonda que expõe o texto narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <PerformanceDashboardPage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
@@ -235,7 +256,9 @@ describe('PerformanceDashboardPage', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const { rerender } = render(
       <QueryClientProvider client={queryClient}>
-        <PerformanceDashboardPage />
+        <AssistantProvider>
+          <PerformanceDashboardPage />
+        </AssistantProvider>
       </QueryClientProvider>,
     )
 
@@ -249,12 +272,34 @@ describe('PerformanceDashboardPage', () => {
     await queryClient.invalidateQueries({ queryKey: ['posts-performance'] })
     rerender(
       <QueryClientProvider client={queryClient}>
-        <PerformanceDashboardPage />
+        <AssistantProvider>
+          <PerformanceDashboardPage />
+        </AssistantProvider>
       </QueryClientProvider>,
     )
 
     expect(await screen.findByText('Novo Nicho')).toBeInTheDocument()
     expect(mockedApi.getPerformanceInsights).toHaveBeenCalledTimes(2)
+  })
+
+  it('narra o post de melhor desempenho para o Selfie quando as métricas carregam', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('LinkedIn')
+    })
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('7%')
+  })
+
+  it('não narra nada ao Selfie quando não há posts com métricas', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(makeResult())
+
+    renderPageWithNarrationProbe()
+
+    await screen.findByText(/Nenhum post publicado com métricas medidas/)
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
   })
 
   it('usa o Instagram como rede padrão quando o Facebook só tem erro de seguidores', async () => {

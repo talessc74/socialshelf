@@ -11,6 +11,8 @@ import type { ApiPostPerformanceEntry } from '../../../lib/api'
 import { ScoreBadge } from '../../../components/ScoreBadge'
 import { ProfileDiagnosticPanel } from '../../../components/ProfileDiagnosticPanel'
 import { EngagementOverTimeChart } from '../../../components/EngagementOverTimeChart'
+import { buildPerformanceMessage } from '../../../lib/selfiePerformanceInsight'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -51,6 +53,8 @@ export default function PerformanceDashboardPage() {
   })
 
   const entries = useMemo(() => data?.entries ?? [], [data])
+  useSelfieNarrateOnReady(useMemo(() => buildPerformanceMessage(entries), [entries]))
+
   const errorsByPlatform = useMemo(() => {
     const map = new Map<Platform, string>()
     for (const e of data?.errors ?? []) map.set(e.platform, e.message)
