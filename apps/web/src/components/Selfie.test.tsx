@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AssistantProvider, useSelfieNarration } from '../contexts/AssistantContext'
 import { Selfie } from './Selfie'
@@ -60,6 +60,25 @@ describe('Selfie', () => {
     await userEvent.click(screen.getByText('narrar'))
     expect(screen.getByTestId('selfie')).toBeInTheDocument()
     expect(screen.getByText('Escrevendo a copy…')).toBeInTheDocument()
+  })
+
+  it('usa a arte oficial (/selfie.png) como mascote por padrão', async () => {
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    const img = screen.getByTestId('selfie').querySelector('img')
+    expect(img).not.toBeNull()
+    expect(img).toHaveAttribute('src', '/selfie.png')
+    // fallback SVG só entra se a imagem falhar
+    expect(screen.getByTestId('selfie').querySelector('svg')).toBeNull()
+  })
+
+  it('cai no mascote SVG se a arte oficial não carregar', async () => {
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    const img = screen.getByTestId('selfie').querySelector('img')!
+    fireEvent.error(img)
+    expect(screen.getByTestId('selfie').querySelector('svg')).not.toBeNull()
+    expect(screen.getByTestId('selfie').querySelector('img')).toBeNull()
   })
 
   it('some quando a narração é limpa', async () => {

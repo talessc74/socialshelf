@@ -66,19 +66,39 @@ export function Selfie() {
   )
 }
 
+// Arte oficial do Selfie. Se o arquivo existir em apps/web/public, é ele que
+// aparece; senão, cai no mascote SVG abaixo. Colocar um PNG com fundo
+// transparente para o personagem flutuar sem caixa de fundo.
+const SELFIE_IMAGE_SRC = '/selfie.png'
+
 /**
- * Mascote em SVG inline, seguindo o padrão do repositório (ver LanternToggle):
- * corpo arredondado, olho único brilhando, gradiente ciano→verde do logo
- * (BDR-010), rastro de luz. A flutuação só é aplicada quando o usuário não
- * pediu redução de movimento — dupla proteção (classe condicional + media
- * query em globals.css).
+ * Mascote do Selfie. Prefere a arte oficial (SELFIE_IMAGE_SRC); se a imagem
+ * não carregar, usa o SVG inline como fallback — assim a UI nunca fica sem
+ * mascote. A flutuação só é aplicada quando o usuário não pediu redução de
+ * movimento (classe condicional + media query em globals.css).
  */
 function SelfieMascot({ animated }: { animated: boolean }) {
+  const [imageFailed, setImageFailed] = useState(false)
+  const floatClass = animated ? 'ss-selfie-float' : ''
+
+  if (!imageFailed) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={SELFIE_IMAGE_SRC}
+        alt=""
+        aria-hidden
+        onError={() => setImageFailed(true)}
+        className={`h-20 w-20 shrink-0 object-contain drop-shadow-[0_0_10px_var(--ss-accent)] ${floatClass}`}
+      />
+    )
+  }
+
   return (
     <svg
       aria-hidden
       viewBox="0 0 64 72"
-      className={`h-16 w-16 shrink-0 drop-shadow-[0_0_10px_var(--ss-accent)] ${animated ? 'ss-selfie-float' : ''}`}
+      className={`h-16 w-16 shrink-0 drop-shadow-[0_0_10px_var(--ss-accent)] ${floatClass}`}
     >
       <defs>
         {/* stop-color/fill precisam vir via style (CSS) — var() não resolve em
