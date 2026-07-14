@@ -746,6 +746,11 @@ export const api = {
     return data.campaign
   },
 
+  async cancelCampaign(id: string): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}/cancel`, { method: 'POST' })
+    return data.campaign
+  },
+
   async renderCard(
     imageStoragePath: string,
     headline: string,

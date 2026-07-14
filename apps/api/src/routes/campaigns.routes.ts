@@ -8,6 +8,7 @@ import { ReorderCampaignPhotosUseCase } from '../use-cases/campaigns/ReorderCamp
 import { GenerateCampaignTimelineUseCase } from '../use-cases/campaigns/GenerateCampaignTimelineUseCase.js'
 import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
 import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
+import { CancelCampaignUseCase } from '../use-cases/campaigns/CancelCampaignUseCase.js'
 import { FirestorePhotoCampaignRepository } from '../infrastructure/firestore/FirestorePhotoCampaignRepository.js'
 import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/FirestoreCampaignPhotoRepository.js'
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
@@ -62,6 +63,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
+  const cancelCampaign = new CancelCampaignUseCase(campaignRepo)
 
   app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
     const parsed = createCampaignSchema.safeParse(request.body)
@@ -252,6 +254,20 @@ export async function campaignsRoutes(app: FastifyInstance) {
 
     try {
       await activateCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
+      const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      return reply.send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  app.post('/campaigns/:id/cancel', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      await cancelCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
       const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
       return reply.send({ campaign })
     } catch (err) {
