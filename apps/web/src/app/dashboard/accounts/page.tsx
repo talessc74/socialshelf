@@ -7,6 +7,8 @@ import { api } from '../../../lib/api'
 import type { LinkedInOrganization } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
 import { PLATFORM_META } from '../../../lib/platformMeta'
+import { buildAccountsMessage } from '../../../lib/selfieAccountsSummary'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 export default function AccountsPage() {
   const searchParams = useSearchParams()
@@ -23,6 +25,7 @@ export default function AccountsPage() {
     queryKey: ['connections'],
     queryFn: () => api.getConnections(),
   })
+  useSelfieNarrateOnReady(!isLoading ? buildAccountsMessage(connections ?? []) : null)
 
   useEffect(() => {
     const connected = searchParams.get('connected')

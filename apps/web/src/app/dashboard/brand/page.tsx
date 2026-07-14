@@ -10,6 +10,8 @@ import { TopicChecklist } from '../../../components/TopicChecklist'
 import { AutonomyTickHistory } from '../../../components/AutonomyTickHistory'
 import { BrandPostPreview } from '../../../components/BrandPostPreview'
 import { StylePreferenceRanking } from '../../../components/StylePreferenceRanking'
+import { buildBrandMessage } from '../../../lib/selfieBrandCompleteness'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
 
@@ -92,6 +94,7 @@ export default function BrandSettingsPage() {
     queryKey: ['brand-profile'],
     queryFn: () => api.getBrandProfile(),
   })
+  useSelfieNarrateOnReady(!isLoading ? buildBrandMessage(brandProfile ?? null) : null)
 
   useEffect(() => {
     if (brandProfile) {

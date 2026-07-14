@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import BrandSettingsPage from './page'
 import { api, type ApiBrandProfile } from '../../../lib/api'
+import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
@@ -46,7 +47,27 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <BrandSettingsPage />
+      <AssistantProvider>
+        <BrandSettingsPage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
+}
+
+/** Sonda que expõe o texto narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <BrandSettingsPage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
@@ -108,5 +129,26 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
         }),
       ),
     )
+  })
+})
+
+describe('BrandSettingsPage — narração do Selfie', () => {
+  it('narra quantos campos-chave estão preenchidos quando o perfil carrega', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile())
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('2/6')
+    })
+  })
+
+  it('não narra nada quando ainda não existe BrandProfile', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(null)
+
+    renderPageWithNarrationProbe()
+
+    await screen.findByText(/Você ainda não tem uma marca cadastrada/)
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
   })
 })
