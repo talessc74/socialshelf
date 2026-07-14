@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform, AspectRatio, TemplateStyle } from '@socialshelf/domain'
 import GenerateContentPage from './page'
+import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 import { api, type ApiConnection, type ApiGenerationRequest, type ApiTopicSuggestion } from '../../../lib/api'
 
 vi.mock('next/navigation', () => ({
@@ -44,7 +45,27 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <GenerateContentPage />
+      <AssistantProvider>
+        <GenerateContentPage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
+}
+
+/** Sonda que expõe o texto atual narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <GenerateContentPage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
@@ -175,6 +196,71 @@ describe('GenerateContentPage', () => {
         'src',
         'https://storage.googleapis.com/signed-url',
       )
+    })
+  })
+
+  it('publica a narração do Selfie durante a geração e a limpa ao concluir', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
+    let resolveGenerate!: (value: ApiGenerationRequest) => void
+    mockedApi.generateContent.mockReturnValue(
+      new Promise((resolve) => {
+        resolveGenerate = resolve
+      }),
+    )
+    mockedApi.getImageUrl.mockResolvedValue('https://storage.googleapis.com/signed-url')
+
+    const user = userEvent.setup()
+    renderPageWithNarrationProbe()
+
+    // Antes de gerar, nada é narrado.
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+
+    // Enquanto gera, a narração bate com o primeiro estágio do progresso.
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('Lendo a voz da marca…')
+    })
+
+    resolveGenerate({
+      id: 'gen-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      status: 'ready',
+      inputs: {
+        description: 'Lançamento X',
+        textContent: null,
+        imageStoragePaths: [],
+        targetPlatforms: [Platform.LINKEDIN],
+        topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
+        style: TemplateStyle.BOLD_BOTTOM,
+      },
+      outputs: {
+        copies: { [Platform.LINKEDIN]: { text: 'Copy gerada', charCount: 11 } },
+        cta: 'Comente!',
+        headlines: ['Headline'],
+        bodyTexts: null,
+        artifacts: [
+          {
+            position: 1,
+            status: 'ready',
+            imageStoragePath: 'user-1/generated/img.png',
+            backgroundImageStoragePath: 'user-1/generated/img-bg.png',
+            error: null,
+          },
+        ],
+      },
+      error: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+
+    // Concluída a geração, a narração é limpa.
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
     })
   })
 

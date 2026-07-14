@@ -49,6 +49,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-046-historico-do-tick-de-autonomia](application/046-historico-do-tick-de-autonomia.md) - Cada tentativa do tick (publicado, pulado e por quê, erro) grava um AutonomyTickLogEntry numa subcoleção Firestore direta (não collectionGroup); GET /autonomy-tick-log em apps/api lê o que apps/publisher grava; exibido em /dashboard/brand quando o nível de autonomia não é manual
 - [_local-edr-policy-047-plataforma-e-fuso-do-contador](application/047-plataforma-e-fuso-do-contador.md) - Uma conexão OAuth com platform fora do enum ("TWITTER" maiúsculo) derrubava a geração inteira, não só a plataforma ruim, via schema z.array; contador diário do tick trocou a chave de data UTC para data de Brasília, corrigindo saturação prematura entre 21h-24h de Brasília
 - [_local-edr-policy-048-legenda-de-campanha-por-ia](application/048-legenda-de-campanha-por-ia.md) - Cada item de campanha ganha legenda por IA olhando a foto de capa (Gemini vision, primeiro writer do projeto a mandar imagem pro modelo); chamadas em paralelo por item, com fallback isolado pro template determinístico antigo em caso de falha
+- [_local-edr-policy-049-selfie-implementacao](application/049-selfie-implementacao.md) - Dispensa em localStorage (não Firestore), imagem oficial com fallback SVG (não Lottie/Rive), camada de animação "vivo" via CSS + timer único de piscada gated por prefers-reduced-motion, setters de contexto idempotentes
 
 ### devops
 Pipeline de entrega e práticas de build.

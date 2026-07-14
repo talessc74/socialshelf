@@ -69,6 +69,65 @@ body {
   }
 }
 
+/* Camada "vivo" do Selfie enquanto ele narra o trabalho da IA (BDR-011).
+   Só anima quando o usuário não pediu redução de movimento — sob
+   prefers-reduced-motion: reduce nenhuma destas classes é aplicada. */
+@keyframes ss-selfie-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-13px) rotate(2deg);
+  }
+}
+@keyframes ss-selfie-breathe {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(1.04, 0.96);
+  }
+}
+@keyframes ss-selfie-look {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-2.5px);
+  }
+  75% {
+    transform: translateX(2.5px);
+  }
+}
+@keyframes ss-selfie-sparkle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(var(--ss-sparkle-x, 10px), 20px) scale(0.3);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ss-selfie-float {
+    animation: ss-selfie-float 3.2s ease-in-out infinite;
+  }
+  .ss-selfie-breathe {
+    animation: ss-selfie-breathe 2.8s ease-in-out infinite;
+  }
+  .ss-selfie-look {
+    animation: ss-selfie-look 5s ease-in-out infinite;
+  }
+  .ss-selfie-sparkle {
+    animation: ss-selfie-sparkle 2.6s ease-out infinite;
+    animation-delay: var(--ss-sparkle-delay, 0s);
+  }
+}
+
 /* Suaviza a transição ao acender/apagar a lanterna. */
 .ss-theme-transition,
 .ss-theme-transition * {
