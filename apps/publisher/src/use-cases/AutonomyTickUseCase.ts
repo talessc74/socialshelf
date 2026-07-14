@@ -26,11 +26,17 @@ export interface AutonomyTickBrandResult {
 // passaram — o tick (agora de hora em hora, não mais 1x/dia) só deixa a marca gerar mais um
 // post quando o número já publicado hoje for menor que os slots já abertos.
 function brasiliaHourNow(now: Date): number {
+  // hourCycle: 'h23', não hour12: false — achado real em produção (Node 20/ICU): com
+  // locale 'en-US' + hour12: false, formatToParts devolve hour="24" pra meia-noite em vez
+  // de "00" (bug de ICU conhecido, não reproduz com 'pt-BR' nem em Node mais recente). Isso
+  // fazia brasiliaHourNow() devolver ~24h logo no primeiro tick do dia — todos os slots do
+  // dia apareciam "abertos" às 00h, deixando a marca publicar um post de madrugada e gastando
+  // uma vaga do dia antes do horário comercial sequer começar.
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/Sao_Paulo',
     hour: 'numeric',
     minute: 'numeric',
-    hour12: false,
+    hourCycle: 'h23',
   }).formatToParts(now)
   const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0')
   const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0')
