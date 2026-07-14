@@ -15,9 +15,16 @@ interface AssistantContextValue {
   narration: Narration
   narrate: (message: string) => void
   clearNarration: () => void
+  /** true = usuário desligou o Selfie de vez (botão ×). Ver useSelfieDismissal. */
+  selfieDismissed: boolean
+  /** false até lermos localStorage no cliente — evita flash de hidratação. */
+  selfieHydrated: boolean
+  setSelfieDismissed: (dismissed: boolean) => void
 }
 
 const AssistantContext = createContext<AssistantContextValue | null>(null)
+
+const SELFIE_DISMISSED_KEY = 'socialshelf:selfie:dismissed'
 
 /**
  * Provider do assistente. Fica no layout do dashboard, acima de qualquer tela.
@@ -27,6 +34,15 @@ const AssistantContext = createContext<AssistantContextValue | null>(null)
  */
 export function AssistantProvider({ children }: { children: React.ReactNode }) {
   const [narration, setNarration] = useState<Narration>({ active: false, message: null })
+  // Começa "desligado" até lermos localStorage no cliente, pra <Selfie /> nunca
+  // piscar aparecendo e sumindo se o usuário já tinha desligado antes.
+  const [selfieDismissed, setSelfieDismissedState] = useState(true)
+  const [selfieHydrated, setSelfieHydrated] = useState(false)
+
+  useEffect(() => {
+    setSelfieDismissedState(window.localStorage.getItem(SELFIE_DISMISSED_KEY) === '1')
+    setSelfieHydrated(true)
+  }, [])
 
   // Setters idempotentes: se o estado já é o alvo, retorna a mesma referência
   // para não disparar re-render à toa. Sem isso, um consumidor que chama
@@ -39,9 +55,18 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
     setNarration((prev) => (!prev.active && prev.message === null ? prev : { active: false, message: null }))
   }, [])
 
+  // Exposto também pelo TopNav (ícone pra religar) — sem isso, quem desligou no
+  // × não tinha como trazer o Selfie de volta a não ser limpando o localStorage
+  // manualmente pelo devtools.
+  const setSelfieDismissed = useCallback((dismissed: boolean) => {
+    if (dismissed) window.localStorage.setItem(SELFIE_DISMISSED_KEY, '1')
+    else window.localStorage.removeItem(SELFIE_DISMISSED_KEY)
+    setSelfieDismissedState(dismissed)
+  }, [])
+
   const value = useMemo(
-    () => ({ narration, narrate, clearNarration }),
-    [narration, narrate, clearNarration],
+    () => ({ narration, narrate, clearNarration, selfieDismissed, selfieHydrated, setSelfieDismissed }),
+    [narration, narrate, clearNarration, selfieDismissed, selfieHydrated, setSelfieDismissed],
   )
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>
@@ -52,6 +77,16 @@ export function useSelfie(): AssistantContextValue {
   const ctx = useContext(AssistantContext)
   if (!ctx) throw new Error('useSelfie deve ser usado dentro de <AssistantProvider>')
   return ctx
+}
+
+/**
+ * Liga/desliga o Selfie de vez (botão × dentro do balão, ícone no TopNav pra
+ * religar) — usado por qualquer lugar fora do próprio componente <Selfie />
+ * que precise ler ou mudar essa preferência sem puxar o estado de narração.
+ */
+export function useSelfieDismissal(): Pick<AssistantContextValue, 'selfieDismissed' | 'selfieHydrated' | 'setSelfieDismissed'> {
+  const { selfieDismissed, selfieHydrated, setSelfieDismissed } = useSelfie()
+  return { selfieDismissed, selfieHydrated, setSelfieDismissed }
 }
 
 /**

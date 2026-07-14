@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, fireEvent } from '@testing-library/react'
+import { render, fireEvent, screen } from '@testing-library/react'
 import { TopNav } from './TopNav'
 import { ThemeProvider } from '../contexts/ThemeContext'
+import { AssistantProvider } from '../contexts/AssistantContext'
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
@@ -20,7 +21,9 @@ function getMobileNav(container: HTMLElement) {
 function renderTopNav() {
   return render(
     <ThemeProvider>
-      <TopNav email="user@example.com" onLogout={vi.fn()} />
+      <AssistantProvider>
+        <TopNav email="user@example.com" onLogout={vi.fn()} />
+      </AssistantProvider>
     </ThemeProvider>
   )
 }
@@ -54,5 +57,34 @@ describe('TopNav - nav mobile (segunda linha)', () => {
 
     expect(container.querySelector('.bg-gradient-to-r')).toBeInTheDocument()
     expect(container.querySelector('.bg-gradient-to-l')).not.toBeInTheDocument()
+  })
+})
+
+describe('TopNav - ícone de religar o Selfie', () => {
+  const DISMISSED_KEY = 'socialshelf:selfie:dismissed'
+
+  it('mostra "Trazer o Selfie de volta" quando o Selfie já foi dispensado antes', async () => {
+    window.localStorage.setItem(DISMISSED_KEY, '1')
+    renderTopNav()
+
+    expect(await screen.findByTitle('Trazer o Selfie de volta')).toBeInTheDocument()
+  })
+
+  it('mostra "Desligar o Selfie" quando o Selfie está ativo', async () => {
+    window.localStorage.removeItem(DISMISSED_KEY)
+    renderTopNav()
+
+    expect(await screen.findByTitle('Desligar o Selfie')).toBeInTheDocument()
+  })
+
+  it('clicar no ícone depois de dispensado limpa a preferência salva', async () => {
+    window.localStorage.setItem(DISMISSED_KEY, '1')
+    renderTopNav()
+
+    const button = await screen.findByTitle('Trazer o Selfie de volta')
+    fireEvent.click(button)
+
+    expect(window.localStorage.getItem(DISMISSED_KEY)).toBeNull()
+    expect(await screen.findByTitle('Desligar o Selfie')).toBeInTheDocument()
   })
 })
