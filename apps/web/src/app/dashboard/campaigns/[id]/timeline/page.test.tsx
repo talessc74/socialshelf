@@ -1,14 +1,16 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import CampaignTimelinePage from './page'
 import { api, type ApiPhotoCampaign, type ApiCampaignPhoto, type ApiCampaignItem } from '../../../../../lib/api'
 import { AssistantProvider, useSelfie } from '../../../../../contexts/AssistantContext'
 
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }))
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'campaign-1' }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: pushMock }),
 }))
 
 vi.mock('../../../../../lib/api', () => ({
@@ -18,6 +20,7 @@ vi.mock('../../../../../lib/api', () => ({
     getCampaignTimeline: vi.fn(),
     updateCampaignTimeline: vi.fn(),
     activateCampaign: vi.fn(),
+    cancelCampaign: vi.fn(),
     getImageUrls: vi.fn(),
   },
 }))
@@ -101,6 +104,10 @@ function renderPageWithNarrationProbe() {
 }
 
 describe('CampaignTimelinePage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it('shows an error instead of silently rendering an empty timeline when fetching items fails', async () => {
     mockedApi.getCampaign.mockResolvedValue(makeCampaign())
     mockedApi.getCampaignPhotos.mockResolvedValue([])
@@ -216,5 +223,60 @@ describe('CampaignTimelinePage', () => {
       expect(screen.getByTestId('selfie-narration')).toHaveTextContent('3 fotos')
     })
     expect(screen.getByTestId('selfie-narration')).toHaveTextContent('2 posts')
+  })
+
+  describe('cancelar campanha', () => {
+    it('mostra o botão de cancelar campanha enquanto a campanha está em revisão', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'reviewing' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+
+      renderPage()
+
+      expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('não mostra o botão de cancelar quando a campanha já está ativa', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1'])])
+      mockedApi.getImageUrls.mockResolvedValue({})
+
+      renderPage()
+
+      await screen.findByText('1 foto')
+      expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+    })
+
+    it('pede confirmação, cancela a campanha e volta para a lista', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'reviewing' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+      mockedApi.cancelCampaign.mockResolvedValue(makeCampaign({ status: 'cancelled' }))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja cancelar a campanha "Viagem à Europa"? Essa ação não pode ser desfeita.',
+      )
+      await waitFor(() => expect(mockedApi.cancelCampaign).toHaveBeenCalledWith('campaign-1'))
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/dashboard/campaigns'))
+    })
+
+    it('não cancela quando o usuário desiste na confirmação', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'reviewing' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(mockedApi.cancelCampaign).not.toHaveBeenCalled()
+    })
   })
 })
