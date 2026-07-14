@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AssistantProvider, useSelfieNarration } from '../contexts/AssistantContext'
 import { Selfie } from './Selfie'
@@ -47,6 +47,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('Selfie', () => {
@@ -110,5 +111,54 @@ describe('Selfie', () => {
     await userEvent.click(screen.getByText('narrar'))
     expect(screen.getByText('Escrevendo a copy…')).toBeInTheDocument()
     expect(document.querySelector('.ss-selfie-float')).toBeNull()
+  })
+
+  it('renderiza pálpebra e rastro de partículas quando animado', async () => {
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    expect(screen.getByTestId('selfie-eyelid')).toBeInTheDocument()
+    expect(document.querySelectorAll('.ss-selfie-sparkle')).toHaveLength(4)
+  })
+
+  it('não renderiza pálpebra nem partículas sob prefers-reduced-motion', async () => {
+    mockReducedMotion(true)
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    expect(screen.queryByTestId('selfie-eyelid')).not.toBeInTheDocument()
+    expect(document.querySelectorAll('.ss-selfie-sparkle')).toHaveLength(0)
+  })
+
+  it('pisca dentro da janela esperada e volta a abrir o olho', () => {
+    vi.useFakeTimers()
+    vi.spyOn(Math, 'random').mockReturnValue(0.5) // delay=3500ms; <0.28 falso => piscada única
+    renderSelfie()
+    fireEvent.click(screen.getByText('narrar'))
+
+    const eyelid = () => screen.getByTestId('selfie-eyelid')
+    expect(eyelid()).toHaveStyle({ transform: 'scaleY(0)' })
+
+    act(() => {
+      vi.advanceTimersByTime(3500)
+    })
+    expect(eyelid()).toHaveStyle({ transform: 'scaleY(1)' })
+
+    act(() => {
+      vi.advanceTimersByTime(130)
+    })
+    expect(eyelid()).toHaveStyle({ transform: 'scaleY(0)' })
+  })
+
+  it('não deixa timer de piscada vazar após desmontar', () => {
+    vi.useFakeTimers()
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { unmount } = renderSelfie()
+    fireEvent.click(screen.getByText('narrar'))
+
+    unmount()
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+
+    expect(errorSpy).not.toHaveBeenCalled()
   })
 })
