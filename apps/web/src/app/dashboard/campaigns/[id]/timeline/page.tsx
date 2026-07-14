@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import type { ApiCampaignItem } from '../../../../../lib/api'
 import { buildCampaignSummary } from '../../../../../lib/selfieCampaignSummary'
@@ -74,6 +74,7 @@ export default function CampaignTimelinePage() {
   const params = useParams<{ id: string }>()
   const campaignId = params.id
   const router = useRouter()
+  const queryClient = useQueryClient()
 
   const { data: campaign } = useQuery({ queryKey: ['campaign', campaignId], queryFn: () => api.getCampaign(campaignId) })
   const { data: photos, error: photosError } = useQuery({
@@ -125,6 +126,14 @@ export default function CampaignTimelinePage() {
     onSuccess: () => router.push('/dashboard/campaigns'),
   })
 
+  const cancelCampaign = useMutation({
+    mutationFn: () => api.cancelCampaign(campaignId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      router.push('/dashboard/campaigns')
+    },
+  })
+
   function updateCaption(itemId: string, caption: string) {
     setItems((prev) => prev?.map((item) => (item.id === itemId ? { ...item, caption } : item)) ?? null)
   }
@@ -174,6 +183,9 @@ export default function CampaignTimelinePage() {
   }
 
   const isReviewing = campaign?.status === 'reviewing'
+  // Mesma regra do CancelCampaignUseCase no backend: só campanhas que ainda não começaram a
+  // publicar podem ser canceladas.
+  const isCancellable = campaign?.status === 'draft' || campaign?.status === 'reviewing'
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -237,30 +249,52 @@ export default function CampaignTimelinePage() {
         </ul>
       )}
 
-      {(saveTimeline.isError || activateCampaign.isError) && (
+      {(saveTimeline.isError || activateCampaign.isError || cancelCampaign.isError) && (
         <p className="text-sm text-red-600">
-          {((activateCampaign.error ?? saveTimeline.error) as Error).message}
+          {((activateCampaign.error ?? saveTimeline.error ?? cancelCampaign.error) as Error).message}
         </p>
       )}
 
-      {isReviewing && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => saveTimeline.mutate()}
-            disabled={saveTimeline.isPending || !items}
-            className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
-          >
-            {saveTimeline.isPending ? 'Salvando…' : 'Salvar alterações'}
-          </button>
-          <button
-            type="button"
-            onClick={() => activateCampaign.mutate()}
-            disabled={activateCampaign.isPending || !items || items.length === 0}
-            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
-          >
-            {activateCampaign.isPending ? 'Ativando…' : 'Ativar campanha'}
-          </button>
+      {(isReviewing || isCancellable) && (
+        <div className="flex flex-wrap gap-2">
+          {isReviewing && (
+            <>
+              <button
+                type="button"
+                onClick={() => saveTimeline.mutate()}
+                disabled={saveTimeline.isPending || !items}
+                className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
+              >
+                {saveTimeline.isPending ? 'Salvando…' : 'Salvar alterações'}
+              </button>
+              <button
+                type="button"
+                onClick={() => activateCampaign.mutate()}
+                disabled={activateCampaign.isPending || !items || items.length === 0}
+                className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+              >
+                {activateCampaign.isPending ? 'Ativando…' : 'Ativar campanha'}
+              </button>
+            </>
+          )}
+          {isCancellable && (
+            <button
+              type="button"
+              onClick={() => {
+                if (
+                  confirm(
+                    `Tem certeza que deseja cancelar a campanha "${campaign?.name}"? Essa ação não pode ser desfeita.`,
+                  )
+                ) {
+                  cancelCampaign.mutate()
+                }
+              }}
+              disabled={cancelCampaign.isPending}
+              className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
+            >
+              {cancelCampaign.isPending ? 'Cancelando…' : 'Cancelar campanha'}
+            </button>
+          )}
         </div>
       )}
     </div>

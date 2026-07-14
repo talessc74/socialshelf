@@ -88,6 +88,14 @@ export default function CampaignUploadPage() {
     onSuccess: () => router.push(`/dashboard/campaigns/${campaignId}/timeline`),
   })
 
+  const cancelCampaign = useMutation({
+    mutationFn: () => api.cancelCampaign(campaignId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      router.push('/dashboard/campaigns')
+    },
+  })
+
   const deletePhoto = useMutation({
     mutationFn: (photoId: string) => api.deleteCampaignPhoto(campaignId, photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
@@ -281,14 +289,38 @@ export default function CampaignUploadPage() {
         <p className="text-sm text-red-600">{(generateTimeline.error as Error).message}</p>
       )}
 
-      <button
-        type="button"
-        onClick={() => generateTimeline.mutate()}
-        disabled={!photos || photos.length === 0 || generateTimeline.isPending}
-        className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
-      >
-        {generateTimeline.isPending ? 'Gerando linha do tempo…' : 'Gerar linha do tempo'}
-      </button>
+      {cancelCampaign.isError && (
+        <p className="text-sm text-red-600">{(cancelCampaign.error as Error).message}</p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => generateTimeline.mutate()}
+          disabled={!photos || photos.length === 0 || generateTimeline.isPending}
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+        >
+          {generateTimeline.isPending ? 'Gerando linha do tempo…' : 'Gerar linha do tempo'}
+        </button>
+        {(campaign?.status === 'draft' || campaign?.status === 'reviewing') && (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  `Tem certeza que deseja cancelar a campanha "${campaign?.name}"? Essa ação não pode ser desfeita.`,
+                )
+              ) {
+                cancelCampaign.mutate()
+              }
+            }}
+            disabled={cancelCampaign.isPending}
+            className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-40"
+          >
+            {cancelCampaign.isPending ? 'Cancelando…' : 'Cancelar campanha'}
+          </button>
+        )}
+      </div>
     </div>
   )
 }

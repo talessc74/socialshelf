@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import CampaignUploadPage from './page'
 import { api, type ApiPhotoCampaign, type ApiCampaignPhoto } from '../../../../../lib/api'
 
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }))
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'campaign-1' }),
-  useRouter: () => ({ push: vi.fn() }),
+  useRouter: () => ({ push: pushMock }),
 }))
 
 vi.mock('../../../../../lib/api', () => ({
@@ -18,6 +20,7 @@ vi.mock('../../../../../lib/api', () => ({
     deleteCampaignPhoto: vi.fn(),
     reorderCampaignPhotos: vi.fn(),
     generateCampaignTimeline: vi.fn(),
+    cancelCampaign: vi.fn(),
     getImageUrls: vi.fn(),
   },
 }))
@@ -30,7 +33,7 @@ function mockImageUrls() {
   )
 }
 
-function makeCampaign(): ApiPhotoCampaign {
+function makeCampaign(overrides: Partial<ApiPhotoCampaign> = {}): ApiPhotoCampaign {
   return {
     id: 'campaign-1',
     userId: 'user-1',
@@ -46,6 +49,7 @@ function makeCampaign(): ApiPhotoCampaign {
     updatedAt: new Date().toISOString(),
     startedAt: null,
     completedAt: null,
+    ...overrides,
   }
 }
 
@@ -258,5 +262,45 @@ describe('CampaignUploadPage', () => {
     // The list still refreshes despite the partial failure — the successful photo shows up.
     expect(await screen.findByText(/1 foto enviada/)).toBeInTheDocument()
     expect(await screen.findByText(/1 de 2 foto\(s\) não subiram/)).toBeInTheDocument()
+  })
+
+  describe('cancelar campanha', () => {
+    it('mostra o botão de cancelar campanha para um rascunho', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'draft' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+
+      renderPage()
+
+      expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('pede confirmação, cancela a campanha e volta para a lista', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'draft' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.cancelCampaign.mockResolvedValue(makeCampaign({ status: 'cancelled' }))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja cancelar a campanha "Viagem à Europa"? Essa ação não pode ser desfeita.',
+      )
+      await waitFor(() => expect(mockedApi.cancelCampaign).toHaveBeenCalledWith('campaign-1'))
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/dashboard/campaigns'))
+    })
+
+    it('não cancela quando o usuário desiste na confirmação', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'draft' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(mockedApi.cancelCampaign).not.toHaveBeenCalled()
+    })
   })
 })
