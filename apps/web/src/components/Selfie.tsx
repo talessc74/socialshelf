@@ -81,13 +81,15 @@ function SelfieMascot({ animated }: { animated: boolean }) {
       className={`h-16 w-16 shrink-0 drop-shadow-[0_0_10px_var(--ss-accent)] ${animated ? 'ss-selfie-float' : ''}`}
     >
       <defs>
+        {/* stop-color/fill precisam vir via style (CSS) — var() não resolve em
+            atributo de apresentação SVG na maioria dos navegadores. */}
         <linearGradient id="selfie-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--ss-accent)" />
-          <stop offset="100%" stopColor="var(--ss-positive)" />
+          <stop offset="0%" style={{ stopColor: 'var(--ss-accent)' }} />
+          <stop offset="100%" style={{ stopColor: 'var(--ss-positive)' }} />
         </linearGradient>
       </defs>
       {/* rastro de luz */}
-      <ellipse cx="32" cy="66" rx="9" ry="3" fill="var(--ss-accent)" opacity="0.35" />
+      <ellipse cx="32" cy="66" rx="9" ry="3" opacity="0.35" style={{ fill: 'var(--ss-accent)' }} />
       {/* corpo */}
       <path
         d="M32 6c13 0 21 9 21 22 0 6-1 11-4 16-3 6-9 10-17 10s-14-4-17-10c-3-5-4-10-4-16C11 15 19 6 32 6Z"
@@ -95,7 +97,7 @@ function SelfieMascot({ animated }: { animated: boolean }) {
       />
       {/* olho */}
       <circle cx="32" cy="30" r="10" fill="#ffffff" />
-      <circle cx="32" cy="30" r="4.5" fill="var(--ss-ink)" />
+      <circle cx="32" cy="30" r="4.5" style={{ fill: 'var(--ss-ink)' }} />
     </svg>
   )
 }
