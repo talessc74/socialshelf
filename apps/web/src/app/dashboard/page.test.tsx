@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import DashboardPage from './page'
@@ -12,6 +12,7 @@ import {
   type ApiPostPerformanceEntry,
   type ApiTopicSuggestion,
 } from '../../lib/api'
+import { AssistantProvider, useSelfie } from '../../contexts/AssistantContext'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
@@ -147,13 +148,34 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <DashboardPage />
+      <AssistantProvider>
+        <DashboardPage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
+}
+
+/** Sonda que expõe o texto narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <DashboardPage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
+  window.localStorage.clear()
   mockedApi.getBrandProfile.mockResolvedValue(null)
   mockedApi.getConnections.mockResolvedValue([])
   mockedApi.getPostsPerformance.mockResolvedValue({ entries: [], errors: [] })
@@ -455,5 +477,24 @@ describe('DashboardPage - carrossel de notícias para pauta', () => {
 
     const cta = await screen.findByRole('link', { name: 'Criar post disso' })
     expect(cta).toHaveAttribute('href', '/dashboard/generate?seed=Manchete%20de%20teste')
+  })
+})
+
+describe('DashboardPage — narração do Selfie', () => {
+  it('narra o total acumulado de tempo economizado quando há histórico', async () => {
+    window.localStorage.setItem('socialshelf:selfie:timeSavedMinutes', '75')
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('1h 15min')
+    })
+  })
+
+  it('não narra nada sem histórico de tempo economizado', async () => {
+    renderPageWithNarrationProbe()
+
+    await screen.findByText(/Bom dia|Boa tarde|Boa noite/)
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
   })
 })

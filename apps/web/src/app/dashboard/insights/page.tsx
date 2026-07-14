@@ -6,6 +6,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiPerformanceSuggestion } from '../../../lib/api'
 import { NewsCarousel } from '../../../components/NewsCarousel'
 import { NewsSearch } from '../../../components/NewsSearch'
+import { pickTopSuggestion } from '../../../lib/selfieInsightsHighlight'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 function isGoodTimeNow(suggestion: ApiPerformanceSuggestion): boolean {
   const now = new Date()
@@ -106,6 +108,9 @@ export default function InsightsBankPage() {
   })
 
   const freshUnshelved = fresh?.filter((s) => !s.shelved) ?? []
+  useSelfieNarrateOnReady(
+    !loadingShelved && !loadingFresh ? pickTopSuggestion(freshUnshelved, shelved ?? []) : null,
+  )
 
   return (
     <div className="space-y-6">

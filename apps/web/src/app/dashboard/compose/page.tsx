@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type PublishResponse } from '../../../lib/api'
 import { useWakeLock } from '../../../lib/useWakeLock'
+import { buildComposeReminder } from '../../../lib/selfieComposeReminder'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 import {
   MAX_GENERATION_ARTIFACTS,
   Platform,
@@ -142,6 +144,15 @@ export default function ComposePage() {
     queryKey: ['connections'],
     queryFn: () => api.getConnections(),
   })
+
+  // Consulta local a este componente — NewsCarousel/outras telas também usam
+  // getBrandProfile, mas com queryKey compartilhada o React Query cacheia sem
+  // requisição duplicada quando ambas montam.
+  const { data: brandProfile, isLoading: brandLoading } = useQuery({
+    queryKey: ['brand-profile'],
+    queryFn: () => api.getBrandProfile(),
+  })
+  useSelfieNarrateOnReady(!brandLoading ? buildComposeReminder(brandProfile ?? null) : null)
 
   const { data: repostSource } = useQuery({
     queryKey: ['post', repostFromId],

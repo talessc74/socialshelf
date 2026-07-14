@@ -1,12 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { useWakeLock } from '../../../lib/useWakeLock'
 import { useSelfieNarration } from '../../../contexts/AssistantContext'
+import { estimateManualMinutes, formatMinutes, addTimeSaved } from '../../../lib/selfieTimeSaved'
 import {
   Platform,
   PLATFORM_MEDIA_SUPPORT,
@@ -511,17 +512,24 @@ export default function GenerateContentPage() {
   const { stages, stageIndex } = useGenerationProgress(generating, photoFiles.length > 0 ? photoFiles.length : null)
   useWakeLock(generating)
 
-  // Publica o estágio atual da geração para o Selfie narrar (BDR-011). Gatilho
-  // por evento de estado real (generating/stageIndex), nunca por ociosidade.
-  // Depende da string derivada, não do array `stages` (que é recriado a cada
-  // render) — evitando um loop de efeito.
+  // Narração do Selfie (BDR-011): imperativa, chamada direto nos pontos reais
+  // do ciclo de vida da geração (início/sucesso/erro) em vez de derivada de
+  // stages/stageIndex — evita ecoar o que GeneratingView já mostra. Conteúdo
+  // é o medidor de tempo economizado, não o nome do estágio técnico.
   const { narrate, clearNarration } = useSelfieNarration()
-  const currentNarration = generating ? (stages[stageIndex] ?? null) : null
+  const completionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearPendingCompletion = () => {
+    if (completionTimerRef.current) {
+      clearTimeout(completionTimerRef.current)
+      completionTimerRef.current = null
+    }
+  }
   useEffect(() => {
-    if (currentNarration) narrate(currentNarration)
-    else clearNarration()
-  }, [currentNarration, narrate, clearNarration])
-  useEffect(() => () => clearNarration(), [clearNarration])
+    return () => {
+      if (completionTimerRef.current) clearTimeout(completionTimerRef.current)
+      clearNarration()
+    }
+  }, [clearNarration])
 
   const validPlatforms = new Set(Object.values(Platform))
   const connectedPlatforms = connections
@@ -559,11 +567,17 @@ export default function GenerateContentPage() {
     setPhotoFiles([])
     setError('')
     window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
+    clearPendingCompletion()
+    clearNarration()
   }
 
   const handleGenerate = async () => {
     setError('')
     setGenerating(true)
+
+    const duringMinutes = estimateManualMinutes(selectedPlatforms.size, photoFiles.length > 0 ? photoFiles.length : 1)
+    narrate(`Isso levaria uns ${duringMinutes} min fazendo à mão. Só um instante...`)
+
     try {
       const imageStoragePaths =
         photoFiles.length > 0 ? await Promise.all(photoFiles.map((f) => api.uploadImage(f))) : undefined
@@ -579,6 +593,22 @@ export default function GenerateContentPage() {
       })
       setResult(generationRequest)
       window.sessionStorage.removeItem(DRAFT_STORAGE_KEY)
+
+      if (generationRequest.status === 'ready' && generationRequest.outputs) {
+        const minutes = estimateManualMinutes(
+          generationRequest.inputs.targetPlatforms.length,
+          generationRequest.outputs.artifacts.length,
+        )
+        const total = addTimeSaved(minutes)
+        narrate(
+          `Pronto! Isso economizou uns ${minutes} min do seu tempo. Total: ${formatMinutes(total)} economizados no SocialShelf ✦`,
+        )
+        clearPendingCompletion()
+        completionTimerRef.current = setTimeout(() => clearNarration(), 5000)
+      } else {
+        clearPendingCompletion()
+        clearNarration()
+      }
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err)
       // Gerar conteúdo é uma chamada longa (copy + todas as imagens antes de responder) —
@@ -589,6 +619,8 @@ export default function GenerateContentPage() {
           ? 'Falha de rede durante a geração — sua conexão pode ter caído no meio da espera. Tente novamente numa rede mais estável.'
           : raw || 'Erro ao gerar conteúdo.',
       )
+      clearPendingCompletion()
+      clearNarration()
     } finally {
       setGenerating(false)
     }

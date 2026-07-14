@@ -10,6 +10,8 @@ import { api } from '../../lib/api'
 import { LogoImage } from '../../components/LogoImage'
 import { NewsCarousel } from '../../components/NewsCarousel'
 import { useAuth } from '../../contexts/AuthContext'
+import { getTimeSavedTotal, formatMinutes } from '../../lib/selfieTimeSaved'
+import { useSelfieNarrateOnReady } from '../../contexts/AssistantContext'
 
 const TOTAL_PLATFORMS = 4
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -90,6 +92,18 @@ export default function DashboardPage() {
     queryKey: ['posts', 'scheduled'],
     queryFn: () => api.getPosts('scheduled'),
   })
+
+  // Total acumulado de tempo economizado (mesma chave localStorage do medidor
+  // da tela de geração) — lido só no cliente (useEffect) para não divergir
+  // entre SSR e hidratação. Sem histórico ainda, sem mensagem.
+  const [timeSavedMessage, setTimeSavedMessage] = useState<string | null>(null)
+  useEffect(() => {
+    const total = getTimeSavedTotal()
+    if (total > 0) {
+      setTimeSavedMessage(`Você já economizou ${formatMinutes(total)} no total usando o SocialShelf!`)
+    }
+  }, [])
+  useSelfieNarrateOnReady(timeSavedMessage)
 
   useEffect(() => {
     const connected = searchParams.get('connected')
