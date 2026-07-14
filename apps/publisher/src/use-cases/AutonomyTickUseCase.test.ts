@@ -243,6 +243,25 @@ describe('AutonomyTickUseCase', () => {
     expect(dailyCounter.getCount).toHaveBeenCalledWith('user-1', 'brand-1', 'br-2026-07-13')
   })
 
+  it('treats no slots as open right at the start of the Brasília day, not all of them', async () => {
+    // Achado real em produção (Node 20): Intl.DateTimeFormat('en-US', { hour12: false, ... })
+    // devolve hour="24" em vez de "00" pra meia-noite (bug de ICU específico dessa combinação
+    // de locale/opção — não reproduz com 'pt-BR' nem com hourCycle: 'h23'). Isso fazia
+    // brasiliaHourNow() achar que já eram ~24h logo no primeiro tick do dia, então TODOS os
+    // slots apareciam "abertos" (computeDailySlotHours nunca passa de 21h) — a marca publicava
+    // um post de madrugada, antes do horário comercial (9h-21h) sequer começar, gastando uma
+    // vaga do dia à toa. Sintoma em produção: "Publicado com sucesso" às 00h04, seguido de
+    // "Pulado — ainda não é hora" em quase todo o resto do dia.
+    brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic', maxAutoPostsPerDay: 3 })])
+    dailyCounter.getCount = vi.fn().mockResolvedValue(0)
+    vi.setSystemTime(new Date('2026-07-14T03:04:00.000Z')) // 00h04 em Brasília (UTC-3)
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'skipped-not-yet-time' })
+    expect(generatorClient.suggestTopics).not.toHaveBeenCalled()
+  })
+
   it('opens the second slot of the day for a brand configured with more than one post per day', async () => {
     brandDiscovery.findEligibleBrands = vi
       .fn()
