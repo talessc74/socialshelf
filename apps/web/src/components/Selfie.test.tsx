@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { AssistantProvider, useSelfieNarration } from '../contexts/AssistantContext'
+import { AssistantProvider, useSelfieDismissal, useSelfieNarration } from '../contexts/AssistantContext'
 import { Selfie } from './Selfie'
 
 const DISMISSED_KEY = 'socialshelf:selfie:dismissed'
@@ -17,10 +17,17 @@ function NarrationDriver() {
   )
 }
 
+/** Simula o ícone de religar do TopNav, sem precisar montar o TopNav inteiro. */
+function DismissalDriver() {
+  const { setSelfieDismissed } = useSelfieDismissal()
+  return <button onClick={() => setSelfieDismissed(false)}>religar</button>
+}
+
 function renderSelfie() {
   return render(
     <AssistantProvider>
       <NarrationDriver />
+      <DismissalDriver />
       <Selfie />
     </AssistantProvider>,
   )
@@ -103,6 +110,18 @@ describe('Selfie', () => {
     renderSelfie()
     await userEvent.click(screen.getByText('narrar'))
     expect(screen.queryByTestId('selfie')).not.toBeInTheDocument()
+  })
+
+  it('religar depois de dispensado limpa a preferência e volta a mostrar o Selfie', async () => {
+    window.localStorage.setItem(DISMISSED_KEY, '1')
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    expect(screen.queryByTestId('selfie')).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByText('religar'))
+
+    expect(screen.getByTestId('selfie')).toBeInTheDocument()
+    expect(window.localStorage.getItem(DISMISSED_KEY)).toBeNull()
   })
 
   it('sob prefers-reduced-motion não aplica a classe de animação, mas mantém o texto', async () => {

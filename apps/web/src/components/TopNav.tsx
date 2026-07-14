@@ -3,8 +3,35 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
+import { useSelfieDismissal } from '../contexts/AssistantContext'
+
+/**
+ * Ícone pra religar o Selfie depois de desligado no × do balão — sem isso,
+ * a única forma de trazer o assistente de volta era limpar o localStorage
+ * manualmente pelo devtools. Some enquanto não hidrata (evita flash de
+ * estado errado), fica com cara de "ligado" quando o Selfie está ativo.
+ */
+function SelfieToggle() {
+  const { selfieDismissed, selfieHydrated, setSelfieDismissed } = useSelfieDismissal()
+  if (!selfieHydrated) return null
+
+  return (
+    <button
+      type="button"
+      onClick={() => setSelfieDismissed(!selfieDismissed)}
+      title={selfieDismissed ? 'Trazer o Selfie de volta' : 'Desligar o Selfie'}
+      aria-label={selfieDismissed ? 'Reativar o assistente Selfie' : 'Desativar o assistente Selfie'}
+      aria-pressed={!selfieDismissed}
+      className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+        selfieDismissed ? 'bg-card-2 text-muted hover:text-ink' : 'bg-accent-soft text-accent hover:opacity-80'
+      }`}
+    >
+      <Bot className="h-4 w-4" />
+    </button>
+  )
+}
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Início', icon: Home },
@@ -149,6 +176,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
 
       <div className="flex shrink-0 items-center gap-3">
         <span className="hidden truncate text-sm text-muted sm:inline">{email}</span>
+        <SelfieToggle />
         <LanternToggle />
         <button
           onClick={onLogout}

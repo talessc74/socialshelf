@@ -1,19 +1,18 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { useSelfie } from '../contexts/AssistantContext'
+import { useSelfie, useSelfieDismissal } from '../contexts/AssistantContext'
 
 /**
  * Selfie — assistente contextual do produto (ver _local-bdr-policy-011).
  *
  * Primeiro corte: aparece apenas enquanto a IA está trabalhando (evento de
  * estado real publicado via useSelfieNarration), narrando cada estágio. Nunca
- * aparece por ociosidade. O usuário pode desligá-lo de vez — a preferência é
- * persistida em localStorage (escopo de dispositivo neste corte; migra para
- * Firestore por usuário na onda de onboarding).
+ * aparece por ociosidade. O usuário pode desligá-lo de vez pelo × — a
+ * preferência é persistida em localStorage (escopo de dispositivo neste
+ * corte; migra para Firestore por usuário na onda de onboarding) e pode ser
+ * revertida pelo ícone do Selfie no TopNav (ver useSelfieDismissal).
  */
-
-const DISMISSED_KEY = 'socialshelf:selfie:dismissed'
 
 function prefersReducedMotion(): boolean {
   if (typeof window === 'undefined' || !window.matchMedia) return false
@@ -22,24 +21,16 @@ function prefersReducedMotion(): boolean {
 
 export function Selfie() {
   const { narration } = useSelfie()
-  // Começa oculto até lermos localStorage/matchMedia no cliente, evitando
-  // flash de hidratação.
-  const [hydrated, setHydrated] = useState(false)
-  const [dismissed, setDismissed] = useState(true)
+  const { selfieDismissed, selfieHydrated, setSelfieDismissed } = useSelfieDismissal()
   const [reduceMotion, setReduceMotion] = useState(false)
 
   useEffect(() => {
-    setDismissed(window.localStorage.getItem(DISMISSED_KEY) === '1')
     setReduceMotion(prefersReducedMotion())
-    setHydrated(true)
   }, [])
 
-  const dismiss = () => {
-    window.localStorage.setItem(DISMISSED_KEY, '1')
-    setDismissed(true)
-  }
+  const dismiss = () => setSelfieDismissed(true)
 
-  if (!hydrated || dismissed || !narration.active || !narration.message) return null
+  if (!selfieHydrated || selfieDismissed || !narration.active || !narration.message) return null
 
   return (
     <div
