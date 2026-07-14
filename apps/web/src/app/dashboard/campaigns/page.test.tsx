@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import CampaignsPage from './page'
 import { api, type ApiPhotoCampaign } from '../../../lib/api'
@@ -7,6 +8,7 @@ import { api, type ApiPhotoCampaign } from '../../../lib/api'
 vi.mock('../../../lib/api', () => ({
   api: {
     listCampaigns: vi.fn(),
+    cancelCampaign: vi.fn(),
   },
 }))
 
@@ -75,5 +77,74 @@ describe('CampaignsPage', () => {
     renderPage()
     const link = await screen.findByText('Revisar linha do tempo')
     expect(link.closest('a')).toHaveAttribute('href', '/dashboard/campaigns/campaign-1/timeline')
+  })
+
+  describe('cancel campaign', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('shows a cancel button for a draft campaign', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft' })])
+      renderPage()
+      expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('shows a cancel button for a reviewing campaign', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'reviewing' })])
+      renderPage()
+      expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('does not show a cancel button for active, completed or cancelled campaigns', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([
+        makeCampaign({ id: 'c-active', status: 'active' }),
+        makeCampaign({ id: 'c-completed', status: 'completed' }),
+        makeCampaign({ id: 'c-cancelled', status: 'cancelled' }),
+      ])
+      renderPage()
+      await screen.findAllByText('Viagem à Europa')
+      expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+    })
+
+    it('asks for confirmation and cancels the campaign when confirmed', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft' })])
+      mockedApi.cancelCampaign.mockResolvedValue(makeCampaign({ status: 'cancelled' }))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja cancelar a campanha "Viagem à Europa"? Essa ação não pode ser desfeita.',
+      )
+      await waitFor(() => expect(mockedApi.cancelCampaign).toHaveBeenCalledWith('campaign-1'))
+    })
+
+    it('does not cancel the campaign when the user backs out of the confirmation', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft' })])
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(mockedApi.cancelCampaign).not.toHaveBeenCalled()
+    })
+
+    it('shows an error message when cancelling fails', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'draft' })])
+      mockedApi.cancelCampaign.mockRejectedValue(new Error('Only a campaign that has not started can be cancelled'))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
+
+      expect(
+        await screen.findByText('Não foi possível cancelar: Only a campaign that has not started can be cancelled'),
+      ).toBeInTheDocument()
+    })
   })
 })

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type { ApiPhotoCampaign } from '../../../lib/api'
 
@@ -23,6 +23,70 @@ function nextStepFor(campaign: ApiPhotoCampaign): { href: string; label: string 
   }
   if (campaign.status === 'reviewing') return { href: `/dashboard/campaigns/${campaign.id}/timeline`, label: 'Revisar linha do tempo' }
   return { href: `/dashboard/campaigns/${campaign.id}/timeline`, label: 'Ver linha do tempo' }
+}
+
+// Só campanhas que ainda não começaram a publicar podem ser canceladas —
+// espelha a mesma validação do CancelCampaignUseCase no backend.
+const CANCELLABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['draft', 'reviewing'])
+
+function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
+  const queryClient = useQueryClient()
+  const status = STATUS_LABELS[campaign.status]
+  const nextStep = nextStepFor(campaign)
+
+  const cancelMutation = useMutation({
+    mutationFn: () => api.cancelCampaign(campaign.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+  })
+
+  return (
+    <li className="rounded-2xl border border-line bg-card p-5 shadow-card">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-sm font-semibold text-ink">{campaign.name}</h2>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${status.className}`}>
+              {status.label}
+            </span>
+          </div>
+          {campaign.description && <p className="mt-1 text-sm text-muted">{campaign.description}</p>}
+          {campaign.photoCount !== undefined && campaign.photoCount > 0 && (
+            <p className="mt-1 text-xs text-muted">
+              {campaign.photoCount} foto{campaign.photoCount > 1 ? 's' : ''} enviada
+              {campaign.photoCount > 1 ? 's' : ''}
+            </p>
+          )}
+          {cancelMutation.isError && (
+            <p className="mt-1 text-xs text-red-600">
+              Não foi possível cancelar: {(cancelMutation.error as Error).message}
+            </p>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {CANCELLABLE_STATUSES.has(campaign.status) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(`Tem certeza que deseja cancelar a campanha "${campaign.name}"? Essa ação não pode ser desfeita.`)) {
+                  cancelMutation.mutate()
+                }
+              }}
+              disabled={cancelMutation.isPending}
+              className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+            >
+              {cancelMutation.isPending ? 'Cancelando…' : 'Cancelar campanha'}
+            </button>
+          )}
+          <Link
+            href={nextStep.href}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
+          >
+            {nextStep.label}
+          </Link>
+        </div>
+      </div>
+    </li>
+  )
 }
 
 export default function CampaignsPage() {
@@ -61,37 +125,9 @@ export default function CampaignsPage() {
         </p>
       ) : (
         <ul className="space-y-3">
-          {campaigns.map((campaign) => {
-            const status = STATUS_LABELS[campaign.status]
-            const nextStep = nextStepFor(campaign)
-            return (
-              <li key={campaign.id} className="rounded-2xl border border-line bg-card p-5 shadow-card">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="text-sm font-semibold text-ink">{campaign.name}</h2>
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${status.className}`}>
-                        {status.label}
-                      </span>
-                    </div>
-                    {campaign.description && <p className="mt-1 text-sm text-muted">{campaign.description}</p>}
-                    {campaign.photoCount !== undefined && campaign.photoCount > 0 && (
-                      <p className="mt-1 text-xs text-muted">
-                        {campaign.photoCount} foto{campaign.photoCount > 1 ? 's' : ''} enviada
-                        {campaign.photoCount > 1 ? 's' : ''}
-                      </p>
-                    )}
-                  </div>
-                  <Link
-                    href={nextStep.href}
-                    className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
-                  >
-                    {nextStep.label}
-                  </Link>
-                </div>
-              </li>
-            )
-          })}
+          {campaigns.map((campaign) => (
+            <CampaignRow key={campaign.id} campaign={campaign} />
+          ))}
         </ul>
       )}
     </div>
