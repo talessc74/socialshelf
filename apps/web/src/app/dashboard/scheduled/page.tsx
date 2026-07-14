@@ -7,6 +7,8 @@ import { api } from '../../../lib/api'
 import { Platform, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
 import type { ApiPost, PostContent } from '../../../lib/api'
 import { PostDetailModal } from '../../../components/PostDetailModal'
+import { buildScheduleSummary } from '../../../lib/selfieScheduleSummary'
+import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
   [Platform.LINKEDIN]: 'LinkedIn',
@@ -559,6 +561,10 @@ export default function ScheduledPostsPage() {
   const isLoading = scheduledQuery.isLoading || publishedQuery.isLoading
   const error = scheduledQuery.error ?? publishedQuery.error
   const isEmpty = scheduledPosts.length === 0 && publishedPosts.length === 0
+
+  useSelfieNarrateOnReady(
+    !isLoading && !error ? buildScheduleSummary(scheduledPosts, publishedPosts) : null,
+  )
 
   useEffect(() => {
     if (!highlightedPostId) return

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import ScheduledPostsPage from './page'
 import { api, type ApiPost } from '../../../lib/api'
+import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 
 const { pushMock, backMock } = vi.hoisted(() => ({ pushMock: vi.fn(), backMock: vi.fn() }))
 vi.mock('next/navigation', () => ({
@@ -48,7 +49,9 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <ScheduledPostsPage />
+      <AssistantProvider>
+        <ScheduledPostsPage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
@@ -60,6 +63,24 @@ async function renderListView() {
   renderPage()
   await user.click(screen.getByRole('button', { name: 'Lista' }))
   return user
+}
+
+/** Sonda que expõe o texto narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <ScheduledPostsPage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
 }
 
 beforeEach(() => {
@@ -83,6 +104,37 @@ describe('ScheduledPostsPage', () => {
     renderPage()
 
     expect(await screen.findByText(/Nenhum post agendado ainda/)).toBeInTheDocument()
+  })
+
+  it('narra o resumo do dia ao Selfie quando agendados e publicados carregam', async () => {
+    const now = new Date()
+    const inOneHour = new Date(now.getTime() + 60 * 60 * 1000).toISOString()
+
+    mockedApi.getPosts.mockImplementation((status) => {
+      if (status === 'scheduled') return Promise.resolve([makePost({ status: 'scheduled', scheduledAt: inOneHour })])
+      if (status === 'published') {
+        return Promise.resolve([
+          makePost({ id: 'p2', status: 'published', scheduledAt: null, publishedAt: now.toISOString() }),
+        ])
+      }
+      return Promise.resolve([])
+    })
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('publicou 1 post')
+    })
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('1 agendado')
+  })
+
+  it('não narra nada ao Selfie quando não há posts', async () => {
+    mockedApi.getPosts.mockResolvedValue([])
+
+    renderPageWithNarrationProbe()
+
+    await screen.findByText(/Nenhum post agendado ainda/)
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('')
   })
 
   it('mostra mensagem de erro quando a chamada falha', async () => {

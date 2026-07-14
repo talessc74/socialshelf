@@ -5,6 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import type { ApiCampaignItem } from '../../../../../lib/api'
+import { buildCampaignSummary } from '../../../../../lib/selfieCampaignSummary'
+import { useSelfieNarrateOnReady } from '../../../../../contexts/AssistantContext'
 
 function ItemThumbnail({
   url,
@@ -87,6 +89,7 @@ export default function CampaignTimelinePage() {
   useEffect(() => {
     if (serverItems) setItems(serverItems)
   }, [serverItems])
+  useSelfieNarrateOnReady(items ? buildCampaignSummary(items) : null)
 
   const photosById = new Map((photos ?? []).map((p) => [p.id, p]))
 

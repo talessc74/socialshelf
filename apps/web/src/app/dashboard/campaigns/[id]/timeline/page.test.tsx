@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import CampaignTimelinePage from './page'
 import { api, type ApiPhotoCampaign, type ApiCampaignPhoto, type ApiCampaignItem } from '../../../../../lib/api'
+import { AssistantProvider, useSelfie } from '../../../../../contexts/AssistantContext'
 
 vi.mock('next/navigation', () => ({
   useParams: () => ({ id: 'campaign-1' }),
@@ -74,7 +75,27 @@ function renderPage() {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
-      <CampaignTimelinePage />
+      <AssistantProvider>
+        <CampaignTimelinePage />
+      </AssistantProvider>
+    </QueryClientProvider>,
+  )
+}
+
+/** Sonda que expõe o texto narrado ao Selfie, para asserção nos testes. */
+function SelfieNarrationProbe() {
+  const { narration } = useSelfie()
+  return <div data-testid="selfie-narration">{narration.active ? narration.message : ''}</div>
+}
+
+function renderPageWithNarrationProbe() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <SelfieNarrationProbe />
+        <CampaignTimelinePage />
+      </AssistantProvider>
     </QueryClientProvider>,
   )
 }
@@ -176,5 +197,24 @@ describe('CampaignTimelinePage', () => {
     fireEvent.click(removeButtons[0]!)
 
     expect(await screen.findByText('1 foto')).toBeInTheDocument()
+  })
+
+  it('narra ao Selfie o total de fotos e posts da linha do tempo', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2'), makePhoto('photo-3')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([
+      makeItem('item-1', ['photo-1', 'photo-2']),
+      makeItem('item-2', ['photo-3']),
+    ])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('3 fotos')
+    })
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('2 posts')
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 /**
  * Estado de narração do assistente Selfie (ver _local-bdr-policy-011).
@@ -62,4 +62,31 @@ export function useSelfie(): AssistantContextValue {
 export function useSelfieNarration(): Pick<AssistantContextValue, 'narrate' | 'clearNarration'> {
   const { narrate, clearNarration } = useSelfie()
   return { narrate, clearNarration }
+}
+
+/**
+ * Narra uma mensagem assim que ela fica disponível (dado da tela terminou de
+ * carregar), uma única vez por montagem — não re-narra a cada render nem
+ * atualiza sozinha depois. Gatilho por evento real (a página carregou),
+ * nunca por ociosidade/timer. Usado pelas telas de conteúdo (Notícias,
+ * Performance, Agenda, etc.) que calculam sua própria mensagem a partir do
+ * dado já carregado e não precisam do controle fino de useSelfieNarration.
+ *
+ * Dispensa: o botão × do Selfie desliga o assistente inteiro por dispositivo
+ * (chave global já existente), não uma dica específica — o conteúdo aqui é
+ * dinâmico (muda por visita), então "nunca mais mostrar esta dica" não se
+ * aplica como fazia para uma dica estática de onboarding.
+ */
+export function useSelfieNarrateOnReady(message: string | null): void {
+  const { narrate, clearNarration } = useSelfieNarration()
+  const narratedRef = useRef(false)
+
+  useEffect(() => {
+    if (message && !narratedRef.current) {
+      narrate(message)
+      narratedRef.current = true
+    }
+  }, [message, narrate])
+
+  useEffect(() => () => clearNarration(), [clearNarration])
 }

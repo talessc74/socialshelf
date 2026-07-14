@@ -17,21 +17,20 @@ Question: O SocialShelf deve ter um assistente de interface baseado no Selfie, e
 
 ## Decision Outcome
 
-**Sim — Selfie como assistente contextual, ativado apenas por evento de estado real da aplicação, nunca por ociosidade ou tempo, com dispensa permanente por dica individual.**
+**Sim — Selfie como assistente contextual, ativado apenas por evento de estado real da aplicação, nunca por ociosidade ou tempo. Dispensa é um flag global por dispositivo (não por dica individual).**
 
-Selfie reaproveita o personagem já validado como camada de comunicação de duas necessidades já documentadas: mostrar a IA trabalhando (Princípio 1 da BDR-006) e orientar o usuário pelo produto (achabilidade). Primeira integração: `/dashboard/generate`, narrando os estágios reais de `GenerationArtifact.status`. Segunda onda, após validação da primeira: onboarding de conexão de rede social e criação de `BrandProfile` vazio.
+Selfie reaproveita o personagem já validado como camada de comunicação de duas necessidades já documentadas: mostrar a IA trabalhando (Princípio 1 da BDR-006) e orientar o usuário pelo produto (achabilidade). Primeira integração: `/dashboard/generate`, narrando os estágios reais de `GenerationArtifact.status`.
 
 ### Details
 
 **Gatilhos permitidos**
 
-- Mudança de estado real observável: transição de `GenerationArtifact.status`, primeira visita a uma tela, campo obrigatório detectado vazio.
+- Mudança de estado real observável: transição de `GenerationArtifact.status`, dado de uma tela terminando de carregar, primeira visita a uma tela, campo obrigatório detectado vazio.
 - Nunca por tempo ocioso, contagem de sessão ou recorrência programada ("a cada N minutos/dias"). Esse é o padrão que tornou o Clippy repudiado pelos usuários; reproduzi-lo aqui é tratado como defeito de produto, não escolha de estilo.
 
 **Regra de dispensa**
 
-- Cada dica tem identificador único. Uma vez dispensada, fica registrada em `dismissedTips: string[]` por usuário (Firestore) e nunca mais reaparece, em nenhuma sessão ou dispositivo.
-- Dispensar uma dica não desliga Selfie inteiro — dispensa é por conteúdo, não global. Desligar Selfie por completo é preferência explícita separada do usuário.
+- O botão × desliga o Selfie inteiro por dispositivo (flag global, `localStorage`) — ver correção abaixo, "Atualização 2026-07-14".
 
 **Acessibilidade**
 
@@ -40,14 +39,19 @@ Selfie reaproveita o personagem já validado como camada de comunicação de dua
 
 **Forma técnica**
 
-- Animação vetorial (Lottie ou Rive) derivada da imagem de referência já aprovada — não usa geração de vídeo. Esse fluxo é independente do pipeline de vídeo em avaliação para anúncios (TikTok/YouTube).
-- Lógica de gatilho implementada como mapa `evento -> dica`, desacoplada da tela que o consome, seguindo o mesmo espírito de portas/adapters já usado no projeto.
+- Lógica de gatilho desacoplada da tela que o consome (cada tela computa sua própria mensagem a partir do dado já carregado e publica via hook compartilhado), mesmo espírito de portas/adapters já usado no projeto. Detalhe de implementação em `_local-edr-policy-049`.
 
 **O que fica fora desta decisão**
 
-- Conteúdo textual final de cada dica — implementação, seguindo o tom de voz definido em `_local-bdr-policy-005`.
+- Conteúdo textual final de cada mensagem — implementação, seguindo o tom de voz definido em `_local-bdr-policy-005`.
 - Especificação de animação (keyframes) — decisão de design, não arquitetural.
-- Interação por texto livre (chat) com Selfie — fora de escopo; esta decisão cobre apenas dicas contextuais unidirecionais.
+- Interação por texto livre (chat) com Selfie — fora de escopo; esta decisão cobre apenas mensagens contextuais unidirecionais.
+
+### Atualização 2026-07-14 — Selfie expandido para todas as telas do produto; correção do modelo de dispensa
+
+A "segunda onda" descrita na versão original desta policy (onboarding, adiado até validação da primeira tela) foi substituída por decisão direta do usuário: Selfie ganhou interação própria em **todas** as telas do dashboard (Notícias, Performance, Agenda, Campanhas, Marca, Contas, Compose, Insights, Início), não só geração. Detalhe de cada tela — gatilho, fonte de dado, mensagem — registrado na `_local-edr-policy-049` (atualizada na mesma data).
+
+Essa expansão expôs uma inconsistência na decisão original que precisa ser corrigida aqui: o texto anterior definia dispensa "permanente por dica individual" (`dismissedTips: string[]`, Firestore), pensado para uma dica estática de onboarding. Com conteúdo dinâmico (o melhor post muda, a notícia do dia muda, o resumo da agenda muda a cada visita), dispensar permanentemente pelo conteúdo de hoje tornaria a mensagem inútil amanhã — o mecanismo nunca chegou a ser implementado dessa forma. **A regra vigente, já implementada desde o primeiro corte (EDR-049) e mantida na expansão, é: um único flag global por dispositivo (`localStorage`) — "não quero mais ver o Selfie", não "não quero ver esta dica específica".** Isso substitui a seção "Regra de dispensa" da versão original.
 
 ## Conflicts
 
@@ -60,3 +64,4 @@ Nenhum identificado. Esta decisão estende `_local-bdr-policy-006` (Princípios 
 - [_local-bdr-policy-005-tokens-identidade-visual](005-tokens-identidade-visual.md) - Tom de voz e componentes-padrão a seguir no conteúdo das dicas
 - [_local-bdr-policy-010-paleta-logo-identidade-visual](010-paleta-logo-identidade-visual.md) - Paleta usada na imagem de referência do Selfie
 - [_local-adr-policy-002-arquitetura-hexagonal](../../adrs/application/002-hexagonal-architecture.md) - Padrão de portas e adapters seguido pelo serviço de gatilho
+- [_local-edr-policy-049-selfie-implementacao](../../edrs/application/049-selfie-implementacao.md) - Decisões de implementação, incluindo o mapeamento tela a tela da expansão de 2026-07-14
