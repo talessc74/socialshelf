@@ -10,7 +10,17 @@ import type {
   PostRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
-import type { GeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
+import type {
+  GeneratorAutonomyClient,
+  AutonomyTopicSuggestion,
+  AutonomyClassification,
+} from '../infrastructure/generator/GeneratorAutonomyClient.js'
+
+// Teto de quantas sugestões (da mais relevante pra baixo) o tick tenta classificar num único
+// tick antes de desistir e pular por "bloqueada" — bounded pra não virar 1 chamada de
+// classificação por sugestão sem limite nenhum quando o topo do ranking está cheio de tópicos
+// bloqueados.
+const MAX_TOPIC_CANDIDATES_PER_TICK = 5
 
 export interface AutonomyTickBrandResult {
   userId: string
@@ -160,22 +170,34 @@ export class AutonomyTickUseCase {
     const suggestions = await this.generatorClient.suggestTopics(brand.brandId)
     if (suggestions.length === 0) return { ...base, action: 'skipped-no-suggestions' }
 
-    // Só a pauta de maior audienceFitScore (a primeira, já ordenada por SuggestTopicsUseCase)
-    // — evita 1 chamada de IA por sugestão por marca por dia; se ela for bloqueada, a marca
-    // simplesmente tenta de novo no próximo tick com uma lista atualizada de notícias.
-    const topSuggestion = suggestions[0]!
-    const classification = await this.generatorClient.classifyAutonomy({
-      topic: {
-        headline: topSuggestion.headline,
-        summary: topSuggestion.summary,
-        rationale: topSuggestion.rationale,
-      },
-      autoPublishTopics: brand.autoPublishTopics,
-      blockedTopics: brand.blockedTopics,
-      stylePreferences: brand.stylePreferences,
-    })
-    if (classification.blocked) {
-      return { ...base, action: 'skipped-blocked', topicHeadline: topSuggestion.headline }
+    // Achado real em produção: a notícia de maior audienceFitScore não muda a cada hora, então
+    // considerar só a #1 (comportamento original) fazia a marca bater no mesmo tópico bloqueado
+    // tick após tick, até o ranking de notícias mudar sozinho — às vezes várias horas depois.
+    // Cai pra próxima da lista (#2, #3...) dentro do mesmo tick, limitado a
+    // MAX_TOPIC_CANDIDATES_PER_TICK pra não disparar 1 chamada de classificação por sugestão
+    // sem limite nenhum.
+    const candidates = suggestions.slice(0, MAX_TOPIC_CANDIDATES_PER_TICK)
+    let topSuggestion: AutonomyTopicSuggestion | undefined
+    let classification: AutonomyClassification | undefined
+    for (const candidate of candidates) {
+      const result = await this.generatorClient.classifyAutonomy({
+        topic: {
+          headline: candidate.headline,
+          summary: candidate.summary,
+          rationale: candidate.rationale,
+        },
+        autoPublishTopics: brand.autoPublishTopics,
+        blockedTopics: brand.blockedTopics,
+        stylePreferences: brand.stylePreferences,
+      })
+      if (!result.blocked) {
+        topSuggestion = candidate
+        classification = result
+        break
+      }
+    }
+    if (!topSuggestion || !classification) {
+      return { ...base, action: 'skipped-blocked', topicHeadline: candidates[0]!.headline }
     }
 
     const wantsAutoPublish = brand.autonomyLevel === 'automatic' && classification.autoPublishEligible

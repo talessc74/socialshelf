@@ -183,6 +183,40 @@ describe('AutonomyTickUseCase', () => {
     expect(generatorClient.generate).not.toHaveBeenCalled()
   })
 
+  it('falls through to the next suggestion in the same tick when the top one is blocked', async () => {
+    const secondSuggestion = { id: 'topic-2', headline: 'Notícia alternativa', summary: 'Resumo 2', rationale: 'Motivo 2' }
+    generatorClient.suggestTopics = vi.fn().mockResolvedValue([suggestion, secondSuggestion])
+    generatorClient.classifyAutonomy = vi
+      .fn()
+      .mockResolvedValueOnce({ blocked: true, autoPublishEligible: false, recommendedStyle: TemplateStyle.BOLD_BOTTOM })
+      .mockResolvedValueOnce({ blocked: false, autoPublishEligible: false, recommendedStyle: TemplateStyle.BOLD_BOTTOM })
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'draft-created', topicHeadline: secondSuggestion.headline })
+    expect(generatorClient.classifyAutonomy).toHaveBeenCalledTimes(2)
+    expect(generatorClient.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ topicSuggestionId: secondSuggestion.id }),
+    )
+  })
+
+  it('gives up after MAX_TOPIC_CANDIDATES_PER_TICK blocked suggestions in a row, without checking the rest of the list', async () => {
+    const suggestions = Array.from({ length: 8 }, (_, i) => ({
+      id: `topic-${i}`,
+      headline: `Notícia ${i}`,
+      summary: 'Resumo',
+      rationale: 'Motivo',
+    }))
+    generatorClient.suggestTopics = vi.fn().mockResolvedValue(suggestions)
+    generatorClient.classifyAutonomy = vi.fn().mockResolvedValue({ blocked: true, autoPublishEligible: false })
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'skipped-blocked', topicHeadline: suggestions[0]!.headline })
+    // 8 sugestões disponíveis, mas o teto (5) impede checar a lista inteira.
+    expect(generatorClient.classifyAutonomy).toHaveBeenCalledTimes(5)
+  })
+
   it('creates a draft (does not publish) in semi-automatic mode even when the topic would be auto-publish eligible', async () => {
     brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'semi-automatic' })])
 
