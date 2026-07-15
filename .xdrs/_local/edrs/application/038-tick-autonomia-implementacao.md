@@ -35,9 +35,9 @@ valid-from: 2026-07-10
 
 `GeneratorAutonomyClient` (apps/publisher/src/infrastructure/generator/) não é uma porta em `packages/domain` — é fronteira de infraestrutura específica de como os serviços deste deploy conversam entre si, mesmo espírito de `resolveImageUrl`/`resolveTikTokVideoUrl` já existentes em `publish.routes.ts`. Reaproveita `fetchInternal` (`apps/publisher/src/lib/serviceAuth.ts`), já usado por outras chamadas publisher→generator.
 
-**Só a pauta de maior `audienceFitScore` é considerada por marca por tick**
+**Pauta de maior `audienceFitScore` é a primeira tentativa, não mais a única (revisto 2026-07-14, ver adendo abaixo)**
 
-`SuggestTopicsUseCase` já devolve a lista ordenada por aderência. O tick classifica só a primeira — não itera a lista inteira até achar uma não-bloqueada. Isso limita o custo a no máximo 1 chamada de classificação por marca por dia (em vez de até N, sendo N o tamanho da lista de sugestões), ao custo de: se a pauta #1 for bloqueada, a marca simplesmente não gera nada naquele tick — tenta de novo no dia seguinte com uma lista atualizada de notícias, em vez de cair para a #2 no mesmo dia.
+`SuggestTopicsUseCase` já devolve a lista ordenada por aderência. O tick tenta classificar a partir da primeira, caindo pra próxima da lista se a atual for bloqueada, até `MAX_TOPIC_CANDIDATES_PER_TICK` (5) tentativas — decisão original (só a #1, nunca cair pra #2) revertida por achado real em produção, adendo 2026-07-14.
 
 **Contador diário incrementado antes de gerar, não depois de publicar**
 
@@ -82,6 +82,8 @@ Rodar de hora em hora sozinho geraria um post por hora, não por dia — o gate 
 O `getCount` (leitura) e o `incrementIfUnderLimit` (escrita atômica) continuam sendo dois métodos separados de propósito: o primeiro é um gate barato de "ainda não é hora" que evita chamadas de IA desnecessárias fora de horário; o segundo continua como admissão final atômica logo antes de gerar, pra não estourar o teto se duas execuções do tick se sobrepuserem.
 
 **Correção real ao confirmar o deploy: `--headers` não existe em `gcloud scheduler jobs update`** — ao verificar se o `--schedule` novo realmente tinha sido aplicado em produção, o log do passo (mascarado por `continue-on-error: true`, então o job do GitHub Actions aparecia verde) mostrava `ERROR: unrecognized arguments: --headers=*** (did you mean '--clear-headers'?)`, exit code 2 — o branch `update` inteiro falhava antes de aplicar qualquer mudança, então o `--schedule` novo nunca chegava a valer. O flag `--headers` só existe em `gcloud scheduler jobs create http`; o equivalente em `update` é `--update-headers`. Esse bug já existia antes desta mudança (afetava os três jobs de Cloud Scheduler do projeto, não só o de autonomia) — corrigido nos três branches `update` (`publisher-scheduled-tick`, `publisher-autonomy-tick`, `generator-video-cleanup-tick`) na mesma rodada, já que o mesmo padrão errado tinha sido copiado nos três.
+
+**Cai pra próxima sugestão da lista quando a #1 está bloqueada, em vez de esperar o próximo tick (2026-07-14)** — usuário reportou (com o histórico do tick já funcionando, `_local-edr-policy-046`) uma marca presa em `skipped-blocked` por 3 tentativas seguidas (15h-17h), sempre a mesma notícia. Causa: `audienceFitScore` não muda a cada hora — a #1 do ranking pode continuar sendo a mesma por horas, e o tick só considerava essa posição. Correção: cai pra #2, #3... dentro do mesmo tick, limitado a `MAX_TOPIC_CANDIDATES_PER_TICK` (5) — se todas as tentativas dentro do teto forem bloqueadas, `skipped-blocked` reporta a manchete da primeira. Reverte a decisão original de custo controlado (só 1 chamada de classificação por tick) por uma versão limitada (até 5), aceitando mais chamadas de IA em troca de não ficar preso à mesma pauta bloqueada por horas.
 
 ## References
 
