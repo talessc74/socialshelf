@@ -88,6 +88,14 @@ export default function CampaignUploadPage() {
     onSuccess: () => router.push(`/dashboard/campaigns/${campaignId}/timeline`),
   })
 
+  // Campanha 'active' já publicando: gerar do zero apagaria itens já materializados em Post
+  // real, então fotos novas entram por um caminho que só anexa (ver ExtendCampaignTimelineUseCase).
+  const extendTimeline = useMutation({
+    mutationFn: () => api.extendCampaignTimeline(campaignId),
+    onSuccess: () => router.push(`/dashboard/campaigns/${campaignId}/timeline`),
+  })
+  const isActiveCampaign = campaign?.status === 'active'
+
   const cancelCampaign = useMutation({
     mutationFn: () => api.cancelCampaign(campaignId),
     onSuccess: () => {
@@ -201,7 +209,9 @@ export default function CampaignUploadPage() {
       <div>
         <h1 className="text-lg font-semibold text-ink">{campaign?.name ?? 'Campanha'}</h1>
         <p className="text-sm text-muted">
-          Suba todas as fotos da campanha. Vamos agrupar por localidade (GPS) e sugerir carrosséis na próxima etapa.
+          {isActiveCampaign
+            ? 'Essa campanha já está ativa e publicando. As fotos novas entram na fila sem mexer no que já foi agendado ou publicado.'
+            : 'Suba todas as fotos da campanha. Vamos agrupar por localidade (GPS) e sugerir carrosséis na próxima etapa.'}
         </p>
       </div>
 
@@ -289,19 +299,34 @@ export default function CampaignUploadPage() {
         <p className="text-sm text-red-600">{(generateTimeline.error as Error).message}</p>
       )}
 
+      {extendTimeline.isError && (
+        <p className="text-sm text-red-600">{(extendTimeline.error as Error).message}</p>
+      )}
+
       {cancelCampaign.isError && (
         <p className="text-sm text-red-600">{(cancelCampaign.error as Error).message}</p>
       )}
 
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={() => generateTimeline.mutate()}
-          disabled={!photos || photos.length === 0 || generateTimeline.isPending}
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
-        >
-          {generateTimeline.isPending ? 'Gerando linha do tempo…' : 'Gerar linha do tempo'}
-        </button>
+        {isActiveCampaign ? (
+          <button
+            type="button"
+            onClick={() => extendTimeline.mutate()}
+            disabled={!photos || photos.length === 0 || extendTimeline.isPending}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+          >
+            {extendTimeline.isPending ? 'Agendando fotos novas…' : 'Agendar fotos novas'}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => generateTimeline.mutate()}
+            disabled={!photos || photos.length === 0 || generateTimeline.isPending}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+          >
+            {generateTimeline.isPending ? 'Gerando linha do tempo…' : 'Gerar linha do tempo'}
+          </button>
+        )}
         {(campaign?.status === 'draft' || campaign?.status === 'reviewing') && (
           <button
             type="button"

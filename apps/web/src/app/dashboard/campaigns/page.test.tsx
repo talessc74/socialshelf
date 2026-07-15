@@ -79,6 +79,29 @@ describe('CampaignsPage', () => {
     expect(link.closest('a')).toHaveAttribute('href', '/dashboard/campaigns/campaign-1/timeline')
   })
 
+  it('offers "Adicionar fotos" for a reviewing or an active campaign, pointing to upload', async () => {
+    mockedApi.listCampaigns.mockResolvedValue([
+      makeCampaign({ id: 'c-reviewing', status: 'reviewing' }),
+      makeCampaign({ id: 'c-active', status: 'active' }),
+    ])
+    renderPage()
+    const links = await screen.findAllByText('Adicionar fotos')
+    expect(links).toHaveLength(2)
+    expect(links[0]!.closest('a')).toHaveAttribute('href', '/dashboard/campaigns/c-reviewing/upload')
+    expect(links[1]!.closest('a')).toHaveAttribute('href', '/dashboard/campaigns/c-active/upload')
+  })
+
+  it('does not offer "Adicionar fotos" for draft, completed or cancelled campaigns', async () => {
+    mockedApi.listCampaigns.mockResolvedValue([
+      makeCampaign({ id: 'c-draft', status: 'draft' }),
+      makeCampaign({ id: 'c-completed', status: 'completed' }),
+      makeCampaign({ id: 'c-cancelled', status: 'cancelled' }),
+    ])
+    renderPage()
+    await screen.findAllByText('Viagem à Europa')
+    expect(screen.queryByText('Adicionar fotos')).not.toBeInTheDocument()
+  })
+
   describe('cancel campaign', () => {
     beforeEach(() => {
       vi.clearAllMocks()

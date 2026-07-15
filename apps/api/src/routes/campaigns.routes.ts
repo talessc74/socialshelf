@@ -6,6 +6,7 @@ import { UploadCampaignPhotoUseCase } from '../use-cases/campaigns/UploadCampaig
 import { DeleteCampaignPhotoUseCase } from '../use-cases/campaigns/DeleteCampaignPhotoUseCase.js'
 import { ReorderCampaignPhotosUseCase } from '../use-cases/campaigns/ReorderCampaignPhotosUseCase.js'
 import { GenerateCampaignTimelineUseCase } from '../use-cases/campaigns/GenerateCampaignTimelineUseCase.js'
+import { ExtendCampaignTimelineUseCase } from '../use-cases/campaigns/ExtendCampaignTimelineUseCase.js'
 import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
 import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
 import { CancelCampaignUseCase } from '../use-cases/campaigns/CancelCampaignUseCase.js'
@@ -61,6 +62,14 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const reorderPhotos = new ReorderCampaignPhotosUseCase(campaignRepo, photoRepo)
   const captionClient = new HttpCampaignCaptionClient(generatorUrl, internalSecret)
   const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
+  const extendTimeline = new ExtendCampaignTimelineUseCase(
+    campaignRepo,
+    photoRepo,
+    itemRepo,
+    postRepo,
+    brandProfileRepo,
+    captionClient,
+  )
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
   const cancelCampaign = new CancelCampaignUseCase(campaignRepo)
@@ -215,6 +224,25 @@ export async function campaignsRoutes(app: FastifyInstance) {
 
     try {
       const items = await generateTimeline.execute({
+        userId: request.userId,
+        brandId: request.brandId,
+        campaignId: id,
+      })
+      return reply.send({ items })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      const status = message === 'Campaign not found' ? 404 : 422
+      return reply.status(status).send({ error: message })
+    }
+  })
+
+  // Fotos enviadas depois que a linha do tempo já existia (reviewing ou active) — agenda só as
+  // fotos novas, anexando itens sem tocar nos existentes (ver ExtendCampaignTimelineUseCase).
+  app.post('/campaigns/:id/timeline/extend', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      const items = await extendTimeline.execute({
         userId: request.userId,
         brandId: request.brandId,
         campaignId: id,
