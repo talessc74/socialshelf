@@ -83,8 +83,17 @@ function renderPageWithNarrationProbe() {
   )
 }
 
+// Fixado no passado em relação a todos os fixtures de scheduledAt do arquivo (2026-07-01 em
+// diante) — sem isso, "agora" avança com o relógio real e os fixtures acabam caindo no passado,
+// quebrando a validação de "data deve ser no futuro" ao editar um post sem mudar a data.
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-06-25T00:00:00.000Z'))
+})
+
+afterEach(() => {
+  vi.useRealTimers()
 })
 
 describe('ScheduledPostsPage', () => {
