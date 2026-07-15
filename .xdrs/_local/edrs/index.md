@@ -51,6 +51,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-048-legenda-de-campanha-por-ia](application/048-legenda-de-campanha-por-ia.md) - Cada item de campanha ganha legenda por IA olhando a foto de capa (Gemini vision, primeiro writer do projeto a mandar imagem pro modelo); chamadas em paralelo por item, com fallback isolado pro template determinístico antigo em caso de falha
 - [_local-edr-policy-049-selfie-implementacao](application/049-selfie-implementacao.md) - Dispensa em localStorage global (não Firestore por dica), imagem oficial com fallback SVG, camada de animação "vivo" via CSS + timer único de piscada, hook useSelfieNarrateOnReady compartilhado, narração imperativa e medidor de tempo economizado na geração, e mapeamento tela a tela da expansão para todo o produto
 - [_local-edr-policy-050-campanha-aceita-fotos-sempre](application/050-campanha-aceita-fotos-sempre.md) - Novo ExtendCampaignTimelineUseCase anexa fotos novas sem tocar em itens já materializados; GenerateCampaignTimelineUseCase ganha guarda contra rodar numa campanha active; itens novos materializam direto em Post real quando a campanha já está active
+- [_local-edr-policy-051-topnav-cabecalho-em-duas-linhas](application/051-topnav-cabecalho-em-duas-linhas.md) - Cabeçalho do dashboard dividido em duas linhas: logo/seletor de marca + e-mail/Selfie/lanterna/sair na linha 1, navegação completa centralizada na linha 2; comportamento mobile inalterado (nav já era a segunda linha ali)
 
 ### devops
 Pipeline de entrega e práticas de build.
