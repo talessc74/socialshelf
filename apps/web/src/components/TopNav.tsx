@@ -103,96 +103,100 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
   return (
     <header className="sticky top-0 z-10 flex flex-col border-b border-line bg-bg/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-      <Link
-        href="/dashboard"
-        title="Ir para o início"
-        className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 text-sm font-bold text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-icon.png" alt="" className="h-7 w-7 rounded-md" />
-        Social<span className="text-accent">Shelf</span>
-      </Link>
-
-      {showBrandSwitcher && (
-        <div ref={brandMenuRef} className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setBrandMenuOpen((open) => !open)}
-            aria-haspopup="listbox"
-            aria-expanded={brandMenuOpen}
-            className="flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-2 text-sm font-medium text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
+        <div className="flex min-w-0 shrink-0 items-center gap-3">
+          <Link
+            href="/dashboard"
+            title="Ir para o início"
+            className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 text-sm font-bold text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
           >
-            <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{activeBrand?.name ?? 'Marca'}</span>
-            <ChevronDown className="h-4 w-4 text-muted" />
-          </button>
-          {brandMenuOpen && (
-            <div
-              role="listbox"
-              className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-card-elev"
-            >
-              {brands?.map((brand) => (
-                <button
-                  key={brand.id}
-                  type="button"
-                  role="option"
-                  aria-selected={brand.id === activeBrandId}
-                  onClick={() => {
-                    onBrandChange?.(brand.id)
-                    setBrandMenuOpen(false)
-                  }}
-                  className={`flex w-full items-center px-3 py-2 text-left text-sm ${
-                    brand.id === activeBrandId
-                      ? 'bg-card-2 font-medium text-ink'
-                      : 'text-muted hover:bg-card-2'
-                  }`}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-icon.png" alt="" className="h-7 w-7 rounded-md" />
+            Social<span className="text-accent">Shelf</span>
+          </Link>
+
+          {showBrandSwitcher && (
+            <div ref={brandMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setBrandMenuOpen((open) => !open)}
+                aria-haspopup="listbox"
+                aria-expanded={brandMenuOpen}
+                className="flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-2 text-sm font-medium text-ink shadow-card transition-colors hover:border-accent hover:bg-accent-soft"
+              >
+                <span className="max-w-[8rem] truncate sm:max-w-[12rem]">{activeBrand?.name ?? 'Marca'}</span>
+                <ChevronDown className="h-4 w-4 text-muted" />
+              </button>
+              {brandMenuOpen && (
+                <div
+                  role="listbox"
+                  className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-card-elev"
                 >
-                  {brand.name}
-                </button>
-              ))}
+                  {brands?.map((brand) => (
+                    <button
+                      key={brand.id}
+                      type="button"
+                      role="option"
+                      aria-selected={brand.id === activeBrandId}
+                      onClick={() => {
+                        onBrandChange?.(brand.id)
+                        setBrandMenuOpen(false)
+                      }}
+                      className={`flex w-full items-center px-3 py-2 text-left text-sm ${
+                        brand.id === activeBrandId
+                          ? 'bg-card-2 font-medium text-ink'
+                          : 'text-muted hover:bg-card-2'
+                      }`}
+                    >
+                      {brand.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
 
-      <nav className="hidden flex-1 items-center justify-center gap-1 rounded-full bg-card-2 p-1 lg:flex">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-contrast text-contrast-ink shadow-card'
-                  : 'text-muted hover:text-ink'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </Link>
-          )
-        })}
-      </nav>
-
-      <div className="flex shrink-0 items-center gap-3">
-        <span className="hidden truncate text-sm text-muted sm:inline">{email}</span>
-        <SelfieToggle />
-        <LanternToggle />
-        <button
-          onClick={onLogout}
-          title="Sair"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-card-2 text-muted hover:bg-red-50 hover:text-red-600"
-        >
-          <LogOut className="h-4 w-4" />
-        </button>
-      </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="hidden truncate text-sm text-muted sm:inline">{email}</span>
+          <SelfieToggle />
+          <LanternToggle />
+          <button
+            onClick={onLogout}
+            title="Sair"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-card-2 text-muted hover:bg-red-50 hover:text-red-600"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div className="relative w-full border-t border-line lg:hidden">
+      <div className="relative w-full border-t border-line">
+        <div className="hidden justify-center px-4 py-2 lg:flex">
+          <nav className="flex items-center gap-1 rounded-full bg-card-2 p-1">
+            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+              const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-contrast text-contrast-ink shadow-card'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </Link>
+              )
+            })}
+          </nav>
+        </div>
+
         <nav
           ref={mobileNavRef}
           onScroll={updateScrollAffordance}
-          className="flex w-full items-center gap-1 overflow-x-auto bg-transparent px-3 py-2"
+          className="flex w-full items-center gap-1 overflow-x-auto bg-transparent px-3 py-2 lg:hidden"
         >
           {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
@@ -212,12 +216,12 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
           })}
         </nav>
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-bg via-bg/70 to-transparent">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-bg via-bg/70 to-transparent lg:hidden">
             <ChevronLeft className="h-4 w-4 text-muted" />
           </div>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-bg via-bg/70 to-transparent">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-bg via-bg/70 to-transparent lg:hidden">
             <ChevronRight className="h-4 w-4 text-muted" />
           </div>
         )}
