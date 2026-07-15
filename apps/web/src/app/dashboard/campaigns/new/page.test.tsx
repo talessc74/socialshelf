@@ -92,4 +92,22 @@ describe('NewCampaignPage', () => {
 
     expect(screen.getByText('Criar campanha e subir fotos')).toBeDisabled()
   })
+
+  it('allows clearing and retyping "posts por dia" without snapping to 1 or 10', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.INSTAGRAM)])
+    renderPage()
+
+    const input = await screen.findByLabelText('Posts por dia')
+    expect(input).toHaveValue(2)
+
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input).toHaveValue(null)
+    fireEvent.change(input, { target: { value: '5' } })
+    expect(input).toHaveValue(5)
+
+    fireEvent.change(input, { target: { value: '99' } })
+    expect(input).toHaveValue(99)
+    fireEvent.blur(input)
+    expect(input).toHaveValue(10)
+  })
 })

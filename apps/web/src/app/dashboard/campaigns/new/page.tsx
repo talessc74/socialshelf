@@ -6,6 +6,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import { api } from '../../../../lib/api'
 import { PLATFORM_META } from '../../../../lib/platformMeta'
+import { useClampedNumberInput } from '../../../../lib/useClampedNumberInput'
 
 export default function NewCampaignPage() {
   const router = useRouter()
@@ -13,8 +14,8 @@ export default function NewCampaignPage() {
   const [description, setDescription] = useState('')
   const [keywordsInput, setKeywordsInput] = useState('')
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<Platform>>(new Set())
-  const [postsPerDay, setPostsPerDay] = useState(2)
-  const [carouselSizeDefault, setCarouselSizeDefault] = useState(5)
+  const postsPerDay = useClampedNumberInput(2, 1, 10)
+  const carouselSizeDefault = useClampedNumberInput(5, 1, 20)
 
   const { data: connections, error: connectionsError } = useQuery({
     queryKey: ['connections'],
@@ -45,8 +46,8 @@ export default function NewCampaignPage() {
           .map((k) => k.trim())
           .filter((k) => k.length > 0),
         platforms: [...selectedPlatforms],
-        postsPerDay,
-        carouselSizeDefault,
+        postsPerDay: postsPerDay.value,
+        carouselSizeDefault: carouselSizeDefault.value,
       }),
     onSuccess: (campaign) => {
       router.push(`/dashboard/campaigns/${campaign.id}/upload`)
@@ -154,8 +155,9 @@ export default function NewCampaignPage() {
               type="number"
               min={1}
               max={10}
-              value={postsPerDay}
-              onChange={(e) => setPostsPerDay(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+              value={postsPerDay.inputValue}
+              onChange={postsPerDay.onChange}
+              onBlur={postsPerDay.onBlur}
               className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
             />
           </div>
@@ -168,8 +170,9 @@ export default function NewCampaignPage() {
               type="number"
               min={1}
               max={20}
-              value={carouselSizeDefault}
-              onChange={(e) => setCarouselSizeDefault(Math.min(20, Math.max(1, Number(e.target.value) || 1)))}
+              value={carouselSizeDefault.inputValue}
+              onChange={carouselSizeDefault.onChange}
+              onBlur={carouselSizeDefault.onBlur}
               className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
             />
             <p className="mt-1 text-xs text-muted">
