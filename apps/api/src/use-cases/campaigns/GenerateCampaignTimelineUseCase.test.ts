@@ -80,6 +80,14 @@ describe('GenerateCampaignTimelineUseCase', () => {
     )
   })
 
+  it('rejects regenerating the timeline of an active campaign (would wipe materialized items)', async () => {
+    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status: 'active' }))
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
+      'draft or reviewing',
+    )
+    expect(itemRepo.deleteByCampaign).not.toHaveBeenCalled()
+  })
+
   it('groups photos into carousels of carouselSizeDefault within a cluster', async () => {
     const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
     expect(items).toHaveLength(2)

@@ -20,6 +20,7 @@ vi.mock('../../../../../lib/api', () => ({
     deleteCampaignPhoto: vi.fn(),
     reorderCampaignPhotos: vi.fn(),
     generateCampaignTimeline: vi.fn(),
+    extendCampaignTimeline: vi.fn(),
     cancelCampaign: vi.fn(),
     getImageUrls: vi.fn(),
   },
@@ -262,6 +263,57 @@ describe('CampaignUploadPage', () => {
     // The list still refreshes despite the partial failure — the successful photo shows up.
     expect(await screen.findByText(/1 foto enviada/)).toBeInTheDocument()
     expect(await screen.findByText(/1 de 2 foto\(s\) não subiram/)).toBeInTheDocument()
+  })
+
+  describe('campanha já ativa (fotos a qualquer momento)', () => {
+    it('mostra "Agendar fotos novas" em vez de "Gerar linha do tempo" pra uma campanha active', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1')])
+      mockImageUrls()
+
+      renderPage()
+
+      expect(await screen.findByRole('button', { name: 'Agendar fotos novas' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Gerar linha do tempo' })).not.toBeInTheDocument()
+    })
+
+    it('chama extendCampaignTimeline (não generateCampaignTimeline) ao clicar, e volta pra timeline', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1')])
+      mockImageUrls()
+      mockedApi.extendCampaignTimeline.mockResolvedValue([])
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Agendar fotos novas' }))
+
+      expect(mockedApi.extendCampaignTimeline).toHaveBeenCalledWith('campaign-1')
+      expect(mockedApi.generateCampaignTimeline).not.toHaveBeenCalled()
+      await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/dashboard/campaigns/campaign-1/timeline'))
+    })
+
+    it('mostra o erro do backend quando não há fotos novas pra agendar', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1')])
+      mockImageUrls()
+      mockedApi.extendCampaignTimeline.mockRejectedValue(new Error('No new photos to schedule'))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Agendar fotos novas' }))
+
+      expect(await screen.findByText('No new photos to schedule')).toBeInTheDocument()
+    })
+
+    it('não mostra o botão de cancelar campanha pra uma campanha active', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+
+      renderPage()
+
+      await screen.findByRole('button', { name: 'Agendar fotos novas' })
+      expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+    })
   })
 
   describe('cancelar campanha', () => {

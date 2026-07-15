@@ -730,6 +730,16 @@ export const api = {
     return data.items
   },
 
+  // Agenda só as fotos novas (ainda não referenciadas por nenhum item), anexando à linha do
+  // tempo existente sem tocar no que já está lá — diferente de generateCampaignTimeline, que
+  // apaga e recria tudo. Numa campanha 'active' os itens novos já saem materializados.
+  async extendCampaignTimeline(id: string): Promise<ApiCampaignItem[]> {
+    const data = await apiFetch<{ items: ApiCampaignItem[] }>(`/campaigns/${id}/timeline/extend`, {
+      method: 'POST',
+    })
+    return data.items
+  },
+
   async updateCampaignTimeline(
     id: string,
     items: Array<{ id: string; order: number; photoIds: string[]; caption: string; scheduledAt: string }>,

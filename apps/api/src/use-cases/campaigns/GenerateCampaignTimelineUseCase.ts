@@ -1,12 +1,5 @@
 import { randomUUID } from 'crypto'
-import type {
-  CampaignItem,
-  CampaignPhoto,
-  CampaignItemRepository,
-  CampaignPhotoRepository,
-  PhotoCampaign,
-  PhotoCampaignRepository,
-} from '@socialshelf/domain'
+import type { CampaignItem, CampaignItemRepository, CampaignPhotoRepository, PhotoCampaignRepository } from '@socialshelf/domain'
 import {
   clusterByLocation,
   computeScheduledTimes,
@@ -14,6 +7,7 @@ import {
   interleaveGroups,
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
+import { captionForGroup } from './campaignCaption.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 export interface GenerateCampaignTimelineInput {
@@ -34,6 +28,13 @@ export class GenerateCampaignTimelineUseCase {
   async execute(input: GenerateCampaignTimelineInput): Promise<CampaignItem[]> {
     const campaign = await this.campaignRepo.findByIdAndBrand(input.campaignId, input.userId, input.brandId)
     if (!campaign) throw new Error('Campaign not found')
+    // Regenerar do zero (deleteByCampaign + saveAll) só é seguro enquanto nenhum item foi
+    // materializado em Post real — o que vale pra 'draft' e 'reviewing'. Numa campanha 'active'
+    // isso apagaria itens já publicados/agendados; use ExtendCampaignTimelineUseCase pra
+    // anexar fotos novas sem tocar no que já existe.
+    if (campaign.status !== 'draft' && campaign.status !== 'reviewing') {
+      throw new Error('Only a draft or reviewing campaign can have its timeline regenerated')
+    }
 
     const photos = await this.photoRepo.findByCampaign(input.campaignId)
     if (photos.length === 0) throw new Error('Campaign has no photos to schedule')
@@ -53,7 +54,7 @@ export class GenerateCampaignTimelineUseCase {
     // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
     // de autonomia).
     const captions = await Promise.all(
-      orderedGroups.map((photoIds) => this.captionFor(campaign, photosById, photoIds)),
+      orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
     )
 
     const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
@@ -78,37 +79,4 @@ export class GenerateCampaignTimelineUseCase {
 
     return items
   }
-
-  private async captionFor(
-    campaign: PhotoCampaign,
-    photosById: Map<string, CampaignPhoto>,
-    photoIds: string[],
-  ): Promise<string> {
-    const coverPhoto = photosById.get(photoIds[0]!)
-    if (!coverPhoto) return defaultCaption(campaign)
-
-    try {
-      const { caption } = await this.captionClient.suggestCaption({
-        userId: campaign.userId,
-        brandId: campaign.brandId,
-        storagePath: coverPhoto.storagePath,
-        campaignName: campaign.name,
-        campaignDescription: campaign.description,
-        keywords: campaign.keywords,
-      })
-      return caption
-    } catch {
-      return defaultCaption(campaign)
-    }
-  }
-}
-
-// Legenda de reserva quando a IA não consegue escrever uma (generator-service indisponível,
-// sem foto de capa localizável) — o usuário sempre pode editar cada item na tela de revisão
-// antes de ativar (_local-edr-policy-039).
-function defaultCaption(campaign: PhotoCampaign): string {
-  const base = campaign.description.trim().length > 0 ? campaign.description.trim() : campaign.name
-  if (campaign.keywords.length === 0) return base
-  const hashtags = campaign.keywords.map((k) => `#${k.trim().replace(/\s+/g, '')}`).join(' ')
-  return `${base}\n\n${hashtags}`
 }

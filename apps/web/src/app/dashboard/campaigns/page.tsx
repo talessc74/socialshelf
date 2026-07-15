@@ -25,6 +25,11 @@ function nextStepFor(campaign: ApiPhotoCampaign): { href: string; label: string 
   return { href: `/dashboard/campaigns/${campaign.id}/timeline`, label: 'Ver linha do tempo' }
 }
 
+// Uma campanha aceita fotos novas a qualquer momento — na preparação (reviewing) ou já ativa
+// publicando (active). draft já tem seu próprio link de upload via nextStepFor; completed e
+// cancelled são estados terminais, sem mais nada a agendar.
+const CAN_ADD_PHOTOS_STATUSES = new Set<ApiPhotoCampaign['status']>(['reviewing', 'active'])
+
 // Só campanhas que ainda não começaram a publicar podem ser canceladas —
 // espelha a mesma validação do CancelCampaignUseCase no backend.
 const CANCELLABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['draft', 'reviewing'])
@@ -75,6 +80,14 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
           >
             {cancelMutation.isPending ? 'Cancelando…' : 'Cancelar campanha'}
           </button>
+        )}
+        {CAN_ADD_PHOTOS_STATUSES.has(campaign.status) && (
+          <Link
+            href={`/dashboard/campaigns/${campaign.id}/upload`}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
+          >
+            Adicionar fotos
+          </Link>
         )}
         <Link
           href={nextStep.href}
