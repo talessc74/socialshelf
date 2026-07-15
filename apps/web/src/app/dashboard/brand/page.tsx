@@ -89,6 +89,7 @@ export default function BrandSettingsPage() {
   const [saved, setSaved] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [extractionNotice, setExtractionNotice] = useState('')
+  const [maxAutoPostsPerDayInput, setMaxAutoPostsPerDayInput] = useState('')
 
   const { data: brandProfile, isLoading } = useQuery({
     queryKey: ['brand-profile'],
@@ -114,6 +115,7 @@ export default function BrandSettingsPage() {
               : ALL_TEMPLATE_STYLES,
         },
       })
+      setMaxAutoPostsPerDayInput(String(brandProfile.operation.maxAutoPostsPerDay))
     }
   }, [brandProfile])
 
@@ -508,16 +510,27 @@ export default function BrandSettingsPage() {
               type="number"
               min={1}
               max={10}
-              value={form.operation.maxAutoPostsPerDay}
-              onChange={(e) =>
+              value={maxAutoPostsPerDayInput}
+              onChange={(e) => {
+                const raw = e.target.value
+                setMaxAutoPostsPerDayInput(raw)
+                const parsed = Number(raw)
+                if (raw !== '' && !Number.isNaN(parsed)) {
+                  const clamped = Math.min(10, Math.max(1, parsed))
+                  setForm((prev) => ({
+                    ...prev,
+                    operation: { ...prev.operation, maxAutoPostsPerDay: clamped },
+                  }))
+                }
+              }}
+              onBlur={() => {
+                const clamped = Math.min(10, Math.max(1, Number(maxAutoPostsPerDayInput) || 1))
+                setMaxAutoPostsPerDayInput(String(clamped))
                 setForm((prev) => ({
                   ...prev,
-                  operation: {
-                    ...prev.operation,
-                    maxAutoPostsPerDay: Math.min(10, Math.max(1, Number(e.target.value) || 1)),
-                  },
+                  operation: { ...prev.operation, maxAutoPostsPerDay: clamped },
                 }))
-              }
+              }}
               className="w-24 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
             />
           </div>

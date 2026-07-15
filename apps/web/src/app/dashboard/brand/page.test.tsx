@@ -97,13 +97,22 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
     )
   })
 
-  it('sobe direto para o teto de 10 quando o usuário digita um valor maior', async () => {
+  it('permite limpar e redigitar o valor sem travar em 1 ou 10, e clampa pro teto ao sair do campo', async () => {
     renderPage()
 
     fireEvent.click(await screen.findByText('Automático'))
     const input = await screen.findByLabelText('Máximo de posts automáticos por dia')
-    fireEvent.change(input, { target: { value: '99' } })
 
+    // Limpar o campo pra digitar outro valor não pode travar em 1 (bug original).
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input).toHaveValue(null)
+    fireEvent.change(input, { target: { value: '5' } })
+    expect(input).toHaveValue(5)
+
+    // Valor acima do teto fica livre durante a digitação e só clampa ao sair do campo.
+    fireEvent.change(input, { target: { value: '99' } })
+    expect(input).toHaveValue(99)
+    fireEvent.blur(input)
     expect(input).toHaveValue(10)
   })
 

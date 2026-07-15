@@ -36,7 +36,14 @@ describe('verifyMediaToken', () => {
 
   it('rejects a token with a tampered signature', () => {
     const token = sign('videos/user-1/brand-1/clip.mp4', Date.now() + 60_000)
-    const tampered = token.slice(0, -1) + (token.endsWith('a') ? 'b' : 'a')
+    const dotIndex = token.lastIndexOf('.')
+    // Flipa o primeiro char da assinatura, não o último: um digest sha256 (32 bytes) em
+    // base64url tem 43 chars, e o último carrega só 2 bits significativos (o resto é
+    // padding) — trocar exatamente esse char às vezes cai na mesma classe de equivalência
+    // e não muda os bytes decodificados, tornando o teste flaky. Qualquer outra posição
+    // não tem esse problema.
+    const flipped = token[dotIndex + 1] === 'a' ? 'b' : 'a'
+    const tampered = token.slice(0, dotIndex + 1) + flipped + token.slice(dotIndex + 2)
     expect(verifyMediaToken(tampered, 'videos/user-1/brand-1/clip.mp4')).toBe(false)
   })
 
