@@ -272,6 +272,11 @@ function PostCard({
                 : '—'}
             </span>
           )}
+          {post.origin === 'campaign' && (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              📸 Campanha
+            </span>
+          )}
           {post.content.map((c) => (
             <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
               {PLATFORM_LABELS[c.platform]}

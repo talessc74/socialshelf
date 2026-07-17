@@ -107,6 +107,23 @@ describe('ScheduledPostsPage', () => {
     expect(mockedApi.getPosts).toHaveBeenCalledWith('scheduled')
   })
 
+  it('mostra o selo "Campanha" num post agendado com origin campaign, e edita normalmente', async () => {
+    mockedApi.getPosts.mockResolvedValue([makePost({ origin: 'campaign' })])
+
+    await renderListView()
+
+    expect(await screen.findByText('📸 Campanha')).toBeInTheDocument()
+  })
+
+  it('não mostra o selo "Campanha" num post agendado manual', async () => {
+    mockedApi.getPosts.mockResolvedValue([makePost({ origin: 'manual' })])
+
+    await renderListView()
+
+    await screen.findByText('Texto agendado para o LinkedIn')
+    expect(screen.queryByText('📸 Campanha')).not.toBeInTheDocument()
+  })
+
   it('mostra mensagem quando não há posts agendados', async () => {
     mockedApi.getPosts.mockResolvedValue([])
 
