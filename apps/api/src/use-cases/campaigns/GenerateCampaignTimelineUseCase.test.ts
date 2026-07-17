@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Platform } from '@socialshelf/domain'
-import type { CampaignItemRepository, CampaignPhoto, CampaignPhotoRepository, PhotoCampaign, PhotoCampaignRepository } from '@socialshelf/domain'
+import type {
+  CampaignItemRepository,
+  CampaignPhoto,
+  CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
+  PhotoCampaign,
+  PhotoCampaignRepository,
+} from '@socialshelf/domain'
 import { GenerateCampaignTimelineUseCase } from './GenerateCampaignTimelineUseCase.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
@@ -46,6 +53,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
   let photoRepo: CampaignPhotoRepository
   let itemRepo: CampaignItemRepository
   let captionClient: CampaignCaptionClient
+  let lockRepo: CampaignTimelineLockRepository
   let useCase: GenerateCampaignTimelineUseCase
 
   beforeEach(() => {
@@ -70,7 +78,11 @@ describe('GenerateCampaignTimelineUseCase', () => {
       findByCampaign: vi.fn(),
       deleteByCampaign: vi.fn().mockResolvedValue(undefined),
     }
-    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
+    lockRepo = {
+      tryAcquire: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    }
+    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient, lockRepo)
   })
 
   it('throws when the campaign has no photos', async () => {
@@ -86,6 +98,27 @@ describe('GenerateCampaignTimelineUseCase', () => {
       'draft or reviewing',
     )
     expect(itemRepo.deleteByCampaign).not.toHaveBeenCalled()
+  })
+
+  it('rejects when another concurrent update already holds the timeline lock', async () => {
+    vi.mocked(lockRepo.tryAcquire).mockResolvedValue(false)
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
+      'already in progress',
+    )
+    expect(itemRepo.deleteByCampaign).not.toHaveBeenCalled()
+    expect(itemRepo.saveAll).not.toHaveBeenCalled()
+  })
+
+  it('releases the timeline lock even when the rest of the execution fails', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([])
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow()
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+  })
+
+  it('releases the timeline lock after a successful run', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+    expect(lockRepo.tryAcquire).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
   })
 
   it('groups photos into carousels of carouselSizeDefault within a cluster', async () => {

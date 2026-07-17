@@ -6,6 +6,7 @@ import type {
   CampaignItemRepository,
   CampaignPhoto,
   CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
   PhotoCampaign,
   PhotoCampaignRepository,
   PostRepository,
@@ -71,6 +72,7 @@ describe('ActivateCampaignUseCase', () => {
   let photoRepo: CampaignPhotoRepository
   let postRepo: PostRepository
   let brandProfileRepo: BrandProfileRepository
+  let lockRepo: CampaignTimelineLockRepository
   let useCase: ActivateCampaignUseCase
 
   beforeEach(() => {
@@ -108,7 +110,11 @@ describe('ActivateCampaignUseCase', () => {
       findLatestByBrand: vi.fn().mockResolvedValue(null),
       findByBrandAndVersion: vi.fn(),
     }
-    useCase = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
+    lockRepo = {
+      tryAcquire: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    }
+    useCase = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo, lockRepo)
   })
 
   it('rejects activating a campaign that is not in reviewing status', async () => {
@@ -116,6 +122,26 @@ describe('ActivateCampaignUseCase', () => {
     await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
       'in review',
     )
+  })
+
+  it('rejects when another concurrent update already holds the timeline lock', async () => {
+    vi.mocked(lockRepo.tryAcquire).mockResolvedValue(false)
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
+      'already in progress',
+    )
+    expect(postRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('releases the timeline lock after a successful run', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+    expect(lockRepo.tryAcquire).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+  })
+
+  it('releases the timeline lock even when the rest of the execution fails', async () => {
+    vi.mocked(itemRepo.findByCampaign).mockResolvedValue([])
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow()
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
   })
 
   it('rejects activating a campaign with no timeline', async () => {

@@ -5,6 +5,7 @@ import type {
   CampaignItemRepository,
   CampaignPhoto,
   CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
   PhotoCampaign,
   PhotoCampaignRepository,
   PostRepository,
@@ -37,6 +38,11 @@ export interface ExtendCampaignTimelineInput {
  * Numa campanha 'active', os itens novos são materializados em Posts reais na hora, sem passo
  * de revisão extra — combinam com a cadência (postsPerDay) já em andamento, agendados a partir
  * do dia seguinte ao último item existente.
+ *
+ * Adquire CampaignTimelineLockRepository antes de ler os itens existentes — sem isso, duas
+ * chamadas concorrentes (duplo clique, retry de rede) leem o mesmo estado "antes" da linha do
+ * tempo, calculam o mesmo conjunto de fotos "ainda não agendadas" e cada uma agenda essas fotos
+ * num CampaignItem novo e diferente — a mesma foto acaba em dois posts (achado real em produção).
  */
 export class ExtendCampaignTimelineUseCase {
   constructor(
@@ -46,6 +52,7 @@ export class ExtendCampaignTimelineUseCase {
     private readonly postRepo: PostRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly captionClient: CampaignCaptionClient,
+    private readonly lockRepo: CampaignTimelineLockRepository,
   ) {}
 
   async execute(input: ExtendCampaignTimelineInput): Promise<CampaignItem[]> {
@@ -55,59 +62,68 @@ export class ExtendCampaignTimelineUseCase {
       throw new Error('Only a reviewing or active campaign can have new photos scheduled')
     }
 
-    const [photos, existingItems] = await Promise.all([
-      this.photoRepo.findByCampaign(input.campaignId),
-      this.itemRepo.findByCampaign(input.campaignId),
-    ])
+    const acquired = await this.lockRepo.tryAcquire(input.userId, input.brandId, input.campaignId)
+    if (!acquired) {
+      throw new Error('Another timeline update for this campaign is already in progress — try again shortly')
+    }
 
-    const scheduledPhotoIds = new Set(existingItems.flatMap((item) => item.photoIds))
-    const newPhotos = photos.filter((photo) => !scheduledPhotoIds.has(photo.id))
-    if (newPhotos.length === 0) throw new Error('No new photos to schedule')
-    const photosById = new Map(newPhotos.map((p) => [p.id, p]))
+    try {
+      const [photos, existingItems] = await Promise.all([
+        this.photoRepo.findByCampaign(input.campaignId),
+        this.itemRepo.findByCampaign(input.campaignId),
+      ])
 
-    const clusters = clusterByLocation(newPhotos)
-    const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
-    const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
-    const orderedGroups = interleaveGroups(groupsByCluster)
+      const scheduledPhotoIds = new Set(existingItems.flatMap((item) => item.photoIds))
+      const newPhotos = photos.filter((photo) => !scheduledPhotoIds.has(photo.id))
+      if (newPhotos.length === 0) throw new Error('No new photos to schedule')
+      const photosById = new Map(newPhotos.map((p) => [p.id, p]))
 
-    // Continua a partir do dia seguinte ao último item já agendado — não tenta preencher os
-    // slots restantes de um dia parcialmente ocupado, só evita colidir com o que já existe.
-    const lastScheduledAt = existingItems.reduce<Date | null>(
-      (latest, item) => (!latest || item.scheduledAt > latest ? item.scheduledAt : latest),
-      null,
-    )
-    const startDate = lastScheduledAt ? addDays(lastScheduledAt, 1) : new Date()
-    const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, startDate)
+      const clusters = clusterByLocation(newPhotos)
+      const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
+      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
+      const orderedGroups = interleaveGroups(groupsByCluster)
 
-    const nextOrder = existingItems.reduce((max, item) => Math.max(max, item.order), -1) + 1
+      // Continua a partir do dia seguinte ao último item já agendado — não tenta preencher os
+      // slots restantes de um dia parcialmente ocupado, só evita colidir com o que já existe.
+      const lastScheduledAt = existingItems.reduce<Date | null>(
+        (latest, item) => (!latest || item.scheduledAt > latest ? item.scheduledAt : latest),
+        null,
+      )
+      const startDate = lastScheduledAt ? addDays(lastScheduledAt, 1) : new Date()
+      const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, startDate)
 
-    const captions = await Promise.all(
-      orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
-    )
+      const nextOrder = existingItems.reduce((max, item) => Math.max(max, item.order), -1) + 1
 
-    const plannedItems: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
-      id: randomUUID(),
-      userId: campaign.userId,
-      brandId: campaign.brandId,
-      campaignId: campaign.id,
-      order: nextOrder + index,
-      photoIds,
-      caption: captions[index]!,
-      scheduledAt: scheduledTimes[index]!,
-      status: 'planned',
-      postId: null,
-    }))
+      const captions = await Promise.all(
+        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
+      )
 
-    const newItems =
-      campaign.status === 'active'
-        ? await this.materializeNewItems(campaign, plannedItems, photosById)
-        : plannedItems
+      const plannedItems: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
+        id: randomUUID(),
+        userId: campaign.userId,
+        brandId: campaign.brandId,
+        campaignId: campaign.id,
+        order: nextOrder + index,
+        photoIds,
+        caption: captions[index]!,
+        scheduledAt: scheduledTimes[index]!,
+        status: 'planned',
+        postId: null,
+      }))
 
-    await this.itemRepo.saveAll(newItems)
-    campaign.updatedAt = new Date()
-    await this.campaignRepo.save(campaign)
+      const newItems =
+        campaign.status === 'active'
+          ? await this.materializeNewItems(campaign, plannedItems, photosById)
+          : plannedItems
 
-    return newItems
+      await this.itemRepo.saveAll(newItems)
+      campaign.updatedAt = new Date()
+      await this.campaignRepo.save(campaign)
+
+      return newItems
+    } finally {
+      await this.lockRepo.release(input.userId, input.brandId, input.campaignId)
+    }
   }
 
   private async materializeNewItems(

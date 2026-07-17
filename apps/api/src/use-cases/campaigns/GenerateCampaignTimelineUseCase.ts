@@ -1,5 +1,11 @@
 import { randomUUID } from 'crypto'
-import type { CampaignItem, CampaignItemRepository, CampaignPhotoRepository, PhotoCampaignRepository } from '@socialshelf/domain'
+import type {
+  CampaignItem,
+  CampaignItemRepository,
+  CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
+  PhotoCampaignRepository,
+} from '@socialshelf/domain'
 import {
   clusterByLocation,
   computeScheduledTimes,
@@ -23,6 +29,7 @@ export class GenerateCampaignTimelineUseCase {
     private readonly photoRepo: CampaignPhotoRepository,
     private readonly itemRepo: CampaignItemRepository,
     private readonly captionClient: CampaignCaptionClient,
+    private readonly lockRepo: CampaignTimelineLockRepository,
   ) {}
 
   async execute(input: GenerateCampaignTimelineInput): Promise<CampaignItem[]> {
@@ -36,47 +43,58 @@ export class GenerateCampaignTimelineUseCase {
       throw new Error('Only a draft or reviewing campaign can have its timeline regenerated')
     }
 
-    const photos = await this.photoRepo.findByCampaign(input.campaignId)
-    if (photos.length === 0) throw new Error('Campaign has no photos to schedule')
-    const photosById = new Map(photos.map((p) => [p.id, p]))
+    // Mesmo lock de ExtendCampaignTimelineUseCase — as duas mexem na mesma coleção de items
+    // da campanha e não podem rodar concorrentemente uma com a outra nem consigo mesma.
+    const acquired = await this.lockRepo.tryAcquire(input.userId, input.brandId, input.campaignId)
+    if (!acquired) {
+      throw new Error('Another timeline update for this campaign is already in progress — try again shortly')
+    }
 
-    const clusters = clusterByLocation(photos)
-    const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
-    const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
-    const orderedGroups = interleaveGroups(groupsByCluster)
+    try {
+      const photos = await this.photoRepo.findByCampaign(input.campaignId)
+      if (photos.length === 0) throw new Error('Campaign has no photos to schedule')
+      const photosById = new Map(photos.map((p) => [p.id, p]))
 
-    const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, input.startDate ?? new Date())
+      const clusters = clusterByLocation(photos)
+      const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
+      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
+      const orderedGroups = interleaveGroups(groupsByCluster)
 
-    // Uma legenda por item, olhando a foto de capa daquele item (Gemini vision) — em paralelo,
-    // não sequencial, porque uma campanha pode ter dezenas de itens e isso rodaria dentro de
-    // uma única requisição HTTP. Item cujo pedido falha (generator-service fora do ar, foto
-    // corrompida, etc.) cai pro template determinístico antigo — nunca trava a campanha
-    // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
-    // de autonomia).
-    const captions = await Promise.all(
-      orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
-    )
+      const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, input.startDate ?? new Date())
 
-    const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
-      id: randomUUID(),
-      userId: campaign.userId,
-      brandId: campaign.brandId,
-      campaignId: campaign.id,
-      order: index,
-      photoIds,
-      caption: captions[index]!,
-      scheduledAt: scheduledTimes[index]!,
-      status: 'planned',
-      postId: null,
-    }))
+      // Uma legenda por item, olhando a foto de capa daquele item (Gemini vision) — em paralelo,
+      // não sequencial, porque uma campanha pode ter dezenas de itens e isso rodaria dentro de
+      // uma única requisição HTTP. Item cujo pedido falha (generator-service fora do ar, foto
+      // corrompida, etc.) cai pro template determinístico antigo — nunca trava a campanha
+      // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
+      // de autonomia).
+      const captions = await Promise.all(
+        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
+      )
 
-    await this.itemRepo.deleteByCampaign(campaign.id)
-    await this.itemRepo.saveAll(items)
+      const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
+        id: randomUUID(),
+        userId: campaign.userId,
+        brandId: campaign.brandId,
+        campaignId: campaign.id,
+        order: index,
+        photoIds,
+        caption: captions[index]!,
+        scheduledAt: scheduledTimes[index]!,
+        status: 'planned',
+        postId: null,
+      }))
 
-    campaign.status = 'reviewing'
-    campaign.updatedAt = new Date()
-    await this.campaignRepo.save(campaign)
+      await this.itemRepo.deleteByCampaign(campaign.id)
+      await this.itemRepo.saveAll(items)
 
-    return items
+      campaign.status = 'reviewing'
+      campaign.updatedAt = new Date()
+      await this.campaignRepo.save(campaign)
+
+      return items
+    } finally {
+      await this.lockRepo.release(input.userId, input.brandId, input.campaignId)
+    }
   }
 }
