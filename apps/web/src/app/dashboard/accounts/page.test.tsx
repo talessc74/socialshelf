@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
 import AccountsPage from './page'
 import { api, type ApiConnection } from '../../../lib/api'
 import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 
+let mockSearchParams = new URLSearchParams()
+const mockReplace = vi.fn()
+const mockRouter = { replace: mockReplace }
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => mockSearchParams,
+  useRouter: () => mockRouter,
 }))
 
 vi.mock('../../../lib/api', () => ({
@@ -18,6 +22,8 @@ vi.mock('../../../lib/api', () => ({
     getLinkedInPageAuthorizeUrl: vi.fn(),
     getLinkedInPagePendingSelection: vi.fn(),
     selectLinkedInPage: vi.fn(),
+    getMetaPagePendingSelection: vi.fn(),
+    selectMetaPage: vi.fn(),
   },
 }))
 
@@ -58,6 +64,7 @@ function renderPage() {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockSearchParams = new URLSearchParams()
 })
 
 describe('AccountsPage — narração do Selfie', () => {
@@ -78,6 +85,49 @@ describe('AccountsPage — narração do Selfie', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('selfie-narration')).toHaveTextContent('não conectou nenhuma')
+    })
+  })
+})
+
+describe('AccountsPage — accountLabel e seleção de Página do Meta', () => {
+  it('exibe o nome da Página/handle conectada junto ao badge de status', async () => {
+    mockedApi.getConnections.mockResolvedValue([
+      { ...makeConnection(Platform.FACEBOOK), accountLabel: 'Rádio Kactus' },
+    ])
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText('Rádio Kactus')).toBeInTheDocument()
+    })
+  })
+
+  it('carrega e exibe as Páginas pendentes quando metaPagePending está na URL, e conclui a seleção ao clicar', async () => {
+    mockSearchParams = new URLSearchParams({ metaPagePending: 'pending-1' })
+    mockedApi.getConnections.mockResolvedValue([])
+    mockedApi.getMetaPagePendingSelection.mockResolvedValue([
+      { id: 'page-1', name: 'Página Pessoal' },
+      {
+        id: 'page-2',
+        name: 'EAI Jurídico',
+        instagram_business_account: { id: 'ig-1', username: 'eai.juridico' },
+      },
+    ])
+    mockedApi.selectMetaPage.mockResolvedValue(undefined)
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(mockedApi.getMetaPagePendingSelection).toHaveBeenCalledWith('pending-1')
+    })
+    expect(await screen.findByText('Página Pessoal')).toBeInTheDocument()
+    expect(screen.getByText('EAI Jurídico')).toBeInTheDocument()
+    expect(screen.getByText(/Instagram @eai.juridico/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Página Pessoal'))
+
+    await waitFor(() => {
+      expect(mockedApi.selectMetaPage).toHaveBeenCalledWith('pending-1', 'page-1')
     })
   })
 })

@@ -16,7 +16,7 @@ export interface MetaPage {
   id: string
   name: string
   access_token: string
-  instagram_business_account?: { id: string }
+  instagram_business_account?: { id: string; username?: string }
 }
 
 export function buildMetaAuthUrl(state: string): string {
@@ -84,7 +84,7 @@ export async function exchangeShortForLongLived(
 }
 
 export async function getUserPages(userAccessToken: string): Promise<MetaPage[]> {
-  const fields = 'id,name,access_token,instagram_business_account'
+  const fields = 'id,name,access_token,instagram_business_account{id,username}'
   const response = await fetch(
     `${META_GRAPH_URL}/me/accounts?fields=${fields}&access_token=${userAccessToken}`,
   )

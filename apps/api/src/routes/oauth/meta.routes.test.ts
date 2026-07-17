@@ -10,7 +10,12 @@ vi.mock('../../infrastructure/firebase-admin.js', () => ({
   },
 }))
 
-const { saveSpy } = vi.hoisted(() => ({ saveSpy: vi.fn().mockResolvedValue(undefined) }))
+const { saveSpy, storeSpy, retrieveSpy, deleteSpy } = vi.hoisted(() => ({
+  saveSpy: vi.fn().mockResolvedValue(undefined),
+  storeSpy: vi.fn().mockResolvedValue(undefined),
+  retrieveSpy: vi.fn(),
+  deleteSpy: vi.fn().mockResolvedValue(undefined),
+}))
 
 vi.mock('../../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
   FirestoreOAuthRepository: vi.fn().mockImplementation(() => ({
@@ -20,8 +25,21 @@ vi.mock('../../infrastructure/firestore/FirestoreOAuthRepository.js', () => ({
 
 vi.mock('../../infrastructure/firestore/FirestoreTokenVault.js', () => ({
   FirestoreTokenVault: vi.fn().mockImplementation(() => ({
-    store: vi.fn().mockResolvedValue(undefined),
+    store: storeSpy,
+    retrieve: retrieveSpy,
+    delete: deleteSpy,
   })),
+}))
+
+const { getUserPagesMock } = vi.hoisted(() => ({
+  getUserPagesMock: vi.fn().mockResolvedValue([
+    {
+      id: 'page-1',
+      name: 'Test Page',
+      access_token: 'page-token',
+      instagram_business_account: { id: 'ig-123' },
+    },
+  ]),
 }))
 
 vi.mock('../../lib/meta-client.js', () => ({
@@ -37,14 +55,7 @@ vi.mock('../../lib/meta-client.js', () => ({
     token_type: 'bearer',
     expires_in: 5184000,
   }),
-  getUserPages: vi.fn().mockResolvedValue([
-    {
-      id: 'page-1',
-      name: 'Test Page',
-      access_token: 'page-token',
-      instagram_business_account: { id: 'ig-123' },
-    },
-  ]),
+  getUserPages: getUserPagesMock,
 }))
 
 describe('Meta OAuth routes', () => {
@@ -179,6 +190,146 @@ describe('Meta OAuth routes', () => {
       expect(response.headers['location']).toBe(
         'https://socialshelf.com.br/dashboard?error=oauth_denied&detail=user_denied',
       )
+    })
+
+    it('redirects to /dashboard/accounts with metaPagePending when the user administers more than one page', async () => {
+      getUserPagesMock.mockResolvedValueOnce([
+        { id: 'page-1', name: 'Page One', access_token: 'token-1' },
+        { id: 'page-2', name: 'Page Two', access_token: 'token-2' },
+      ])
+
+      const state = generateState('user-test-123', 'brand-456')
+      const callsBefore = saveSpy.mock.calls.length
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      expect(response.headers['location']).toContain('/dashboard/accounts?metaPagePending=')
+      expect(saveSpy.mock.calls.length).toBe(callsBefore)
+    })
+  })
+
+  describe('GET /oauth/meta/pending/:pendingId', () => {
+    it('returns the page list for the owning user', async () => {
+      retrieveSpy.mockResolvedValueOnce(
+        JSON.stringify({
+          userId: 'user-test-123',
+          brandId: 'brand-456',
+          user_access_token: 'long-token',
+          expiresAt: new Date(Date.now() + 5184000_000).toISOString(),
+          pages: [{ id: 'page-1', name: 'Page One', access_token: 'token-1' }],
+          iat: Date.now(),
+        }),
+      )
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/oauth/meta/pending/pending-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ pages: Array<{ id: string }> }>()
+      expect(body.pages).toEqual([{ id: 'page-1', name: 'Page One', access_token: 'token-1' }])
+    })
+
+    it('returns 404 when the pending selection does not belong to the requesting user', async () => {
+      retrieveSpy.mockResolvedValueOnce(
+        JSON.stringify({
+          userId: 'someone-else',
+          brandId: 'brand-456',
+          user_access_token: 'long-token',
+          expiresAt: new Date(Date.now() + 5184000_000).toISOString(),
+          pages: [{ id: 'page-1', name: 'Page One', access_token: 'token-1' }],
+          iat: Date.now(),
+        }),
+      )
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/oauth/meta/pending/pending-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 401 without authorization header', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/oauth/meta/pending/pending-1',
+      })
+
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /oauth/meta/select', () => {
+    it('persists the connection for a valid pageId', async () => {
+      retrieveSpy.mockResolvedValueOnce(
+        JSON.stringify({
+          userId: 'user-test-123',
+          brandId: 'brand-456',
+          user_access_token: 'long-token',
+          expiresAt: new Date(Date.now() + 5184000_000).toISOString(),
+          pages: [
+            {
+              id: 'page-1',
+              name: 'Page One',
+              access_token: 'token-1',
+              instagram_business_account: { id: 'ig-123', username: 'pageone' },
+            },
+          ],
+          iat: Date.now(),
+        }),
+      )
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/oauth/meta/select',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { pendingId: 'pending-1', pageId: 'page-1' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(saveSpy).toHaveBeenCalled()
+      expect(deleteSpy).toHaveBeenCalledWith('meta-page-pending-pending-1')
+    })
+
+    it('returns 400 for an invalid pageId', async () => {
+      retrieveSpy.mockResolvedValueOnce(
+        JSON.stringify({
+          userId: 'user-test-123',
+          brandId: 'brand-456',
+          user_access_token: 'long-token',
+          expiresAt: new Date(Date.now() + 5184000_000).toISOString(),
+          pages: [{ id: 'page-1', name: 'Page One', access_token: 'token-1' }],
+          iat: Date.now(),
+        }),
+      )
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/oauth/meta/select',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { pendingId: 'pending-1', pageId: 'page-999' },
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 400 when the request body is missing required fields', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/oauth/meta/select',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { pendingId: 'pending-1' },
+      })
+
+      expect(response.statusCode).toBe(400)
     })
   })
 })

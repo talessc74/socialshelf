@@ -65,6 +65,7 @@ export interface ApiConnection {
   tokenRef: string
   scopes: string[]
   organizationUrn?: string | null
+  accountLabel?: string | null
   expiresAt: string | null
   createdAt: string
   updatedAt: string
@@ -73,6 +74,12 @@ export interface ApiConnection {
 export interface LinkedInOrganization {
   urn: string
   name: string
+}
+
+export interface MetaPageOption {
+  id: string
+  name: string
+  instagram_business_account?: { id: string; username?: string }
 }
 
 export interface PostContent {
@@ -356,6 +363,18 @@ export const api = {
     await apiFetch('/oauth/linkedin-page/select', {
       method: 'POST',
       body: JSON.stringify({ pendingId, organizationUrn }),
+    })
+  },
+
+  async getMetaPagePendingSelection(pendingId: string): Promise<MetaPageOption[]> {
+    const data = await apiFetch<{ pages: MetaPageOption[] }>(`/oauth/meta/pending/${pendingId}`)
+    return data.pages
+  },
+
+  async selectMetaPage(pendingId: string, pageId: string): Promise<void> {
+    await apiFetch('/oauth/meta/select', {
+      method: 'POST',
+      body: JSON.stringify({ pendingId, pageId }),
     })
   },
 
