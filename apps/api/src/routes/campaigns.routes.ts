@@ -15,6 +15,7 @@ import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/Fi
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { FirestoreCampaignTimelineLockRepository } from '../infrastructure/firestore/FirestoreCampaignTimelineLockRepository.js'
 import { HttpCampaignCaptionClient } from '../infrastructure/generator/CampaignCaptionClient.js'
 
 const platformEnum = z.enum([Platform.LINKEDIN, Platform.FACEBOOK, Platform.INSTAGRAM, Platform.TWITTER, Platform.TIKTOK])
@@ -46,12 +47,21 @@ const updateTimelineSchema = z.object({
     .min(1),
 })
 
+// 404 pra campanha inexistente, 409 pra lock ocupado (o cliente pode tentar de novo em
+// instantes), 422 pro resto (violação de regra de negócio, ex: status errado pra essa ação).
+function statusForCampaignError(message: string): number {
+  if (message === 'Campaign not found') return 404
+  if (message.includes('already in progress')) return 409
+  return 422
+}
+
 export async function campaignsRoutes(app: FastifyInstance) {
   const campaignRepo = new FirestorePhotoCampaignRepository()
   const photoRepo = new FirestoreCampaignPhotoRepository()
   const itemRepo = new FirestoreCampaignItemRepository()
   const postRepo = new FirestorePostRepository()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
+  const timelineLockRepo = new FirestoreCampaignTimelineLockRepository()
 
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -61,7 +71,13 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const deletePhoto = new DeleteCampaignPhotoUseCase(campaignRepo, photoRepo, generatorUrl, internalSecret)
   const reorderPhotos = new ReorderCampaignPhotosUseCase(campaignRepo, photoRepo)
   const captionClient = new HttpCampaignCaptionClient(generatorUrl, internalSecret)
-  const generateTimeline = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient)
+  const generateTimeline = new GenerateCampaignTimelineUseCase(
+    campaignRepo,
+    photoRepo,
+    itemRepo,
+    captionClient,
+    timelineLockRepo,
+  )
   const extendTimeline = new ExtendCampaignTimelineUseCase(
     campaignRepo,
     photoRepo,
@@ -69,9 +85,17 @@ export async function campaignsRoutes(app: FastifyInstance) {
     postRepo,
     brandProfileRepo,
     captionClient,
+    timelineLockRepo,
   )
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
-  const activateCampaign = new ActivateCampaignUseCase(campaignRepo, itemRepo, photoRepo, postRepo, brandProfileRepo)
+  const activateCampaign = new ActivateCampaignUseCase(
+    campaignRepo,
+    itemRepo,
+    photoRepo,
+    postRepo,
+    brandProfileRepo,
+    timelineLockRepo,
+  )
   const cancelCampaign = new CancelCampaignUseCase(campaignRepo)
 
   app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
@@ -231,8 +255,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
       return reply.send({ items })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      const status = message === 'Campaign not found' ? 404 : 422
-      return reply.status(status).send({ error: message })
+      return reply.status(statusForCampaignError(message)).send({ error: message })
     }
   })
 
@@ -250,8 +273,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
       return reply.send({ items })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      const status = message === 'Campaign not found' ? 404 : 422
-      return reply.status(status).send({ error: message })
+      return reply.status(statusForCampaignError(message)).send({ error: message })
     }
   })
 
@@ -286,8 +308,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
       return reply.send({ campaign })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      const status = message === 'Campaign not found' ? 404 : 422
-      return reply.status(status).send({ error: message })
+      return reply.status(statusForCampaignError(message)).send({ error: message })
     }
   })
 

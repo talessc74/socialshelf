@@ -117,6 +117,7 @@ export type { ProfileDiagnosticRepository, ProfileDiagnosticRecord } from './por
 export type { PhotoCampaignRepository } from './ports/PhotoCampaignRepository.js'
 export type { CampaignPhotoRepository } from './ports/CampaignPhotoRepository.js'
 export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
+export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLockRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'

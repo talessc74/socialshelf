@@ -6,6 +6,7 @@ import type {
   CampaignItemRepository,
   CampaignPhoto,
   CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
   PhotoCampaign,
   PhotoCampaignRepository,
   PostRepository,
@@ -73,6 +74,7 @@ describe('ExtendCampaignTimelineUseCase', () => {
   let postRepo: PostRepository
   let brandProfileRepo: BrandProfileRepository
   let captionClient: CampaignCaptionClient
+  let lockRepo: CampaignTimelineLockRepository
   let useCase: ExtendCampaignTimelineUseCase
 
   beforeEach(() => {
@@ -111,7 +113,19 @@ describe('ExtendCampaignTimelineUseCase', () => {
       findLatestByBrand: vi.fn().mockResolvedValue(null),
       findByBrandAndVersion: vi.fn(),
     }
-    useCase = new ExtendCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, postRepo, brandProfileRepo, captionClient)
+    lockRepo = {
+      tryAcquire: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    }
+    useCase = new ExtendCampaignTimelineUseCase(
+      campaignRepo,
+      photoRepo,
+      itemRepo,
+      postRepo,
+      brandProfileRepo,
+      captionClient,
+      lockRepo,
+    )
   })
 
   it('rejects extending a draft campaign (no timeline exists yet)', async () => {
@@ -119,6 +133,29 @@ describe('ExtendCampaignTimelineUseCase', () => {
     await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
       'reviewing or active',
     )
+  })
+
+  it('rejects when another concurrent update already holds the timeline lock — the exact race that caused duplicate photos across posts in production', async () => {
+    vi.mocked(lockRepo.tryAcquire).mockResolvedValue(false)
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
+      'already in progress',
+    )
+    expect(itemRepo.saveAll).not.toHaveBeenCalled()
+    expect(postRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('releases the timeline lock after a successful run', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+    expect(lockRepo.tryAcquire).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+  })
+
+  it('releases the timeline lock even when the rest of the execution fails', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'p1' })])
+    await expect(useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })).rejects.toThrow(
+      'No new photos',
+    )
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
   })
 
   it('rejects extending a cancelled campaign', async () => {
