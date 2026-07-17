@@ -4,6 +4,8 @@ import { validateState } from '../../lib/csrf.js'
 import { resolveWebOrigin } from '../../lib/webOrigin.js'
 import { GenerateMetaAuthUrlUseCase } from '../../use-cases/oauth/GenerateMetaAuthUrlUseCase.js'
 import { HandleMetaCallbackUseCase } from '../../use-cases/oauth/HandleMetaCallbackUseCase.js'
+import { GetPendingMetaPageSelectionUseCase } from '../../use-cases/oauth/GetPendingMetaPageSelectionUseCase.js'
+import { ConfirmMetaPageSelectionUseCase } from '../../use-cases/oauth/ConfirmMetaPageSelectionUseCase.js'
 import { FirestoreOAuthRepository } from '../../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestoreTokenVault } from '../../infrastructure/firestore/FirestoreTokenVault.js'
 
@@ -18,11 +20,22 @@ const callbackErrorQuerySchema = z.object({
   state: z.string().optional(),
 })
 
+const pendingParamsSchema = z.object({
+  pendingId: z.string().min(1),
+})
+
+const selectBodySchema = z.object({
+  pendingId: z.string().min(1),
+  pageId: z.string().min(1),
+})
+
 export async function metaOAuthRoutes(app: FastifyInstance) {
   const oauthRepo = new FirestoreOAuthRepository()
   const tokenVault = new FirestoreTokenVault()
   const generateUrl = new GenerateMetaAuthUrlUseCase()
   const handleCallback = new HandleMetaCallbackUseCase(oauthRepo, tokenVault)
+  const getPending = new GetPendingMetaPageSelectionUseCase(tokenVault)
+  const confirmSelection = new ConfirmMetaPageSelectionUseCase(oauthRepo, tokenVault)
 
   const webUrl = process.env['WEB_URL'] ?? 'http://localhost:3000'
 
@@ -61,15 +74,24 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
 
     try {
       const { brandId, webOrigin } = validateState(state)
-      const { facebook, instagram } = await handleCallback.execute(code, state, brandId)
+      const redirectBase = webOrigin ?? webUrl
+      const outcome = await handleCallback.execute(code, state, brandId)
+
+      // Só o caso 'pending' vai pra /dashboard/accounts (onde mora o seletor de Página) — os
+      // demais mantêm o destino de sempre (/dashboard), que já trata connected=/error= há mais
+      // tempo e tem seu próprio aviso de sucesso/erro.
+      if (outcome.status === 'pending') {
+        return reply.redirect(`${redirectBase}/dashboard/accounts?metaPagePending=${outcome.pendingId}`)
+      }
+
       const connected = [
-        facebook ? 'facebook' : null,
-        instagram ? 'instagram' : null,
+        outcome.facebook ? 'facebook' : null,
+        outcome.instagram ? 'instagram' : null,
       ]
         .filter(Boolean)
         .join(',')
 
-      return reply.redirect(`${webOrigin ?? webUrl}/dashboard?connected=${connected}`)
+      return reply.redirect(`${redirectBase}/dashboard?connected=${connected}`)
     } catch (err) {
       app.log.error(err)
       const detail = err instanceof Error ? err.message : 'unknown_error'
@@ -78,4 +100,48 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
       )
     }
   })
+
+  app.get(
+    '/oauth/meta/pending/:pendingId',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const result = pendingParamsSchema.safeParse(request.params)
+      if (!result.success) {
+        return reply.status(400).send({ error: 'invalid_pending_id' })
+      }
+
+      try {
+        const { pages } = await getPending.execute(result.data.pendingId, request.userId)
+        return reply.send({ pages })
+      } catch (err) {
+        app.log.error(err)
+        const detail = err instanceof Error ? err.message : 'unknown_error'
+        return reply.status(404).send({ error: detail })
+      }
+    },
+  )
+
+  app.post(
+    '/oauth/meta/select',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const result = selectBodySchema.safeParse(request.body)
+      if (!result.success) {
+        return reply.status(400).send({ error: 'invalid_request_body' })
+      }
+
+      try {
+        const { facebook, instagram } = await confirmSelection.execute(
+          result.data.pendingId,
+          request.userId,
+          result.data.pageId,
+        )
+        return reply.send({ facebook, instagram })
+      } catch (err) {
+        app.log.error(err)
+        const detail = err instanceof Error ? err.message : 'unknown_error'
+        return reply.status(400).send({ error: detail })
+      }
+    },
+  )
 }

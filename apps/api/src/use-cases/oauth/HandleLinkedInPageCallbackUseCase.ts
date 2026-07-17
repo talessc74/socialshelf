@@ -34,6 +34,7 @@ export class HandleLinkedInPageCallbackUseCase {
         brandId,
         tokenResponse,
         organizations[0]!.urn,
+        organizations[0]!.name,
       )
       return { status: 'connected', connection }
     }

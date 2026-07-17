@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import type { LinkedInOrganization } from '../../../lib/api'
+import type { LinkedInOrganization, MetaPageOption } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
 import { PLATFORM_META } from '../../../lib/platformMeta'
 import { buildAccountsMessage } from '../../../lib/selfieAccountsSummary'
@@ -19,6 +19,10 @@ export default function AccountsPage() {
     pendingId: string
     organizations: LinkedInOrganization[]
   } | null>(null)
+  const [pendingMetaSelection, setPendingMetaSelection] = useState<{
+    pendingId: string
+    pages: MetaPageOption[]
+  } | null>(null)
   const [selecting, setSelecting] = useState(false)
 
   const { data: connections, isLoading } = useQuery({
@@ -31,6 +35,7 @@ export default function AccountsPage() {
     const connected = searchParams.get('connected')
     const error = searchParams.get('error')
     const linkedinPagePending = searchParams.get('linkedinPagePending')
+    const metaPagePending = searchParams.get('metaPagePending')
 
     if (connected) {
       const message =
@@ -43,6 +48,12 @@ export default function AccountsPage() {
       api
         .getLinkedInPagePendingSelection(linkedinPagePending)
         .then((organizations) => setPendingSelection({ pendingId: linkedinPagePending, organizations }))
+        .catch(() => setNotice({ type: 'error', message: 'Não foi possível carregar as páginas administradas.' }))
+      router.replace('/dashboard/accounts')
+    } else if (metaPagePending) {
+      api
+        .getMetaPagePendingSelection(metaPagePending)
+        .then((pages) => setPendingMetaSelection({ pendingId: metaPagePending, pages }))
         .catch(() => setNotice({ type: 'error', message: 'Não foi possível carregar as páginas administradas.' }))
       router.replace('/dashboard/accounts')
     } else if (error) {
@@ -58,6 +69,7 @@ export default function AccountsPage() {
 
   const connectedPlatforms = new Set(connections?.map((c) => c.platform) ?? [])
   const linkedinConnection = connections?.find((c) => c.platform === Platform.LINKEDIN)
+  const connectionByPlatform = new Map(connections?.map((c) => [c.platform, c]) ?? [])
 
   const handleConnect = async (oauth: 'linkedin' | 'meta' | 'x' | 'tiktok') => {
     try {
@@ -85,6 +97,21 @@ export default function AccountsPage() {
       await queryClient.invalidateQueries({ queryKey: ['connections'] })
       setPendingSelection(null)
       setNotice({ type: 'success', message: 'Página do LinkedIn conectada com sucesso.' })
+    } catch {
+      setNotice({ type: 'error', message: 'Não foi possível concluir a seleção da Página.' })
+    } finally {
+      setSelecting(false)
+    }
+  }
+
+  const handleSelectMetaPage = async (pageId: string) => {
+    if (!pendingMetaSelection) return
+    setSelecting(true)
+    try {
+      await api.selectMetaPage(pendingMetaSelection.pendingId, pageId)
+      await queryClient.invalidateQueries({ queryKey: ['connections'] })
+      setPendingMetaSelection(null)
+      setNotice({ type: 'success', message: 'Facebook (e Instagram, se vinculado) conectados com sucesso.' })
     } catch {
       setNotice({ type: 'error', message: 'Não foi possível concluir a seleção da Página.' })
     } finally {
@@ -133,6 +160,33 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {pendingMetaSelection && (
+        <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-800">Escolha a Página do Facebook</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Encontramos mais de uma Página que você administra. Selecione qual conectar a esta marca —
+            o Instagram vinculado a essa Página (se houver) conecta junto.
+          </p>
+          <div className="flex flex-col gap-2">
+            {pendingMetaSelection.pages.map((page) => (
+              <button
+                key={page.id}
+                disabled={selecting}
+                onClick={() => handleSelectMetaPage(page.id)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+              >
+                {page.name}
+                {page.instagram_business_account?.username && (
+                  <span className="ml-2 text-xs text-gray-400">
+                    · Instagram @{page.instagram_business_account.username}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-ink">Central de Contas</h1>
         <p className="mt-1 text-sm text-muted">Gerencie as redes sociais conectadas à sua marca.</p>
@@ -150,6 +204,7 @@ export default function AccountsPage() {
             {Object.entries(PLATFORM_META).map(([platform, meta]) => {
               const isConnected = connectedPlatforms.has(platform as Platform)
               const isLinkedIn = platform === Platform.LINKEDIN
+              const accountLabel = connectionByPlatform.get(platform as Platform)?.accountLabel
               return (
                 <div
                   key={platform}
@@ -171,6 +226,11 @@ export default function AccountsPage() {
                         ● Conectado
                         {isLinkedIn && (linkedinConnection?.organizationUrn ? ' — Página' : ' — Perfil pessoal')}
                       </span>
+                      {accountLabel && (
+                        <span className="text-xs font-medium text-muted" title="Conta/Página conectada de fato">
+                          {accountLabel}
+                        </span>
+                      )}
                       <button
                         onClick={() => handleConnect(meta.oauth)}
                         className="rounded-full bg-card-2 px-2.5 py-0.5 text-xs font-medium text-muted hover:bg-accent-soft hover:text-accent"

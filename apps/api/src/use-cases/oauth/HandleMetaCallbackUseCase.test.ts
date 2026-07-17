@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { HandleMetaCallbackUseCase } from './HandleMetaCallbackUseCase.js'
 import { generateState } from '../../lib/csrf.js'
 import { Platform, derivePairwiseId } from '@socialshelf/domain'
-import type { OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
+import type { OAuthConnection, OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
 
 vi.mock('../../lib/meta-client.js', () => ({
   exchangeCodeForShortLivedToken: vi.fn().mockResolvedValue({
@@ -23,6 +23,16 @@ vi.mock('../../lib/meta-client.js', () => ({
     },
   ]),
 }))
+
+// A maioria dos testes cobre o caminho "uma única Página" (auto-conecta, sem escolha) — este
+// helper só existe pra dar ao TypeScript o narrowing de `status: 'connected'` sem repetir a
+// asserção em cada teste.
+function expectConnected(
+  result: Awaited<ReturnType<HandleMetaCallbackUseCase['execute']>>,
+): { facebook: OAuthConnection | null; instagram: OAuthConnection | null } {
+  if (result.status !== 'connected') throw new Error(`expected status 'connected', got '${result.status}'`)
+  return result
+}
 
 describe('HandleMetaCallbackUseCase', () => {
   let useCase: HandleMetaCallbackUseCase
@@ -53,12 +63,29 @@ describe('HandleMetaCallbackUseCase', () => {
 
   it('returns both Facebook and Instagram connections when page has Instagram linked', async () => {
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook).not.toBeNull()
     expect(result.instagram).not.toBeNull()
     expect(result.facebook!.platform).toBe(Platform.FACEBOOK)
     expect(result.instagram!.platform).toBe(Platform.INSTAGRAM)
+  })
+
+  it('labels each connection with the page name / Instagram handle for display', async () => {
+    const state = generateState('user-123', 'brand-456')
+    const { getUserPages } = await import('../../lib/meta-client.js')
+    vi.mocked(getUserPages).mockResolvedValueOnce([
+      {
+        id: 'page-111',
+        name: 'Rádio Kactus',
+        access_token: 'page-access-token-xxx',
+        instagram_business_account: { id: 'ig-biz-222', username: 'radiokactus' },
+      },
+    ])
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
+
+    expect(result.facebook!.accountLabel).toBe('Rádio Kactus')
+    expect(result.instagram!.accountLabel).toBe('@radiokactus')
   })
 
   it('returns null Instagram when page has no Instagram Business Account', async () => {
@@ -68,13 +95,13 @@ describe('HandleMetaCallbackUseCase', () => {
     ])
 
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook).not.toBeNull()
     expect(result.instagram).toBeNull()
   })
 
-  it('finds Instagram on a page other than the first one', async () => {
+  it('returns a pending selection (does not auto-pick) when the user administers more than one page', async () => {
     const { getUserPages } = await import('../../lib/meta-client.js')
     vi.mocked(getUserPages).mockResolvedValueOnce([
       { id: 'page-111', name: 'Página sem Instagram', access_token: 'token-1' },
@@ -82,19 +109,36 @@ describe('HandleMetaCallbackUseCase', () => {
         id: 'page-222',
         name: 'Página com Instagram',
         access_token: 'token-2',
-        instagram_business_account: { id: 'ig-biz-999' },
+        instagram_business_account: { id: 'ig-biz-999', username: 'pagina2' },
       },
     ])
 
     const state = generateState('user-123', 'brand-456')
     const result = await useCase.execute('meta-code', state, 'brand-456')
 
-    expect(result.facebook).not.toBeNull()
-    expect(result.instagram).not.toBeNull()
-    expect(result.instagram!.tokenRef).toContain('oauth-token-')
+    expect(result.status).toBe('pending')
+    if (result.status !== 'pending') throw new Error('expected pending')
+    expect(result.pages).toHaveLength(2)
+    expect(result.pages.map((p) => p.id)).toEqual(['page-111', 'page-222'])
+    // Nada é persistido até o usuário escolher — a corrida de "qual página ganhou" que
+    // motivou esta mudança (ver _local-edr-policy-053) só existia porque essa escolha nunca
+    // era feita, apenas assumida.
+    expect(mockOAuthRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('stores the pending selection in the token vault, scoped to the user', async () => {
+    const { getUserPages } = await import('../../lib/meta-client.js')
+    vi.mocked(getUserPages).mockResolvedValueOnce([
+      { id: 'page-111', name: 'Página A', access_token: 'token-1' },
+      { id: 'page-222', name: 'Página B', access_token: 'token-2' },
+    ])
+
+    const state = generateState('user-123', 'brand-456')
+    await useCase.execute('meta-code', state, 'brand-456')
+
     expect(mockTokenVault.store).toHaveBeenCalledWith(
-      expect.stringContaining('oauth-token-'),
-      expect.stringContaining('ig-biz-999'),
+      expect.stringContaining('meta-page-pending-'),
+      expect.stringContaining('"userId":"user-123"'),
     )
   })
 
@@ -103,7 +147,7 @@ describe('HandleMetaCallbackUseCase', () => {
     vi.mocked(getUserPages).mockResolvedValueOnce([])
 
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook).toBeNull()
     expect(result.instagram).toBeNull()
@@ -111,7 +155,7 @@ describe('HandleMetaCallbackUseCase', () => {
 
   it('derives correct pairwise IDs for each platform', async () => {
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook!.pairwiseId).toBe(derivePairwiseId('user-123', Platform.FACEBOOK))
     expect(result.instagram!.pairwiseId).toBe(derivePairwiseId('user-123', Platform.INSTAGRAM))
@@ -159,7 +203,7 @@ describe('HandleMetaCallbackUseCase', () => {
     } as never)
 
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook!.expiresAt).toBeInstanceOf(Date)
     expect(Number.isNaN(result.facebook!.expiresAt!.getTime())).toBe(false)
@@ -174,7 +218,7 @@ describe('HandleMetaCallbackUseCase', () => {
     })
 
     const state = generateState('user-123', 'brand-456')
-    const result = await useCase.execute('meta-code', state, 'brand-456')
+    const result = expectConnected(await useCase.execute('meta-code', state, 'brand-456'))
 
     expect(result.facebook!.expiresAt).toBeInstanceOf(Date)
     expect(Number.isNaN(result.facebook!.expiresAt!.getTime())).toBe(false)
