@@ -84,6 +84,15 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
         return reply.redirect(`${redirectBase}/dashboard/accounts?metaPagePending=${outcome.pendingId}`)
       }
 
+      // Nenhuma Página encontrada: a conta não tem Página do Facebook (ou o Instagram é pessoal,
+      // não Business/Creator vinculado a uma Página). Antes isso voltava pro dashboard com
+      // connected= vazio — que a tela lê como falsy e não mostra mensagem nenhuma, deixando o
+      // usuário sem saber por que "não aconteceu nada". Manda pra Central de Contas com um aviso
+      // que explica o pré-requisito e como resolver.
+      if (!outcome.facebook && !outcome.instagram) {
+        return reply.redirect(`${redirectBase}/dashboard/accounts?metaResult=no-pages`)
+      }
+
       const connected = [
         outcome.facebook ? 'facebook' : null,
         outcome.instagram ? 'instagram' : null,
@@ -91,7 +100,13 @@ export async function metaOAuthRoutes(app: FastifyInstance) {
         .filter(Boolean)
         .join(',')
 
-      return reply.redirect(`${redirectBase}/dashboard?connected=${connected}`)
+      // Facebook conectou mas Instagram não: a Página escolhida não tem conta Business/Creator do
+      // Instagram vinculada (persistMetaPageConnection só cria a conexão do Instagram quando a
+      // Página tem instagram_business_account). Sinaliza pro dashboard avisar que o Instagram
+      // ficou de fora e por quê, em vez de um "Conectado: facebook" que se lê como "conectou tudo".
+      const note = outcome.facebook && !outcome.instagram ? '&metaNote=no-instagram' : ''
+
+      return reply.redirect(`${redirectBase}/dashboard?connected=${connected}${note}`)
     } catch (err) {
       app.log.error(err)
       const detail = err instanceof Error ? err.message : 'unknown_error'

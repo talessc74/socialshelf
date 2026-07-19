@@ -111,6 +111,40 @@ describe('Meta OAuth routes', () => {
       expect(location).toContain('instagram')
     })
 
+    it('redirects with connected=facebook&metaNote=no-instagram when the page has no linked Instagram', async () => {
+      getUserPagesMock.mockResolvedValueOnce([
+        { id: 'page-1', name: 'Page Without IG', access_token: 'page-token' },
+      ])
+      const state = generateState('user-test-123', 'brand-456')
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      const location = response.headers['location'] as string
+      expect(location).toContain('connected=facebook')
+      // O Instagram não entra na lista connected= (só o Facebook conectou)…
+      expect(location).not.toContain('connected=facebook,instagram')
+      // …e o motivo é sinalizado à parte pra a tela avisar o usuário.
+      expect(location).toContain('metaNote=no-instagram')
+    })
+
+    it('redirects to accounts with metaResult=no-pages when the user administers no Facebook Page', async () => {
+      getUserPagesMock.mockResolvedValueOnce([])
+      const state = generateState('user-test-123', 'brand-456')
+
+      const response = await app.inject({
+        method: 'GET',
+        url: `/oauth/meta/callback?code=meta-code&state=${encodeURIComponent(state)}`,
+      })
+
+      expect(response.statusCode).toBe(302)
+      const location = response.headers['location'] as string
+      expect(location).toContain('/dashboard/accounts?metaResult=no-pages')
+    })
+
     it('redirects with error=oauth_failed on invalid state', async () => {
       const response = await app.inject({
         method: 'GET',

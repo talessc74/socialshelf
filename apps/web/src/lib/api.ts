@@ -372,11 +372,14 @@ export const api = {
     return data.pages
   },
 
-  async selectMetaPage(pendingId: string, pageId: string): Promise<void> {
-    await apiFetch('/oauth/meta/select', {
+  async selectMetaPage(pendingId: string, pageId: string): Promise<{ instagramConnected: boolean }> {
+    const data = await apiFetch<{ facebook: unknown; instagram: unknown }>('/oauth/meta/select', {
       method: 'POST',
       body: JSON.stringify({ pendingId, pageId }),
     })
+    // instagram vem null quando a Página escolhida não tem conta Business/Creator vinculada — a UI
+    // usa isso pra avisar explícito que o Instagram ficou de fora, em vez do genérico "se vinculado".
+    return { instagramConnected: data.instagram != null }
   },
 
   async createPost(
