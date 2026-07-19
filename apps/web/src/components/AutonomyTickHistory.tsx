@@ -8,6 +8,10 @@ import { api, type ApiAutonomyTickAction } from '../lib/api'
 // Scheduler recebe e descarta (_local-edr-policy-038, adendo 2026-07-11).
 const ACTION_INFO: Record<ApiAutonomyTickAction, { label: string; className: string }> = {
   published: { label: 'Publicado com sucesso', className: 'bg-emerald-50 text-emerald-700' },
+  'published-partial': {
+    label: 'Publicado em parte — algumas redes falharam',
+    className: 'bg-amber-50 text-amber-700',
+  },
   'draft-created': {
     label: 'Rascunho criado — aguardando aprovação',
     className: 'bg-sky-50 text-sky-700',
