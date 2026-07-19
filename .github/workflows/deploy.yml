@@ -3,6 +3,10 @@ name: Deploy
 on:
   push:
     branches: [main]
+  # Válvula de escape: o GitHub Actions ocasionalmente perde o evento de push de um merge na
+  # main (aconteceu em dois merges seguidos, #174 e #175) e eventos perdidos não são
+  # reenviados — sem isso, não existia forma de deployar a main atual sem um commit novo.
+  workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: socialshelf-547da
