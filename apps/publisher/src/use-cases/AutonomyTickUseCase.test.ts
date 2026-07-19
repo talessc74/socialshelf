@@ -335,6 +335,42 @@ describe('AutonomyTickUseCase', () => {
     expect(result).toMatchObject({ action: 'published', topicHeadline: suggestion.headline })
   })
 
+  it('records published-partial with the failure reasons when some platforms fail to publish', async () => {
+    brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+    publishPostUseCase.execute = vi.fn().mockResolvedValue({
+      postId: 'post-new',
+      results: [{ platform: Platform.FACEBOOK, externalId: 'fb-1', publishedAt: new Date() }],
+      failedPlatforms: [{ platform: Platform.INSTAGRAM, reason: 'Instagram publish failed: 400' }],
+    })
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({
+      action: 'published-partial',
+      topicHeadline: suggestion.headline,
+    })
+    expect(result!.error).toContain('instagram')
+    expect(result!.error).toContain('Instagram publish failed: 400')
+    // O histórico persistido também tem que carregar o motivo, não só o resultado em memória.
+    expect(tickLog.save).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'published-partial', error: expect.stringContaining('Instagram publish failed') }),
+    )
+  })
+
+  it('records an error (not published) when every platform fails to publish', async () => {
+    brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+    publishPostUseCase.execute = vi.fn().mockResolvedValue({
+      postId: 'post-new',
+      results: [],
+      failedPlatforms: [{ platform: Platform.LINKEDIN, reason: 'No OAuth connection for linkedin' }],
+    })
+
+    const [result] = await useCase.execute()
+
+    expect(result).toMatchObject({ action: 'error', topicHeadline: suggestion.headline })
+    expect(result!.error).toContain('No OAuth connection for linkedin')
+  })
+
   it('skips publishing (and does not call generate) once the daily limit is reached', async () => {
     brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
     dailyCounter.incrementIfUnderLimit = vi.fn().mockResolvedValue(false)

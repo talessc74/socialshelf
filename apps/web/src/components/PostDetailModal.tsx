@@ -102,11 +102,15 @@ export function PostDetailModal({ post, onClose }: { post: ApiPost; onClose: () 
           {post.content.map((c) => {
             const externalId = post.externalIds[c.platform]
             const link = externalId ? externalPostUrl(c.platform, externalId) : null
+            // Num post publicado, uma rede que estava no alvo mas ficou sem externalId não chegou
+            // a publicar — sinaliza explícito em vez de só omitir o link "Ver no ↗", que passava
+            // despercebido.
+            const failed = post.status === 'published' && !externalId
             return (
               <div key={c.platform} className="rounded-xl border border-line bg-card-2 p-3">
                 <div className="mb-1.5 flex items-center justify-between gap-2">
                   <span className="text-xs font-semibold text-ink">{PLATFORM_LABELS[c.platform]}</span>
-                  {link && (
+                  {link ? (
                     <a
                       href={link}
                       target="_blank"
@@ -115,6 +119,12 @@ export function PostDetailModal({ post, onClose }: { post: ApiPost; onClose: () 
                     >
                       Ver no {PLATFORM_LABELS[c.platform]} ↗
                     </a>
+                  ) : (
+                    failed && (
+                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                        ✕ não publicou
+                      </span>
+                    )
                   )}
                 </div>
                 <p className="whitespace-pre-wrap text-sm text-ink">{c.text}</p>

@@ -203,6 +203,7 @@ export type ApiAutonomyTickAction =
   | 'skipped-daily-limit'
   | 'draft-created'
   | 'published'
+  | 'published-partial'
   | 'error'
 
 export interface ApiAutonomyTickLogEntry {

@@ -462,10 +462,34 @@ function PostCard({
   )
 }
 
+// Uma rede só conta como publicada de fato se tem um externalId (id do post na plataforma) —
+// PublishPostUseCase grava um por rede que recebeu o post. Uma rede que estava no alvo do post
+// mas não tem externalId falhou na publicação, mesmo que o status geral seja 'published' (o
+// status vira 'published' assim que UMA rede dá certo). Sem essa distinção, o card mostrava as
+// quatro redes como publicadas mesmo quando o post só chegou numa — o "confuso o que publica e
+// o que não" reportado pelo usuário.
+function splitPublishOutcome(post: ApiPost): {
+  published: Platform[]
+  failed: Platform[]
+  hasOutcomeData: boolean
+} {
+  const targeted = post.content.map((c) => c.platform)
+  const externalIds = post.externalIds ?? {}
+  const hasOutcomeData = Object.keys(externalIds).length > 0
+  const published = targeted.filter((p) => externalIds[p])
+  const failed = targeted.filter((p) => !externalIds[p])
+  return { published, failed, hasOutcomeData }
+}
+
 function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: boolean }) {
   const router = useRouter()
   const firstImage = post.imageStoragePaths[0]
   const [showDetail, setShowDetail] = useState(false)
+  const { published, failed, hasOutcomeData } = splitPublishOutcome(post)
+  // Sem nenhum externalId (post antigo, anterior ao rastreio por rede) caímos no comportamento
+  // neutro de antes pra não acusar "falhou" indevidamente em dados legados.
+  const showPerPlatform = hasOutcomeData
+  const partial = showPerPlatform && failed.length > 0 && published.length > 0
 
   return (
     <li
@@ -477,12 +501,21 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
       {firstImage && <PostThumbnail path={firstImage} />}
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-            ✓ Publicado
-            {post.publishedAt
-              ? ` em ${new Date(post.publishedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
-              : ''}
-          </span>
+          {partial ? (
+            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700">
+              ⚠ Publicado em parte
+              {post.publishedAt
+                ? ` em ${new Date(post.publishedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+                : ''}
+            </span>
+          ) : (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+              ✓ Publicado
+              {post.publishedAt
+                ? ` em ${new Date(post.publishedAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}`
+                : ''}
+            </span>
+          )}
           {post.origin === 'autonomy-tick' && (
             <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
               🤖 Automático
@@ -493,12 +526,33 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
               📸 Campanha
             </span>
           )}
-          {post.content.map((c) => (
-            <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
-              {PLATFORM_LABELS[c.platform]}
-            </span>
-          ))}
+          {showPerPlatform
+            ? post.content.map((c) => {
+                const ok = published.includes(c.platform)
+                return (
+                  <span
+                    key={c.platform}
+                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                    }`}
+                    title={ok ? 'Publicado nesta rede' : 'Não chegou a publicar nesta rede'}
+                  >
+                    {ok ? '✓' : '✕'} {PLATFORM_LABELS[c.platform]}
+                  </span>
+                )
+              })
+            : post.content.map((c) => (
+                <span key={c.platform} className="rounded-full bg-card-2 px-2 py-0.5 text-xs text-muted">
+                  {PLATFORM_LABELS[c.platform]}
+                </span>
+              ))}
         </div>
+        {partial && (
+          <p className="text-xs text-amber-700">
+            Este post não chegou a {failed.map((p) => PLATFORM_LABELS[p]).join(', ')}. Confira se essa(s)
+            rede(s) está(ão) conectada(s) na Central de Contas e tente republicar.
+          </p>
+        )}
         <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
         <div className="flex gap-2">
           <button
