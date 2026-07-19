@@ -113,7 +113,7 @@ describe('AccountsPage — accountLabel e seleção de Página do Meta', () => {
         instagram_business_account: { id: 'ig-1', username: 'eai.juridico' },
       },
     ])
-    mockedApi.selectMetaPage.mockResolvedValue(undefined)
+    mockedApi.selectMetaPage.mockResolvedValue({ instagramConnected: true })
 
     renderPage()
 
@@ -128,6 +128,45 @@ describe('AccountsPage — accountLabel e seleção de Página do Meta', () => {
 
     await waitFor(() => {
       expect(mockedApi.selectMetaPage).toHaveBeenCalledWith('pending-1', 'page-1')
+    })
+  })
+
+  it('avisa que o Instagram não conectou quando a Página escolhida não tem conta Business vinculada', async () => {
+    mockSearchParams = new URLSearchParams({ metaPagePending: 'pending-1' })
+    mockedApi.getConnections.mockResolvedValue([])
+    mockedApi.getMetaPagePendingSelection.mockResolvedValue([
+      { id: 'page-1', name: 'Página sem Instagram' },
+      { id: 'page-2', name: 'Outra Página' },
+    ])
+    mockedApi.selectMetaPage.mockResolvedValue({ instagramConnected: false })
+
+    renderPage()
+
+    fireEvent.click(await screen.findByText('Página sem Instagram'))
+
+    await waitFor(() => {
+      expect(screen.getByText(/Instagram NÃO foi conectado/)).toBeInTheDocument()
+    })
+  })
+
+  it('explica o pré-requisito quando a conta não tem nenhuma Página do Facebook (metaResult=no-pages)', async () => {
+    mockSearchParams = new URLSearchParams({ metaResult: 'no-pages' })
+    mockedApi.getConnections.mockResolvedValue([])
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/não encontramos nenhuma Página do Facebook/i)).toBeInTheDocument()
+    })
+  })
+
+  it('mostra o aviso prévio sobre o pré-requisito do Instagram Business/Creator', async () => {
+    mockedApi.getConnections.mockResolvedValue([])
+
+    renderPage()
+
+    await waitFor(() => {
+      expect(screen.getByText(/Antes de conectar o Instagram ou o Facebook/)).toBeInTheDocument()
     })
   })
 })

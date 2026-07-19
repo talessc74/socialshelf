@@ -36,8 +36,21 @@ export default function AccountsPage() {
     const error = searchParams.get('error')
     const linkedinPagePending = searchParams.get('linkedinPagePending')
     const metaPagePending = searchParams.get('metaPagePending')
+    const metaResult = searchParams.get('metaResult')
 
-    if (connected) {
+    if (metaResult === 'no-pages') {
+      // Meta autenticou, mas a conta não administra nenhuma Página do Facebook — então não há o
+      // que conectar (nem Facebook, nem Instagram, já que o Instagram publicável exige uma conta
+      // Business/Creator vinculada a uma Página). Explica o pré-requisito em vez do antigo silêncio.
+      setNotice({
+        type: 'error',
+        message:
+          'Sua conta autenticou, mas não encontramos nenhuma Página do Facebook nela. Para publicar no Facebook ' +
+          'e no Instagram pelo Social Shelf você precisa de uma Página do Facebook — e, para o Instagram, uma conta ' +
+          'Business ou Creator vinculada a essa Página. Crie a Página e vincule o Instagram, depois tente conectar de novo.',
+      })
+      router.replace('/dashboard/accounts')
+    } else if (connected) {
       const message =
         connected === 'linkedin-page'
           ? 'Página do LinkedIn conectada com sucesso.'
@@ -108,10 +121,19 @@ export default function AccountsPage() {
     if (!pendingMetaSelection) return
     setSelecting(true)
     try {
-      await api.selectMetaPage(pendingMetaSelection.pendingId, pageId)
+      const { instagramConnected } = await api.selectMetaPage(pendingMetaSelection.pendingId, pageId)
       await queryClient.invalidateQueries({ queryKey: ['connections'] })
       setPendingMetaSelection(null)
-      setNotice({ type: 'success', message: 'Facebook (e Instagram, se vinculado) conectados com sucesso.' })
+      setNotice(
+        instagramConnected
+          ? { type: 'success', message: 'Facebook e Instagram conectados com sucesso.' }
+          : {
+              type: 'error',
+              message:
+                'Facebook conectado. O Instagram NÃO foi conectado: essa Página não tem uma conta Instagram ' +
+                'Business ou Creator vinculada. Vincule uma conta profissional do Instagram a essa Página e reconecte.',
+            },
+      )
     } catch {
       setNotice({ type: 'error', message: 'Não foi possível concluir a seleção da Página.' })
     } finally {
@@ -190,6 +212,23 @@ export default function AccountsPage() {
       <div>
         <h1 className="text-2xl font-bold text-ink">Central de Contas</h1>
         <p className="mt-1 text-sm text-muted">Gerencie as redes sociais conectadas à sua marca.</p>
+      </div>
+
+      {/* Aviso prévio: reduz a fricção de descobrir só na hora (ou depois) que o Instagram exige
+          conta Business/Creator vinculada a uma Página do Facebook — pré-requisito da própria Meta,
+          não do Social Shelf. Fica sempre visível, antes de o usuário tentar conectar. */}
+      <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4 text-sm text-gray-700">
+        <p className="font-semibold text-gray-800">Antes de conectar o Instagram ou o Facebook</p>
+        <p className="mt-1">
+          O Instagram só pode publicar por apps quando é uma conta <strong>Business</strong> ou{' '}
+          <strong>Creator</strong> vinculada a uma <strong>Página do Facebook</strong> — é uma exigência da
+          Meta. Um perfil pessoal do Instagram não consegue ser conectado.
+        </p>
+        <p className="mt-2 text-gray-600">
+          Precisa configurar? No app do Instagram: <em>Configurações → Tipo de conta e ferramentas → Mudar para
+          conta profissional</em> e, ao vincular, escolha (ou crie) a Página do Facebook. Depois é só clicar em
+          Conectar aqui.
+        </p>
       </div>
 
       <section>
