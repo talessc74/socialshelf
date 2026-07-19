@@ -8,6 +8,7 @@ import { healthRoutes } from './routes/health.routes.js'
 import { linkedinOAuthRoutes } from './routes/oauth/linkedin.routes.js'
 import { linkedinPageOAuthRoutes } from './routes/oauth/linkedin-page.routes.js'
 import { metaOAuthRoutes } from './routes/oauth/meta.routes.js'
+import { instagramOAuthRoutes } from './routes/oauth/instagram.routes.js'
 import { xOAuthRoutes } from './routes/oauth/x.routes.js'
 import { tiktokOAuthRoutes } from './routes/oauth/tiktok.routes.js'
 import { postsRoutes } from './routes/posts.routes.js'
@@ -53,6 +54,7 @@ export async function buildApp() {
   await app.register(linkedinOAuthRoutes)
   await app.register(linkedinPageOAuthRoutes)
   await app.register(metaOAuthRoutes)
+  await app.register(instagramOAuthRoutes)
   await app.register(xOAuthRoutes)
   await app.register(tiktokOAuthRoutes)
   await app.register(postsRoutes)
