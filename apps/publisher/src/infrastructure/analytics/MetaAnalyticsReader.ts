@@ -15,12 +15,27 @@ function isContentDeletedError(body: string): boolean {
   }
 }
 
+const IG_GRAPH = 'https://graph.instagram.com/v21.0'
+
 interface FacebookToken {
   page_access_token: string
 }
 
+// Dois formatos convivem no vault para o Instagram: o legado via Facebook Login
+// (page_access_token) e o do Login do Instagram (auth_kind: 'instagram_login', access_token) —
+// este último fala com graph.instagram.com usando o token da própria conta
+// (_local-edr-policy-057). O endpoint /insights tem o mesmo formato nos dois hosts.
 interface InstagramToken {
-  page_access_token: string
+  auth_kind?: string
+  page_access_token?: string
+  access_token?: string
+}
+
+function resolveInstagramAuth(token: InstagramToken): { graphBase: string; accessToken: string } {
+  if (token.auth_kind === 'instagram_login') {
+    return { graphBase: IG_GRAPH, accessToken: token.access_token ?? '' }
+  }
+  return { graphBase: GRAPH, accessToken: token.page_access_token ?? '' }
 }
 
 interface FacebookPostFields {
@@ -77,15 +92,16 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
   private async fetchInstagramMetrics(externalId: string, connection: OAuthConnection): Promise<PostMetrics> {
     const raw = await this.tokenVault.retrieve(connection.tokenRef)
     const token: InstagramToken = JSON.parse(raw)
+    const auth = resolveInstagramAuth(token)
 
     // Meta deprecated the "impressions" metric for Instagram media insights; requesting it now
     // fails the whole call with OAuthException #10. "reach" is the supported replacement.
     const params = new URLSearchParams({
       metric: 'reach,likes,comments,shares',
-      access_token: token.page_access_token,
+      access_token: auth.accessToken,
     })
 
-    const response = await fetch(`${GRAPH}/${externalId}/insights?${params.toString()}`)
+    const response = await fetch(`${auth.graphBase}/${externalId}/insights?${params.toString()}`)
 
     if (!response.ok) {
       const err = await response.text()

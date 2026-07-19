@@ -251,4 +251,65 @@ describe('MetaPublisher', () => {
       expect(fetchMock.mock.calls[6]![0]).toContain('/ig-biz-777/media_publish')
     })
   })
+
+  // Conexão feita pelo "Login do Instagram" (sem Facebook — _local-edr-policy-057): o vault
+  // guarda auth_kind: 'instagram_login' com o token da própria conta, e a publicação fala com
+  // graph.instagram.com em vez de graph.facebook.com.
+  describe('Instagram (Login do Instagram, sem Facebook)', () => {
+    const igLoginTokenJson = JSON.stringify({
+      auth_kind: 'instagram_login',
+      access_token: 'ig-user-token',
+      instagram_user_id: 'ig-user-123',
+      username: 'contadireta',
+      expires_at: new Date(Date.now() + 86400000).toISOString(),
+    })
+
+    beforeEach(() => {
+      mockTokenVault = {
+        store: vi.fn(),
+        retrieve: vi.fn().mockResolvedValue(igLoginTokenJson),
+        delete: vi.fn(),
+      }
+      publisher = new MetaPublisher(mockTokenVault, resolveImageUrl)
+    })
+
+    it('publishes via graph.instagram.com using the account token directly', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-1' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-42' }) })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
+      const result = await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
+
+      expect(result.externalId).toBe('media-42')
+      for (const call of fetchMock.mock.calls) {
+        expect(call[0]).toContain('graph.instagram.com')
+        expect(call[0]).not.toContain('graph.facebook.com')
+      }
+      expect(fetchMock.mock.calls[0]![0]).toContain('/ig-user-123/media')
+      const containerBody = fetchMock.mock.calls[0]![1]!.body as string
+      expect(new URLSearchParams(containerBody).get('access_token')).toBe('ig-user-token')
+      expect(fetchMock.mock.calls[2]![0]).toContain('/ig-user-123/media_publish')
+    })
+
+    it('publishes a carousel via graph.instagram.com', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'child-1' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'child-2' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'carousel-9' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-77' }) })
+
+      const post = makePost({ imageStoragePaths: ['a.jpg', 'b.jpg'] })
+      const result = await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
+
+      expect(result.externalId).toBe('media-77')
+      for (const call of fetchMock.mock.calls) {
+        expect(call[0]).toContain('graph.instagram.com')
+      }
+    })
+  })
 })

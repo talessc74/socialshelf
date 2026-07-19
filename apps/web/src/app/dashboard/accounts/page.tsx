@@ -84,7 +84,7 @@ export default function AccountsPage() {
   const linkedinConnection = connections?.find((c) => c.platform === Platform.LINKEDIN)
   const connectionByPlatform = new Map(connections?.map((c) => [c.platform, c]) ?? [])
 
-  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'x' | 'tiktok') => {
+  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'instagram' | 'x' | 'tiktok') => {
     try {
       const url = await api.getAuthorizeUrl(oauth)
       window.location.href = url
@@ -220,14 +220,16 @@ export default function AccountsPage() {
       <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4 text-sm text-gray-700">
         <p className="font-semibold text-gray-800">Antes de conectar o Instagram ou o Facebook</p>
         <p className="mt-1">
-          O Instagram só pode publicar por apps quando é uma conta <strong>Business</strong> ou{' '}
-          <strong>Creator</strong> vinculada a uma <strong>Página do Facebook</strong> — é uma exigência da
-          Meta. Um perfil pessoal do Instagram não consegue ser conectado.
+          O Instagram só pode publicar por apps quando é uma conta <strong>profissional</strong> (Business ou
+          Creator) — exigência da Meta; um perfil pessoal não consegue ser conectado. Converter é grátis e
+          rápido: no app do Instagram, <em>Configurações → Tipo de conta e ferramentas → Mudar para conta
+          profissional</em>.
         </p>
         <p className="mt-2 text-gray-600">
-          Precisa configurar? No app do Instagram: <em>Configurações → Tipo de conta e ferramentas → Mudar para
-          conta profissional</em> e, ao vincular, escolha (ou crie) a Página do Facebook. Depois é só clicar em
-          Conectar aqui.
+          <strong>Não tem Facebook?</strong> Use o botão <em>&quot;Conectar sem Facebook&quot;</em> no card do
+          Instagram — você faz login direto na sua conta profissional do Instagram, sem precisar de conta ou
+          Página do Facebook. O botão <em>&quot;Conectar&quot;</em> tradicional conecta Facebook e Instagram
+          juntos, através de uma Página do Facebook.
         </p>
       </div>
 
@@ -243,6 +245,7 @@ export default function AccountsPage() {
             {Object.entries(PLATFORM_META).map(([platform, meta]) => {
               const isConnected = connectedPlatforms.has(platform as Platform)
               const isLinkedIn = platform === Platform.LINKEDIN
+              const isInstagram = platform === Platform.INSTAGRAM
               const accountLabel = connectionByPlatform.get(platform as Platform)?.accountLabel
               return (
                 <div
@@ -284,6 +287,15 @@ export default function AccountsPage() {
                           Conectar Página do LinkedIn
                         </button>
                       )}
+                      {isInstagram && (
+                        <button
+                          onClick={() => handleConnect('instagram')}
+                          title="Login direto na conta profissional do Instagram, sem passar pelo Facebook"
+                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                        >
+                          Reconectar sem Facebook
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1.5">
@@ -299,6 +311,15 @@ export default function AccountsPage() {
                           className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
                         >
                           Conectar Página do LinkedIn
+                        </button>
+                      )}
+                      {isInstagram && (
+                        <button
+                          onClick={() => handleConnect('instagram')}
+                          title="Login direto na conta profissional do Instagram, sem passar pelo Facebook"
+                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                        >
+                          Conectar sem Facebook
                         </button>
                       )}
                     </div>

@@ -169,4 +169,18 @@ describe('AccountsPage — accountLabel e seleção de Página do Meta', () => {
       expect(screen.getByText(/Antes de conectar o Instagram ou o Facebook/)).toBeInTheDocument()
     })
   })
+
+  it('oferece "Conectar sem Facebook" no card do Instagram, iniciando o Login do Instagram', async () => {
+    mockedApi.getConnections.mockResolvedValue([])
+    mockedApi.getAuthorizeUrl.mockResolvedValue('https://www.instagram.com/oauth/authorize?x=1')
+
+    renderPage()
+
+    const directButton = await screen.findByRole('button', { name: 'Conectar sem Facebook' })
+    fireEvent.click(directButton)
+
+    await waitFor(() => {
+      expect(mockedApi.getAuthorizeUrl).toHaveBeenCalledWith('instagram')
+    })
+  })
 })
