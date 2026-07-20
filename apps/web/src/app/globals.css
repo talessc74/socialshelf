@@ -177,3 +177,23 @@ body {
   .ss-sheet { animation: none; }
   .ss-accent-flash { animation: none; opacity: 0; }
 }
+
+/* ===========================================================================
+   Prateleira — animação de abrir o livro (Fase 2). Flutuação e brilho do livro
+   3D enquanto a capa gira. Respeita reduced-motion (só a capa gira; o ambiente
+   fica parado).
+   =========================================================================== */
+@keyframes ss-book-float {
+  0%, 100% { transform: rotateX(-5deg) rotateY(6deg) translateY(0); }
+  50% { transform: rotateX(-5deg) rotateY(6deg) translateY(-10px); }
+}
+@keyframes ss-book-shine {
+  0% { transform: translateX(-130%) skewX(-18deg); opacity: 0; }
+  16% { opacity: 0.5; }
+  40%, 100% { transform: translateX(230%) skewX(-18deg); opacity: 0; }
+}
+.ss-book-float { animation: ss-book-float 3.5s ease-in-out infinite; }
+.ss-book-shine { animation: ss-book-shine 4s 1.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ss-book-float, .ss-book-shine { animation: none; }
+}

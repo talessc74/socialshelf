@@ -15,19 +15,29 @@ const SERIF = 'Georgia, "Times New Roman", serif'
 const SANS = 'Arial, Helvetica, sans-serif'
 const BLACK = '"Arial Black", Arial, sans-serif'
 
-function Svg({ w, children }: { w: number; children: React.ReactNode }) {
+function Svg({ w, fill, children }: { w: number; fill?: boolean; children: React.ReactNode }) {
   return (
-    <svg viewBox={`0 0 ${w} 182`} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%', height: '100%' }}>
+    <svg
+      viewBox={`0 0 ${w} 182`}
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio={fill ? 'xMidYMid slice' : undefined}
+      style={{ display: 'block', width: '100%', height: '100%' }}
+    >
       {children}
     </svg>
   )
 }
 
-function CoverArt({ id }: { id: ShelfSectionId }) {
+/**
+ * Arte pura da capa (sem a moldura de livro). Exportada para reuso na capa que
+ * gira na animação de abertura. `fill` preenche (slice) o container em vez de
+ * respeitar a proporção — usado quando a capa é esticada no livro 3D.
+ */
+export function CoverArt({ id, fill = false }: { id: ShelfSectionId; fill?: boolean }) {
   switch (id) {
     case 'agenda':
       return (
-        <Svg w={112}>
+        <Svg w={112} fill={fill}>
           <defs>
             <pattern id="diagAg" patternUnits="userSpaceOnUse" width={22} height={22}>
               <path d="M0 22 L22 0" stroke="rgba(255,255,255,0.025)" strokeWidth={1} />
@@ -47,7 +57,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
       )
     case 'noticias':
       return (
-        <Svg w={124}>
+        <Svg w={124} fill={fill}>
           <rect width={124} height={182} fill="#f0e6cc" />
           <rect x={0} y={0} width={124} height={6} fill="#1a1a1a" />
           <text x={62} y={21} fontFamily={SERIF} fontSize={7.5} fill="#1a1a1a" textAnchor="middle" letterSpacing={1.8}>THE SHELF GAZETTE</text>
@@ -75,7 +85,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
         [15, 108, 12, 24], [30, 92, 12, 40], [45, 74, 12, 58], [60, 54, 12, 78], [75, 32, 12, 100],
       ]
       return (
-        <Svg w={113}>
+        <Svg w={113} fill={fill}>
           <defs>
             <pattern id="gridDes" patternUnits="userSpaceOnUse" width={22} height={22}>
               <path d="M22 0 L0 0 0 22" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={0.5} />
@@ -98,7 +108,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
     }
     case 'criar':
       return (
-        <Svg w={124}>
+        <Svg w={124} fill={fill}>
           <rect width={124} height={182} fill="#f8f5ee" />
           <rect x={1} y={1} width={122} height={180} fill="none" stroke="#1a1a1a" strokeWidth={0.7} />
           <circle cx={40} cy={72} r={27} fill="#2048c0" />
@@ -113,7 +123,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
         [22, 95], [29, 89], [35, 97], [43, 85], [50, 93], [58, 83], [65, 91], [73, 81], [81, 89], [89, 79], [96, 87],
       ]
       return (
-        <Svg w={120}>
+        <Svg w={120} fill={fill}>
           <defs>
             <linearGradient id="skyCamp" x1={0} y1={0} x2={0} y2={1}>
               <stop offset="0%" stopColor="#dcdcd6" />
@@ -143,7 +153,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
     }
     case 'marca':
       return (
-        <Svg w={110}>
+        <Svg w={110} fill={fill}>
           <rect width={110} height={182} fill="#ffffff" />
           <rect x={0.5} y={0.5} width={109} height={181} fill="none" stroke="#d8d8d8" strokeWidth={0.5} />
           <rect x={17} y={34} width={20} height={20} fill="#1a1a1a" />
@@ -158,7 +168,7 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
       )
     case 'redes':
       return (
-        <Svg w={130}>
+        <Svg w={130} fill={fill}>
           <rect x={0} y={0} width={65} height={91} fill="#0b1e3a" />
           <rect x={65} y={0} width={65} height={91} fill="#100830" />
           <rect x={0} y={91} width={65} height={91} fill="#080808" />
