@@ -185,8 +185,18 @@ export function BookCover({ section, isLight = true }: { section: ShelfSection; 
   // abaixo (lombada, sombras internas, brilho, bloco de páginas, sombra de
   // contato) são portadas do protótipo — são elas que fazem parecer um livro, e
   // não um cartaz.
-  const inset = section.width * 0.065
-  const clip = `polygon(${inset}px 0, ${section.width - inset}px 0, ${section.width}px 100%, 0 100%)`
+  const W = section.width
+  const H = 182
+  const inset = W * 0.065
+  // Mesmo trapézio de antes, mas agora DEFORMANDO a arte junto (não só
+  // recortando): matrix3d é a homografia que mapeia o retângulo da capa
+  // (0,0)-(W,0)-(W,H)-(0,H) no quadrilátero do trapézio
+  // (inset,0)-(W-inset,0)-(W,H)-(0,H). Assim o desenho inclina na proporção
+  // correta, preenchendo o trapézio, sem cantos cortados.
+  const sx = 1 - (2 * inset) / W
+  const shear = -inset / H
+  const persp = -(2 * inset) / (W * H)
+  const warp = `matrix3d(${sx},0,0,0, ${shear},${sx},0,${persp}, 0,0,1,0, ${inset},0,0,1)`
 
   const bodyShadow = isLight
     ? 'inset -6px 0 10px -4px rgba(0,0,0,0.32), inset 4px 0 6px -2px rgba(255,255,255,0.35), inset 0 3px 5px rgba(0,0,0,0.18)'
@@ -200,17 +210,18 @@ export function BookCover({ section, isLight = true }: { section: ShelfSection; 
     : 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 24%, rgba(255,220,150,0.1) 88%, rgba(255,225,160,0.18) 100%)'
 
   return (
-    <div style={{ position: 'relative' }}>
+    // A sombra projetada vai no wrapper (não deformado): assim ela nasce da
+    // silhueta já inclinada do livro, e não de um retângulo.
+    <div style={{ position: 'relative', filter: bodyFilter }}>
       <div
         style={{
-          width: section.width,
-          height: 182,
+          width: W,
+          height: H,
           position: 'relative',
-          clipPath: clip,
-          WebkitClipPath: clip,
+          transform: warp,
+          transformOrigin: '0 0',
           borderLeft: '5px solid rgba(0,0,0,0.32)', // lombada
           boxShadow: bodyShadow,
-          filter: bodyFilter,
         }}
       >
         <CoverArt id={section.id} />
