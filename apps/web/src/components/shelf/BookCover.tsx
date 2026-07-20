@@ -1,152 +1,203 @@
 import type { ShelfSection, ShelfSectionId } from '../../lib/shelfSections'
 
 /**
- * Arte de capa de cada livro da prateleira (desktop). SVG on-spec (cores,
- * título e motivo de _local-bdr-policy-010 / handoff). As capas são
- * ilustrativas do tom — o clique leva à rota real; ver ShelfScene.
+ * Arte de capa de cada livro da prateleira (desktop) — portada 1:1 do protótipo
+ * oficial (design_handoff/desktop). Cada SVG é desenhado com margens/tamanhos
+ * pensados para o trapézio do clip-path (base cheia, topo afinado ~6,5%), então
+ * a arte "inclina junto" com o livro sem ser cortada nos cantos.
  *
- * Cada SVG usa viewBox de largura própria (a da capa) por 182 de altura e
- * preenche 100% do container.
+ * O <svg> preenche 100% do container e mantém a proporção (sem
+ * preserveAspectRatio="none"): o viewBox tem exatamente width×182, igual ao
+ * container, então enche sem distorcer.
  */
 
-const H = 182
+const SERIF = 'Georgia, "Times New Roman", serif'
+const SANS = 'Arial, Helvetica, sans-serif'
+const BLACK = '"Arial Black", Arial, sans-serif'
 
-function Cover({ id, w }: { id: ShelfSectionId; w: number }) {
-  const cx = w / 2
-  const svg = { viewBox: `0 0 ${w} ${H}`, width: '100%', height: '100%', preserveAspectRatio: 'none' as const }
+function Svg({ w, children }: { w: number; children: React.ReactNode }) {
+  return (
+    <svg viewBox={`0 0 ${w} 182`} xmlns="http://www.w3.org/2000/svg" style={{ display: 'block', width: '100%', height: '100%' }}>
+      {children}
+    </svg>
+  )
+}
 
+function CoverArt({ id }: { id: ShelfSectionId }) {
   switch (id) {
     case 'agenda':
       return (
-        <svg {...svg}>
-          <rect width={w} height={H} fill="#1b2840" />
-          <rect x="0" y="0" width="13" height={H} fill="#7a1820" />
-          <rect x="24" y="20" width={w - 42} height={H - 40} fill="none" stroke="#c9a84c" strokeWidth="1.4" opacity="0.55" />
-          <path d={`M${cx + 6} 66 l18 18 -18 18 -18 -18 z`} fill="none" stroke="#c9a84c" strokeWidth="1.6" />
-          <path d={`M${cx + 6} 74 l10 10 -10 10 -10 -10 z`} fill="#c9a84c" />
-          <text x={cx + 6} y="128" textAnchor="middle" fontFamily="Georgia, serif" fontSize="17" fill="#e8d8a0" letterSpacing="1.5">AGENDA</text>
-          <text x={cx + 6} y="148" textAnchor="middle" fontFamily="Georgia, serif" fontSize="11" fill="#c9a84c" opacity="0.8" letterSpacing="3">2026</text>
-        </svg>
+        <Svg w={112}>
+          <defs>
+            <pattern id="diagAg" patternUnits="userSpaceOnUse" width={22} height={22}>
+              <path d="M0 22 L22 0" stroke="rgba(255,255,255,0.025)" strokeWidth={1} />
+            </pattern>
+          </defs>
+          <rect width={112} height={182} fill="#1b2840" />
+          <rect x={8} y={0} width={8} height={182} fill="#7a1820" />
+          <rect x={6} y={160} width={12} height={22} fill="#5a0f14" rx={1} />
+          <line x1={20} y1={38} x2={105} y2={38} stroke="#c9a84c" strokeWidth={0.6} opacity={0.55} />
+          <polygon points="56,16 64,24 56,32 48,24" fill="#c9a84c" />
+          <text x={58} y={96} fontFamily={SERIF} fontSize={15} fill="#c9a84c" textAnchor="middle" letterSpacing={5}>AGENDA</text>
+          <text x={58} y={113} fontFamily={SERIF} fontSize={9} fill="#c9a84c" textAnchor="middle" letterSpacing={3} opacity={0.6}>2026</text>
+          <line x1={26} y1={148} x2={86} y2={148} stroke="#c9a84c" strokeWidth={0.55} opacity={0.55} />
+          <line x1={34} y1={154} x2={78} y2={154} stroke="#c9a84c" strokeWidth={0.3} opacity={0.3} />
+          <rect x={0} y={0} width={112} height={182} fill="url(#diagAg)" opacity={0.6} />
+        </Svg>
       )
     case 'noticias':
       return (
-        <svg {...svg}>
-          <rect width={w} height={H} fill="#f0e6cc" />
-          <text x={cx} y="30" textAnchor="middle" fontFamily="Georgia, serif" fontSize="12" fill="#3d2409" letterSpacing="0.5">THE SHELF GAZETTE</text>
-          <line x1="14" y1="40" x2={w - 14} y2="40" stroke="#6b4010" strokeWidth="1" />
-          <line x1="14" y1="43" x2={w - 14} y2="43" stroke="#6b4010" strokeWidth="0.5" />
-          <text x={cx} y="66" textAnchor="middle" fontFamily="Georgia, serif" fontSize="10" fontWeight="700" fill="#2a1c08">Posts em alta</text>
-          <text x={cx} y="80" textAnchor="middle" fontFamily="Georgia, serif" fontSize="10" fontWeight="700" fill="#2a1c08">esta semana</text>
-          {[96, 104, 112, 120, 128, 136, 144, 152].map((y, i) => (
-            <line key={i} x1="16" y1={y} x2={w - 16} y2={y} stroke="#3d2409" strokeWidth="2.4" opacity="0.28" />
+        <Svg w={124}>
+          <rect width={124} height={182} fill="#f0e6cc" />
+          <rect x={0} y={0} width={124} height={6} fill="#1a1a1a" />
+          <text x={62} y={21} fontFamily={SERIF} fontSize={7.5} fill="#1a1a1a" textAnchor="middle" letterSpacing={1.8}>THE SHELF GAZETTE</text>
+          <line x1={8} y1={26} x2={116} y2={26} stroke="#1a1a1a" strokeWidth={0.9} />
+          <line x1={8} y1={28.5} x2={116} y2={28.5} stroke="#1a1a1a" strokeWidth={0.3} />
+          <text x={12} y={50} fontFamily={SERIF} fontSize={13} fill="#1a1a1a" fontWeight="bold">Posts em alta</text>
+          <text x={12} y={65} fontFamily={SERIF} fontSize={13} fill="#1a1a1a" fontWeight="bold">esta semana</text>
+          {[72, 78, 84, 90].map((y, i) => (
+            <rect key={`r${i}`} x={12} y={y} width={[96, 76, 88, 58][i]} height={3} fill="#1a1a1a" rx={1} opacity={0.28} />
           ))}
-          <line x1={cx} y1="92" x2={cx} y2="156" stroke="#3d2409" strokeWidth="0.6" opacity="0.4" />
-        </svg>
+          <line x1={64} y1={100} x2={64} y2={152} stroke="#1a1a1a" strokeWidth={0.5} opacity={0.22} />
+          {[100, 106, 112, 118, 124, 130].map((y, i) => (
+            <g key={`c${i}`}>
+              <rect x={12} y={y} width={[44, 38, 44, 40, 42, 36][i]} height={2} fill="#1a1a1a" rx={1} opacity={0.18} />
+              <rect x={70} y={y} width={[44, 40, 42, 36, 44, 38][i]} height={2} fill="#1a1a1a" rx={1} opacity={0.18} />
+            </g>
+          ))}
+          <line x1={8} y1={156} x2={116} y2={156} stroke="#1a1a1a" strokeWidth={0.8} />
+          <text x={62} y={169} fontFamily={SERIF} fontSize={8} fill="#1a1a1a" textAnchor="middle" opacity={0.5}>Vol. I · 2026</text>
+          <rect x={0} y={175} width={124} height={7} fill="#1a1a1a" />
+        </Svg>
       )
-    case 'desempenho':
+    case 'desempenho': {
+      const bars: Array<[number, number, number, number]> = [
+        [15, 108, 12, 24], [30, 92, 12, 40], [45, 74, 12, 58], [60, 54, 12, 78], [75, 32, 12, 100],
+      ]
       return (
-        <svg {...svg}>
-          <rect width={w} height={H} fill="#0c1d3a" />
-          {[0, 1, 2, 3, 4, 5].map((i) => (
-            <line key={`h${i}`} x1="0" y1={30 + i * 24} x2={w} y2={30 + i * 24} stroke="#20365c" strokeWidth="0.6" />
+        <Svg w={113}>
+          <defs>
+            <pattern id="gridDes" patternUnits="userSpaceOnUse" width={22} height={22}>
+              <path d="M22 0 L0 0 0 22" fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={0.5} />
+            </pattern>
+          </defs>
+          <rect width={113} height={182} fill="#0c1d3a" />
+          <rect width={113} height={182} fill="url(#gridDes)" />
+          {bars.map(([x, y, w, bh], i) => (
+            <rect key={`b${i}`} x={x} y={y} width={w} height={bh} fill="#e07850" rx={1.5} />
           ))}
-          {[26, 46, 66, 86].map((x, i) => {
-            const bh = 30 + i * 24
-            return <rect key={i} x={x} y={150 - bh} width="13" height={bh} rx="1.5" fill="#e07850" />
-          })}
-          <path d={`M26 120 L${w - 20} 44`} stroke="#f0a080" strokeWidth="1.6" fill="none" strokeDasharray="3 3" />
-          <text x={cx} y="172" textAnchor="middle" fontFamily="var(--font-sans), sans-serif" fontSize="10" fontWeight="700" fill="#e07850" letterSpacing="1">DESEMPENHO</text>
-        </svg>
+          {bars.map(([x, y, w], i) => (
+            <circle key={`d${i}`} cx={x + w / 2} cy={y} r={2.5} fill="#f0a888" />
+          ))}
+          <polyline points={bars.map(([x, y, w]) => `${x + w / 2},${y}`).join(' ')} fill="none" stroke="#f0a888" strokeWidth={1.2} strokeDasharray="3,2" opacity={0.6} />
+          <line x1={12} y1={134} x2={100} y2={134} stroke="#e07850" strokeWidth={0.8} opacity={0.4} />
+          <text x={56} y={150} fontFamily={SANS} fontSize={8} fill="#fff" textAnchor="middle" fontWeight="bold" letterSpacing={2.8}>DESEMPENHO</text>
+          <text x={56} y={163} fontFamily={SANS} fontSize={6.5} fill="#e07850" textAnchor="middle" letterSpacing={1.2}>Analytics &amp; Reports</text>
+        </Svg>
       )
+    }
     case 'criar':
       return (
-        <svg {...svg}>
-          <rect width={w} height={H} fill="#f8f5ee" />
-          <rect x="6" y="6" width={w - 12} height={H - 12} fill="none" stroke="#111" strokeWidth="1" />
-          <circle cx={cx - 22} cy="64" r="20" fill="#2048c0" />
-          <rect x={cx - 2} y="46" width="34" height="34" fill="#c02828" />
-          <path d={`M${cx - 30} 118 l24 0 -12 -22 z`} fill="#e8c000" />
-          <text x={cx} y="150" textAnchor="middle" fontFamily="var(--font-sans), sans-serif" fontSize="22" fontWeight="800" fill="#111" letterSpacing="1">CRIAR</text>
-        </svg>
+        <Svg w={124}>
+          <rect width={124} height={182} fill="#f8f5ee" />
+          <rect x={1} y={1} width={122} height={180} fill="none" stroke="#1a1a1a" strokeWidth={0.7} />
+          <circle cx={40} cy={72} r={27} fill="#2048c0" />
+          <rect x={76} y={42} width={34} height={42} fill="#c02828" />
+          <polygon points="62,128 94,168 30,168" fill="#e8c000" />
+          <text x={62} y={32} fontFamily={BLACK} fontSize={16} fill="#1a1a1a" textAnchor="middle" fontWeight={900} letterSpacing={2}>CRIAR</text>
+          <text x={62} y={178} fontFamily={SANS} fontSize={5.5} fill="#1a1a1a" textAnchor="middle" letterSpacing={2.8} opacity={0.5}>CONTENT STUDIO</text>
+        </Svg>
       )
-    case 'campanhas':
+    case 'campanhas': {
+      const figs: Array<[number, number]> = [
+        [22, 95], [29, 89], [35, 97], [43, 85], [50, 93], [58, 83], [65, 91], [73, 81], [81, 89], [89, 79], [96, 87],
+      ]
       return (
-        <svg {...svg}>
+        <Svg w={120}>
           <defs>
-            <linearGradient id="camp-sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#dcdcd6" />
-              <stop offset="1" stopColor="#33332f" />
+            <linearGradient id="skyCamp" x1={0} y1={0} x2={0} y2={1}>
+              <stop offset="0%" stopColor="#dcdcd6" />
+              <stop offset="52%" stopColor="#8f8f8a" />
+              <stop offset="100%" stopColor="#33332f" />
             </linearGradient>
+            <pattern id="grainCamp" patternUnits="userSpaceOnUse" width={3} height={3}>
+              <circle cx={1} cy={1} r={0.35} fill="rgba(255,255,255,0.05)" />
+              <circle cx={2.4} cy={2.2} r={0.3} fill="rgba(0,0,0,0.08)" />
+            </pattern>
           </defs>
-          <rect width={w} height={H} fill="#f2efe8" />
-          <rect x="10" y="10" width={w - 20} height="132" fill="url(#camp-sky)" />
-          <path d={`M10 108 L${cx - 10} 70 L${cx + 20} 96 L${w - 10} 66 L${w - 10} 142 L10 142 Z`} fill="#565651" />
-          <path d={`M10 142 L${cx} 104 L${w - 10} 142 Z`} fill="#1c1c1a" />
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <circle key={i} cx={26 + i * ((w - 52) / 7)} cy={128 - (i % 3) * 4} r="2.1" fill="#0a0a09" />
+          <rect width={120} height={182} fill="#0c0c0c" />
+          <rect x={8} y={12} width={104} height={118} fill="#f2efe8" />
+          <rect x={11} y={15} width={98} height={112} fill="url(#skyCamp)" />
+          <polygon points="11,86 40,66 68,80 90,60 109,74 109,127 11,127" fill="#565651" />
+          <polygon points="11,101 45,84 80,103 109,88 109,127 11,127" fill="#1c1c1a" />
+          {figs.map(([x, y], i) => (
+            <rect key={`f${i}`} x={x} y={y} width={2} height={6.5} rx={0.8} fill="#080808" />
           ))}
-          <text x={cx} y="160" textAnchor="middle" fontFamily="Georgia, serif" fontSize="13" fill="#2a2a28" letterSpacing="1">CAMPANHAS</text>
-          <text x={cx} y="173" textAnchor="middle" fontFamily="Georgia, serif" fontSize="8.5" fontStyle="italic" fill="#6a6a64">Ensaios fotográficos</text>
-        </svg>
+          <rect x={11} y={15} width={98} height={112} fill="url(#grainCamp)" />
+          <rect x={11} y={15} width={98} height={112} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth={0.5} />
+          <text x={60} y={150} fontFamily={SERIF} fontSize={12} fill="#f2efe8" textAnchor="middle" letterSpacing={2.4}>CAMPANHAS</text>
+          <line x1={38} y1={157} x2={82} y2={157} stroke="#8a857a" strokeWidth={0.5} />
+          <text x={60} y={169} fontFamily={SERIF} fontSize={6} fill="#a49e91" textAnchor="middle" letterSpacing={2.2} fontStyle="italic">Ensaios fotográficos</text>
+        </Svg>
       )
+    }
     case 'marca':
       return (
-        <svg {...svg}>
-          <rect width={w} height={H} fill="#ffffff" />
-          {[0, 1, 2].map((row) =>
-            [0, 1].map((col) => {
-              const gx = 26 + col * (w - 52)
-              const gy = 40 + row * 34
-              const filled = (row + col) % 2 === 0
-              return (row + col) % 3 === 0 ? (
-                <circle key={`${row}-${col}`} cx={gx} cy={gy} r="13" fill={filled ? '#1a1a1a' : 'none'} stroke="#1a1a1a" strokeWidth="1.4" />
-              ) : (
-                <rect key={`${row}-${col}`} x={gx - 13} y={gy - 13} width="26" height="26" fill={filled ? '#1a1a1a' : 'none'} stroke="#1a1a1a" strokeWidth="1.4" />
-              )
-            }),
-          )}
-          <line x1="16" y1="150" x2={w - 16} y2="150" stroke="#1a1a1a" strokeWidth="0.8" />
-          <text x={cx} y="168" textAnchor="middle" fontFamily="var(--font-sans), sans-serif" fontSize="12" fontWeight="700" fill="#1a1a1a" letterSpacing="5">MARCA</text>
-        </svg>
+        <Svg w={110}>
+          <rect width={110} height={182} fill="#ffffff" />
+          <rect x={0.5} y={0.5} width={109} height={181} fill="none" stroke="#d8d8d8" strokeWidth={0.5} />
+          <rect x={17} y={34} width={20} height={20} fill="#1a1a1a" />
+          <circle cx={55} cy={44} r={10} fill="#1a1a1a" />
+          <rect x={73} y={34} width={20} height={20} fill="none" stroke="#1a1a1a" strokeWidth={2} />
+          <circle cx={27} cy={76} r={10} fill="none" stroke="#1a1a1a" strokeWidth={2} />
+          <rect x={45} y={66} width={20} height={20} fill="#1a1a1a" />
+          <circle cx={83} cy={76} r={10} fill="#1a1a1a" />
+          <line x1={14} y1={104} x2={96} y2={104} stroke="#1a1a1a" strokeWidth={0.8} />
+          <text x={55} y={126} fontFamily={SANS} fontSize={12} fill="#1a1a1a" textAnchor="middle" fontWeight={700} letterSpacing={5.5}>MARCA</text>
+        </Svg>
       )
     case 'redes':
       return (
-        <svg {...svg}>
-          <rect x="0" y="0" width={cx} height={H / 2} fill="#0077b5" />
-          <rect x={cx} y="0" width={cx} height={H / 2} fill="#2b2b2b" />
-          <rect x="0" y={H / 2} width={cx} height={H / 2} fill="#000000" />
-          <rect x={cx} y={H / 2} width={cx} height={H / 2} fill="#5a0c6a" />
-          <text x={cx / 2} y={H / 4 + 6} textAnchor="middle" fontFamily="var(--font-sans), sans-serif" fontSize="18" fontWeight="800" fill="#fff">in</text>
-          <rect x={cx + cx / 2 - 12} y={H / 4 - 12} width="24" height="24" rx="7" fill="none" stroke="#fff" strokeWidth="2" />
-          <circle cx={cx + cx / 2} cy={H / 4} r="5" fill="none" stroke="#fff" strokeWidth="2" />
-          <text x={cx / 2} y={(3 * H) / 4 + 7} textAnchor="middle" fontFamily="var(--font-sans), sans-serif" fontSize="18" fontWeight="800" fill="#fff">X</text>
-          <text x={cx + cx / 2} y={(3 * H) / 4 + 8} textAnchor="middle" fontFamily="Georgia, serif" fontSize="20" fontWeight="800" fill="#fff">f</text>
-        </svg>
+        <Svg w={130}>
+          <rect x={0} y={0} width={65} height={91} fill="#0b1e3a" />
+          <rect x={65} y={0} width={65} height={91} fill="#100830" />
+          <rect x={0} y={91} width={65} height={91} fill="#080808" />
+          <rect x={65} y={91} width={65} height={91} fill="#5a0c6a" />
+          <line x1={65} y1={0} x2={65} y2={182} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+          <line x1={0} y1={91} x2={130} y2={91} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+          <text x={32} y={63} fontFamily={BLACK} fontSize={36} fill="#0a85c4" textAnchor="middle" fontWeight={900}>in</text>
+          <rect x={78} y={22} width={36} height={36} rx={8} fill="none" stroke="#e0e0e0" strokeWidth={2} />
+          <circle cx={96} cy={40} r={10} fill="none" stroke="#e0e0e0" strokeWidth={2} />
+          <circle cx={108} cy={28} r={2.8} fill="#e0e0e0" />
+          <text x={32} y={150} fontFamily={BLACK} fontSize={32} fill="#ffffff" textAnchor="middle" fontWeight={900}>X</text>
+          <rect x={74} y={103} width={44} height={44} rx={5} fill="#1877f2" />
+          <text x={96} y={142} fontFamily={BLACK} fontSize={30} fill="#ffffff" textAnchor="middle" fontWeight={900}>f</text>
+          <text x={65} y={176} fontFamily={SANS} fontSize={7.5} fill="rgba(255,255,255,0.4)" textAnchor="middle" fontWeight={700} letterSpacing={4}>REDES</text>
+        </Svg>
       )
   }
 }
 
 export function BookCover({ section }: { section: ShelfSection }) {
-  // Perspectiva de "livro encostado pra trás na parede": a base (encontro com a
-  // prateleira) é reta e 100% da largura — livros nunca se tocam — e só o topo
-  // afina, recuado ~6,5% de cada lado. Nada de rotação 2D. Vale para os 7 iguais.
+  // Perspectiva de "livro encostado pra trás na parede": base reta e 100% da
+  // largura (livros nunca se tocam), só o topo afina ~6,5% de cada lado. A arte
+  // acima é desenhada para essa forma, então inclina junto sem ser cortada.
   const inset = section.width * 0.065
   const clip = `polygon(${inset}px 0, ${section.width - inset}px 0, ${section.width}px 100%, 0 100%)`
   return (
-    // A sombra vai no wrapper via drop-shadow (segue o trapézio e fica alinhada à
-    // base reta) — box-shadow seria recortado pelo clip-path do trapézio.
+    // Sombra no wrapper via drop-shadow (segue o trapézio, alinhada à base) —
+    // box-shadow seria recortado pelo clip-path.
     <div style={{ filter: 'drop-shadow(0 5px 7px rgba(0,0,0,0.5))' }}>
       <div
         className="overflow-hidden"
         style={{
           width: section.width,
-          height: H,
+          height: 182,
           clipPath: clip,
-          // Só sombras internas (recortadas para dentro do trapézio) dão o volume da capa.
           boxShadow: 'inset 5px 0 10px rgba(0,0,0,0.22), inset -4px 0 9px rgba(0,0,0,0.12)',
         }}
       >
-        <Cover id={section.id} w={section.width} />
+        <CoverArt id={section.id} />
       </div>
     </div>
   )
