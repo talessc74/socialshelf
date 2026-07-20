@@ -7,6 +7,9 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        // Display da nova entrada /dashboard (BDR-010, seção redesign).
+        cinzel: ['var(--font-cinzel)', 'Georgia', 'serif'],
+        condensed: ['var(--font-condensed)', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         // Elevação temática (clara/escura) via CSS vars — dá affordance aos cards.
