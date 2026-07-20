@@ -8,6 +8,24 @@ const GRAPH = 'https://graph.facebook.com/v21.0'
 const IG_GRAPH = 'https://graph.instagram.com/v21.0'
 const CONTAINER_POLL_INTERVAL_MS = 2000
 const CONTAINER_POLL_MAX_ATTEMPTS = 30
+// Achado real em produção: mesmo depois de waitUntilContainerReady() confirmar status_code
+// FINISHED, /media_publish às vezes ainda rejeita com "Media ID is not available" (code 9007 /
+// subcode 2207027) — uma corrida documentada do lado da Meta entre o container reportar pronto
+// e realmente estar disponível pra publicar. Só retry no publish resolve; recriar o container
+// desperdiçaria quota e não é o que falhou.
+const MEDIA_NOT_READY_CODE = 9007
+const MEDIA_NOT_READY_SUBCODE = 2207027
+const PUBLISH_RETRY_MAX_ATTEMPTS = 5
+const PUBLISH_RETRY_DELAY_MS = 3000
+
+function isMediaNotReadyError(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: number; error_subcode?: number } }
+    return parsed.error?.code === MEDIA_NOT_READY_CODE && parsed.error?.error_subcode === MEDIA_NOT_READY_SUBCODE
+  } catch {
+    return false
+  }
+}
 
 interface FacebookToken {
   page_access_token: string
@@ -216,19 +234,29 @@ export class MetaPublisher implements PublisherPort {
       access_token: auth.accessToken,
     })
 
-    const publishRes = await fetch(`${auth.graphBase}/${auth.igAccountId}/media_publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: publishParams.toString(),
-    })
+    for (let attempt = 0; attempt < PUBLISH_RETRY_MAX_ATTEMPTS; attempt++) {
+      const publishRes = await fetch(`${auth.graphBase}/${auth.igAccountId}/media_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: publishParams.toString(),
+      })
 
-    if (!publishRes.ok) {
+      if (publishRes.ok) {
+        const { id: mediaId } = (await publishRes.json()) as { id: string }
+        return { externalId: mediaId, publishedAt: new Date() }
+      }
+
       const err = await publishRes.text()
-      throw new Error(`Instagram publish failed: ${publishRes.status} ${err}`)
+      const isLastAttempt = attempt === PUBLISH_RETRY_MAX_ATTEMPTS - 1
+      if (!isMediaNotReadyError(err) || isLastAttempt) {
+        throw new Error(`Instagram publish failed: ${publishRes.status} ${err}`)
+      }
+      await new Promise((resolve) => setTimeout(resolve, PUBLISH_RETRY_DELAY_MS))
     }
 
-    const { id: mediaId } = (await publishRes.json()) as { id: string }
-    return { externalId: mediaId, publishedAt: new Date() }
+    // Inalcançável (o loop sempre retorna ou lança na última tentativa) — só satisfaz o
+    // TypeScript quanto ao tipo de retorno da função.
+    throw new Error('Instagram publish failed: exhausted retries')
   }
 
   private async createImageContainer(
