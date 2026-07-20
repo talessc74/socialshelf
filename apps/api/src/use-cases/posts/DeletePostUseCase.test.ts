@@ -19,10 +19,10 @@ describe('DeletePostUseCase', () => {
     useCase = new DeletePostUseCase(postRepo)
   })
 
-  it('calls delete on the repository with the correct postId', async () => {
-    await useCase.execute('post-123')
+  it('calls delete on the repository with the correct postId, userId and brandId', async () => {
+    await useCase.execute('post-123', 'user-456', 'brand-789')
 
-    expect(postRepo.delete).toHaveBeenCalledWith('post-123')
+    expect(postRepo.delete).toHaveBeenCalledWith('post-123', 'user-456', 'brand-789')
     expect(postRepo.delete).toHaveBeenCalledTimes(1)
   })
 })
