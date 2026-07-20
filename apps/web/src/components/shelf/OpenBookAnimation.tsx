@@ -14,15 +14,24 @@ const EASE = 'cubic-bezier(0.645, 0.045, 0.355, 1)'
  * de 0 a -180° revelando o miolo; timings/camadas portados do protótipo. Depois
  * dela, o ShelfHome troca para a folha-tema (OpenBookSheet).
  *
- * Sequência: monta com a capa fechada (0°); ~60ms depois a capa dispara a
- * rotação (transição de 0.88s); o ShelfHome fecha em 1380ms.
+ * Abrir: monta com a capa fechada (0°); ~60ms depois a capa gira para -180°.
+ * Fechar (reverse): monta com a capa aberta (-180°); ~80ms depois volta a 0°.
+ * O ShelfHome troca de fase quando a animação termina.
  */
-export function OpenBookAnimation({ section, isLight = true }: { section: ShelfSection; isLight?: boolean }) {
-  const [angle, setAngle] = useState(0)
+export function OpenBookAnimation({
+  section,
+  isLight = true,
+  reverse = false,
+}: {
+  section: ShelfSection
+  isLight?: boolean
+  reverse?: boolean
+}) {
+  const [angle, setAngle] = useState(reverse ? -180 : 0)
   useEffect(() => {
-    const t = setTimeout(() => setAngle(-180), 60)
+    const t = setTimeout(() => setAngle(reverse ? 0 : -180), reverse ? 80 : 60)
     return () => clearTimeout(t)
-  }, [])
+  }, [reverse])
 
   const dark = section.colorDark
 
