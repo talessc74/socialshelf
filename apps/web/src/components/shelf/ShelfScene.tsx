@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useTheme } from '../../contexts/ThemeContext'
 import { SHELF_SECTIONS, SHELF_ROW_1, SHELF_ROW_2, type ShelfSection, type ShelfSectionId } from '../../lib/shelfSections'
 import { BookCover } from './BookCover'
@@ -99,8 +98,7 @@ function WallSwitch({ isDark, onToggle }: { isDark: boolean; onToggle: () => voi
  * o interruptor de parede (reaproveita o ThemeContext — a "Lanterna" some no
  * modo prateleira, ver _local-bdr-policy-010). Padrão = claro.
  */
-export function ShelfScene() {
-  const router = useRouter()
+export function ShelfScene({ onOpen }: { onOpen: (section: ShelfSection) => void }) {
   const { resolvedTheme, toggle } = useTheme()
   const isDark = resolvedTheme === 'dark'
 
@@ -121,8 +119,6 @@ export function ShelfScene() {
         label: 'rgba(107,74,28,0.6)',
         tagline: 'rgba(107,74,28,0.4)',
       }
-
-  const onOpen = (section: ShelfSection) => router.push(section.route)
 
   return (
     <div

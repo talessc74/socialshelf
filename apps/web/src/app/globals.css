@@ -158,3 +158,22 @@ body {
     radial-gradient(circle at 75% 85%, theme('colors.brand.900') 0%, transparent 50%),
     radial-gradient(circle at 10% 90%, theme('colors.brand.600') 0%, transparent 35%);
 }
+
+/* ===========================================================================
+   Prateleira — folha aberta (Fase 2). Abertura suave da folha e o "flash" do
+   filete de destaque que some (ver OpenBookSheet). Respeita reduced-motion.
+   =========================================================================== */
+@keyframes ss-sheet-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ss-accent-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+.ss-sheet { animation: ss-sheet-up 0.4s ease both; }
+.ss-accent-flash { animation: ss-accent-fade 1.3s 0.1s ease forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .ss-sheet { animation: none; }
+  .ss-accent-flash { animation: none; opacity: 0; }
+}

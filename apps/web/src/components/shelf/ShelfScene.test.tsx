@@ -3,41 +3,39 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { ShelfScene } from './ShelfScene'
 import { ThemeProvider } from '../../contexts/ThemeContext'
 
-const push = vi.fn()
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
+const onOpen = vi.fn()
 
 function renderScene() {
   return render(
     <ThemeProvider>
-      <ShelfScene />
+      <ShelfScene onOpen={onOpen} />
     </ThemeProvider>,
   )
 }
 
 beforeEach(() => {
-  push.mockClear()
+  onOpen.mockClear()
   window.localStorage.clear()
 })
 
 describe('ShelfScene', () => {
   it('mostra os 7 livros', () => {
     renderScene()
-    // Cada seção tem um botão "Abrir {nome}" — checagem inequívoca de que os 7 estão na cena.
     for (const name of ['Agenda', 'Notícias', 'Desempenho', 'Criar', 'Campanhas', 'Marca', 'Redes']) {
       expect(screen.getByLabelText(`Abrir ${name}`)).toBeInTheDocument()
     }
   })
 
-  it('clicar num livro navega para a rota real', () => {
+  it('clicar num livro chama onOpen com a seção certa', () => {
     renderScene()
     fireEvent.click(screen.getByLabelText('Abrir Agenda'))
-    expect(push).toHaveBeenCalledWith('/dashboard/scheduled')
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'agenda', route: '/dashboard/scheduled' }))
   })
 
-  it('cada capa aponta para a sua rota', () => {
+  it('cada capa abre a sua seção', () => {
     renderScene()
     fireEvent.click(screen.getByLabelText('Abrir Redes'))
-    expect(push).toHaveBeenCalledWith('/dashboard/accounts')
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'redes', route: '/dashboard/accounts' }))
   })
 
   it('o interruptor de parede alterna claro/escuro', () => {

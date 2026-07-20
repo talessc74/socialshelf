@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { SHELF_SECTIONS, type ShelfSection } from '../../lib/shelfSections'
 
 const MONTHS_PT = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ']
@@ -133,8 +132,7 @@ function DateDisplay() {
  * navega; tocar no visor esquerdo abre a rota real. Sem tema claro/escuro
  * (fora de escopo, ver _local-bdr-policy-010).
  */
-export function FlipClock() {
-  const router = useRouter()
+export function FlipClock({ onOpen }: { onOpen: (section: ShelfSection) => void }) {
   const n = SHELF_SECTIONS.length
   const [currentIdx, setCurrentIdx] = useState(0)
   const [nextIdx, setNextIdx] = useState(0)
@@ -165,7 +163,7 @@ export function FlipClock() {
 
   const current = SHELF_SECTIONS[currentIdx]!
   const next = SHELF_SECTIONS[stage === 'idle' ? currentIdx : nextIdx]!
-  const openCurrent = () => router.push(current.route)
+  const openCurrent = () => onOpen(current)
 
   // Crown: arrastar ↑ = anterior, ↓ = próximo (também responde a clique e setas).
   const onPointerDown = (e: React.PointerEvent) => {
