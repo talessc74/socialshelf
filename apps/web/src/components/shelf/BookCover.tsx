@@ -127,19 +127,27 @@ function Cover({ id, w }: { id: ShelfSectionId; w: number }) {
 }
 
 export function BookCover({ section }: { section: ShelfSection }) {
+  // Perspectiva de "livro encostado pra trás na parede": a base (encontro com a
+  // prateleira) é reta e 100% da largura — livros nunca se tocam — e só o topo
+  // afina, recuado ~6,5% de cada lado. Nada de rotação 2D. Vale para os 7 iguais.
+  const inset = section.width * 0.065
+  const clip = `polygon(${inset}px 0, ${section.width - inset}px 0, ${section.width}px 100%, 0 100%)`
   return (
-    <div
-      className="overflow-hidden"
-      style={{
-        width: section.width,
-        height: H,
-        borderRadius: '2px 5px 5px 2px',
-        borderLeft: '5px solid rgba(0,0,0,0.35)',
-        boxShadow:
-          '3px 0 8px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.45), inset 4px 0 10px rgba(0,0,0,0.22)',
-      }}
-    >
-      <Cover id={section.id} w={section.width} />
+    // A sombra vai no wrapper via drop-shadow (segue o trapézio e fica alinhada à
+    // base reta) — box-shadow seria recortado pelo clip-path do trapézio.
+    <div style={{ filter: 'drop-shadow(0 5px 7px rgba(0,0,0,0.5))' }}>
+      <div
+        className="overflow-hidden"
+        style={{
+          width: section.width,
+          height: H,
+          clipPath: clip,
+          // Só sombras internas (recortadas para dentro do trapézio) dão o volume da capa.
+          boxShadow: 'inset 5px 0 10px rgba(0,0,0,0.22), inset -4px 0 9px rgba(0,0,0,0.12)',
+        }}
+      >
+        <Cover id={section.id} w={section.width} />
+      </div>
     </div>
   )
 }

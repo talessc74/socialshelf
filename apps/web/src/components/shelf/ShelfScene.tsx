@@ -5,8 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import { SHELF_SECTIONS, SHELF_ROW_1, SHELF_ROW_2, type ShelfSection, type ShelfSectionId } from '../../lib/shelfSections'
 import { BookCover } from './BookCover'
 
-// Livros que se inclinam apoiados no vizinho (handoff, atualização #2).
-const TILT: Partial<Record<ShelfSectionId, number>> = { noticias: -6, campanhas: 9, redes: -7 }
+const BOOK_GAP = 10
 
 const PLANK = {
   height: 20,
@@ -22,9 +21,12 @@ function byId(ids: ShelfSectionId[]): ShelfSection[] {
 
 function Shelf({ ids, onOpen, labelColor }: { ids: ShelfSectionId[]; onOpen: (s: ShelfSection) => void; labelColor: string }) {
   const sections = byId(ids)
+  // Largura da fileira = soma das capas + espaços entre elas. Mantém o plank e as
+  // legendas exatamente sob os livros.
+  const rowWidth = sections.reduce((sum, s) => sum + s.width, 0) + (sections.length - 1) * BOOK_GAP
   return (
     <div className="flex flex-col items-center">
-      <div className="flex items-end justify-center gap-2.5 px-6">
+      <div className="flex items-end justify-center" style={{ gap: BOOK_GAP }}>
         {sections.map((section) => (
           <button
             key={section.id}
@@ -32,7 +34,6 @@ function Shelf({ ids, onOpen, labelColor }: { ids: ShelfSectionId[]; onOpen: (s:
             onClick={() => onOpen(section)}
             aria-label={`Abrir ${section.name}`}
             className="group cursor-pointer bg-transparent p-0 transition-transform duration-200 ease-out hover:-translate-y-[22px] focus-visible:-translate-y-[22px] focus-visible:outline-none"
-            style={{ transform: `rotate(${TILT[section.id] ?? 0}deg)` }}
           >
             <span className="block transition-[filter] duration-200 group-hover:[filter:brightness(1.1)]">
               <BookCover section={section} />
@@ -40,13 +41,13 @@ function Shelf({ ids, onOpen, labelColor }: { ids: ShelfSectionId[]; onOpen: (s:
           </button>
         ))}
       </div>
-      {/* prateleira (plank) */}
-      <div className="px-6" style={{ width: 'fit-content' }}>
+      {/* prateleira (plank), largura alinhada aos livros */}
+      <div style={{ width: rowWidth }}>
         <div style={{ ...PLANK }} className="w-full" />
         <div className="mx-auto h-2 w-[92%] rounded-full" style={{ background: 'rgba(0,0,0,0.4)', filter: 'blur(6px)' }} />
       </div>
       {/* legendas alinhadas com os livros */}
-      <div className="flex justify-center gap-2.5 px-6">
+      <div className="flex justify-center" style={{ gap: BOOK_GAP }}>
         {sections.map((section) => (
           <span
             key={section.id}
