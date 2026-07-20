@@ -176,6 +176,7 @@ function PostCard({
   const [images, setImages] = useState<string[]>(post.imageStoragePaths)
   const [newPhotoFiles, setNewPhotoFiles] = useState<File[]>([])
   const [scheduledAtInput, setScheduledAtInput] = useState(toDatetimeLocalValue(post.scheduledAt))
+  const [failedPlatforms, setFailedPlatforms] = useState<Array<{ platform: Platform; reason: string }>>([])
 
   // Todas as mutações mexem em campos que podem mudar qual lista (agendados/publicados/
   // rascunhos automáticos) o post pertence — mais simples invalidar as três do que rastrear
@@ -209,8 +210,13 @@ function PostCard({
 
   const publishMutation = useMutation({
     mutationFn: () => api.publishPost(post.id),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidateAllLists()
+      // O post pode virar "Publicado" com uma ou mais plataformas ausentes — publicar em
+      // ao menos uma rede já basta pro status geral, então uma falha isolada (ex: Instagram
+      // sem conta business conectada) não vira erro de mutação, só some silenciosamente sem
+      // este aviso.
+      setFailedPlatforms(data.failedPlatforms)
     },
   })
 
@@ -414,6 +420,12 @@ function PostCard({
             {publishMutation.isError && (
               <p className="text-xs text-red-600">
                 {publishMutation.error instanceof Error ? publishMutation.error.message : 'Erro ao publicar.'}
+              </p>
+            )}
+            {failedPlatforms.length > 0 && (
+              <p className="text-xs text-red-600">
+                Não publicou em {failedPlatforms.map((f) => PLATFORM_LABELS[f.platform]).join(', ')}:{' '}
+                {failedPlatforms.map((f) => f.reason).join(' · ')}
               </p>
             )}
             <div className="flex gap-2">

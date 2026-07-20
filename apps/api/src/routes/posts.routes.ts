@@ -200,7 +200,7 @@ export async function postsRoutes(app: FastifyInstance) {
       if (!existing) return reply.status(404).send({ error: 'Post not found' })
 
       try {
-        await deletePost.execute(id)
+        await deletePost.execute(id, request.userId, request.brandId)
         return reply.status(204).send()
       } catch (err) {
         app.log.error(err)
