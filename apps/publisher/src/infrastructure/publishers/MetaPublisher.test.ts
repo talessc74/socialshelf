@@ -197,6 +197,46 @@ describe('MetaPublisher', () => {
       expect(fetchMock.mock.calls[2]![0]).toContain('/ig-biz-777/media_publish')
     })
 
+    it('retries media_publish on "Media ID is not available" (code 9007/2207027) even after the container reported FINISHED', async () => {
+      vi.useFakeTimers()
+      const mediaNotReadyBody = JSON.stringify({
+        error: { message: 'Media ID is not available', code: 9007, error_subcode: 2207027 },
+      })
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({ ok: false, status: 400, text: async () => mediaNotReadyBody })
+        .mockResolvedValueOnce({ ok: false, status: 400, text: async () => mediaNotReadyBody })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'media-888' }) })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
+      const resultPromise = publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
+      await vi.runAllTimersAsync()
+      const result = await resultPromise
+
+      expect(result.externalId).toBe('media-888')
+      expect(fetchMock).toHaveBeenCalledTimes(5)
+      vi.useRealTimers()
+    })
+
+    it('does not retry a permission/auth error from media_publish (not the "not ready" race)', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: async () => JSON.stringify({ error: { message: 'permission denied', code: 190 } }),
+        })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
+
+      await expect(
+        publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig')),
+      ).rejects.toThrow('Instagram publish failed')
+      expect(fetchMock).toHaveBeenCalledTimes(3)
+    })
+
     it('resolves the storage path into a signed URL before sending it to the Graph API', async () => {
       fetchMock
         .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
