@@ -178,27 +178,72 @@ function CoverArt({ id }: { id: ShelfSectionId }) {
   }
 }
 
-export function BookCover({ section }: { section: ShelfSection }) {
+export function BookCover({ section, isLight = true }: { section: ShelfSection; isLight?: boolean }) {
   // Perspectiva de "livro encostado pra trás na parede": base reta e 100% da
   // largura (livros nunca se tocam), só o topo afina ~6,5% de cada lado. A arte
-  // acima é desenhada para essa forma, então inclina junto sem ser cortada.
+  // é desenhada para essa forma, então inclina junto sem ser cortada. As camadas
+  // abaixo (lombada, sombras internas, brilho, bloco de páginas, sombra de
+  // contato) são portadas do protótipo — são elas que fazem parecer um livro, e
+  // não um cartaz.
   const inset = section.width * 0.065
   const clip = `polygon(${inset}px 0, ${section.width - inset}px 0, ${section.width}px 100%, 0 100%)`
+
+  const bodyShadow = isLight
+    ? 'inset -6px 0 10px -4px rgba(0,0,0,0.32), inset 4px 0 6px -2px rgba(255,255,255,0.35), inset 0 3px 5px rgba(0,0,0,0.18)'
+    : 'inset -6px 0 12px -4px rgba(0,0,0,0.55), inset 4px 0 6px -2px rgba(255,255,255,0.1), inset 0 3px 6px rgba(0,0,0,0.35)'
+  const bodyFilter = isLight
+    ? 'drop-shadow(0 14px 16px rgba(55,45,25,0.38)) drop-shadow(0 3px 5px rgba(55,45,25,0.22))'
+    : 'drop-shadow(0 14px 18px rgba(0,0,0,0.6)) drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
+  // Topo escurece (recua para a sombra da parede), base clareia (mais perto da luz).
+  const gloss = isLight
+    ? 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 20%, rgba(255,255,255,0.05) 85%, rgba(255,255,255,0.1) 100%)'
+    : 'linear-gradient(180deg, rgba(0,0,0,0.4) 0%, transparent 24%, rgba(255,220,150,0.1) 88%, rgba(255,225,160,0.18) 100%)'
+
   return (
-    // Sombra no wrapper via drop-shadow (segue o trapézio, alinhada à base) —
-    // box-shadow seria recortado pelo clip-path.
-    <div style={{ filter: 'drop-shadow(0 5px 7px rgba(0,0,0,0.5))' }}>
+    <div style={{ position: 'relative' }}>
       <div
-        className="overflow-hidden"
         style={{
           width: section.width,
           height: 182,
+          position: 'relative',
           clipPath: clip,
-          boxShadow: 'inset 5px 0 10px rgba(0,0,0,0.22), inset -4px 0 9px rgba(0,0,0,0.12)',
+          WebkitClipPath: clip,
+          borderLeft: '5px solid rgba(0,0,0,0.32)', // lombada
+          boxShadow: bodyShadow,
+          filter: bodyFilter,
         }}
       >
         <CoverArt id={section.id} />
+        {/* brilho/sombreamento que dá o volume e o recuo pra parede */}
+        <div style={{ position: 'absolute', inset: 0, background: gloss, pointerEvents: 'none' }} />
+        {/* bloco de páginas na borda direita (folhas creme empilhadas) */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '3%',
+            bottom: 0,
+            right: 0,
+            width: 5,
+            background: 'repeating-linear-gradient(180deg, #f4ecd6 0px, #f4ecd6 2px, #d8cbaa 2px, #d8cbaa 3px)',
+            boxShadow: 'inset 1px 0 2px rgba(0,0,0,0.25)',
+          }}
+        />
       </div>
+      {/* sombra de contato colada na base — o livro assenta na prateleira */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: -4,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: Math.round(section.width * 0.98),
+          height: 9,
+          borderRadius: '50%',
+          background: `radial-gradient(ellipse at center, rgba(40,30,15,${isLight ? 0.5 : 0.85}) 0%, transparent 72%)`,
+          filter: 'blur(2.5px)',
+          pointerEvents: 'none',
+        }}
+      />
     </div>
   )
 }

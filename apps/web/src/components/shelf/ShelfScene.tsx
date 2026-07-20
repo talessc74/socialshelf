@@ -19,7 +19,7 @@ function byId(ids: ShelfSectionId[]): ShelfSection[] {
   return ids.map((id) => SHELF_SECTIONS.find((s) => s.id === id)!).filter(Boolean)
 }
 
-function Shelf({ ids, onOpen, labelColor }: { ids: ShelfSectionId[]; onOpen: (s: ShelfSection) => void; labelColor: string }) {
+function Shelf({ ids, onOpen, labelColor, isLight }: { ids: ShelfSectionId[]; onOpen: (s: ShelfSection) => void; labelColor: string; isLight: boolean }) {
   const sections = byId(ids)
   // Largura da fileira = soma das capas + espaços entre elas. Mantém o plank e as
   // legendas exatamente sob os livros.
@@ -33,10 +33,10 @@ function Shelf({ ids, onOpen, labelColor }: { ids: ShelfSectionId[]; onOpen: (s:
             type="button"
             onClick={() => onOpen(section)}
             aria-label={`Abrir ${section.name}`}
-            className="group cursor-pointer bg-transparent p-0 transition-transform duration-200 ease-out hover:-translate-y-[22px] focus-visible:-translate-y-[22px] focus-visible:outline-none"
+            className="group cursor-pointer bg-transparent p-0 transition-transform duration-200 ease-out hover:-translate-y-[14px] focus-visible:-translate-y-[14px] focus-visible:outline-none"
           >
-            <span className="block transition-[filter] duration-200 group-hover:[filter:brightness(1.1)]">
-              <BookCover section={section} />
+            <span className="block transition-[filter] duration-200 group-hover:[filter:brightness(1.08)]">
+              <BookCover section={section} isLight={isLight} />
             </span>
           </button>
         ))}
@@ -142,8 +142,8 @@ export function ShelfScene() {
       </div>
 
       <div className="flex flex-col items-center gap-10">
-        <Shelf ids={SHELF_ROW_1} onOpen={onOpen} labelColor={scene.label} />
-        <Shelf ids={SHELF_ROW_2} onOpen={onOpen} labelColor={scene.label} />
+        <Shelf ids={SHELF_ROW_1} onOpen={onOpen} labelColor={scene.label} isLight={!isDark} />
+        <Shelf ids={SHELF_ROW_2} onOpen={onOpen} labelColor={scene.label} isLight={!isDark} />
       </div>
 
       <p className="mt-2 text-[13px] italic" style={{ color: scene.tagline, letterSpacing: '0.08em' }}>
