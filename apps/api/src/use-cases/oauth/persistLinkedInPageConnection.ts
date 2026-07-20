@@ -18,6 +18,7 @@ export async function persistLinkedInPageConnection(
   brandId: string,
   tokenInfo: LinkedInPageTokenInfo,
   organizationUrn: string,
+  organizationName?: string,
 ): Promise<OAuthConnection> {
   const pairwiseId = derivePairwiseId(userId, Platform.LINKEDIN)
   const tokenRef = `oauth-token-${pairwiseId}`
@@ -41,6 +42,7 @@ export async function persistLinkedInPageConnection(
     tokenRef,
     scopes: tokenInfo.scope.split(' '),
     organizationUrn,
+    accountLabel: organizationName ?? null,
     expiresAt: new Date(Date.now() + tokenInfo.expires_in * 1000),
     createdAt: new Date(),
     updatedAt: new Date(),

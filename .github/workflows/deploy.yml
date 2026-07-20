@@ -3,6 +3,10 @@ name: Deploy
 on:
   push:
     branches: [main]
+  # Válvula de escape: o GitHub Actions ocasionalmente perde o evento de push de um merge na
+  # main (aconteceu em dois merges seguidos, #174 e #175) e eventos perdidos não são
+  # reenviados — sem isso, não existia forma de deployar a main atual sem um commit novo.
+  workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: socialshelf-547da
@@ -255,6 +259,9 @@ jobs:
           VARS="${VARS};META_APP_ID=${{ secrets.META_APP_ID }}"
           VARS="${VARS};META_APP_SECRET=${{ secrets.META_APP_SECRET }}"
           VARS="${VARS};META_REDIRECT_URI=https://api.socialshelf.com.br/oauth/meta/callback"
+          VARS="${VARS};INSTAGRAM_APP_ID=${{ secrets.INSTAGRAM_APP_ID }}"
+          VARS="${VARS};INSTAGRAM_APP_SECRET=${{ secrets.INSTAGRAM_APP_SECRET }}"
+          VARS="${VARS};INSTAGRAM_REDIRECT_URI=https://api.socialshelf.com.br/oauth/instagram/callback"
           VARS="${VARS};TIKTOK_CLIENT_KEY=${{ secrets.TIKTOK_CLIENT_KEY }}"
           VARS="${VARS};TIKTOK_CLIENT_SECRET=${{ secrets.TIKTOK_CLIENT_SECRET }}"
           VARS="${VARS};TIKTOK_REDIRECT_URI=https://api.socialshelf.com.br/oauth/tiktok/callback"

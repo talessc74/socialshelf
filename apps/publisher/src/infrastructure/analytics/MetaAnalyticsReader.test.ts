@@ -130,6 +130,33 @@ describe('MetaAnalyticsReader', () => {
       expect(fetchMock.mock.calls[0]![0]).toContain('/media-888/insights')
     })
 
+    it('reads metrics via graph.instagram.com for a Login do Instagram connection', async () => {
+      const vault = makeVault({
+        auth_kind: 'instagram_login',
+        access_token: 'ig-user-token',
+        instagram_user_id: 'ig-user-123',
+      })
+      const reader = new MetaAnalyticsReader(vault)
+
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: [
+            { name: 'reach', values: [{ value: 120 }] },
+            { name: 'likes', values: [{ value: 7 }] },
+          ],
+        }),
+      })
+
+      const result = await reader.fetchPostMetrics('media-42', makeConnection(Platform.INSTAGRAM))
+
+      expect(result).toEqual({ impressions: 120, likes: 7, comments: 0, shares: 0 })
+      const url = fetchMock.mock.calls[0]![0] as string
+      expect(url).toContain('graph.instagram.com')
+      expect(url).not.toContain('graph.facebook.com')
+      expect(url).toContain('access_token=ig-user-token')
+    })
+
     it('defaults missing metrics to 0', async () => {
       const vault = makeVault({ page_access_token: 'page-token' })
       const reader = new MetaAnalyticsReader(vault)

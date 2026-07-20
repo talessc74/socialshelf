@@ -2,17 +2,67 @@ import { Platform } from '@socialshelf/domain'
 import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
+// Host do "Login do Instagram" (conexão direta, sem Facebook — _local-edr-policy-057). Os
+// endpoints de publicação (/media, /media_publish, status_code) têm o mesmo formato do
+// graph.facebook.com; muda o host e o token (o da própria conta, não o page_access_token).
+const IG_GRAPH = 'https://graph.instagram.com/v21.0'
 const CONTAINER_POLL_INTERVAL_MS = 2000
 const CONTAINER_POLL_MAX_ATTEMPTS = 30
+// Achado real em produção: mesmo depois de waitUntilContainerReady() confirmar status_code
+// FINISHED, /media_publish às vezes ainda rejeita com "Media ID is not available" (code 9007 /
+// subcode 2207027) — uma corrida documentada do lado da Meta entre o container reportar pronto
+// e realmente estar disponível pra publicar. Só retry no publish resolve; recriar o container
+// desperdiçaria quota e não é o que falhou.
+const MEDIA_NOT_READY_CODE = 9007
+const MEDIA_NOT_READY_SUBCODE = 2207027
+const PUBLISH_RETRY_MAX_ATTEMPTS = 5
+const PUBLISH_RETRY_DELAY_MS = 3000
+
+function isMediaNotReadyError(body: string): boolean {
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: number; error_subcode?: number } }
+    return parsed.error?.code === MEDIA_NOT_READY_CODE && parsed.error?.error_subcode === MEDIA_NOT_READY_SUBCODE
+  } catch {
+    return false
+  }
+}
 
 interface FacebookToken {
   page_access_token: string
   page_id: string
 }
 
+// Dois formatos convivem no vault para o Instagram: o legado via Facebook Login
+// (page_access_token + instagram_business_account_id) e o do Login do Instagram
+// (auth_kind: 'instagram_login', access_token + instagram_user_id).
 interface InstagramToken {
-  page_access_token: string
-  instagram_business_account_id: string
+  auth_kind?: string
+  page_access_token?: string
+  instagram_business_account_id?: string
+  access_token?: string
+  instagram_user_id?: string
+}
+
+interface InstagramAuth {
+  graphBase: string
+  igAccountId: string
+  accessToken: string
+}
+
+function resolveInstagramAuth(raw: string): InstagramAuth {
+  const token: InstagramToken = JSON.parse(raw)
+  if (token.auth_kind === 'instagram_login') {
+    return {
+      graphBase: IG_GRAPH,
+      igAccountId: token.instagram_user_id ?? '',
+      accessToken: token.access_token ?? '',
+    }
+  }
+  return {
+    graphBase: GRAPH,
+    igAccountId: token.instagram_business_account_id ?? '',
+    accessToken: token.page_access_token ?? '',
+  }
 }
 
 export class MetaPublisher implements PublisherPort {
@@ -164,53 +214,60 @@ export class MetaPublisher implements PublisherPort {
     }
 
     const raw = await this.tokenVault.retrieve(connection.tokenRef)
-    const token: InstagramToken = JSON.parse(raw)
-    const igAccountId = token.instagram_business_account_id
-    const accessToken = token.page_access_token
+    const auth = resolveInstagramAuth(raw)
 
     const caption = post.content.find((c) => c.platform === Platform.INSTAGRAM)?.text ?? ''
 
     // Step 1: create media container — a single image, or a carousel of children containers.
     const containerId =
       post.imageStoragePaths.length === 1
-        ? await this.createImageContainer(igAccountId, post.imageStoragePaths[0]!, caption, accessToken)
-        : await this.createCarouselContainer(igAccountId, post.imageStoragePaths, caption, accessToken)
+        ? await this.createImageContainer(auth, post.imageStoragePaths[0]!, caption)
+        : await this.createCarouselContainer(auth, post.imageStoragePaths, caption)
 
     // Meta processes containers asynchronously (downloads the image_url); publishing before
     // it's FINISHED fails with "Media ID is not available" (code 9007 / subcode 2207027).
-    await this.waitUntilContainerReady(containerId, accessToken)
+    await this.waitUntilContainerReady(auth, containerId)
 
     // Step 2: publish container
     const publishParams = new URLSearchParams({
       creation_id: containerId,
-      access_token: accessToken,
+      access_token: auth.accessToken,
     })
 
-    const publishRes = await fetch(`${GRAPH}/${igAccountId}/media_publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: publishParams.toString(),
-    })
+    for (let attempt = 0; attempt < PUBLISH_RETRY_MAX_ATTEMPTS; attempt++) {
+      const publishRes = await fetch(`${auth.graphBase}/${auth.igAccountId}/media_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: publishParams.toString(),
+      })
 
-    if (!publishRes.ok) {
+      if (publishRes.ok) {
+        const { id: mediaId } = (await publishRes.json()) as { id: string }
+        return { externalId: mediaId, publishedAt: new Date() }
+      }
+
       const err = await publishRes.text()
-      throw new Error(`Instagram publish failed: ${publishRes.status} ${err}`)
+      const isLastAttempt = attempt === PUBLISH_RETRY_MAX_ATTEMPTS - 1
+      if (!isMediaNotReadyError(err) || isLastAttempt) {
+        throw new Error(`Instagram publish failed: ${publishRes.status} ${err}`)
+      }
+      await new Promise((resolve) => setTimeout(resolve, PUBLISH_RETRY_DELAY_MS))
     }
 
-    const { id: mediaId } = (await publishRes.json()) as { id: string }
-    return { externalId: mediaId, publishedAt: new Date() }
+    // Inalcançável (o loop sempre retorna ou lança na última tentativa) — só satisfaz o
+    // TypeScript quanto ao tipo de retorno da função.
+    throw new Error('Instagram publish failed: exhausted retries')
   }
 
   private async createImageContainer(
-    igAccountId: string,
+    auth: InstagramAuth,
     imagePath: string,
     caption: string,
-    accessToken: string,
   ): Promise<string> {
     const imageUrl = await this.resolveImageUrl(imagePath)
-    const params = new URLSearchParams({ image_url: imageUrl, caption, access_token: accessToken })
+    const params = new URLSearchParams({ image_url: imageUrl, caption, access_token: auth.accessToken })
 
-    const res = await fetch(`${GRAPH}/${igAccountId}/media`, {
+    const res = await fetch(`${auth.graphBase}/${auth.igAccountId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
@@ -226,10 +283,9 @@ export class MetaPublisher implements PublisherPort {
   }
 
   private async createCarouselContainer(
-    igAccountId: string,
+    auth: InstagramAuth,
     imagePaths: string[],
     caption: string,
-    accessToken: string,
   ): Promise<string> {
     const childIds: string[] = []
     for (const imagePath of imagePaths) {
@@ -237,10 +293,10 @@ export class MetaPublisher implements PublisherPort {
       const params = new URLSearchParams({
         image_url: imageUrl,
         is_carousel_item: 'true',
-        access_token: accessToken,
+        access_token: auth.accessToken,
       })
 
-      const res = await fetch(`${GRAPH}/${igAccountId}/media`, {
+      const res = await fetch(`${auth.graphBase}/${auth.igAccountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params.toString(),
@@ -252,7 +308,7 @@ export class MetaPublisher implements PublisherPort {
       }
 
       const { id } = (await res.json()) as { id: string }
-      await this.waitUntilContainerReady(id, accessToken)
+      await this.waitUntilContainerReady(auth, id)
       childIds.push(id)
     }
 
@@ -260,10 +316,10 @@ export class MetaPublisher implements PublisherPort {
       media_type: 'CAROUSEL',
       caption,
       children: childIds.join(','),
-      access_token: accessToken,
+      access_token: auth.accessToken,
     })
 
-    const res = await fetch(`${GRAPH}/${igAccountId}/media`, {
+    const res = await fetch(`${auth.graphBase}/${auth.igAccountId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: params.toString(),
@@ -278,9 +334,9 @@ export class MetaPublisher implements PublisherPort {
     return id
   }
 
-  private async waitUntilContainerReady(containerId: string, accessToken: string): Promise<void> {
+  private async waitUntilContainerReady(auth: InstagramAuth, containerId: string): Promise<void> {
     for (let attempt = 0; attempt < CONTAINER_POLL_MAX_ATTEMPTS; attempt++) {
-      const res = await fetch(`${GRAPH}/${containerId}?fields=status_code&access_token=${accessToken}`)
+      const res = await fetch(`${auth.graphBase}/${containerId}?fields=status_code&access_token=${auth.accessToken}`)
 
       if (!res.ok) {
         const err = await res.text()

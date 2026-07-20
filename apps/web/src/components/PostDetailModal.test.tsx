@@ -103,6 +103,21 @@ describe('PostDetailModal', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
   })
 
+  it('marks a targeted platform that did not publish (no externalId on a published post)', () => {
+    renderModal(
+      makePost({
+        status: 'published',
+        content: [
+          { platform: Platform.FACEBOOK, text: 'Publicado no Facebook' },
+          { platform: Platform.INSTAGRAM, text: 'Deveria ter ido pro Instagram' },
+        ],
+        externalIds: { [Platform.FACEBOOK]: 'fb-1' },
+      }),
+    )
+
+    expect(screen.getByText('✕ não publicou')).toBeInTheDocument()
+  })
+
   it('calls onClose when the close button is clicked', () => {
     const onClose = vi.fn()
     renderModal(makePost(), onClose)

@@ -107,6 +107,23 @@ describe('ScheduledPostsPage', () => {
     expect(mockedApi.getPosts).toHaveBeenCalledWith('scheduled')
   })
 
+  it('mostra o selo "Campanha" num post agendado com origin campaign, e edita normalmente', async () => {
+    mockedApi.getPosts.mockResolvedValue([makePost({ origin: 'campaign' })])
+
+    await renderListView()
+
+    expect(await screen.findByText('📸 Campanha')).toBeInTheDocument()
+  })
+
+  it('não mostra o selo "Campanha" num post agendado manual', async () => {
+    mockedApi.getPosts.mockResolvedValue([makePost({ origin: 'manual' })])
+
+    await renderListView()
+
+    await screen.findByText('Texto agendado para o LinkedIn')
+    expect(screen.queryByText('📸 Campanha')).not.toBeInTheDocument()
+  })
+
   it('mostra mensagem quando não há posts agendados', async () => {
     mockedApi.getPosts.mockResolvedValue([])
 
@@ -360,6 +377,45 @@ describe('ScheduledPostsPage', () => {
       expect(screen.getByText('Publicados')).toBeInTheDocument()
       expect(screen.getByText(/✓ Publicado/)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Repostar' })).toBeInTheDocument()
+    })
+
+    it('mostra cada rede como publicada (✓) quando todas receberam o post', async () => {
+      mockScheduledAndPublished([
+        makePublishedPost({
+          content: [
+            { platform: Platform.FACEBOOK, text: 'txt fb' },
+            { platform: Platform.INSTAGRAM, text: 'txt ig' },
+          ],
+          externalIds: { [Platform.FACEBOOK]: 'fb-1', [Platform.INSTAGRAM]: 'ig-1' },
+        }),
+      ])
+
+      await renderListView()
+
+      expect(await screen.findByText('✓ Facebook')).toBeInTheDocument()
+      expect(screen.getByText('✓ Instagram')).toBeInTheDocument()
+      expect(screen.getByText(/✓ Publicado/)).toBeInTheDocument()
+      expect(screen.queryByText(/Publicado em parte/)).not.toBeInTheDocument()
+    })
+
+    it('marca a rede que falhou (✕) e sinaliza publicação parcial quando só uma parte publicou', async () => {
+      mockScheduledAndPublished([
+        makePublishedPost({
+          content: [
+            { platform: Platform.FACEBOOK, text: 'txt fb' },
+            { platform: Platform.INSTAGRAM, text: 'txt ig' },
+          ],
+          // Só o Facebook tem externalId — o Instagram estava no alvo mas não chegou a publicar.
+          externalIds: { [Platform.FACEBOOK]: 'fb-1' },
+        }),
+      ])
+
+      await renderListView()
+
+      expect(await screen.findByText('✓ Facebook')).toBeInTheDocument()
+      expect(screen.getByText('✕ Instagram')).toBeInTheDocument()
+      expect(screen.getByText(/Publicado em parte/)).toBeInTheDocument()
+      expect(screen.getByText(/não chegou a Instagram/)).toBeInTheDocument()
     })
 
     it('ao clicar em Repostar, navega para o compose levando o post de origem', async () => {

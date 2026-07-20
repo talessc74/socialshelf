@@ -65,6 +65,7 @@ export interface ApiConnection {
   tokenRef: string
   scopes: string[]
   organizationUrn?: string | null
+  accountLabel?: string | null
   expiresAt: string | null
   createdAt: string
   updatedAt: string
@@ -73,6 +74,12 @@ export interface ApiConnection {
 export interface LinkedInOrganization {
   urn: string
   name: string
+}
+
+export interface MetaPageOption {
+  id: string
+  name: string
+  instagram_business_account?: { id: string; username?: string }
 }
 
 export interface PostContent {
@@ -196,6 +203,7 @@ export type ApiAutonomyTickAction =
   | 'skipped-daily-limit'
   | 'draft-created'
   | 'published'
+  | 'published-partial'
   | 'error'
 
 export interface ApiAutonomyTickLogEntry {
@@ -335,7 +343,7 @@ export const api = {
     return data.connections
   },
 
-  async getAuthorizeUrl(platform: 'linkedin' | 'meta' | 'x' | 'tiktok'): Promise<string> {
+  async getAuthorizeUrl(platform: 'linkedin' | 'meta' | 'instagram' | 'x' | 'tiktok'): Promise<string> {
     const data = await apiFetch<{ url: string }>(`/oauth/${platform}/authorize`)
     return data.url
   },
@@ -357,6 +365,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ pendingId, organizationUrn }),
     })
+  },
+
+  async getMetaPagePendingSelection(pendingId: string): Promise<MetaPageOption[]> {
+    const data = await apiFetch<{ pages: MetaPageOption[] }>(`/oauth/meta/pending/${pendingId}`)
+    return data.pages
+  },
+
+  async selectMetaPage(pendingId: string, pageId: string): Promise<{ instagramConnected: boolean }> {
+    const data = await apiFetch<{ facebook: unknown; instagram: unknown }>('/oauth/meta/select', {
+      method: 'POST',
+      body: JSON.stringify({ pendingId, pageId }),
+    })
+    // instagram vem null quando a Página escolhida não tem conta Business/Creator vinculada — a UI
+    // usa isso pra avisar explícito que o Instagram ficou de fora, em vez do genérico "se vinculado".
+    return { instagramConnected: data.instagram != null }
   },
 
   async createPost(

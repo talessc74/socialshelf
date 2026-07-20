@@ -4,14 +4,14 @@ import {
   exchangeCodeForShortLivedToken,
   exchangeShortForLongLived,
   getUserPages,
+  type MetaPage,
 } from '../../lib/meta-client.js'
-import { Platform, derivePairwiseId } from '@socialshelf/domain'
+import { persistMetaPageConnection } from './persistMetaPageConnection.js'
 import type { OAuthConnection, OAuthRepository, TokenVaultPort } from '@socialshelf/domain'
 
-export interface MetaCallbackResult {
-  facebook: OAuthConnection | null
-  instagram: OAuthConnection | null
-}
+export type MetaCallbackResult =
+  | { status: 'connected'; facebook: OAuthConnection | null; instagram: OAuthConnection | null }
+  | { status: 'pending'; pendingId: string; pages: MetaPage[] }
 
 export class HandleMetaCallbackUseCase {
   constructor(
@@ -62,81 +62,43 @@ export class HandleMetaCallbackUseCase {
       step = 'getUserPages'
       const pages = await getUserPages(longLived.access_token)
 
-      let facebookConnection: OAuthConnection | null = null
-      let instagramConnection: OAuthConnection | null = null
-
-      if (pages.length > 0) {
-        // Use the first page for this brand (user selects page in UI later)
-        const page = pages[0]!
-
-        // 3. Save Facebook connection with page access token
-        const fbPairwiseId = derivePairwiseId(userId, Platform.FACEBOOK)
-        const fbTokenRef = `oauth-token-${fbPairwiseId}`
-
-        step = 'tokenVault.store(facebook)'
-        await this.tokenVault.store(
-          fbTokenRef,
-          JSON.stringify({
-            user_access_token: longLived.access_token,
-            page_access_token: page.access_token,
-            page_id: page.id,
-            page_name: page.name,
-            expires_at: expiresAt.toISOString(),
-          }),
-        )
-
-        facebookConnection = {
-          id: randomUUID(),
-          userId,
-          brandId,
-          platform: Platform.FACEBOOK,
-          pairwiseId: fbPairwiseId,
-          tokenRef: fbTokenRef,
-          scopes: ['pages_manage_posts', 'pages_read_engagement', 'pages_show_list'],
-          expiresAt,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }
-        step = 'oauthRepo.save(facebook)'
-        await this.oauthRepo.save(facebookConnection)
-
-        // 4. Save Instagram connection using whichever page has a Business Account linked
-        //    (not necessarily the first page — a user can manage several Facebook Pages)
-        const igPage = pages.find((p) => p.instagram_business_account) ?? null
-        if (igPage?.instagram_business_account) {
-          const igPairwiseId = derivePairwiseId(userId, Platform.INSTAGRAM)
-          const igTokenRef = `oauth-token-${igPairwiseId}`
-
-          step = 'tokenVault.store(instagram)'
-          await this.tokenVault.store(
-            igTokenRef,
-            JSON.stringify({
-              user_access_token: longLived.access_token,
-              page_access_token: igPage.access_token,
-              instagram_business_account_id: igPage.instagram_business_account.id,
-              page_id: igPage.id,
-              expires_at: expiresAt.toISOString(),
-            }),
-          )
-
-          instagramConnection = {
-            id: randomUUID(),
-            userId,
-            brandId,
-            platform: Platform.INSTAGRAM,
-            pairwiseId: igPairwiseId,
-            tokenRef: igTokenRef,
-            scopes: ['instagram_basic', 'instagram_content_publish', 'instagram_manage_insights'],
-            expiresAt,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-          step = 'oauthRepo.save(instagram)'
-          await this.oauthRepo.save(instagramConnection)
-        }
+      if (pages.length === 0) {
+        return { status: 'connected', facebook: null, instagram: null }
       }
 
-      return { facebook: facebookConnection, instagram: instagramConnection }
+      if (pages.length === 1) {
+        step = 'persistMetaPageConnection'
+        const { facebook, instagram } = await persistMetaPageConnection(
+          this.oauthRepo,
+          this.tokenVault,
+          userId,
+          brandId,
+          longLived.access_token,
+          expiresAt,
+          pages[0]!,
+        )
+        return { status: 'connected', facebook, instagram }
+      }
+
+      // Mais de uma Página administrada: sem perguntar, a conexão poderia ir parar numa
+      // Página diferente da que o usuário pretendia (achado real em produção — ver
+      // _local-edr-policy-053). Guarda o token e a lista de Páginas temporariamente no vault
+      // e devolve pra o usuário escolher — mesmo padrão de HandleLinkedInPageCallbackUseCase.
+      step = 'storePendingSelection'
+      const pendingId = randomUUID()
+      await this.tokenVault.store(
+        `meta-page-pending-${pendingId}`,
+        JSON.stringify({
+          userId,
+          brandId,
+          user_access_token: longLived.access_token,
+          expiresAt: expiresAt.toISOString(),
+          pages,
+          iat: Date.now(),
+        }),
+      )
+
+      return { status: 'pending', pendingId, pages }
     } catch (err) {
       if (err instanceof Error) {
         err.message = `[step=${step}] ${err.message}`

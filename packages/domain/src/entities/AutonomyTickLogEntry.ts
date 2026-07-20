@@ -10,6 +10,10 @@ export type AutonomyTickAction =
   | 'skipped-daily-limit'
   | 'draft-created'
   | 'published'
+  // Publicou em pelo menos uma rede, mas falhou em outra(s) — o motivo de cada falha vai no
+  // campo `error`. Sem esta ação, uma publicação parcial ficava registrada como 'published'
+  // (sucesso total), escondendo do usuário que Instagram/X/etc. não receberam o post.
+  | 'published-partial'
   | 'error'
 
 export interface AutonomyTickLogEntry {

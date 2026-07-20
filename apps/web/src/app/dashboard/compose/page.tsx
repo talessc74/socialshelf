@@ -370,7 +370,14 @@ export default function ComposePage() {
     return api.renderCard(uploadedPath, headline, body, card.style)
   }
 
-  const validSelectedPlatforms = [...selectedPlatforms].filter((p) => validPlatforms.has(p))
+  // Exclui plataformas indisponíveis (X "em breve", ou que exigem imagem/vídeo ainda não
+  // anexado) do que vai de fato ser publicado. Sem isso, repostar um post que tinha X no
+  // conteúdo original deixava o X pré-selecionado e invisível (o chip "Em breve" não é clicável,
+  // então o usuário não consegue removê-lo) — e ele era publicado assim mesmo, falhando. Fonte
+  // única da verdade do "o que será publicado": buildContent, canPublish e buildVideo usam isto.
+  const validSelectedPlatforms = [...selectedPlatforms].filter(
+    (p) => validPlatforms.has(p) && !unavailablePlatforms.has(p),
+  )
 
   const canPublish =
     validSelectedPlatforms.length > 0 &&

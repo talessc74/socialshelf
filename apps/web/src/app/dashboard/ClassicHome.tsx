@@ -111,7 +111,20 @@ export function ClassicHome() {
 
     if (connected) {
       const platforms = connected.split(',').join(', ')
-      setNotice({ type: 'success', message: `Conectado com sucesso: ${platforms}` })
+      // metaNote=no-instagram: o Facebook conectou, mas a Página não tem Instagram Business/Creator
+      // vinculado — avisa explícito em vez de deixar o usuário achar que o Instagram entrou junto.
+      const noInstagram = searchParams.get('metaNote') === 'no-instagram'
+      setNotice(
+        noInstagram
+          ? {
+              type: 'error',
+              message:
+                `Conectado com sucesso: ${platforms}. O Instagram NÃO foi conectado: a Página do Facebook escolhida não tem uma conta ` +
+                'Instagram Business ou Creator vinculada. Para publicar no Instagram, transforme a conta em Business/Creator e ' +
+                'vincule-a a essa Página nas configurações do Instagram, depois reconecte aqui.',
+            }
+          : { type: 'success', message: `Conectado com sucesso: ${platforms}` },
+      )
       router.replace('/dashboard')
     } else if (error) {
       const detail = searchParams.get('detail')

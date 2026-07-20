@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import type { LinkedInOrganization } from '../../../lib/api'
+import type { LinkedInOrganization, MetaPageOption } from '../../../lib/api'
 import { Platform } from '@socialshelf/domain'
 import { PLATFORM_META } from '../../../lib/platformMeta'
 import { buildAccountsMessage } from '../../../lib/selfieAccountsSummary'
@@ -19,6 +19,10 @@ export default function AccountsPage() {
     pendingId: string
     organizations: LinkedInOrganization[]
   } | null>(null)
+  const [pendingMetaSelection, setPendingMetaSelection] = useState<{
+    pendingId: string
+    pages: MetaPageOption[]
+  } | null>(null)
   const [selecting, setSelecting] = useState(false)
 
   const { data: connections, isLoading } = useQuery({
@@ -31,8 +35,22 @@ export default function AccountsPage() {
     const connected = searchParams.get('connected')
     const error = searchParams.get('error')
     const linkedinPagePending = searchParams.get('linkedinPagePending')
+    const metaPagePending = searchParams.get('metaPagePending')
+    const metaResult = searchParams.get('metaResult')
 
-    if (connected) {
+    if (metaResult === 'no-pages') {
+      // Meta autenticou, mas a conta não administra nenhuma Página do Facebook — então não há o
+      // que conectar (nem Facebook, nem Instagram, já que o Instagram publicável exige uma conta
+      // Business/Creator vinculada a uma Página). Explica o pré-requisito em vez do antigo silêncio.
+      setNotice({
+        type: 'error',
+        message:
+          'Sua conta autenticou, mas não encontramos nenhuma Página do Facebook nela. Para publicar no Facebook ' +
+          'e no Instagram pelo Social Shelf você precisa de uma Página do Facebook — e, para o Instagram, uma conta ' +
+          'Business ou Creator vinculada a essa Página. Crie a Página e vincule o Instagram, depois tente conectar de novo.',
+      })
+      router.replace('/dashboard/accounts')
+    } else if (connected) {
       const message =
         connected === 'linkedin-page'
           ? 'Página do LinkedIn conectada com sucesso.'
@@ -43,6 +61,12 @@ export default function AccountsPage() {
       api
         .getLinkedInPagePendingSelection(linkedinPagePending)
         .then((organizations) => setPendingSelection({ pendingId: linkedinPagePending, organizations }))
+        .catch(() => setNotice({ type: 'error', message: 'Não foi possível carregar as páginas administradas.' }))
+      router.replace('/dashboard/accounts')
+    } else if (metaPagePending) {
+      api
+        .getMetaPagePendingSelection(metaPagePending)
+        .then((pages) => setPendingMetaSelection({ pendingId: metaPagePending, pages }))
         .catch(() => setNotice({ type: 'error', message: 'Não foi possível carregar as páginas administradas.' }))
       router.replace('/dashboard/accounts')
     } else if (error) {
@@ -58,8 +82,9 @@ export default function AccountsPage() {
 
   const connectedPlatforms = new Set(connections?.map((c) => c.platform) ?? [])
   const linkedinConnection = connections?.find((c) => c.platform === Platform.LINKEDIN)
+  const connectionByPlatform = new Map(connections?.map((c) => [c.platform, c]) ?? [])
 
-  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'x' | 'tiktok') => {
+  const handleConnect = async (oauth: 'linkedin' | 'meta' | 'instagram' | 'x' | 'tiktok') => {
     try {
       const url = await api.getAuthorizeUrl(oauth)
       window.location.href = url
@@ -85,6 +110,30 @@ export default function AccountsPage() {
       await queryClient.invalidateQueries({ queryKey: ['connections'] })
       setPendingSelection(null)
       setNotice({ type: 'success', message: 'Página do LinkedIn conectada com sucesso.' })
+    } catch {
+      setNotice({ type: 'error', message: 'Não foi possível concluir a seleção da Página.' })
+    } finally {
+      setSelecting(false)
+    }
+  }
+
+  const handleSelectMetaPage = async (pageId: string) => {
+    if (!pendingMetaSelection) return
+    setSelecting(true)
+    try {
+      const { instagramConnected } = await api.selectMetaPage(pendingMetaSelection.pendingId, pageId)
+      await queryClient.invalidateQueries({ queryKey: ['connections'] })
+      setPendingMetaSelection(null)
+      setNotice(
+        instagramConnected
+          ? { type: 'success', message: 'Facebook e Instagram conectados com sucesso.' }
+          : {
+              type: 'error',
+              message:
+                'Facebook conectado. O Instagram NÃO foi conectado: essa Página não tem uma conta Instagram ' +
+                'Business ou Creator vinculada. Vincule uma conta profissional do Instagram a essa Página e reconecte.',
+            },
+      )
     } catch {
       setNotice({ type: 'error', message: 'Não foi possível concluir a seleção da Página.' })
     } finally {
@@ -133,9 +182,55 @@ export default function AccountsPage() {
         </div>
       )}
 
+      {pendingMetaSelection && (
+        <div className="rounded-2xl border border-brand-100 bg-white p-5 shadow-sm">
+          <h2 className="mb-1 text-base font-semibold text-gray-800">Escolha a Página do Facebook</h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Encontramos mais de uma Página que você administra. Selecione qual conectar a esta marca —
+            o Instagram vinculado a essa Página (se houver) conecta junto.
+          </p>
+          <div className="flex flex-col gap-2">
+            {pendingMetaSelection.pages.map((page) => (
+              <button
+                key={page.id}
+                disabled={selecting}
+                onClick={() => handleSelectMetaPage(page.id)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-left text-sm font-medium text-gray-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+              >
+                {page.name}
+                {page.instagram_business_account?.username && (
+                  <span className="ml-2 text-xs text-gray-400">
+                    · Instagram @{page.instagram_business_account.username}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-ink">Central de Contas</h1>
         <p className="mt-1 text-sm text-muted">Gerencie as redes sociais conectadas à sua marca.</p>
+      </div>
+
+      {/* Aviso prévio: reduz a fricção de descobrir só na hora (ou depois) que o Instagram exige
+          conta Business/Creator vinculada a uma Página do Facebook — pré-requisito da própria Meta,
+          não do Social Shelf. Fica sempre visível, antes de o usuário tentar conectar. */}
+      <div className="rounded-xl border border-brand-100 bg-brand-50/50 p-4 text-sm text-gray-700">
+        <p className="font-semibold text-gray-800">Antes de conectar o Instagram ou o Facebook</p>
+        <p className="mt-1">
+          O Instagram só pode publicar por apps quando é uma conta <strong>profissional</strong> (Business ou
+          Creator) — exigência da Meta; um perfil pessoal não consegue ser conectado. Converter é grátis e
+          rápido: no app do Instagram, <em>Configurações → Tipo de conta e ferramentas → Mudar para conta
+          profissional</em>.
+        </p>
+        <p className="mt-2 text-gray-600">
+          <strong>Não tem Facebook?</strong> Use o botão <em>&quot;Conectar sem Facebook&quot;</em> no card do
+          Instagram — você faz login direto na sua conta profissional do Instagram, sem precisar de conta ou
+          Página do Facebook. O botão <em>&quot;Conectar&quot;</em> tradicional conecta Facebook e Instagram
+          juntos, através de uma Página do Facebook.
+        </p>
       </div>
 
       <section>
@@ -150,6 +245,8 @@ export default function AccountsPage() {
             {Object.entries(PLATFORM_META).map(([platform, meta]) => {
               const isConnected = connectedPlatforms.has(platform as Platform)
               const isLinkedIn = platform === Platform.LINKEDIN
+              const isInstagram = platform === Platform.INSTAGRAM
+              const accountLabel = connectionByPlatform.get(platform as Platform)?.accountLabel
               return (
                 <div
                   key={platform}
@@ -171,6 +268,11 @@ export default function AccountsPage() {
                         ● Conectado
                         {isLinkedIn && (linkedinConnection?.organizationUrn ? ' — Página' : ' — Perfil pessoal')}
                       </span>
+                      {accountLabel && (
+                        <span className="text-xs font-medium text-muted" title="Conta/Página conectada de fato">
+                          {accountLabel}
+                        </span>
+                      )}
                       <button
                         onClick={() => handleConnect(meta.oauth)}
                         className="rounded-full bg-card-2 px-2.5 py-0.5 text-xs font-medium text-muted hover:bg-accent-soft hover:text-accent"
@@ -183,6 +285,15 @@ export default function AccountsPage() {
                           className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
                         >
                           Conectar Página do LinkedIn
+                        </button>
+                      )}
+                      {isInstagram && (
+                        <button
+                          onClick={() => handleConnect('instagram')}
+                          title="Login direto na conta profissional do Instagram, sem passar pelo Facebook"
+                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                        >
+                          Reconectar sem Facebook
                         </button>
                       )}
                     </div>
@@ -200,6 +311,15 @@ export default function AccountsPage() {
                           className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
                         >
                           Conectar Página do LinkedIn
+                        </button>
+                      )}
+                      {isInstagram && (
+                        <button
+                          onClick={() => handleConnect('instagram')}
+                          title="Login direto na conta profissional do Instagram, sem passar pelo Facebook"
+                          className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 hover:bg-brand-100 hover:text-brand-700"
+                        >
+                          Conectar sem Facebook
                         </button>
                       )}
                     </div>

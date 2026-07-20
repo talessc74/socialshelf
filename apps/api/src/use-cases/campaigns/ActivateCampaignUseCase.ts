@@ -2,6 +2,7 @@ import type {
   BrandProfileRepository,
   CampaignItemRepository,
   CampaignPhotoRepository,
+  CampaignTimelineLockRepository,
   PhotoCampaignRepository,
   PostRepository,
 } from '@socialshelf/domain'
@@ -20,6 +21,7 @@ export class ActivateCampaignUseCase {
     private readonly photoRepo: CampaignPhotoRepository,
     private readonly postRepo: PostRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
+    private readonly lockRepo: CampaignTimelineLockRepository,
   ) {}
 
   async execute(input: ActivateCampaignInput): Promise<void> {
@@ -27,28 +29,40 @@ export class ActivateCampaignUseCase {
     if (!campaign) throw new Error('Campaign not found')
     if (campaign.status !== 'reviewing') throw new Error('Only a campaign in review can be activated')
 
-    const items = await this.itemRepo.findByCampaign(input.campaignId)
-    if (items.length === 0) throw new Error('Campaign has no timeline to activate')
+    // Mesmo lock de Generate/ExtendCampaignTimelineUseCase — um duplo clique em "Ativar
+    // campanha" sem isso materializaria os mesmos itens duas vezes, criando dois Posts reais
+    // para a mesma foto.
+    const acquired = await this.lockRepo.tryAcquire(input.userId, input.brandId, input.campaignId)
+    if (!acquired) {
+      throw new Error('Another timeline update for this campaign is already in progress — try again shortly')
+    }
 
-    const photos = await this.photoRepo.findByCampaign(input.campaignId)
-    const photosById = new Map(photos.map((p) => [p.id, p]))
-    const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
+    try {
+      const items = await this.itemRepo.findByCampaign(input.campaignId)
+      if (items.length === 0) throw new Error('Campaign has no timeline to activate')
 
-    const alreadyMaterialized = items.filter((item) => item.status === 'materialized')
-    const toMaterialize = items.filter((item) => item.status !== 'materialized')
-    const newlyMaterialized = await materializeCampaignItems(
-      campaign,
-      toMaterialize,
-      photosById,
-      this.postRepo,
-      brandProfile?.version ?? null,
-    )
+      const photos = await this.photoRepo.findByCampaign(input.campaignId)
+      const photosById = new Map(photos.map((p) => [p.id, p]))
+      const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
 
-    await this.itemRepo.saveAll([...alreadyMaterialized, ...newlyMaterialized])
+      const alreadyMaterialized = items.filter((item) => item.status === 'materialized')
+      const toMaterialize = items.filter((item) => item.status !== 'materialized')
+      const newlyMaterialized = await materializeCampaignItems(
+        campaign,
+        toMaterialize,
+        photosById,
+        this.postRepo,
+        brandProfile?.version ?? null,
+      )
 
-    campaign.status = 'active'
-    campaign.startedAt = campaign.startedAt ?? new Date()
-    campaign.updatedAt = new Date()
-    await this.campaignRepo.save(campaign)
+      await this.itemRepo.saveAll([...alreadyMaterialized, ...newlyMaterialized])
+
+      campaign.status = 'active'
+      campaign.startedAt = campaign.startedAt ?? new Date()
+      campaign.updatedAt = new Date()
+      await this.campaignRepo.save(campaign)
+    } finally {
+      await this.lockRepo.release(input.userId, input.brandId, input.campaignId)
+    }
   }
 }

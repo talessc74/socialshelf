@@ -39,8 +39,8 @@ export class ConfirmLinkedInPageSelectionUseCase {
       throw new Error('linkedin_pending_selection_expired')
     }
 
-    const isValidOrg = pending.organizations.some((org) => org.urn === organizationUrn)
-    if (!isValidOrg) {
+    const selectedOrg = pending.organizations.find((org) => org.urn === organizationUrn)
+    if (!selectedOrg) {
       throw new Error('linkedin_invalid_organization')
     }
 
@@ -56,6 +56,7 @@ export class ConfirmLinkedInPageSelectionUseCase {
         scope: pending.scope,
       },
       organizationUrn,
+      selectedOrg.name,
     )
 
     await this.tokenVault.delete(vaultRef)

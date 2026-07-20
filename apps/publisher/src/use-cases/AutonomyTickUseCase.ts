@@ -250,7 +250,21 @@ export class AutonomyTickUseCase {
 
     if (!wantsAutoPublish) return { ...base, action: 'draft-created', topicHeadline: topSuggestion.headline }
 
-    await this.publishPostUseCase.execute(newestDraft.id, brand.userId, brand.brandId)
-    return { ...base, action: 'published', topicHeadline: topSuggestion.headline }
+    // Antes, o resultado do publish era ignorado e o tick sempre registrava 'published' — mesmo
+    // quando uma ou mais redes falhavam por dentro (token expirado, erro da API do Instagram,
+    // etc.), já que PublishPostUseCase engole a falha por plataforma e só marca o Post como
+    // 'failed' quando TODAS falham. Isso escondia do usuário exatamente o que ele reportou: o
+    // painel dizia "Publicado" nas quatro redes, mas o post não aparecia em nenhuma (ou só em
+    // uma). Agora o histórico do tick reflete a verdade por plataforma.
+    const publishResult = await this.publishPostUseCase.execute(newestDraft.id, brand.userId, brand.brandId)
+    const failures = publishResult.failedPlatforms
+    if (failures.length === 0) {
+      return { ...base, action: 'published', topicHeadline: topSuggestion.headline }
+    }
+    const reason = failures.map((f) => `${f.platform}: ${f.reason}`).join(' · ')
+    if (publishResult.results.length === 0) {
+      return { ...base, action: 'error', topicHeadline: topSuggestion.headline, error: reason }
+    }
+    return { ...base, action: 'published-partial', topicHeadline: topSuggestion.headline, error: reason }
   }
 }
