@@ -82,16 +82,12 @@ export class FirestorePostRepository implements PostRepository {
     })
   }
 
-  async delete(id: string): Promise<void> {
-    const snapshot = await db
-      .collectionGroup('posts')
-      .where('id', '==', id)
-      .limit(1)
-      .get()
-
-    if (!snapshot.empty) {
-      await snapshot.docs[0]!.ref.delete()
-    }
+  async delete(id: string, userId: string, brandId: string): Promise<void> {
+    await db
+      .collection('users').doc(userId)
+      .collection('brands').doc(brandId)
+      .collection('posts').doc(id)
+      .delete()
   }
 
   private fromFirestore(data: FirebaseFirestore.DocumentData): Post {

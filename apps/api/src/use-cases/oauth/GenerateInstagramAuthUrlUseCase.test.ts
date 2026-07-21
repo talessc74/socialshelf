@@ -25,6 +25,7 @@ describe('GenerateInstagramAuthUrlUseCase', () => {
     const decoded = decodeURIComponent(url)
     expect(decoded).toContain('instagram_business_basic')
     expect(decoded).toContain('instagram_business_content_publish')
+    expect(decoded).toContain('instagram_business_manage_insights')
   })
 
   it('embeds a verifiable state with the userId', () => {

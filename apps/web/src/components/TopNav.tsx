@@ -3,9 +3,37 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
 import { useSelfieDismissal } from '../contexts/AssistantContext'
+import { useViewMode } from '../contexts/ViewModeContext'
+
+/**
+ * Interruptor de visual (clássico ↔ prateleira). Fase 0: só administradores o
+ * enxergam — o público nem sabe que a nova entrada existe. Some enquanto não
+ * hidrata, para não piscar estado errado. Ver _local-bdr-policy-010.
+ */
+function ViewModeToggle() {
+  const { viewMode, setViewMode, canToggle, hydrated } = useViewMode()
+  if (!hydrated || !canToggle) return null
+
+  const goingToShelf = viewMode === 'classic'
+  const Icon = goingToShelf ? BookOpen : LayoutGrid
+
+  return (
+    <button
+      type="button"
+      onClick={() => setViewMode(goingToShelf ? 'shelf' : 'classic')}
+      title={goingToShelf ? 'Experimentar a nova prateleira (só você vê)' : 'Voltar ao visual clássico'}
+      aria-label={goingToShelf ? 'Trocar para a nova prateleira' : 'Trocar para o visual clássico'}
+      aria-pressed={!goingToShelf}
+      className="flex h-9 items-center gap-1.5 rounded-full border border-accent bg-accent-soft px-3 text-xs font-semibold text-accent transition-colors hover:opacity-80"
+    >
+      <Icon className="h-4 w-4" />
+      <span className="hidden sm:inline">{goingToShelf ? 'Prateleira' : 'Clássico'}</span>
+    </button>
+  )
+}
 
 /**
  * Ícone pra religar o Selfie depois de desligado no × do balão — sem isso,
@@ -158,6 +186,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
 
         <div className="flex shrink-0 items-center gap-3">
           <span className="hidden truncate text-sm text-muted sm:inline">{email}</span>
+          <ViewModeToggle />
           <SelfieToggle />
           <LanternToggle />
           <button

@@ -163,6 +163,24 @@ describe('MetaPublisher', () => {
         publisher.publish(makePost(), Platform.FACEBOOK, makeConnection(Platform.FACEBOOK, 'ref-fb')),
       ).rejects.toThrow('Facebook publish failed')
     })
+
+    it('translates an OAuth permission error (code 190) with the generic reconnect message — Pages have no personal/professional distinction, unlike Instagram', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () => JSON.stringify({ error: { message: 'permission denied', type: 'OAuthException', code: 190 } }),
+      })
+
+      let thrown: Error | undefined
+      try {
+        await publisher.publish(makePost(), Platform.FACEBOOK, makeConnection(Platform.FACEBOOK, 'ref-fb'))
+      } catch (err) {
+        thrown = err as Error
+      }
+
+      expect(thrown?.message).toContain('reconecte a conta em Central de Contas')
+      expect(thrown?.message).not.toContain('Business ou Creator')
+    })
   })
 
   describe('Instagram', () => {
@@ -235,6 +253,40 @@ describe('MetaPublisher', () => {
         publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig')),
       ).rejects.toThrow('Instagram publish failed')
       expect(fetchMock).toHaveBeenCalledTimes(3)
+    })
+
+    it('translates a Graph API OAuth permission error (code 190) into an actionable message pointing at the professional-account requirement, not the raw JSON body', async () => {
+      fetchMock
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'container-555' }) })
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ status_code: 'FINISHED' }) })
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 400,
+          text: async () =>
+            JSON.stringify({
+              error: {
+                message:
+                  "Any of the pages_read_engagement, pages_manage_metadata, pages_read_user_content, pages_manage_ads, pages_show_list or pages_messaging permission(s) must be granted before impersonating a user's page.",
+                type: 'OAuthException',
+                code: 190,
+                fbtrace_id: 'AbCdEfGh123',
+              },
+            }),
+        })
+
+      const post = makePost({ imageStoragePaths: ['user-1/brand-1/img.jpg'] })
+
+      let thrown: Error | undefined
+      try {
+        await publisher.publish(post, Platform.INSTAGRAM, makeConnection(Platform.INSTAGRAM, 'ref-ig'))
+      } catch (err) {
+        thrown = err as Error
+      }
+
+      expect(thrown?.message).toContain('conta é profissional (Business ou Creator')
+      expect(thrown?.message).toContain('reconecte em Central de Contas')
+      expect(thrown?.message).not.toContain('fbtrace_id')
+      expect(thrown?.message).not.toContain('pages_read_engagement')
     })
 
     it('resolves the storage path into a signed URL before sending it to the Graph API', async () => {

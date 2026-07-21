@@ -84,6 +84,59 @@ A escala `brand` no `tailwind.config.ts` foi atualizada para os azuis do logo (5
 - Modo escuro mantém hierarquia de contraste WCAG AA com os novos valores
 - A paleta coral (`#ff6b4a`) é considerada descontinuada — não deve ser usada em código novo
 
+## Atualização — Redesign da entrada `/dashboard`: nova linguagem visual sob interruptor (2026-07-20)
+
+A `/dashboard` está sendo redesenhada como uma nova camada de entrada com metáfora
+física, entregue em duas telas responsivas que substituem a home atual:
+
+- **Desktop:** uma **prateleira 3D** de livros (fundo marrom quente `#150b04`,
+  dourado `#c9a84c`, tipografia serifada Cinzel) — cada livro é uma seção do produto.
+- **Mobile:** um **flip clock retrô verde-oliva** (carcaça `#8f9563`, Barlow Semi
+  Condensed) com animação split-flap.
+
+Esta é uma **direção visual nova e deliberada**, não um desvio acidental da paleta
+desta policy. O redesign adota, na camada de entrada e no miolo de cada livro, uma
+linguagem **quente** (marrom/dourado no desktop, verde-oliva no mobile) que
+**contrasta intencionalmente** com os azuis e verdes frios do logo fixados acima. Foi
+a mesma alternativa "Opção B" (fundo quente) que esta BDR-010 rejeitou em 2026-07-01
+para a interface geral — a diferença é que agora ela reaparece **escopada a uma
+metáfora de produto explícita** (a estante), não como fundo genérico, e **isolada por
+um interruptor** (abaixo), não substituindo a paleta fria do dia a dia.
+
+### Como as duas identidades convivem — interruptor de visual (`viewMode`)
+
+Os dois mundos não se substituem no lançamento; **coexistem por um interruptor por
+usuário** (`viewMode: 'classic' | 'shelf'`):
+
+- **`classic`** (padrão): a home e as telas atuais, com a paleta fria desta BDR-010 —
+  inalterada.
+- **`shelf`**: a nova prateleira / flip clock, com a linguagem quente.
+
+O novo visual sobe em produção (`socialshelf.com.br`) **desligado por padrão**.
+Enquanto não for lançado ao público, o interruptor é **visível apenas para
+administradores** (allowlist de e-mail), que testam o novo modo em produção sem
+expô-lo. Nenhuma funcionalidade atual é removida — cada livro liga na rota real que já
+existe hoje.
+
+### Tema claro/escuro no novo visual
+
+- **Desktop:** o toggle claro/escuro (a "Lanterna" atual, sobre o `ThemeContext`) é
+  **substituído** por um **interruptor de parede** físico na cena da prateleira — mesmo
+  motor (`light`/`dark`/`system`), nova roupa. Não implementar os dois controles ao
+  mesmo tempo.
+- **Mobile:** **fora de escopo** — não há modos claro/escuro no mobile hoje e não serão
+  criados nesta etapa. O flip clock sobe em seu visual único (fixo), sem toggle de tema.
+
+### Situação da reconciliação (pendente)
+
+Se a linguagem quente deve **suplantar** a paleta fria do logo como identidade
+principal, ou permanecer **escopada** à metáfora da prateleira enquanto o clássico
+segue na paleta desta policy, é uma decisão **em aberto** — a ser convergida pela
+Galera de Design (Aether · Nexus · Chronos) + Herald após a implementação, quando o
+novo visual puder ser avaliado em produção. Até lá, **esta BDR-010 permanece válida
+para o modo `classic`** e para toda tela fora da metáfora de livros; o modo `shelf`
+opera sob a nova linguagem aqui registrada.
+
 ## References
 
 - [_local-bdr-policy-005-tokens-de-identidade-visual](005-tokens-identidade-visual.md) - Policy anterior de tokens — seção Paleta supercedida por esta

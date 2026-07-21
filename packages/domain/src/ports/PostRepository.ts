@@ -6,7 +6,7 @@ export interface PostRepository {
   findByIdAndBrand(id: string, userId: string, brandId: string): Promise<Post | null>
   findByBrand(userId: string, brandId: string, status?: PostStatus): Promise<Post[]>
   findScheduledBefore(cutoff: Date): Promise<Post[]>
-  delete(id: string): Promise<void>
+  delete(id: string, userId: string, brandId: string): Promise<void>
   /**
    * Atomically transitions the post into the transient 'publishing' lock state, returning
    * the claimed post on success. Returns null if the post is missing or already

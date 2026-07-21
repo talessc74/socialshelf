@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Plus_Jakarta_Sans } from 'next/font/google'
+import { Plus_Jakarta_Sans, Cinzel, Barlow_Semi_Condensed } from 'next/font/google'
 import './globals.css'
 import { Providers } from '../components/Providers'
 import { BuildBadge } from '../components/BuildBadge'
@@ -9,6 +9,20 @@ export const dynamic = 'force-dynamic'
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
+})
+
+// Display serifado da prateleira (desktop) — título e wordmark da nova entrada.
+const cinzel = Cinzel({
+  subsets: ['latin'],
+  weight: ['400', '600'],
+  variable: '--font-cinzel',
+})
+
+// Display condensado do flip clock (mobile) — números e rótulos dos visores.
+const barlowSemiCondensed = Barlow_Semi_Condensed({
+  subsets: ['latin'],
+  weight: ['500', '600', '700', '800'],
+  variable: '--font-condensed',
 })
 
 export const metadata: Metadata = {
@@ -30,7 +44,11 @@ const themeBootScript = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR" className={plusJakartaSans.variable} suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className={`${plusJakartaSans.variable} ${cinzel.variable} ${barlowSemiCondensed.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>

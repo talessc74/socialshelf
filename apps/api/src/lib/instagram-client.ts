@@ -30,8 +30,15 @@ export function buildInstagramAuthUrl(state: string): string {
     client_id: process.env['INSTAGRAM_APP_ID'] ?? '',
     redirect_uri: process.env['INSTAGRAM_REDIRECT_URI'] ?? '',
     // Nomes vigentes desde dez/2024 (os antigos business_basic/business_content_publish foram
-    // renomeados pela Meta com o prefixo instagram_).
-    scope: ['instagram_business_basic', 'instagram_business_content_publish'].join(','),
+    // renomeados pela Meta com o prefixo instagram_). instagram_business_manage_insights é uma
+    // permissão separada de content_publish — sem pedir aqui, a tela de consentimento nunca
+    // oferece acesso a métricas, e /insights falha com "Application does not have permission
+    // for this action" (code 10) mesmo com a conta liberada como testadora e publicando normal.
+    scope: [
+      'instagram_business_basic',
+      'instagram_business_content_publish',
+      'instagram_business_manage_insights',
+    ].join(','),
     response_type: 'code',
     state,
   })

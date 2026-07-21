@@ -161,10 +161,12 @@ function PostCard({
   post,
   highlighted,
   isDraft = false,
+  isFailed = false,
 }: {
   post: ApiPost
   highlighted: boolean
   isDraft?: boolean
+  isFailed?: boolean
 }) {
   const queryClient = useQueryClient()
   const firstImage = post.imageStoragePaths[0]
@@ -176,6 +178,7 @@ function PostCard({
   const [images, setImages] = useState<string[]>(post.imageStoragePaths)
   const [newPhotoFiles, setNewPhotoFiles] = useState<File[]>([])
   const [scheduledAtInput, setScheduledAtInput] = useState(toDatetimeLocalValue(post.scheduledAt))
+  const [failedPlatforms, setFailedPlatforms] = useState<Array<{ platform: Platform; reason: string }>>([])
 
   // Todas as mutações mexem em campos que podem mudar qual lista (agendados/publicados/
   // rascunhos automáticos) o post pertence — mais simples invalidar as três do que rastrear
@@ -184,6 +187,7 @@ function PostCard({
     queryClient.invalidateQueries({ queryKey: ['posts', 'scheduled'] })
     queryClient.invalidateQueries({ queryKey: ['posts', 'published'] })
     queryClient.invalidateQueries({ queryKey: ['posts', 'ai-draft'] })
+    queryClient.invalidateQueries({ queryKey: ['posts', 'failed'] })
   }
 
   const updateMutation = useMutation({
@@ -209,8 +213,13 @@ function PostCard({
 
   const publishMutation = useMutation({
     mutationFn: () => api.publishPost(post.id),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidateAllLists()
+      // O post pode virar "Publicado" com uma ou mais plataformas ausentes — publicar em
+      // ao menos uma rede já basta pro status geral, então uma falha isolada (ex: Instagram
+      // sem conta business conectada) não vira erro de mutação, só some silenciosamente sem
+      // este aviso.
+      setFailedPlatforms(data.failedPlatforms)
     },
   })
 
@@ -225,10 +234,18 @@ function PostCard({
   const scheduledAtValid =
     scheduledDate !== null && !Number.isNaN(scheduledDate.getTime()) && scheduledDate.getTime() > Date.now()
 
-  // Rascunho automático sem data pode ser salvo (fica pendente, aguardando aprovação) —
-  // um post já agendado sempre precisa de uma data futura válida pra ser salvo.
+  // Rascunho automático sem data pode ser salvo (fica pendente, aguardando aprovação) — um
+  // post já agendado sempre precisa de uma data futura válida pra ser salvo. Um post que
+  // falhou já tem uma data no passado (a tentativa que falhou); manter essa mesma data
+  // intacta continua permitido, pra editar só o texto e tentar de novo sem ser obrigado a
+  // reagendar pro futuro.
+  const originalScheduledAtInput = toDatetimeLocalValue(post.scheduledAt)
   const canSave =
-    (isDraft ? scheduledAtInput === '' || scheduledAtValid : scheduledAtValid) &&
+    (isDraft
+      ? scheduledAtInput === '' || scheduledAtValid
+      : isFailed
+        ? scheduledAtInput === originalScheduledAtInput || scheduledAtValid
+        : scheduledAtValid) &&
     post.content.every((c) => {
       const t = texts[c.platform] ?? ''
       return t.trim().length > 0 && t.length <= PLATFORM_CHARACTER_LIMITS[c.platform]
@@ -264,6 +281,10 @@ function PostCard({
           {isDraft ? (
             <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
               🤖 Aguardando aprovação
+            </span>
+          ) : isFailed ? (
+            <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
+              ❌ Falhou ao publicar
             </span>
           ) : (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-semibold text-accent">
@@ -416,6 +437,12 @@ function PostCard({
                 {publishMutation.error instanceof Error ? publishMutation.error.message : 'Erro ao publicar.'}
               </p>
             )}
+            {failedPlatforms.length > 0 && (
+              <p className="text-xs text-red-600">
+                Não publicou em {failedPlatforms.map((f) => PLATFORM_LABELS[f.platform]).join(', ')}:{' '}
+                {failedPlatforms.map((f) => f.reason).join(' · ')}
+              </p>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(true)}
@@ -432,13 +459,17 @@ function PostCard({
                   ? 'Publicando…'
                   : isDraft
                     ? 'Aprovar e publicar agora'
-                    : 'Publicar agora'}
+                    : isFailed
+                      ? 'Tentar novamente'
+                      : 'Publicar agora'}
               </button>
               <button
                 onClick={() => {
                   const message = isDraft
                     ? 'Tem certeza que deseja descartar este rascunho? Ele não será publicado.'
-                    : 'Tem certeza que deseja cancelar este agendamento? O post será deletado.'
+                    : isFailed
+                      ? 'Tem certeza que deseja descartar este post que falhou? Ele não será publicado.'
+                      : 'Tem certeza que deseja cancelar este agendamento? O post será deletado.'
                   if (confirm(message)) {
                     deleteMutation.mutate()
                   }
@@ -447,10 +478,10 @@ function PostCard({
                 className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
               >
                 {deleteMutation.isPending
-                  ? isDraft
+                  ? isDraft || isFailed
                     ? 'Descartando…'
                     : 'Cancelando…'
-                  : isDraft
+                  : isDraft || isFailed
                     ? 'Descartar'
                     : 'Cancelar agendamento'}
               </button>
@@ -600,6 +631,10 @@ export default function ScheduledPostsPage() {
     queryKey: ['posts', 'ai-draft'],
     queryFn: () => api.getPosts('ai-draft'),
   })
+  const failedQuery = useQuery({
+    queryKey: ['posts', 'failed'],
+    queryFn: () => api.getPosts('failed'),
+  })
 
   const scheduledPosts = sortByWhen(
     (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled'),
@@ -616,6 +651,13 @@ export default function ScheduledPostsPage() {
   const draftPosts = [...(draftQuery.data ?? [])]
     .filter((p) => p.status === 'ai-draft' && p.origin === 'autonomy-tick')
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  // Post que falhou em todas as redes-alvo (PublishPostUseCase só marca 'failed' quando
+  // nenhuma plataforma publicou) — sem esta lista ele desaparecia da tela ao virar 'failed',
+  // sem lugar nenhum pra reaparecer, editar ou tentar de novo.
+  const failedPosts = sortByWhen(
+    (failedQuery.data ?? []).filter((p) => p.status === 'failed'),
+    sortDirection,
+  )
   const calendarPosts = [...scheduledPosts, ...publishedPosts]
   const isLoading = scheduledQuery.isLoading || publishedQuery.isLoading
   const error = scheduledQuery.error ?? publishedQuery.error
@@ -681,6 +723,26 @@ export default function ScheduledPostsPage() {
       )}
       {draftQuery.isError && (
         <p className="text-xs text-red-600">Não foi possível carregar os rascunhos automáticos aguardando aprovação.</p>
+      )}
+
+      {failedPosts.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-red-200 bg-red-50/60 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">❌ Falhou ao publicar</h2>
+            <p className="text-xs text-muted">
+              {failedPosts.length === 1 ? 'Este post não conseguiu' : `Estes ${failedPosts.length} posts não conseguiram`}{' '}
+              publicar em nenhuma rede. Edite, tente de novo, ou descarte.
+            </p>
+          </div>
+          <ul className="space-y-3">
+            {failedPosts.map((post) => (
+              <PostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} isFailed />
+            ))}
+          </ul>
+        </div>
+      )}
+      {failedQuery.isError && (
+        <p className="text-xs text-red-600">Não foi possível carregar os posts que falharam ao publicar.</p>
       )}
 
       {isLoading ? (

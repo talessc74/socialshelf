@@ -676,4 +676,87 @@ describe('ScheduledPostsPage', () => {
       })
     })
   })
+
+  describe('posts que falharam ao publicar', () => {
+    function makeFailedPost(overrides: Partial<ApiPost> = {}): ApiPost {
+      return makePost({
+        id: 'failed-1',
+        status: 'failed',
+        origin: 'campaign',
+        scheduledAt: new Date('2026-06-20T06:00:00.000Z').toISOString(),
+        publishedAt: null,
+        content: [{ platform: Platform.INSTAGRAM, text: 'Post que não publicou em nenhuma rede' }],
+        ...overrides,
+      })
+    }
+
+    function mockFailed(posts: ApiPost[]) {
+      mockedApi.getPosts.mockImplementation(async (status) => (status === 'failed' ? posts : []))
+    }
+
+    it('mostra um post cuja publicação falhou em todas as redes, com botão de tentar de novo', async () => {
+      mockFailed([makeFailedPost()])
+
+      await renderListView()
+
+      const text = await screen.findByText('Post que não publicou em nenhuma rede')
+      const card = text.closest('li')
+      expect(card).not.toBeNull()
+      expect(within(card!).getByText('❌ Falhou ao publicar')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Tentar novamente' })).toBeInTheDocument()
+    })
+
+    it('tenta publicar de novo um post que falhou', async () => {
+      mockFailed([makeFailedPost()])
+      mockedApi.publishPost.mockResolvedValue({ postId: 'failed-1', results: [], failedPlatforms: [] })
+
+      const user = await renderListView()
+      await screen.findByText('Post que não publicou em nenhuma rede')
+
+      await user.click(screen.getByRole('button', { name: 'Tentar novamente' }))
+
+      await waitFor(() => expect(mockedApi.publishPost).toHaveBeenCalledWith('failed-1'))
+    })
+
+    it('descarta um post que falhou ao publicar, ao confirmar', async () => {
+      mockFailed([makeFailedPost()])
+      mockedApi.deletePost.mockResolvedValue(undefined)
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = await renderListView()
+      await screen.findByText('Post que não publicou em nenhuma rede')
+
+      await user.click(screen.getByRole('button', { name: 'Descartar' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja descartar este post que falhou? Ele não será publicado.',
+      )
+      await waitFor(() => expect(mockedApi.deletePost).toHaveBeenCalledWith('failed-1'))
+    })
+
+    it('permite editar o texto de um post que falhou sem mudar a data, mantendo a mesma data original', async () => {
+      mockFailed([makeFailedPost()])
+      mockedApi.updatePost.mockResolvedValue(
+        makeFailedPost({ content: [{ platform: Platform.INSTAGRAM, text: 'Texto revisado' }] }),
+      )
+
+      const user = await renderListView()
+      await screen.findByText('Post que não publicou em nenhuma rede')
+
+      await user.click(screen.getByRole('button', { name: 'Editar' }))
+      const textarea = screen.getByDisplayValue('Post que não publicou em nenhuma rede')
+      await user.clear(textarea)
+      await user.type(textarea, 'Texto revisado')
+      await user.click(screen.getByRole('button', { name: 'Salvar' }))
+
+      await waitFor(() => {
+        expect(mockedApi.updatePost).toHaveBeenCalledWith(
+          'failed-1',
+          [{ platform: Platform.INSTAGRAM, text: 'Texto revisado' }],
+          [],
+          new Date('2026-06-20T06:00:00.000Z'),
+        )
+      })
+    })
+  })
 })
