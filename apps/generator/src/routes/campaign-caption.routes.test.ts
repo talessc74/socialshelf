@@ -103,6 +103,43 @@ describe('POST /campaigns/caption-suggestion', () => {
     )
   })
 
+  it('passes accountType and photo metadata through to the writer, parsing the date', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/campaigns/caption-suggestion',
+      payload: {
+        ...validPayload,
+        accountType: 'personal',
+        photoTakenAt: '2026-07-12T15:00:00.000Z',
+        photoHasLocation: true,
+        photoCount: 3,
+      },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(mockWrite).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountType: 'personal',
+        photoTakenAt: new Date('2026-07-12T15:00:00.000Z'),
+        photoHasLocation: true,
+        photoCount: 3,
+      }),
+    )
+  })
+
+  it('defaults to a professional accountType and empty metadata for legacy payloads', async () => {
+    await app.inject({
+      method: 'POST',
+      url: '/campaigns/caption-suggestion',
+      payload: validPayload,
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(mockWrite).toHaveBeenCalledWith(
+      expect.objectContaining({ accountType: 'professional', photoTakenAt: null, photoHasLocation: false, photoCount: 1 }),
+    )
+  })
+
   it('returns 400 when campaignName is missing', async () => {
     const response = await app.inject({
       method: 'POST',

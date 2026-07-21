@@ -59,37 +59,108 @@ export class GeminiCampaignCaptionWriter implements CampaignCaptionWriterPort {
   }
 
   private buildPrompt(input: CampaignCaptionWriterInput): string {
+    return input.accountType === 'personal' ? this.buildPersonalPrompt(input) : this.buildProfessionalPrompt(input)
+  }
+
+  // Conta pessoal (_local-bdr-policy-009): quem publica é a própria pessoa. Primeira pessoa,
+  // sem CTA e sem citar o dono em terceira pessoa (o bug "a Fulana conseguiu chegar no destino"
+  // vinha de aplicar a instrução profissional "cite a marca pelo nome" a uma conta pessoal cujo
+  // "nome de marca" é o nome da pessoa). Sem seção de negócio/CTA — são só as fotos e o relato.
+  private buildPersonalPrompt(input: CampaignCaptionWriterInput): string {
+    return `Você escreve a legenda de um post PESSOAL de rede social a partir da foto anexada.
+
+Esta é uma conta pessoal: quem publica é a própria pessoa, sobre a própria vida. Escreva em PRIMEIRA PESSOA, como quem viveu o momento ("cheguei", "consegui", "foi incrível"). NUNCA escreva em terceira pessoa e NUNCA se refira ao dono da conta pelo nome como se fosse uma empresa (nada de "a Fulana conseguiu...", "o Beltrano visitou..."). Não há venda nenhuma: sem CTA, sem "conheça", sem "agende", sem "venha", sem chamada comercial. São só as fotos e o relato genuíno do momento.
+
+Campanha: "${input.campaignName}"${input.campaignDescription ? ` — ${input.campaignDescription}` : ''}
+${this.keywordsSection(input)}
+${this.voiceSection(input)}
+${this.photoMetadataSection(input)}
+
+Olhe a foto anexada e escreva uma legenda curta e natural que reflita o que está de fato nela e o momento vivido — não uma descrição genérica ("uma bela imagem de..."). Sem parecer gerada por IA, sem hashtags soltas sem contexto.
+
+Responda apenas com um JSON no formato:
+{"caption": "..."}`
+  }
+
+  // Conta profissional: comportamento validado como bom pelo usuário — cita a marca pelo nome e
+  // pode usar CTA. Só acrescenta os metadados da foto (data/local/quantidade) ao prompt anterior.
+  private buildProfessionalPrompt(input: CampaignCaptionWriterInput): string {
     const businessSection = input.brandBusiness
       ? `\nMarca: "${input.brandBusiness.name}"${
           input.brandBusiness.description ? `, ${input.brandBusiness.description}` : ''
         }. Use o nome da marca, nunca o segmento de mercado, ao citá-la no texto.`
       : ''
 
-    const voiceSection = input.brandVoice
-      ? `\nVoz da marca — escreva seguindo estritamente este tom: ${input.brandVoice.tone}.${
-          input.brandVoice.allowedVocabulary.length > 0
-            ? ` Prefira este vocabulário quando fizer sentido: ${input.brandVoice.allowedVocabulary.join(', ')}.`
-            : ''
-        }${
-          input.brandVoice.prohibitedVocabulary.length > 0
-            ? ` Nunca use estas palavras ou expressões: ${input.brandVoice.prohibitedVocabulary.join(', ')}.`
-            : ''
-        }`
-      : ''
-
-    const keywordsSection =
-      input.keywords.length > 0 ? `\nPalavras-chave da campanha (use como inspiração, não como hashtag forçada): ${input.keywords.join(', ')}.` : ''
-
     return `Você escreve a legenda de um post de rede social a partir da foto anexada.
 
 Campanha: "${input.campaignName}"${input.campaignDescription ? ` — ${input.campaignDescription}` : ''}
-${keywordsSection}
+${this.keywordsSection(input)}
 ${businessSection}
-${voiceSection}
+${this.voiceSection(input)}
+${this.photoMetadataSection(input)}
 
 Olhe a foto anexada e escreva uma legenda que reflita o que está de fato nela — o que aparece, a cena, o momento — conectando com o tema da campanha acima. Não descreva a foto de forma genérica ("uma bela imagem de..."); escreva como o dono da marca escreveria de fato sobre aquele momento específico. Uma legenda curta e natural, sem parecer gerada por IA, sem hashtags soltas sem contexto.
 
 Responda apenas com um JSON no formato:
 {"caption": "..."}`
   }
+
+  private keywordsSection(input: CampaignCaptionWriterInput): string {
+    return input.keywords.length > 0
+      ? `\nPalavras-chave da campanha (use como inspiração, não como hashtag forçada): ${input.keywords.join(', ')}.`
+      : ''
+  }
+
+  private voiceSection(input: CampaignCaptionWriterInput): string {
+    if (!input.brandVoice) return ''
+    return `\nVoz da marca — escreva seguindo estritamente este tom: ${input.brandVoice.tone}.${
+      input.brandVoice.allowedVocabulary.length > 0
+        ? ` Prefira este vocabulário quando fizer sentido: ${input.brandVoice.allowedVocabulary.join(', ')}.`
+        : ''
+    }${
+      input.brandVoice.prohibitedVocabulary.length > 0
+        ? ` Nunca use estas palavras ou expressões: ${input.brandVoice.prohibitedVocabulary.join(', ')}.`
+        : ''
+    }`
+  }
+
+  // Informações reais que a foto carrega (EXIF), pra legenda refletir o momento verdadeiro em vez
+  // de um texto genérico. A data é o sinal confiável; do GPS só usamos a existência do registro
+  // (nunca alucinar o nome de um lugar que não foi informado — fator factual, GHOST).
+  private photoMetadataSection(input: CampaignCaptionWriterInput): string {
+    const lines: string[] = []
+    if (input.photoTakenAt) lines.push(`- esta foto foi registrada em ${formatPtBrDate(input.photoTakenAt)}`)
+    if (input.photoHasLocation) {
+      lines.push(
+        '- a foto carrega registro de local (GPS): escreva como quem esteve lá de verdade, mas NÃO invente o nome de cidade, ponto turístico ou estabelecimento se ele não foi informado',
+      )
+    }
+    if (input.photoCount > 1) {
+      lines.push(
+        `- este post é um carrossel com ${input.photoCount} fotos do mesmo momento: a legenda deve valer para o conjunto, não descrever apenas a foto de capa`,
+      )
+    }
+    return lines.length > 0 ? `\nInformações reais desta foto (use com naturalidade, não liste no texto):\n${lines.join('\n')}` : ''
+  }
+}
+
+const PT_BR_MONTHS = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+]
+
+// Formata em pt-BR de forma determinística (sem depender de locale/timezone do runtime, que
+// poderia deslocar o dia) — a legenda só precisa do dia/mês/ano do registro.
+function formatPtBrDate(date: Date): string {
+  return `${date.getUTCDate()} de ${PT_BR_MONTHS[date.getUTCMonth()]} de ${date.getUTCFullYear()}`
 }

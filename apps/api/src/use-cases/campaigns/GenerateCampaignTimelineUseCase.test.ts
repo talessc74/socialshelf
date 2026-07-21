@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Platform } from '@socialshelf/domain'
 import type {
+  Brand,
+  BrandRepository,
   CampaignItemRepository,
   CampaignPhoto,
   CampaignPhotoRepository,
@@ -31,6 +33,20 @@ function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
   }
 }
 
+function makeBrand(overrides: Partial<Brand> = {}): Brand {
+  return {
+    id: 'brand-1',
+    userId: 'user-1',
+    name: 'Marca',
+    slug: 'marca',
+    platforms: [],
+    accountType: 'professional',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
 function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
   return {
     id: 'photo-1',
@@ -54,6 +70,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
   let itemRepo: CampaignItemRepository
   let captionClient: CampaignCaptionClient
   let lockRepo: CampaignTimelineLockRepository
+  let brandRepo: BrandRepository
   let useCase: GenerateCampaignTimelineUseCase
 
   beforeEach(() => {
@@ -82,7 +99,13 @@ describe('GenerateCampaignTimelineUseCase', () => {
       tryAcquire: vi.fn().mockResolvedValue(true),
       release: vi.fn().mockResolvedValue(undefined),
     }
-    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient, lockRepo)
+    brandRepo = {
+      save: vi.fn(),
+      findById: vi.fn().mockResolvedValue(makeBrand()),
+      findByUserId: vi.fn(),
+      delete: vi.fn(),
+    }
+    useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient, lockRepo, brandRepo)
   })
 
   it('throws when the campaign has no photos', async () => {
@@ -156,6 +179,33 @@ describe('GenerateCampaignTimelineUseCase', () => {
     expect(captionClient.suggestCaption).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-1', brandId: 'brand-1', storagePath: 'path.jpg' }),
     )
+  })
+
+  it('threads the brand accountType and the cover photo EXIF metadata into the caption request', async () => {
+    vi.mocked(brandRepo.findById).mockResolvedValue(makeBrand({ accountType: 'personal' }))
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([
+      makePhoto({ id: 'p1', exifTakenAt: new Date('2026-07-12T15:00:00Z'), gpsLat: -23.5, gpsLng: -46.6 }),
+      makePhoto({ id: 'p2', exifTakenAt: new Date('2026-07-12T16:00:00Z'), gpsLat: -23.5, gpsLng: -46.6 }),
+    ])
+
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(captionClient.suggestCaption).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountType: 'personal',
+        photoTakenAt: '2026-07-12T15:00:00.000Z',
+        photoHasLocation: true,
+        photoCount: 2,
+      }),
+    )
+  })
+
+  it('defaults to a professional accountType when the brand has no record', async () => {
+    vi.mocked(brandRepo.findById).mockResolvedValue(null)
+
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(captionClient.suggestCaption).toHaveBeenCalledWith(expect.objectContaining({ accountType: 'professional' }))
   })
 
   it('falls back to the deterministic template caption when the AI caption call fails', async () => {

@@ -49,11 +49,14 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export type AccountType = 'personal' | 'professional'
+
 export interface ApiBrand {
   id: string
   name: string
   slug: string
   platforms: Platform[]
+  accountType: AccountType
 }
 
 export interface ApiConnection {
@@ -336,6 +339,14 @@ export const api = {
   async getBrands(): Promise<ApiBrand[]> {
     const data = await apiFetch<{ brands: ApiBrand[] }>('/brands')
     return data.brands
+  },
+
+  async updateBrandAccountType(brandId: string, accountType: AccountType): Promise<ApiBrand> {
+    const data = await apiFetch<{ brand: ApiBrand }>(`/brands/${brandId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accountType }),
+    })
+    return data.brand
   },
 
   async getConnections(): Promise<ApiConnection[]> {

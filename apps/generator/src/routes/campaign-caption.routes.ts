@@ -11,6 +11,12 @@ const captionSuggestionSchema = z.object({
   campaignName: z.string().min(1),
   campaignDescription: z.string(),
   keywords: z.array(z.string()),
+  // Tolerante a chamadas antigas que ainda não mandam accountType/metadados: default professional
+  // (comportamento anterior) e metadados vazios, pra não quebrar durante o rollout.
+  accountType: z.enum(['personal', 'professional']).default('professional'),
+  photoTakenAt: z.string().datetime().nullish(),
+  photoHasLocation: z.boolean().default(false),
+  photoCount: z.number().int().min(1).default(1),
 })
 
 // Usado por GenerateCampaignTimelineUseCase (apps/api) para escrever a legenda de cada item
@@ -43,7 +49,8 @@ export async function campaignCaptionRoutes(app: FastifyInstance) {
     }
 
     try {
-      const { userId, brandId, storagePath, campaignName, campaignDescription, keywords } = parsed.data
+      const { userId, brandId, storagePath, campaignName, campaignDescription, keywords, accountType, photoTakenAt, photoHasLocation, photoCount } =
+        parsed.data
       const [brandProfile, coverImage] = await Promise.all([
         brandProfileRepo.findLatestByBrand(userId, brandId),
         imageStorage.download(storagePath),
@@ -56,6 +63,10 @@ export async function campaignCaptionRoutes(app: FastifyInstance) {
         keywords,
         brandBusiness: brandProfile?.business ?? null,
         brandVoice: brandProfile?.voice ?? null,
+        accountType,
+        photoTakenAt: photoTakenAt ? new Date(photoTakenAt) : null,
+        photoHasLocation,
+        photoCount,
       })
 
       return reply.send(result)

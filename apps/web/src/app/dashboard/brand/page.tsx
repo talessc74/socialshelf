@@ -12,6 +12,21 @@ import { BrandPostPreview } from '../../../components/BrandPostPreview'
 import { StylePreferenceRanking } from '../../../components/StylePreferenceRanking'
 import { buildBrandMessage } from '../../../lib/selfieBrandCompleteness'
 import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
+import { useBrand } from '../../../contexts/BrandContext'
+import type { AccountType } from '../../../lib/api'
+
+const ACCOUNT_TYPE_OPTIONS: Array<{ value: AccountType; label: string; description: string }> = [
+  {
+    value: 'personal',
+    label: 'Pessoal',
+    description: 'É a sua conta, sobre a sua vida. Os textos falam em primeira pessoa e sem CTA — são só as fotos e o momento.',
+  },
+  {
+    value: 'professional',
+    label: 'Profissional',
+    description: 'É a conta de um negócio/marca. Os textos citam a marca pelo nome e usam chamadas para ação (CTA).',
+  },
+]
 
 type BrandProfileForm = Omit<ApiBrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'createdAt'>
 
@@ -90,6 +105,22 @@ export default function BrandSettingsPage() {
   const [extracting, setExtracting] = useState(false)
   const [extractionNotice, setExtractionNotice] = useState('')
   const [maxAutoPostsPerDayInput, setMaxAutoPostsPerDayInput] = useState('')
+  const { activeBrand, setAccountType } = useBrand()
+  const [accountTypeSaving, setAccountTypeSaving] = useState(false)
+  const [accountTypeError, setAccountTypeError] = useState('')
+
+  const handleAccountTypeChange = async (next: AccountType) => {
+    if (!activeBrand || activeBrand.accountType === next || accountTypeSaving) return
+    setAccountTypeError('')
+    setAccountTypeSaving(true)
+    try {
+      await setAccountType(activeBrand.id, next)
+    } catch (err) {
+      setAccountTypeError(err instanceof Error ? err.message : 'Erro ao alterar o tipo de conta.')
+    } finally {
+      setAccountTypeSaving(false)
+    }
+  }
 
   const { data: brandProfile, isLoading } = useQuery({
     queryKey: ['brand-profile'],
@@ -240,6 +271,40 @@ export default function BrandSettingsPage() {
         Cada vez que você salva, é criada uma nova versão da marca — posts já criados continuam usando a
         versão da época em que foram gerados.
       </p>
+
+      {activeBrand && (
+        <section className="space-y-3 rounded-2xl border border-line bg-card p-5 shadow-card">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Tipo de conta</h2>
+            <p className="mt-1 text-xs text-muted">
+              Define o registro dos textos gerados pela IA — inclusive nas campanhas de fotos.
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {ACCOUNT_TYPE_OPTIONS.map((opt) => {
+              const selected = activeBrand.accountType === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  role="switch"
+                  aria-checked={selected}
+                  disabled={accountTypeSaving}
+                  onClick={() => handleAccountTypeChange(opt.value)}
+                  className={`rounded-xl border p-3 text-left transition disabled:opacity-60 ${
+                    selected ? 'border-accent bg-accent-soft' : 'border-line hover:border-accent'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-ink">{opt.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted">{opt.description}</span>
+                </button>
+              )
+            })}
+          </div>
+          {accountTypeSaving && <p className="text-xs text-muted">Salvando tipo de conta…</p>}
+          {accountTypeError && <p className="text-xs font-medium text-red-700">{accountTypeError}</p>}
+        </section>
+      )}
 
       <section className="space-y-3 rounded-2xl border border-line bg-card p-5 shadow-card">
         <h2 className="text-sm font-semibold text-ink">Documento da marca</h2>

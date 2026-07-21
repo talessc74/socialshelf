@@ -3,13 +3,14 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useAuth } from './AuthContext'
 import { api, setActiveBrandId as setApiActiveBrandId } from '../lib/api'
-import type { ApiBrand } from '../lib/api'
+import type { AccountType, ApiBrand } from '../lib/api'
 
 interface BrandContextValue {
   brands: ApiBrand[]
   activeBrand: ApiBrand | null
   activeBrandId: string | null
   setActiveBrandId: (brandId: string) => void
+  setAccountType: (brandId: string, accountType: AccountType) => Promise<void>
   loading: boolean
 }
 
@@ -18,6 +19,7 @@ const BrandContext = createContext<BrandContextValue>({
   activeBrand: null,
   activeBrandId: null,
   setActiveBrandId: () => {},
+  setAccountType: async () => {},
   loading: true,
 })
 
@@ -73,10 +75,15 @@ export function BrandProvider({ children }: { children: React.ReactNode }) {
     [user],
   )
 
+  const setAccountType = useCallback(async (brandId: string, accountType: AccountType) => {
+    const updated = await api.updateBrandAccountType(brandId, accountType)
+    setBrands((prev) => prev.map((b) => (b.id === brandId ? { ...b, accountType: updated.accountType } : b)))
+  }, [])
+
   const activeBrand = brands.find((b) => b.id === activeBrandId) ?? null
 
   return (
-    <BrandContext.Provider value={{ brands, activeBrand, activeBrandId, setActiveBrandId, loading }}>
+    <BrandContext.Provider value={{ brands, activeBrand, activeBrandId, setActiveBrandId, setAccountType, loading }}>
       {children}
     </BrandContext.Provider>
   )

@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
+import { DEFAULT_ACCOUNT_TYPE } from '@socialshelf/domain'
 import type {
+  BrandRepository,
   CampaignItem,
   CampaignItemRepository,
   CampaignPhotoRepository,
@@ -30,6 +32,7 @@ export class GenerateCampaignTimelineUseCase {
     private readonly itemRepo: CampaignItemRepository,
     private readonly captionClient: CampaignCaptionClient,
     private readonly lockRepo: CampaignTimelineLockRepository,
+    private readonly brandRepo: BrandRepository,
   ) {}
 
   async execute(input: GenerateCampaignTimelineInput): Promise<CampaignItem[]> {
@@ -62,6 +65,9 @@ export class GenerateCampaignTimelineUseCase {
 
       const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, input.startDate ?? new Date())
 
+      const brand = await this.brandRepo.findById(input.userId, input.brandId)
+      const accountType = brand?.accountType ?? DEFAULT_ACCOUNT_TYPE
+
       // Uma legenda por item, olhando a foto de capa daquele item (Gemini vision) — em paralelo,
       // não sequencial, porque uma campanha pode ter dezenas de itens e isso rodaria dentro de
       // uma única requisição HTTP. Item cujo pedido falha (generator-service fora do ar, foto
@@ -69,7 +75,7 @@ export class GenerateCampaignTimelineUseCase {
       // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
       // de autonomia).
       const captions = await Promise.all(
-        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
+        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType)),
       )
 
       const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({

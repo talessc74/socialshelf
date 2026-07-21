@@ -1,13 +1,16 @@
-import type { CampaignPhoto, PhotoCampaign } from '@socialshelf/domain'
+import type { AccountType, CampaignPhoto, PhotoCampaign } from '@socialshelf/domain'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 // Compartilhado entre GenerateCampaignTimelineUseCase e ExtendCampaignTimelineUseCase — os dois
 // precisam da mesma legenda por IA (com fallback determinístico) pra cada grupo de fotos.
+// accountType decide o registro do texto (pessoal x profissional); os metadados EXIF da foto de
+// capa (data/GPS) e o tamanho do carrossel deixam a legenda refletir o momento real.
 export async function captionForGroup(
   captionClient: CampaignCaptionClient,
   campaign: PhotoCampaign,
   photosById: Map<string, CampaignPhoto>,
   photoIds: string[],
+  accountType: AccountType,
 ): Promise<string> {
   const coverPhoto = photosById.get(photoIds[0]!)
   if (!coverPhoto) return defaultCaption(campaign)
@@ -20,6 +23,10 @@ export async function captionForGroup(
       campaignName: campaign.name,
       campaignDescription: campaign.description,
       keywords: campaign.keywords,
+      accountType,
+      photoTakenAt: coverPhoto.exifTakenAt ? coverPhoto.exifTakenAt.toISOString() : null,
+      photoHasLocation: coverPhoto.gpsLat !== null && coverPhoto.gpsLng !== null,
+      photoCount: photoIds.length,
     })
     return caption
   } catch {

@@ -18,6 +18,13 @@ vi.mock('../../../lib/api', () => ({
   },
 }))
 
+// Holder mutável para controlar o retorno de useBrand por teste sem quebrar os demais
+// (que rodam com activeBrand null → a seção de tipo de conta fica escondida).
+const brandMock = vi.hoisted(() => ({
+  current: { activeBrand: null as null | { id: string; name: string; slug: string; platforms: never[]; accountType: 'personal' | 'professional' }, setAccountType: vi.fn() },
+}))
+vi.mock('../../../contexts/BrandContext', () => ({ useBrand: () => brandMock.current }))
+
 const mockedApi = vi.mocked(api, true)
 
 function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandProfile {
@@ -75,6 +82,7 @@ function renderPageWithNarrationProbe() {
 beforeEach(() => {
   vi.clearAllMocks()
   mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile())
+  brandMock.current = { activeBrand: null, setAccountType: vi.fn() }
 })
 
 describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
@@ -138,6 +146,32 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
         }),
       ),
     )
+  })
+})
+
+describe('BrandSettingsPage — switch de tipo de conta', () => {
+  it('esconde a seção quando não há marca ativa', async () => {
+    renderPage()
+    await screen.findByText('Manual')
+    expect(screen.queryByText('Tipo de conta')).not.toBeInTheDocument()
+  })
+
+  it('mostra o switch com o tipo atual e troca para pessoal ao clicar', async () => {
+    const setAccountType = vi.fn().mockResolvedValue(undefined)
+    brandMock.current = {
+      activeBrand: { id: 'brand-1', name: 'Minha Marca', slug: 'default', platforms: [], accountType: 'professional' },
+      setAccountType,
+    }
+
+    renderPage()
+
+    const personal = await screen.findByRole('switch', { name: /Pessoal/ })
+    const professional = screen.getByRole('switch', { name: /Profissional/ })
+    expect(professional).toHaveAttribute('aria-checked', 'true')
+    expect(personal).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(personal)
+    await waitFor(() => expect(setAccountType).toHaveBeenCalledWith('brand-1', 'personal'))
   })
 })
 
