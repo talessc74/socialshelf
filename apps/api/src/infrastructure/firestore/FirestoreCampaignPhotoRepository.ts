@@ -88,6 +88,10 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
       locationClusterId: (data['locationClusterId'] as string | null) ?? null,
       createdAt: new Date(data['createdAt'] as string),
       order: (data['order'] as number | null | undefined) ?? null,
+      // Fotos enviadas antes da detecção de quase-iguais não têm estes campos — caem em null e
+      // nunca são tratadas como duplicata.
+      perceptualHash: (data['perceptualHash'] as string | null | undefined) ?? null,
+      duplicateOfPhotoId: (data['duplicateOfPhotoId'] as string | null | undefined) ?? null,
     }
   }
 }

@@ -49,11 +49,14 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export type AccountType = 'personal' | 'professional'
+
 export interface ApiBrand {
   id: string
   name: string
   slug: string
   platforms: Platform[]
+  accountType: AccountType
 }
 
 export interface ApiConnection {
@@ -308,6 +311,9 @@ export interface ApiCampaignPhoto {
   locationClusterId: string | null
   createdAt: string
   order: number | null
+  // Quando preenchido, esta foto ficou fora do carrossel por ser quase-igual à foto de id
+  // apontado — aparece no "pool de extras" da revisão, nunca é descartada.
+  duplicateOfPhotoId: string | null
 }
 
 export interface ApiCampaignItem {
@@ -336,6 +342,14 @@ export const api = {
   async getBrands(): Promise<ApiBrand[]> {
     const data = await apiFetch<{ brands: ApiBrand[] }>('/brands')
     return data.brands
+  },
+
+  async updateBrandAccountType(brandId: string, accountType: AccountType): Promise<ApiBrand> {
+    const data = await apiFetch<{ brand: ApiBrand }>(`/brands/${brandId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ accountType }),
+    })
+    return data.brand
   },
 
   async getConnections(): Promise<ApiConnection[]> {

@@ -1,6 +1,8 @@
 // Entities
 export type { User, AiConsent } from './entities/User.js'
 export type { Brand } from './entities/Brand.js'
+export type { AccountType } from './entities/AccountType.js'
+export { ALL_ACCOUNT_TYPES, DEFAULT_ACCOUNT_TYPE, isAccountType } from './entities/AccountType.js'
 export type { OAuthConnection } from './entities/OAuthConnection.js'
 export type { Post, PostStatus, PostOrigin, PlatformContent } from './entities/Post.js'
 export type { PhotoCampaign, PhotoCampaignStatus } from './entities/PhotoCampaign.js'

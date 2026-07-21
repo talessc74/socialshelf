@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto'
+import { DEFAULT_ACCOUNT_TYPE } from '@socialshelf/domain'
 import type {
+  BrandRepository,
   CampaignItem,
   CampaignItemRepository,
   CampaignPhotoRepository,
@@ -14,6 +16,8 @@ import {
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
 import { captionForGroup } from './campaignCaption.js'
+import { collapseNearDuplicates } from './nearDuplicates.js'
+import { applyDuplicateMarks } from './duplicateMarks.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 export interface GenerateCampaignTimelineInput {
@@ -30,6 +34,7 @@ export class GenerateCampaignTimelineUseCase {
     private readonly itemRepo: CampaignItemRepository,
     private readonly captionClient: CampaignCaptionClient,
     private readonly lockRepo: CampaignTimelineLockRepository,
+    private readonly brandRepo: BrandRepository,
   ) {}
 
   async execute(input: GenerateCampaignTimelineInput): Promise<CampaignItem[]> {
@@ -57,10 +62,20 @@ export class GenerateCampaignTimelineUseCase {
 
       const clusters = clusterByLocation(photos)
       const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
-      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
+      // Dentro de cada cluster (mesmo local/momento) colapsa as fotos quase-iguais: só os
+      // representantes entram nos carrosséis; os extras são marcados e aparecem no pool de revisão.
+      const collapsedExtras: Array<{ photo: (typeof photos)[number]; representativeId: string }> = []
+      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => {
+        const { kept, extras } = collapseNearDuplicates(clusterPhotos)
+        collapsedExtras.push(...extras)
+        return groupIntoCarousels(kept, carouselSize)
+      })
       const orderedGroups = interleaveGroups(groupsByCluster)
 
       const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, input.startDate ?? new Date())
+
+      const brand = await this.brandRepo.findById(input.userId, input.brandId)
+      const accountType = brand?.accountType ?? DEFAULT_ACCOUNT_TYPE
 
       // Uma legenda por item, olhando a foto de capa daquele item (Gemini vision) — em paralelo,
       // não sequencial, porque uma campanha pode ter dezenas de itens e isso rodaria dentro de
@@ -69,7 +84,7 @@ export class GenerateCampaignTimelineUseCase {
       // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
       // de autonomia).
       const captions = await Promise.all(
-        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
+        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType)),
       )
 
       const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
@@ -87,6 +102,8 @@ export class GenerateCampaignTimelineUseCase {
 
       await this.itemRepo.deleteByCampaign(campaign.id)
       await this.itemRepo.saveAll(items)
+      // Regeneração é do zero: reseta todas as fotos e remarca só os extras deste passo.
+      await applyDuplicateMarks(this.photoRepo, photos, collapsedExtras)
 
       campaign.status = 'reviewing'
       campaign.updatedAt = new Date()

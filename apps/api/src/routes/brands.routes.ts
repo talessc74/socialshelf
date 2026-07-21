@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform } from '@socialshelf/domain'
+import { DEFAULT_ACCOUNT_TYPE, Platform } from '@socialshelf/domain'
 import type { Brand } from '@socialshelf/domain'
 import { FirestoreBrandRepository } from '../infrastructure/firestore/FirestoreBrandRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
@@ -13,19 +13,26 @@ const platformEnum = z.enum([
   Platform.TWITTER,
 ])
 
+const accountTypeEnum = z.enum(['personal', 'professional'])
+
 const createBrandSchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1),
+  accountType: accountTypeEnum.default(DEFAULT_ACCOUNT_TYPE),
 })
 
+// accountType é editável aqui por ora — o switch pessoal/profissional do site. O ADR-030 o
+// previa imutável (proteção contra gaming de cobrança); como billing ainda não existe, o switch
+// vale para o piloto e a imutabilidade volta quando o billing for implementado (emenda pendente).
 const updateBrandSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
   platforms: z.array(platformEnum).optional(),
+  accountType: accountTypeEnum.optional(),
 })
 
 function toPublicBrand(brand: Brand) {
-  return { id: brand.id, name: brand.name, slug: brand.slug, platforms: brand.platforms }
+  return { id: brand.id, name: brand.name, slug: brand.slug, platforms: brand.platforms, accountType: brand.accountType }
 }
 
 export async function brandsRoutes(app: FastifyInstance) {
@@ -47,6 +54,8 @@ export async function brandsRoutes(app: FastifyInstance) {
       name: profile?.business.name ?? 'Minha Marca',
       slug: 'default',
       platforms: [],
+      // Marca padrão histórica é profissional — preserva o comportamento atual (_local-adr-policy-030).
+      accountType: DEFAULT_ACCOUNT_TYPE,
       createdAt: now,
       updatedAt: now,
     }
@@ -79,6 +88,7 @@ export async function brandsRoutes(app: FastifyInstance) {
         name: parsed.data.name,
         slug: parsed.data.slug,
         platforms: [],
+        accountType: parsed.data.accountType,
         createdAt: now,
         updatedAt: now,
       }
@@ -105,6 +115,7 @@ export async function brandsRoutes(app: FastifyInstance) {
         ...(parsed.data.name !== undefined && { name: parsed.data.name }),
         ...(parsed.data.slug !== undefined && { slug: parsed.data.slug }),
         ...(parsed.data.platforms !== undefined && { platforms: parsed.data.platforms }),
+        ...(parsed.data.accountType !== undefined && { accountType: parsed.data.accountType }),
         updatedAt: new Date(),
       }
       await brandRepo.save(updated)

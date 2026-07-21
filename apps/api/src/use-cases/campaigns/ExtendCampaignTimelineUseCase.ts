@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto'
+import { DEFAULT_ACCOUNT_TYPE } from '@socialshelf/domain'
 import type {
   BrandProfileRepository,
+  BrandRepository,
   CampaignItem,
   CampaignItemRepository,
   CampaignPhoto,
@@ -18,6 +20,8 @@ import {
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
 import { captionForGroup } from './campaignCaption.js'
+import { collapseNearDuplicates } from './nearDuplicates.js'
+import { applyDuplicateMarks } from './duplicateMarks.js'
 import { materializeCampaignItems } from './materializeCampaignItems.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
@@ -53,6 +57,7 @@ export class ExtendCampaignTimelineUseCase {
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly captionClient: CampaignCaptionClient,
     private readonly lockRepo: CampaignTimelineLockRepository,
+    private readonly brandRepo: BrandRepository,
   ) {}
 
   async execute(input: ExtendCampaignTimelineInput): Promise<CampaignItem[]> {
@@ -80,7 +85,13 @@ export class ExtendCampaignTimelineUseCase {
 
       const clusters = clusterByLocation(newPhotos)
       const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
-      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
+      // Colapsa quase-iguais só entre as fotos novas (as já agendadas não são tocadas).
+      const collapsedExtras: Array<{ photo: (typeof newPhotos)[number]; representativeId: string }> = []
+      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => {
+        const { kept, extras } = collapseNearDuplicates(clusterPhotos)
+        collapsedExtras.push(...extras)
+        return groupIntoCarousels(kept, carouselSize)
+      })
       const orderedGroups = interleaveGroups(groupsByCluster)
 
       // Continua a partir do dia seguinte ao último item já agendado — não tenta preencher os
@@ -94,8 +105,11 @@ export class ExtendCampaignTimelineUseCase {
 
       const nextOrder = existingItems.reduce((max, item) => Math.max(max, item.order), -1) + 1
 
+      const brand = await this.brandRepo.findById(input.userId, input.brandId)
+      const accountType = brand?.accountType ?? DEFAULT_ACCOUNT_TYPE
+
       const captions = await Promise.all(
-        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds)),
+        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType)),
       )
 
       const plannedItems: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
@@ -117,6 +131,7 @@ export class ExtendCampaignTimelineUseCase {
           : plannedItems
 
       await this.itemRepo.saveAll(newItems)
+      await applyDuplicateMarks(this.photoRepo, newPhotos, collapsedExtras)
       campaign.updatedAt = new Date()
       await this.campaignRepo.save(campaign)
 

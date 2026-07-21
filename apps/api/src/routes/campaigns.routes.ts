@@ -17,6 +17,7 @@ import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/Fi
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { FirestoreBrandRepository } from '../infrastructure/firestore/FirestoreBrandRepository.js'
 import { FirestoreCampaignTimelineLockRepository } from '../infrastructure/firestore/FirestoreCampaignTimelineLockRepository.js'
 import { HttpCampaignCaptionClient } from '../infrastructure/generator/CampaignCaptionClient.js'
 
@@ -63,6 +64,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
   const itemRepo = new FirestoreCampaignItemRepository()
   const postRepo = new FirestorePostRepository()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
+  const brandRepo = new FirestoreBrandRepository()
   const timelineLockRepo = new FirestoreCampaignTimelineLockRepository()
 
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
@@ -79,6 +81,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
     itemRepo,
     captionClient,
     timelineLockRepo,
+    brandRepo,
   )
   const extendTimeline = new ExtendCampaignTimelineUseCase(
     campaignRepo,
@@ -88,6 +91,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
     brandProfileRepo,
     captionClient,
     timelineLockRepo,
+    brandRepo,
   )
   const updateTimeline = new UpdateCampaignTimelineUseCase(campaignRepo, itemRepo)
   const activateCampaign = new ActivateCampaignUseCase(

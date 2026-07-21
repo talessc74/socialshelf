@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Platform } from '@socialshelf/domain'
 import type {
+  Brand,
   BrandProfileRepository,
+  BrandRepository,
   CampaignItem,
   CampaignItemRepository,
   CampaignPhoto,
@@ -50,6 +52,20 @@ function makeItem(overrides: Partial<CampaignItem> = {}): CampaignItem {
   }
 }
 
+function makeBrand(overrides: Partial<Brand> = {}): Brand {
+  return {
+    id: 'brand-1',
+    userId: 'user-1',
+    name: 'Marca',
+    slug: 'marca',
+    platforms: [],
+    accountType: 'professional',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
 function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
   return {
     id: 'p1',
@@ -63,6 +79,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     locationClusterId: null,
     createdAt: new Date(),
     order: null,
+    perceptualHash: null,
+    duplicateOfPhotoId: null,
     ...overrides,
   }
 }
@@ -75,6 +93,7 @@ describe('ExtendCampaignTimelineUseCase', () => {
   let brandProfileRepo: BrandProfileRepository
   let captionClient: CampaignCaptionClient
   let lockRepo: CampaignTimelineLockRepository
+  let brandRepo: BrandRepository
   let useCase: ExtendCampaignTimelineUseCase
 
   beforeEach(() => {
@@ -117,6 +136,12 @@ describe('ExtendCampaignTimelineUseCase', () => {
       tryAcquire: vi.fn().mockResolvedValue(true),
       release: vi.fn().mockResolvedValue(undefined),
     }
+    brandRepo = {
+      save: vi.fn(),
+      findById: vi.fn().mockResolvedValue(makeBrand()),
+      findByUserId: vi.fn(),
+      delete: vi.fn(),
+    }
     useCase = new ExtendCampaignTimelineUseCase(
       campaignRepo,
       photoRepo,
@@ -125,6 +150,7 @@ describe('ExtendCampaignTimelineUseCase', () => {
       brandProfileRepo,
       captionClient,
       lockRepo,
+      brandRepo,
     )
   })
 
@@ -221,6 +247,14 @@ describe('ExtendCampaignTimelineUseCase', () => {
     expect(postRepo.save).not.toHaveBeenCalled()
     expect(items[0]!.status).toBe('planned')
     expect(items[0]!.postId).toBeNull()
+  })
+
+  it('threads the brand accountType into the caption request for the appended items', async () => {
+    vi.mocked(brandRepo.findById).mockResolvedValue(makeBrand({ accountType: 'personal' }))
+
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(captionClient.suggestCaption).toHaveBeenCalledWith(expect.objectContaining({ accountType: 'personal' }))
   })
 
   it('does not change the campaign status, only updatedAt', async () => {

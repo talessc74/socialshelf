@@ -7,6 +7,11 @@ export interface CampaignCaptionRequest {
   campaignName: string
   campaignDescription: string
   keywords: string[]
+  accountType: 'personal' | 'professional'
+  // ISO string da data EXIF da foto de capa, ou null quando a foto não tem metadado de data.
+  photoTakenAt: string | null
+  photoHasLocation: boolean
+  photoCount: number
 }
 
 // Fronteira de infraestrutura com o generator-service (mesmo espírito de GeneratorAutonomyClient

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
-import type { ApiCampaignItem } from '../../../../../lib/api'
+import type { ApiCampaignItem, ApiCampaignPhoto } from '../../../../../lib/api'
 import { buildCampaignSummary } from '../../../../../lib/selfieCampaignSummary'
 import { useSelfieNarrateOnReady } from '../../../../../contexts/AssistantContext'
 
@@ -93,6 +93,17 @@ export default function CampaignTimelinePage() {
   useSelfieNarrateOnReady(items ? buildCampaignSummary(items) : null)
 
   const photosById = new Map((photos ?? []).map((p) => [p.id, p]))
+
+  // Extras: fotos deixadas de fora do carrossel por serem quase-iguais a uma mantida, agrupadas
+  // sob o id da foto representante. Pool só de visualização — nada é descartado.
+  const extrasByRepresentative = new Map<string, ApiCampaignPhoto[]>()
+  for (const photo of photos ?? []) {
+    if (photo.duplicateOfPhotoId === null) continue
+    const list = extrasByRepresentative.get(photo.duplicateOfPhotoId) ?? []
+    list.push(photo)
+    extrasByRepresentative.set(photo.duplicateOfPhotoId, list)
+  }
+  const hasExtras = extrasByRepresentative.size > 0
 
   // Uma única requisição pro lote inteiro de miniaturas em vez de uma por foto — ver
   // _local-edr-policy-039 pro rate limit global que uma requisição por miniatura esgota
@@ -268,6 +279,56 @@ export default function CampaignTimelinePage() {
             </li>
           ))}
         </ul>
+      )}
+
+      {hasExtras && (
+        <section className="rounded-2xl border border-line bg-card-2 p-4">
+          <h2 className="text-sm font-semibold text-ink">Fotos quase iguais deixadas de fora</h2>
+          <p className="mt-1 text-xs text-muted">
+            Para o carrossel não ficar repetitivo, mantivemos uma foto de cada grupo de imagens muito parecidas e
+            deixamos as demais de fora. Nenhuma foto foi apagada — elas continuam aqui.
+          </p>
+          <ul className="mt-3 space-y-3">
+            {[...extrasByRepresentative.entries()].map(([representativeId, extras]) => {
+              const representative = photosById.get(representativeId)
+              return (
+                <li key={representativeId} className="flex items-center gap-3">
+                  <div className="flex flex-col items-center gap-1">
+                    {representative && imageUrls?.[representative.storagePath] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={imageUrls[representative.storagePath]}
+                        alt=""
+                        className="h-14 w-14 rounded-lg object-cover ring-2 ring-accent"
+                      />
+                    ) : (
+                      <div className="h-14 w-14 rounded-lg bg-card-2 ring-2 ring-accent" />
+                    )}
+                    <span className="text-[10px] font-semibold text-accent">no carrossel</span>
+                  </div>
+                  <span className="text-muted">→</span>
+                  <div className="flex flex-1 gap-2 overflow-x-auto">
+                    {extras.map((extra) => (
+                      <div key={extra.id} className="flex flex-col items-center gap-1">
+                        {imageUrls?.[extra.storagePath] ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={imageUrls[extra.storagePath]}
+                            alt=""
+                            className="h-14 w-14 shrink-0 rounded-lg object-cover opacity-70"
+                          />
+                        ) : (
+                          <div className="h-14 w-14 shrink-0 rounded-lg bg-card-2" />
+                        )}
+                        <span className="text-[10px] text-muted">de fora</span>
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
       )}
 
       {(saveTimeline.isError || activateCampaign.isError || cancelCampaign.isError || pauseCampaign.isError || resumeCampaign.isError) && (

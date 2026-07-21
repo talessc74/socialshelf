@@ -66,6 +66,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     locationClusterId: null,
     createdAt: new Date().toISOString(),
     order: null,
+    duplicateOfPhotoId: null,
   }
 }
 

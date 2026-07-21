@@ -40,6 +40,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     locationClusterId: null,
     createdAt: new Date().toISOString(),
     order: null,
+    duplicateOfPhotoId: null,
   }
 }
 
@@ -135,6 +136,38 @@ describe('CampaignTimelinePage', () => {
     await waitFor(() => expect(container.querySelectorAll('img')).toHaveLength(2))
     expect(mockedApi.getImageUrls).toHaveBeenCalledTimes(1)
     expect(mockedApi.getImageUrls).toHaveBeenCalledWith(['photo-1.jpg', 'photo-2.jpg'])
+  })
+
+  it('shows the near-duplicate extras pool grouped under the kept photo', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([
+      makePhoto('photo-1'),
+      { ...makePhoto('photo-2'), duplicateOfPhotoId: 'photo-1' },
+    ])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText('Fotos quase iguais deixadas de fora')).toBeInTheDocument()
+    expect(screen.getByText('no carrossel')).toBeInTheDocument()
+    expect(screen.getByText('de fora')).toBeInTheDocument()
+  })
+
+  it('hides the extras pool when no photo is a near-duplicate', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1', 'photo-2'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPage()
+
+    await screen.findByText('Carrossel · 2 fotos')
+    expect(screen.queryByText('Fotos quase iguais deixadas de fora')).not.toBeInTheDocument()
   })
 
   it('reorders photos within a post using the move-forward arrow', async () => {

@@ -38,13 +38,15 @@ export class UploadCampaignPhotoUseCase {
         brandId: input.brandId,
         base64: input.buffer.toString('base64'),
         mimeType: input.mimeType,
+        // Foto de campanha pede o hash perceptual pra detecção de quase-iguais no carrossel.
+        perceptualHash: true,
       }),
     })
 
     if (!res.ok) {
       throw new Error(`Failed to store campaign photo: ${res.status}`)
     }
-    const { path } = (await res.json()) as { path: string }
+    const { path, perceptualHash } = (await res.json()) as { path: string; perceptualHash?: string | null }
 
     const photo: CampaignPhoto = {
       id: randomUUID(),
@@ -58,6 +60,8 @@ export class UploadCampaignPhotoUseCase {
       locationClusterId: null,
       createdAt: new Date(),
       order,
+      perceptualHash: perceptualHash ?? null,
+      duplicateOfPhotoId: null,
     }
 
     await this.photoRepo.save(photo)
