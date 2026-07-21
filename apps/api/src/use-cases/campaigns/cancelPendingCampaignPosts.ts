@@ -16,7 +16,10 @@ export async function cancelPendingCampaignPosts(
 
   const reverted: CampaignItem[] = []
   for (const item of materialized) {
-    const post = await postRepo.findById(item.postId)
+    // findByIdAndBrand lê o doc direto pelo caminho (users/brands/posts) — findById faz uma
+    // collectionGroup('posts').where('id', '==', ...) que exige um índice composto que não
+    // existe em produção (achado real: 9 FAILED_PRECONDITION ao cancelar/pausar uma campanha).
+    const post = await postRepo.findByIdAndBrand(item.postId, item.userId, item.brandId)
     if (!post || post.status !== 'scheduled') continue
     await postRepo.delete(post.id, post.userId, post.brandId)
     reverted.push({ ...item, status: 'planned', postId: null })
