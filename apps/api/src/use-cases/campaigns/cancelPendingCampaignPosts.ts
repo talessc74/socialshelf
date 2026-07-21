@@ -18,7 +18,7 @@ export async function cancelPendingCampaignPosts(
   for (const item of materialized) {
     const post = await postRepo.findById(item.postId)
     if (!post || post.status !== 'scheduled') continue
-    await postRepo.delete(post.id)
+    await postRepo.delete(post.id, post.userId, post.brandId)
     reverted.push({ ...item, status: 'planned', postId: null })
   }
 
