@@ -15,6 +15,31 @@ function isContentDeletedError(body: string): boolean {
   }
 }
 
+// code 10 é o código genérico da Graph API pra "sem permissão pra essa ação" — cobre tanto
+// uma métrica pedida que não existe mais (mesma classe do #100 de impressions/shares acima,
+// só que devolvido com cara de erro de permissão em vez de "métrica desconhecida") quanto a
+// conta não estar liberada como testadora do app em modo de desenvolvimento (mesma exigência
+// documentada em MetaPublisher.friendlyReason pra publicar). Sem essa tradução, a tela de
+// Performance mostrava o JSON cru da Graph API — mesmo problema já corrigido na publicação.
+const INSIGHTS_PERMISSION_ERROR_CODE = 10
+
+function friendlyReason(status: number, rawBody: string): string {
+  let graphError: { message?: string; code?: number } | undefined
+  try {
+    graphError = (JSON.parse(rawBody) as { error?: { message?: string; code?: number } }).error
+  } catch {
+    graphError = undefined
+  }
+
+  if (graphError?.code === INSIGHTS_PERMISSION_ERROR_CODE) {
+    return 'sem permissão pra ler métricas dessa rede — confirme que a conta está liberada como testadora do app (mesma exigência pra publicar) e reconecte em Central de Contas'
+  }
+  if (graphError?.message) {
+    return graphError.message
+  }
+  return `HTTP ${status}`
+}
+
 const IG_GRAPH = 'https://graph.instagram.com/v21.0'
 
 interface FacebookToken {
@@ -76,7 +101,7 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
       if (isContentDeletedError(err)) {
         throw new ContentNotFoundError(`Facebook post ${externalId} no longer exists`)
       }
-      throw new Error(`Facebook metrics fetch failed: ${response.status} ${err}`)
+      throw new Error(`Facebook metrics fetch failed: ${friendlyReason(response.status, err)}`)
     }
 
     const data = (await response.json()) as FacebookPostFields
@@ -95,9 +120,12 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
     const auth = resolveInstagramAuth(token)
 
     // Meta deprecated the "impressions" metric for Instagram media insights; requesting it now
-    // fails the whole call with OAuthException #10. "reach" is the supported replacement.
+    // fails the whole call with OAuthException #10. "reach" is the supported replacement. Meta
+    // also renamed "shares" to "sends" — same failure mode (IGApiException #10, "Application
+    // does not have permission for this action": Meta's insights endpoint rejects the entire
+    // request, with a permission-shaped error, when any single requested metric name is stale).
     const params = new URLSearchParams({
-      metric: 'reach,likes,comments,shares',
+      metric: 'reach,likes,comments,sends',
       access_token: auth.accessToken,
     })
 
@@ -108,7 +136,7 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
       if (isContentDeletedError(err)) {
         throw new ContentNotFoundError(`Instagram media ${externalId} no longer exists`)
       }
-      throw new Error(`Instagram metrics fetch failed: ${response.status} ${err}`)
+      throw new Error(`Instagram metrics fetch failed: ${friendlyReason(response.status, err)}`)
     }
 
     const data = (await response.json()) as InstagramMediaInsights
@@ -118,7 +146,7 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
       impressions: metric('reach'),
       likes: metric('likes'),
       comments: metric('comments'),
-      shares: metric('shares'),
+      shares: metric('sends'),
     }
   }
 }
