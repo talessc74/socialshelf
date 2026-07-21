@@ -79,6 +79,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     locationClusterId: null,
     createdAt: new Date(),
     order: null,
+    perceptualHash: null,
+    duplicateOfPhotoId: null,
     ...overrides,
   }
 }

@@ -311,6 +311,9 @@ export interface ApiCampaignPhoto {
   locationClusterId: string | null
   createdAt: string
   order: number | null
+  // Quando preenchido, esta foto ficou fora do carrossel por ser quase-igual à foto de id
+  // apontado — aparece no "pool de extras" da revisão, nunca é descartada.
+  duplicateOfPhotoId: string | null
 }
 
 export interface ApiCampaignItem {

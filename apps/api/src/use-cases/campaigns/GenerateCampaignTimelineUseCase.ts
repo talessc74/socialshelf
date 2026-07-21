@@ -16,6 +16,8 @@ import {
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
 import { captionForGroup } from './campaignCaption.js'
+import { collapseNearDuplicates } from './nearDuplicates.js'
+import { applyDuplicateMarks } from './duplicateMarks.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 export interface GenerateCampaignTimelineInput {
@@ -60,7 +62,14 @@ export class GenerateCampaignTimelineUseCase {
 
       const clusters = clusterByLocation(photos)
       const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
-      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => groupIntoCarousels(clusterPhotos, carouselSize))
+      // Dentro de cada cluster (mesmo local/momento) colapsa as fotos quase-iguais: só os
+      // representantes entram nos carrosséis; os extras são marcados e aparecem no pool de revisão.
+      const collapsedExtras: Array<{ photo: (typeof photos)[number]; representativeId: string }> = []
+      const groupsByCluster = [...clusters.values()].map((clusterPhotos) => {
+        const { kept, extras } = collapseNearDuplicates(clusterPhotos)
+        collapsedExtras.push(...extras)
+        return groupIntoCarousels(kept, carouselSize)
+      })
       const orderedGroups = interleaveGroups(groupsByCluster)
 
       const scheduledTimes = computeScheduledTimes(orderedGroups.length, campaign.postsPerDay, input.startDate ?? new Date())
@@ -93,6 +102,8 @@ export class GenerateCampaignTimelineUseCase {
 
       await this.itemRepo.deleteByCampaign(campaign.id)
       await this.itemRepo.saveAll(items)
+      // Regeneração é do zero: reseta todas as fotos e remarca só os extras deste passo.
+      await applyDuplicateMarks(this.photoRepo, photos, collapsedExtras)
 
       campaign.status = 'reviewing'
       campaign.updatedAt = new Date()

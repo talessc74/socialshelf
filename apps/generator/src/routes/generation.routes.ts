@@ -14,6 +14,7 @@ import { FirestoreGenerationRequestRepository } from '../infrastructure/firestor
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
+import { computePerceptualHash } from '../lib/perceptualHash.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -52,6 +53,9 @@ const uploadImageSchema = z.object({
   brandId: z.string().min(1),
   base64: z.string().min(1),
   mimeType: z.string().min(1),
+  // Só o upload de foto de campanha pede o hash perceptual (detecção de quase-iguais). O upload
+  // manual de geração não liga o flag, então não paga o custo do decode extra.
+  perceptualHash: z.boolean().default(false),
 })
 
 const deleteImageSchema = z.object({
@@ -232,14 +236,12 @@ export async function generationRoutes(app: FastifyInstance) {
     }
 
     try {
-      const path = await imageStorage.upload(
-        parsed.data.userId,
-        parsed.data.brandId,
-        Buffer.from(parsed.data.base64, 'base64'),
-        parsed.data.mimeType,
-        'upload',
-      )
-      return reply.send({ path })
+      const buffer = Buffer.from(parsed.data.base64, 'base64')
+      const [path, perceptualHash] = await Promise.all([
+        imageStorage.upload(parsed.data.userId, parsed.data.brandId, buffer, parsed.data.mimeType, 'upload'),
+        parsed.data.perceptualHash ? computePerceptualHash(buffer) : Promise.resolve(null),
+      ])
+      return reply.send({ path, perceptualHash })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'image upload failed')

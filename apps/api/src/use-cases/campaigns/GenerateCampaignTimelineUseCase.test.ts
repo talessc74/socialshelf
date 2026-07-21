@@ -60,6 +60,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     locationClusterId: null,
     createdAt: new Date(),
     order: null,
+    perceptualHash: null,
+    duplicateOfPhotoId: null,
     ...overrides,
   }
 }
@@ -197,6 +199,24 @@ describe('GenerateCampaignTimelineUseCase', () => {
         photoHasLocation: true,
         photoCount: 2,
       }),
+    )
+  })
+
+  it('collapses near-identical photos into a single carousel slot and marks the extras as duplicates', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([
+      makePhoto({ id: 'p1', perceptualHash: 'aaaaaaaaaaaaaaaa' }),
+      makePhoto({ id: 'p2', perceptualHash: 'aaaaaaaaaaaaaaaa' }), // idêntica a p1 → extra
+      makePhoto({ id: 'p3', perceptualHash: '5555555555555555' }), // bem diferente → mantida
+    ])
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    const scheduledPhotoIds = items.flatMap((i) => i.photoIds)
+    expect(scheduledPhotoIds).toContain('p1')
+    expect(scheduledPhotoIds).toContain('p3')
+    expect(scheduledPhotoIds).not.toContain('p2')
+    expect(photoRepo.saveAll).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'p2', duplicateOfPhotoId: 'p1' })]),
     )
   })
 
