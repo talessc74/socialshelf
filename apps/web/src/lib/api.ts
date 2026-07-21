@@ -41,8 +41,28 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       )
     }
     const body = await res.json().catch(() => ({ error: res.statusText }))
-    const b = body as { error?: string; message?: string; details?: unknown; detail?: string }
-    const msg = b.message ?? (b.error && b.detail ? `${b.error}: ${b.detail}` : b.error) ?? `HTTP ${res.status}`
+    const b = body as {
+      error?: string
+      message?: string
+      detail?: string
+      details?: { fieldErrors?: Record<string, string[]>; formErrors?: string[] }
+    }
+    // details vem do zod .flatten() nas rotas de validação (ex: PUT /brand-profile) — sem isso,
+    // um campo obrigatório ausente por um dado antigo (ex: perfil salvo antes de um campo novo
+    // existir) só aparecia como "Invalid request body" genérico, sem dizer qual seção falhou.
+    const fieldErrors = b.details?.fieldErrors
+    const fieldSummary =
+      fieldErrors && Object.keys(fieldErrors).length > 0
+        ? Object.entries(fieldErrors)
+            .map(([field, errs]) => `${field}: ${errs.join(', ')}`)
+            .join(' · ')
+        : null
+    const msg =
+      b.message ??
+      (b.error && b.detail ? `${b.error}: ${b.detail}` : null) ??
+      (b.error && fieldSummary ? `${b.error} (${fieldSummary})` : null) ??
+      b.error ??
+      `HTTP ${res.status}`
     throw new Error(msg)
   }
 

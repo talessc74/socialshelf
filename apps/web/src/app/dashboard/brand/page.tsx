@@ -144,9 +144,17 @@ export default function BrandSettingsPage() {
             brandProfile.operation.stylePreferences && brandProfile.operation.stylePreferences.length > 0
               ? brandProfile.operation.stylePreferences
               : ALL_TEMPLATE_STYLES,
+          // Idem: perfis salvos antes do guardrail de teto diário (_local-edr-policy-038)
+          // vinham sem este campo — undefined some no JSON e o PUT falhava com "Invalid
+          // request body" mesmo pra quem nunca tocou nesse campo. O backend já normaliza na
+          // leitura; este fallback é só defesa extra pro estado local do formulário.
+          maxAutoPostsPerDay:
+            typeof brandProfile.operation.maxAutoPostsPerDay === 'number' ? brandProfile.operation.maxAutoPostsPerDay : 1,
         },
       })
-      setMaxAutoPostsPerDayInput(String(brandProfile.operation.maxAutoPostsPerDay))
+      setMaxAutoPostsPerDayInput(
+        String(typeof brandProfile.operation.maxAutoPostsPerDay === 'number' ? brandProfile.operation.maxAutoPostsPerDay : 1),
+      )
     }
   }, [brandProfile])
 

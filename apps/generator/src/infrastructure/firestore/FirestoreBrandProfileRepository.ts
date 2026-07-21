@@ -1,5 +1,6 @@
 import { db } from '../firebase-admin.js'
 import type { BrandProfileRepository, BrandProfile } from '@socialshelf/domain'
+import { normalizeBrandProfileOperation } from './brandProfileNormalization.js'
 
 export class FirestoreBrandProfileRepository implements BrandProfileRepository {
   async save(profile: BrandProfile): Promise<void> {
@@ -56,7 +57,7 @@ export class FirestoreBrandProfileRepository implements BrandProfileRepository {
       visual: data['visual'] as BrandProfile['visual'],
       voice: data['voice'] as BrandProfile['voice'],
       narrative: data['narrative'] as BrandProfile['narrative'],
-      operation: data['operation'] as BrandProfile['operation'],
+      operation: normalizeBrandProfileOperation(data['operation']),
       createdAt: new Date(data['createdAt'] as string),
     }
   }
