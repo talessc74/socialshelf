@@ -31,9 +31,15 @@ function isMediaNotReadyError(body: string): boolean {
 // ou expirados) — sempre o mesmo motivo de fundo: a conexão precisa ser refeita com os
 // escopos certos. Sem essa tradução, o card do post mostrava o corpo bruto do erro da Graph
 // API (JSON com fbtrace_id, lista de permissões técnicas etc) direto pro usuário final.
+//
+// No Instagram especificamente, code 190 nesse endpoint quase sempre é sintoma de uma causa
+// mais funda que reconectar sozinho não resolve: a conta vinculada à Página não é Business/
+// Creator (exigência da própria Meta pra publicar via API — mesmo aviso já explicado em
+// /dashboard/accounts). "Reconecte a conta" sem essa ressalva prometia uma solução que não
+// existe pra quem tem só uma conta pessoal.
 const OAUTH_PERMISSION_ERROR_CODE = 190
 
-function friendlyReason(status: number, rawBody: string): string {
+function friendlyReason(status: number, rawBody: string, network: 'Facebook' | 'Instagram'): string {
   let graphError: { message?: string; code?: number } | undefined
   try {
     graphError = (JSON.parse(rawBody) as { error?: { message?: string; code?: number } }).error
@@ -42,7 +48,9 @@ function friendlyReason(status: number, rawBody: string): string {
   }
 
   if (graphError?.code === OAUTH_PERMISSION_ERROR_CODE) {
-    return 'a conexão perdeu a permissão necessária para publicar — reconecte a conta em Central de Contas'
+    return network === 'Instagram'
+      ? 'a conexão perdeu a permissão necessária para publicar — confirme que a conta é profissional (Business ou Creator; contas pessoais nunca conseguem publicar por API, é exigência da Meta) e reconecte em Central de Contas'
+      : 'a conexão perdeu a permissão necessária para publicar — reconecte a conta em Central de Contas'
   }
   if (graphError?.message) {
     return graphError.message
@@ -138,7 +146,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!response.ok) {
       const err = await response.text()
-      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err)}`)
+      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err, 'Facebook')}`)
     }
 
     const data = (await response.json()) as { id: string }
@@ -165,7 +173,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!response.ok) {
       const err = await response.text()
-      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err)}`)
+      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err, 'Facebook')}`)
     }
 
     // /photos devolve { id, post_id }: post_id é o post no feed; id é só a foto. Preferimos o post_id.
@@ -200,7 +208,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!response.ok) {
       const err = await response.text()
-      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err)}`)
+      throw new Error(`Facebook publish failed: ${friendlyReason(response.status, err, 'Facebook')}`)
     }
 
     const data = (await response.json()) as { id: string }
@@ -224,7 +232,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!response.ok) {
       const err = await response.text()
-      throw new Error(`Facebook photo upload failed: ${friendlyReason(response.status, err)}`)
+      throw new Error(`Facebook photo upload failed: ${friendlyReason(response.status, err, 'Facebook')}`)
     }
 
     const { id } = (await response.json()) as { id: string }
@@ -272,7 +280,7 @@ export class MetaPublisher implements PublisherPort {
       const err = await publishRes.text()
       const isLastAttempt = attempt === PUBLISH_RETRY_MAX_ATTEMPTS - 1
       if (!isMediaNotReadyError(err) || isLastAttempt) {
-        throw new Error(`Instagram publish failed: ${friendlyReason(publishRes.status, err)}`)
+        throw new Error(`Instagram publish failed: ${friendlyReason(publishRes.status, err, 'Instagram')}`)
       }
       await new Promise((resolve) => setTimeout(resolve, PUBLISH_RETRY_DELAY_MS))
     }
@@ -298,7 +306,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!res.ok) {
       const err = await res.text()
-      throw new Error(`Instagram media container failed: ${friendlyReason(res.status, err)}`)
+      throw new Error(`Instagram media container failed: ${friendlyReason(res.status, err, 'Instagram')}`)
     }
 
     const { id } = (await res.json()) as { id: string }
@@ -327,7 +335,7 @@ export class MetaPublisher implements PublisherPort {
 
       if (!res.ok) {
         const err = await res.text()
-        throw new Error(`Instagram carousel item container failed: ${friendlyReason(res.status, err)}`)
+        throw new Error(`Instagram carousel item container failed: ${friendlyReason(res.status, err, 'Instagram')}`)
       }
 
       const { id } = (await res.json()) as { id: string }
@@ -350,7 +358,7 @@ export class MetaPublisher implements PublisherPort {
 
     if (!res.ok) {
       const err = await res.text()
-      throw new Error(`Instagram carousel container failed: ${friendlyReason(res.status, err)}`)
+      throw new Error(`Instagram carousel container failed: ${friendlyReason(res.status, err, 'Instagram')}`)
     }
 
     const { id } = (await res.json()) as { id: string }
@@ -363,7 +371,7 @@ export class MetaPublisher implements PublisherPort {
 
       if (!res.ok) {
         const err = await res.text()
-        throw new Error(`Instagram container status check failed: ${friendlyReason(res.status, err)}`)
+        throw new Error(`Instagram container status check failed: ${friendlyReason(res.status, err, 'Instagram')}`)
       }
 
       const { status_code: statusCode } = (await res.json()) as { status_code: string }
