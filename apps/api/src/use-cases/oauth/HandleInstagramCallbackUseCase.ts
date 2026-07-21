@@ -74,7 +74,11 @@ export class HandleInstagramCallbackUseCase {
         platform: Platform.INSTAGRAM,
         pairwiseId,
         tokenRef,
-        scopes: ['instagram_business_basic', 'instagram_business_content_publish'],
+        scopes: [
+          'instagram_business_basic',
+          'instagram_business_content_publish',
+          'instagram_business_manage_insights',
+        ],
         accountLabel: profile.username ? `@${profile.username}` : null,
         expiresAt,
         createdAt: new Date(),

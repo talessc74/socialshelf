@@ -89,6 +89,7 @@ describe('HandleInstagramCallbackUseCase', () => {
 
     expect(connection.scopes).toContain('instagram_business_basic')
     expect(connection.scopes).toContain('instagram_business_content_publish')
+    expect(connection.scopes).toContain('instagram_business_manage_insights')
   })
 
   it('falls back to a 60-day expiry when expires_in is missing', async () => {
