@@ -120,12 +120,17 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
     const auth = resolveInstagramAuth(token)
 
     // Meta deprecated the "impressions" metric for Instagram media insights; requesting it now
-    // fails the whole call with OAuthException #10. "reach" is the supported replacement. Meta
-    // also renamed "shares" to "sends" — same failure mode (IGApiException #10, "Application
-    // does not have permission for this action": Meta's insights endpoint rejects the entire
-    // request, with a permission-shaped error, when any single requested metric name is stale).
+    // fails the whole call with OAuthException #10. "reach" is the supported replacement.
+    //
+    // "shares" NÃO foi renomeado pra "sends" — isso era uma suposição errada (baseada numa busca
+    // na web sem verificação contra a API real), corrigida numa sessão anterior e revertida aqui.
+    // A prova: pedir "sends" faz a própria Graph API devolver a lista de métricas válidas pra
+    // este endpoint, e "shares" está nela — "sends" não está. O code 10 original ("Application
+    // does not have permission for this action") não era sobre nome de métrica; segue em aberto
+    // como possível gap de permissão (instagram_manage_insights não coberto pelo mesmo cadastro
+    // de testador que liberou a publicação — ver BDR-012).
     const params = new URLSearchParams({
-      metric: 'reach,likes,comments,sends',
+      metric: 'reach,likes,comments,shares',
       access_token: auth.accessToken,
     })
 
@@ -146,7 +151,7 @@ export class MetaAnalyticsReader implements AnalyticsReaderPort {
       impressions: metric('reach'),
       likes: metric('likes'),
       comments: metric('comments'),
-      shares: metric('sends'),
+      shares: metric('shares'),
     }
   }
 }
