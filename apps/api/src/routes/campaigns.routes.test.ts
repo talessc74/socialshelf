@@ -339,8 +339,22 @@ describe('Campaigns routes', () => {
       expect(response.statusCode).toBe(404)
     })
 
-    it('returns 422 once the campaign is already active', async () => {
+    it('cancels an active campaign too (cascading cleanup, see PauseCampaignUseCase)', async () => {
       mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'active' })
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'cancelled' })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/campaigns/campaign-1/cancel',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json<{ campaign: { status: string } }>().campaign.status).toBe('cancelled')
+    })
+
+    it('returns 422 once the campaign already finished', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'completed' })
 
       const response = await app.inject({
         method: 'POST',
@@ -353,6 +367,68 @@ describe('Campaigns routes', () => {
 
     it('requires authentication', async () => {
       const response = await app.inject({ method: 'POST', url: '/campaigns/campaign-1/cancel' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /campaigns/:id/pause', () => {
+    it('returns 404 when the campaign does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/campaigns/missing/pause',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 422 when the campaign is not active', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'draft' })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/campaigns/campaign-1/pause',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(422)
+    })
+
+    it('requires authentication', async () => {
+      const response = await app.inject({ method: 'POST', url: '/campaigns/campaign-1/pause' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /campaigns/:id/resume', () => {
+    it('returns 404 when the campaign does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/campaigns/missing/resume',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 422 when the campaign is not paused', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'active' })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/campaigns/campaign-1/resume',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(422)
+    })
+
+    it('requires authentication', async () => {
+      const response = await app.inject({ method: 'POST', url: '/campaigns/campaign-1/resume' })
       expect(response.statusCode).toBe(401)
     })
   })

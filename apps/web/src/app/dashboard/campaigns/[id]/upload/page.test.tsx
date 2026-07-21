@@ -22,6 +22,7 @@ vi.mock('../../../../../lib/api', () => ({
     generateCampaignTimeline: vi.fn(),
     extendCampaignTimeline: vi.fn(),
     cancelCampaign: vi.fn(),
+    pauseCampaign: vi.fn(),
     getImageUrls: vi.fn(),
   },
 }))
@@ -305,14 +306,27 @@ describe('CampaignUploadPage', () => {
       expect(await screen.findByText('No new photos to schedule')).toBeInTheDocument()
     })
 
-    it('não mostra o botão de cancelar campanha pra uma campanha active', async () => {
+    it('também mostra os botões de pausar e cancelar pra uma campanha active', async () => {
       mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
       mockedApi.getCampaignPhotos.mockResolvedValue([])
 
       renderPage()
 
       await screen.findByRole('button', { name: 'Agendar fotos novas' })
-      expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Pausar campanha' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('pausa a campanha ao clicar em "Pausar campanha"', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.pauseCampaign.mockResolvedValue(makeCampaign({ status: 'paused' }))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Pausar campanha' }))
+
+      await waitFor(() => expect(mockedApi.pauseCampaign).toHaveBeenCalledWith('campaign-1'))
     })
   })
 
