@@ -85,7 +85,32 @@ describe('MetaAnalyticsReader', () => {
 
       await expect(
         reader.fetchPostMetrics('page-999_post-111', makeConnection(Platform.FACEBOOK)),
-      ).rejects.toThrow('Facebook metrics fetch failed: 400 Bad Request')
+      ).rejects.toThrow('Facebook metrics fetch failed: HTTP 400')
+    })
+
+    it('translates a permission error (code 10) into an actionable message, not the raw JSON body', async () => {
+      const vault = makeVault({ page_access_token: 'page-token' })
+      const reader = new MetaAnalyticsReader(vault)
+
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: async () =>
+          JSON.stringify({
+            error: { message: 'Application does not have permission for this action', type: 'IGApiException', code: 10, fbtrace_id: 'AbCdEfGh123' },
+          }),
+      })
+
+      let thrown: Error | undefined
+      try {
+        await reader.fetchPostMetrics('page-999_post-111', makeConnection(Platform.FACEBOOK))
+      } catch (err) {
+        thrown = err as Error
+      }
+
+      expect(thrown?.message).toContain('testadora do app')
+      expect(thrown?.message).not.toContain('fbtrace_id')
+      expect(thrown?.message).not.toContain('IGApiException')
     })
 
     it('throws ContentNotFoundError when the post was deleted on Facebook', async () => {
@@ -119,7 +144,7 @@ describe('MetaAnalyticsReader', () => {
             { name: 'reach', values: [{ value: 800 }] },
             { name: 'likes', values: [{ value: 60 }] },
             { name: 'comments', values: [{ value: 9 }] },
-            { name: 'shares', values: [{ value: 3 }] },
+            { name: 'sends', values: [{ value: 3 }] },
           ],
         }),
       })
@@ -128,6 +153,19 @@ describe('MetaAnalyticsReader', () => {
 
       expect(result).toEqual({ impressions: 800, likes: 60, comments: 9, shares: 3 })
       expect(fetchMock.mock.calls[0]![0]).toContain('/media-888/insights')
+    })
+
+    it('requests "sends", not the renamed-away "shares" metric — Meta rejects the whole call otherwise', async () => {
+      const vault = makeVault({ page_access_token: 'page-token' })
+      const reader = new MetaAnalyticsReader(vault)
+
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [] }) })
+
+      await reader.fetchPostMetrics('media-888', makeConnection(Platform.INSTAGRAM))
+
+      const url = fetchMock.mock.calls[0]![0] as string
+      expect(url).toContain('sends')
+      expect(url).not.toContain('shares')
     })
 
     it('reads metrics via graph.instagram.com for a Login do Instagram connection', async () => {
