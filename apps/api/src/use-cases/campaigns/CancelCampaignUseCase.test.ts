@@ -132,7 +132,7 @@ describe('CancelCampaignUseCase', () => {
     async (status) => {
       vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status }))
       vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem()])
-      vi.mocked(postRepo.findById).mockResolvedValue(makePost())
+      vi.mocked(postRepo.findByIdAndBrand).mockResolvedValue(makePost())
 
       await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
@@ -147,7 +147,7 @@ describe('CancelCampaignUseCase', () => {
   it('leaves already-published posts untouched when cancelling an active campaign', async () => {
     vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status: 'active' }))
     vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem()])
-    vi.mocked(postRepo.findById).mockResolvedValue(makePost({ status: 'published' }))
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValue(makePost({ status: 'published' }))
 
     await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 

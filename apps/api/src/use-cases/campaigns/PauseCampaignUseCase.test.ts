@@ -92,8 +92,8 @@ describe('PauseCampaignUseCase', () => {
     }
     postRepo = {
       save: vi.fn(),
-      findById: vi.fn().mockResolvedValue(makePost()),
-      findByIdAndBrand: vi.fn(),
+      findById: vi.fn(),
+      findByIdAndBrand: vi.fn().mockResolvedValue(makePost()),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
@@ -146,7 +146,7 @@ describe('PauseCampaignUseCase', () => {
   })
 
   it('leaves already-published posts and their items untouched', async () => {
-    vi.mocked(postRepo.findById).mockResolvedValue(makePost({ status: 'published' }))
+    vi.mocked(postRepo.findByIdAndBrand).mockResolvedValue(makePost({ status: 'published' }))
 
     await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 

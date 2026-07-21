@@ -74,6 +74,18 @@ status não-terminal). O `confirm()` de cancelamento de uma campanha `active`/`p
 explicitamente que posts ainda não publicados serão apagados — os já publicados continuam no
 histórico.
 
+## Addendum (2026-07-21)
+
+Achado real em produção logo após o deploy: pausar e cancelar uma campanha `active` falhavam com
+`9 FAILED_PRECONDITION: The query requires a COLLECTION_GROUP_ASC index for collection posts and
+field id`. `cancelPendingCampaignPosts` buscava o Post com `postRepo.findById(item.postId)`, que
+no `apps/api` faz `db.collectionGroup('posts').where('id', '==', id)` — uma query que exige um
+índice composto nunca provisionado, porque nenhum outro caminho de `apps/api` chamava `findById`
+em produção antes deste EDR. Trocado por `postRepo.findByIdAndBrand(item.postId, item.userId,
+item.brandId)`, que já tínhamos os três valores disponíveis no próprio `CampaignItem` — lê o doc
+direto pelo caminho `users/{uid}/brands/{bid}/posts/{id}`, sem collectionGroup e sem índice
+nenhum.
+
 ## What this does not solve
 
 Não adiciona um `'paused'` a `PostStatus` nem tenta pausar um Post individual fora de uma
