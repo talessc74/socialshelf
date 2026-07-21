@@ -10,6 +10,8 @@ import { ExtendCampaignTimelineUseCase } from '../use-cases/campaigns/ExtendCamp
 import { UpdateCampaignTimelineUseCase } from '../use-cases/campaigns/UpdateCampaignTimelineUseCase.js'
 import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaignUseCase.js'
 import { CancelCampaignUseCase } from '../use-cases/campaigns/CancelCampaignUseCase.js'
+import { PauseCampaignUseCase } from '../use-cases/campaigns/PauseCampaignUseCase.js'
+import { ResumeCampaignUseCase } from '../use-cases/campaigns/ResumeCampaignUseCase.js'
 import { FirestorePhotoCampaignRepository } from '../infrastructure/firestore/FirestorePhotoCampaignRepository.js'
 import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/FirestoreCampaignPhotoRepository.js'
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
@@ -96,7 +98,16 @@ export async function campaignsRoutes(app: FastifyInstance) {
     brandProfileRepo,
     timelineLockRepo,
   )
-  const cancelCampaign = new CancelCampaignUseCase(campaignRepo)
+  const cancelCampaign = new CancelCampaignUseCase(campaignRepo, itemRepo, postRepo)
+  const pauseCampaign = new PauseCampaignUseCase(campaignRepo, itemRepo, postRepo, timelineLockRepo)
+  const resumeCampaign = new ResumeCampaignUseCase(
+    campaignRepo,
+    itemRepo,
+    photoRepo,
+    postRepo,
+    brandProfileRepo,
+    timelineLockRepo,
+  )
 
   app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
     const parsed = createCampaignSchema.safeParse(request.body)
@@ -321,8 +332,37 @@ export async function campaignsRoutes(app: FastifyInstance) {
       return reply.send({ campaign })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      const status = message === 'Campaign not found' ? 404 : 422
-      return reply.status(status).send({ error: message })
+      return reply.status(statusForCampaignError(message)).send({ error: message })
+    }
+  })
+
+  // Pausa uma campanha 'active': apaga os Posts ainda 'scheduled' (o publisher nunca mais os
+  // vê) e devolve os itens correspondentes a 'planned', prontos pro Resume reagendar.
+  app.post('/campaigns/:id/pause', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      await pauseCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
+      const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      return reply.send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return reply.status(statusForCampaignError(message)).send({ error: message })
+    }
+  })
+
+  // Retoma uma campanha 'paused': rematerializa os itens pendentes com datas novas a partir de
+  // agora (nunca a partir de onde a linha do tempo tinha parado) e volta a campanha pra 'active'.
+  app.post('/campaigns/:id/resume', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      await resumeCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
+      const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      return reply.send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return reply.status(statusForCampaignError(message)).send({ error: message })
     }
   })
 }

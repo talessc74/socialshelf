@@ -288,7 +288,7 @@ export interface ApiPhotoCampaign {
   platforms: Platform[]
   postsPerDay: number
   carouselSizeDefault: number
-  status: 'draft' | 'reviewing' | 'active' | 'completed' | 'cancelled'
+  status: 'draft' | 'reviewing' | 'active' | 'paused' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string
   startedAt: string | null
@@ -781,6 +781,16 @@ export const api = {
 
   async cancelCampaign(id: string): Promise<ApiPhotoCampaign> {
     const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}/cancel`, { method: 'POST' })
+    return data.campaign
+  },
+
+  async pauseCampaign(id: string): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}/pause`, { method: 'POST' })
+    return data.campaign
+  },
+
+  async resumeCampaign(id: string): Promise<ApiPhotoCampaign> {
+    const data = await apiFetch<{ campaign: ApiPhotoCampaign }>(`/campaigns/${id}/resume`, { method: 'POST' })
     return data.campaign
   },
 

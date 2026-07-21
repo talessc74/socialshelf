@@ -26,7 +26,6 @@ function isMediaNotReadyError(body: string): boolean {
     return false
   }
 }
-
 // code 190 é o código estável da Graph API pra "OAuth exception" (token/permissão inválidos
 // ou expirados) — sempre o mesmo motivo de fundo: a conexão precisa ser refeita com os
 // escopos certos. Sem essa tradução, o card do post mostrava o corpo bruto do erro da Graph

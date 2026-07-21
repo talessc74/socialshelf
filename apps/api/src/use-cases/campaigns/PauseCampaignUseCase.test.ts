@@ -3,12 +3,13 @@ import { Platform } from '@socialshelf/domain'
 import type {
   CampaignItem,
   CampaignItemRepository,
+  CampaignTimelineLockRepository,
   PhotoCampaign,
   PhotoCampaignRepository,
   Post,
   PostRepository,
 } from '@socialshelf/domain'
-import { CancelCampaignUseCase } from './CancelCampaignUseCase.js'
+import { PauseCampaignUseCase } from './PauseCampaignUseCase.js'
 
 function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
   return {
@@ -21,10 +22,10 @@ function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
     platforms: [Platform.INSTAGRAM],
     postsPerDay: 2,
     carouselSizeDefault: 2,
-    status: 'draft',
+    status: 'active',
     createdAt: new Date(),
     updatedAt: new Date(),
-    startedAt: null,
+    startedAt: new Date('2026-07-01T00:00:00.000Z'),
     completedAt: null,
     ...overrides,
   }
@@ -69,11 +70,12 @@ function makePost(overrides: Partial<Post> = {}): Post {
   }
 }
 
-describe('CancelCampaignUseCase', () => {
+describe('PauseCampaignUseCase', () => {
   let campaignRepo: PhotoCampaignRepository
   let itemRepo: CampaignItemRepository
   let postRepo: PostRepository
-  let useCase: CancelCampaignUseCase
+  let lockRepo: CampaignTimelineLockRepository
+  let useCase: PauseCampaignUseCase
 
   beforeEach(() => {
     campaignRepo = {
@@ -85,19 +87,23 @@ describe('CancelCampaignUseCase', () => {
     itemRepo = {
       save: vi.fn(),
       saveAll: vi.fn().mockResolvedValue(undefined),
-      findByCampaign: vi.fn().mockResolvedValue([]),
+      findByCampaign: vi.fn().mockResolvedValue([makeItem()]),
       deleteByCampaign: vi.fn(),
     }
     postRepo = {
       save: vi.fn(),
-      findById: vi.fn(),
+      findById: vi.fn().mockResolvedValue(makePost()),
       findByIdAndBrand: vi.fn(),
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
       claimForPublishing: vi.fn(),
     }
-    useCase = new CancelCampaignUseCase(campaignRepo, itemRepo, postRepo)
+    lockRepo = {
+      tryAcquire: vi.fn().mockResolvedValue(true),
+      release: vi.fn().mockResolvedValue(undefined),
+    }
+    useCase = new PauseCampaignUseCase(campaignRepo, itemRepo, postRepo, lockRepo)
   })
 
   it('rejects when the campaign does not exist', async () => {
@@ -107,53 +113,50 @@ describe('CancelCampaignUseCase', () => {
     ).rejects.toThrow('Campaign not found')
   })
 
-  it.each(['draft', 'reviewing'] as const)('cancels a campaign in %s status without touching posts', async (status) => {
-    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status }))
-
-    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
-
-    const savedCampaign = vi.mocked(campaignRepo.save).mock.calls[0]![0]
-    expect(savedCampaign.status).toBe('cancelled')
-    expect(itemRepo.findByCampaign).not.toHaveBeenCalled()
-    expect(postRepo.delete).not.toHaveBeenCalled()
-  })
-
-  it.each(['completed', 'cancelled'] as const)('rejects cancelling a campaign that already %s', async (status) => {
-    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status }))
-
-    await expect(
-      useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
-    ).rejects.toThrow('already finished')
-    expect(campaignRepo.save).not.toHaveBeenCalled()
-  })
-
-  it.each(['active', 'paused'] as const)(
-    'cancelling a %s campaign deletes still-scheduled posts and marks the campaign cancelled',
+  it.each(['draft', 'reviewing', 'paused', 'completed', 'cancelled'] as const)(
+    'rejects pausing a campaign that is %s',
     async (status) => {
       vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status }))
-      vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem()])
-      vi.mocked(postRepo.findById).mockResolvedValue(makePost())
-
-      await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
-
-      expect(postRepo.delete).toHaveBeenCalledWith('post-1')
-      const savedItems = vi.mocked(itemRepo.saveAll).mock.calls[0]![0]
-      expect(savedItems[0]).toMatchObject({ status: 'planned', postId: null })
-      const savedCampaign = vi.mocked(campaignRepo.save).mock.calls[0]![0]
-      expect(savedCampaign.status).toBe('cancelled')
+      await expect(
+        useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+      ).rejects.toThrow('Only an active campaign can be paused')
+      expect(campaignRepo.save).not.toHaveBeenCalled()
     },
   )
 
-  it('leaves already-published posts untouched when cancelling an active campaign', async () => {
-    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status: 'active' }))
-    vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem()])
+  it('rejects when another concurrent timeline update already holds the lock', async () => {
+    vi.mocked(lockRepo.tryAcquire).mockResolvedValue(false)
+    await expect(
+      useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+    ).rejects.toThrow('already in progress')
+    expect(postRepo.delete).not.toHaveBeenCalled()
+  })
+
+  it('releases the lock after a successful run', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+    expect(lockRepo.release).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+  })
+
+  it('deletes not-yet-published posts and reverts their items to planned', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(postRepo.delete).toHaveBeenCalledWith('post-1')
+    const savedItems = vi.mocked(itemRepo.saveAll).mock.calls[0]![0]
+    expect(savedItems[0]).toMatchObject({ status: 'planned', postId: null })
+  })
+
+  it('leaves already-published posts and their items untouched', async () => {
     vi.mocked(postRepo.findById).mockResolvedValue(makePost({ status: 'published' }))
 
     await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
     expect(postRepo.delete).not.toHaveBeenCalled()
     expect(itemRepo.saveAll).not.toHaveBeenCalled()
+  })
+
+  it('sets the campaign status to paused', async () => {
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
     const savedCampaign = vi.mocked(campaignRepo.save).mock.calls[0]![0]
-    expect(savedCampaign.status).toBe('cancelled')
+    expect(savedCampaign.status).toBe('paused')
   })
 })

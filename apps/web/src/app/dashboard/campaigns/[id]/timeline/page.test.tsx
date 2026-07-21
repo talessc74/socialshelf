@@ -21,6 +21,8 @@ vi.mock('../../../../../lib/api', () => ({
     updateCampaignTimeline: vi.fn(),
     activateCampaign: vi.fn(),
     cancelCampaign: vi.fn(),
+    pauseCampaign: vi.fn(),
+    resumeCampaign: vi.fn(),
     getImageUrls: vi.fn(),
   },
 }))
@@ -236,7 +238,7 @@ describe('CampaignTimelinePage', () => {
       expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
     })
 
-    it('não mostra o botão de cancelar quando a campanha já está ativa', async () => {
+    it('também mostra o botão de cancelar quando a campanha já está ativa', async () => {
       mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
       mockedApi.getCampaignPhotos.mockResolvedValue([])
       mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1'])])
@@ -245,7 +247,20 @@ describe('CampaignTimelinePage', () => {
       renderPage()
 
       await screen.findByText('1 foto')
-      expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
+    })
+
+    it('não mostra o botão de cancelar quando a campanha já concluiu ou já foi cancelada', async () => {
+      for (const status of ['completed', 'cancelled'] as const) {
+        mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status }))
+        mockedApi.getCampaignPhotos.mockResolvedValue([])
+        mockedApi.getCampaignTimeline.mockResolvedValue([])
+
+        const { unmount } = renderPage()
+        await screen.findByText('Viagem à Europa')
+        expect(screen.queryByRole('button', { name: 'Cancelar campanha' })).not.toBeInTheDocument()
+        unmount()
+      }
     })
 
     it('pede confirmação, cancela a campanha e volta para a lista', async () => {
@@ -277,6 +292,56 @@ describe('CampaignTimelinePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
 
       expect(mockedApi.cancelCampaign).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('pausar e retomar campanha', () => {
+    it('mostra o botão de pausar apenas quando a campanha está ativa', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+
+      renderPage()
+
+      expect(await screen.findByRole('button', { name: 'Pausar campanha' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Retomar campanha' })).not.toBeInTheDocument()
+    })
+
+    it('pausa a campanha ao clicar', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+      mockedApi.pauseCampaign.mockResolvedValue(makeCampaign({ status: 'paused' }))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Pausar campanha' }))
+
+      await waitFor(() => expect(mockedApi.pauseCampaign).toHaveBeenCalledWith('campaign-1'))
+    })
+
+    it('mostra o botão de retomar apenas quando a campanha está pausada', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'paused' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+
+      renderPage()
+
+      expect(await screen.findByRole('button', { name: 'Retomar campanha' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Pausar campanha' })).not.toBeInTheDocument()
+    })
+
+    it('retoma a campanha ao clicar', async () => {
+      mockedApi.getCampaign.mockResolvedValue(makeCampaign({ status: 'paused' }))
+      mockedApi.getCampaignPhotos.mockResolvedValue([])
+      mockedApi.getCampaignTimeline.mockResolvedValue([])
+      mockedApi.resumeCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Retomar campanha' }))
+
+      await waitFor(() => expect(mockedApi.resumeCampaign).toHaveBeenCalledWith('campaign-1'))
     })
   })
 })

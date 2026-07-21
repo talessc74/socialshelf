@@ -1,6 +1,9 @@
 import type { Platform } from './Platform.js'
 
-export type PhotoCampaignStatus = 'draft' | 'reviewing' | 'active' | 'completed' | 'cancelled'
+// 'paused': campanha ativa que o usuário parou temporariamente — os Posts ainda não publicados
+// são desfeitos (ver cancelPendingCampaignPosts) e os itens correspondentes voltam a 'planned',
+// prontos pra ganhar novas datas quando ResumeCampaignUseCase reagendar a partir de agora.
+export type PhotoCampaignStatus = 'draft' | 'reviewing' | 'active' | 'paused' | 'completed' | 'cancelled'
 
 export interface PhotoCampaign {
   id: string

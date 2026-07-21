@@ -9,6 +9,8 @@ vi.mock('../../../lib/api', () => ({
   api: {
     listCampaigns: vi.fn(),
     cancelCampaign: vi.fn(),
+    pauseCampaign: vi.fn(),
+    resumeCampaign: vi.fn(),
   },
 }))
 
@@ -119,9 +121,17 @@ describe('CampaignsPage', () => {
       expect(await screen.findByRole('button', { name: 'Cancelar campanha' })).toBeInTheDocument()
     })
 
-    it('does not show a cancel button for active, completed or cancelled campaigns', async () => {
+    it('shows a cancel button for active and paused campaigns too', async () => {
       mockedApi.listCampaigns.mockResolvedValue([
         makeCampaign({ id: 'c-active', status: 'active' }),
+        makeCampaign({ id: 'c-paused', status: 'paused' }),
+      ])
+      renderPage()
+      expect(await screen.findAllByRole('button', { name: 'Cancelar campanha' })).toHaveLength(2)
+    })
+
+    it('does not show a cancel button for completed or cancelled campaigns', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([
         makeCampaign({ id: 'c-completed', status: 'completed' }),
         makeCampaign({ id: 'c-cancelled', status: 'cancelled' }),
       ])
@@ -168,6 +178,50 @@ describe('CampaignsPage', () => {
       expect(
         await screen.findByText('Não foi possível cancelar: Only a campaign that has not started can be cancelled'),
       ).toBeInTheDocument()
+    })
+  })
+
+  describe('pause and resume campaign', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('shows a pause button only for an active campaign', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([
+        makeCampaign({ id: 'c-active', status: 'active' }),
+        makeCampaign({ id: 'c-draft', status: 'draft' }),
+      ])
+      renderPage()
+      expect(await screen.findAllByText('Viagem à Europa')).toHaveLength(2)
+      expect(screen.getAllByRole('button', { name: 'Pausar campanha' })).toHaveLength(1)
+    })
+
+    it('pauses the campaign on click', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'active' })])
+      mockedApi.pauseCampaign.mockResolvedValue(makeCampaign({ status: 'paused' }))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Pausar campanha' }))
+
+      await waitFor(() => expect(mockedApi.pauseCampaign).toHaveBeenCalledWith('campaign-1'))
+    })
+
+    it('shows a resume button only for a paused campaign', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'paused' })])
+      renderPage()
+      expect(await screen.findByRole('button', { name: 'Retomar campanha' })).toBeInTheDocument()
+    })
+
+    it('resumes the campaign on click', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'paused' })])
+      mockedApi.resumeCampaign.mockResolvedValue(makeCampaign({ status: 'active' }))
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Retomar campanha' }))
+
+      await waitFor(() => expect(mockedApi.resumeCampaign).toHaveBeenCalledWith('campaign-1'))
     })
   })
 })

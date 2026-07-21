@@ -104,6 +104,14 @@ export default function CampaignUploadPage() {
     },
   })
 
+  const pauseCampaign = useMutation({
+    mutationFn: () => api.pauseCampaign(campaignId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] })
+    },
+  })
+
   const deletePhoto = useMutation({
     mutationFn: (photoId: string) => api.deleteCampaignPhoto(campaignId, photoId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaign-photos', campaignId] }),
@@ -307,6 +315,8 @@ export default function CampaignUploadPage() {
         <p className="text-sm text-red-600">{(cancelCampaign.error as Error).message}</p>
       )}
 
+      {pauseCampaign.isError && <p className="text-sm text-red-600">{(pauseCampaign.error as Error).message}</p>}
+
       <div className="flex flex-wrap gap-2">
         {isActiveCampaign ? (
           <button
@@ -327,13 +337,26 @@ export default function CampaignUploadPage() {
             {generateTimeline.isPending ? 'Gerando linha do tempo…' : 'Gerar linha do tempo'}
           </button>
         )}
-        {(campaign?.status === 'draft' || campaign?.status === 'reviewing') && (
+        {isActiveCampaign && (
+          <button
+            type="button"
+            onClick={() => pauseCampaign.mutate()}
+            disabled={pauseCampaign.isPending}
+            className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
+          >
+            {pauseCampaign.isPending ? 'Pausando…' : 'Pausar campanha'}
+          </button>
+        )}
+        {campaign?.status !== 'completed' && campaign?.status !== 'cancelled' && (
           <button
             type="button"
             onClick={() => {
+              const activeWarning = isActiveCampaign
+                ? ' Posts ainda não publicados serão apagados; os já publicados continuam no histórico.'
+                : ''
               if (
                 confirm(
-                  `Tem certeza que deseja cancelar a campanha "${campaign?.name}"? Essa ação não pode ser desfeita.`,
+                  `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
                 )
               ) {
                 cancelCampaign.mutate()

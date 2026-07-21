@@ -9,6 +9,7 @@ const STATUS_LABELS: Record<ApiPhotoCampaign['status'], { label: string; classNa
   draft: { label: 'Rascunho', className: 'bg-card-2 text-muted' },
   reviewing: { label: 'Em revisão', className: 'bg-amber-50 text-amber-700' },
   active: { label: 'Ativa', className: 'bg-emerald-50 text-emerald-700' },
+  paused: { label: 'Pausada', className: 'bg-amber-50 text-amber-700' },
   completed: { label: 'Concluída', className: 'bg-accent-soft text-accent' },
   cancelled: { label: 'Cancelada', className: 'bg-card-2 text-muted' },
 }
@@ -30,9 +31,11 @@ function nextStepFor(campaign: ApiPhotoCampaign): { href: string; label: string 
 // cancelled são estados terminais, sem mais nada a agendar.
 const CAN_ADD_PHOTOS_STATUSES = new Set<ApiPhotoCampaign['status']>(['reviewing', 'active'])
 
-// Só campanhas que ainda não começaram a publicar podem ser canceladas —
-// espelha a mesma validação do CancelCampaignUseCase no backend.
-const CANCELLABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['draft', 'reviewing'])
+// Cancelar é permitido em qualquer estado que não seja terminal — espelha a mesma validação do
+// CancelCampaignUseCase no backend (completed/cancelled são os únicos bloqueados).
+const CANCELLABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['draft', 'reviewing', 'active', 'paused'])
+const PAUSABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['active'])
+const RESUMABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['paused'])
 
 function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
   const queryClient = useQueryClient()
@@ -41,6 +44,16 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
 
   const cancelMutation = useMutation({
     mutationFn: () => api.cancelCampaign(campaign.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+  })
+
+  const pauseMutation = useMutation({
+    mutationFn: () => api.pauseCampaign(campaign.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+  })
+
+  const resumeMutation = useMutation({
+    mutationFn: () => api.resumeCampaign(campaign.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
   })
 
@@ -65,13 +78,49 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
             Não foi possível cancelar: {(cancelMutation.error as Error).message}
           </p>
         )}
+        {pauseMutation.isError && (
+          <p className="mt-1 text-xs text-red-600">Não foi possível pausar: {(pauseMutation.error as Error).message}</p>
+        )}
+        {resumeMutation.isError && (
+          <p className="mt-1 text-xs text-red-600">
+            Não foi possível retomar: {(resumeMutation.error as Error).message}
+          </p>
+        )}
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        {PAUSABLE_STATUSES.has(campaign.status) && (
+          <button
+            type="button"
+            onClick={() => pauseMutation.mutate()}
+            disabled={pauseMutation.isPending}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink hover:bg-card-2 disabled:opacity-40"
+          >
+            {pauseMutation.isPending ? 'Pausando…' : 'Pausar campanha'}
+          </button>
+        )}
+        {RESUMABLE_STATUSES.has(campaign.status) && (
+          <button
+            type="button"
+            onClick={() => resumeMutation.mutate()}
+            disabled={resumeMutation.isPending}
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+          >
+            {resumeMutation.isPending ? 'Retomando…' : 'Retomar campanha'}
+          </button>
+        )}
         {CANCELLABLE_STATUSES.has(campaign.status) && (
           <button
             type="button"
             onClick={() => {
-              if (confirm(`Tem certeza que deseja cancelar a campanha "${campaign.name}"? Essa ação não pode ser desfeita.`)) {
+              const activeWarning =
+                campaign.status === 'active' || campaign.status === 'paused'
+                  ? ' Posts ainda não publicados serão apagados; os já publicados continuam no histórico.'
+                  : ''
+              if (
+                confirm(
+                  `Tem certeza que deseja cancelar a campanha "${campaign.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
+                )
+              ) {
                 cancelMutation.mutate()
               }
             }}

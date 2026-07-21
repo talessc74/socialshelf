@@ -134,6 +134,26 @@ export default function CampaignTimelinePage() {
     },
   })
 
+  const pauseCampaign = useMutation({
+    mutationFn: () => api.pauseCampaign(campaignId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] })
+      queryClient.invalidateQueries({ queryKey: ['campaign-timeline', campaignId] })
+    },
+  })
+
+  const resumeCampaign = useMutation({
+    mutationFn: () => api.resumeCampaign(campaignId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['campaign', campaignId] })
+      // Resume reagenda os itens pendentes pra datas novas — a linha do tempo em cache mostraria
+      // os horários antigos até o refetch.
+      queryClient.invalidateQueries({ queryKey: ['campaign-timeline', campaignId] })
+    },
+  })
+
   function updateCaption(itemId: string, caption: string) {
     setItems((prev) => prev?.map((item) => (item.id === itemId ? { ...item, caption } : item)) ?? null)
   }
@@ -183,9 +203,10 @@ export default function CampaignTimelinePage() {
   }
 
   const isReviewing = campaign?.status === 'reviewing'
-  // Mesma regra do CancelCampaignUseCase no backend: só campanhas que ainda não começaram a
-  // publicar podem ser canceladas.
-  const isCancellable = campaign?.status === 'draft' || campaign?.status === 'reviewing'
+  const isPausable = campaign?.status === 'active'
+  const isResumable = campaign?.status === 'paused'
+  // Mesma regra do CancelCampaignUseCase no backend: só completed/cancelled ficam de fora.
+  const isCancellable = !!campaign && campaign.status !== 'completed' && campaign.status !== 'cancelled'
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -249,13 +270,21 @@ export default function CampaignTimelinePage() {
         </ul>
       )}
 
-      {(saveTimeline.isError || activateCampaign.isError || cancelCampaign.isError) && (
+      {(saveTimeline.isError || activateCampaign.isError || cancelCampaign.isError || pauseCampaign.isError || resumeCampaign.isError) && (
         <p className="text-sm text-red-600">
-          {((activateCampaign.error ?? saveTimeline.error ?? cancelCampaign.error) as Error).message}
+          {
+            (
+              (activateCampaign.error ??
+                saveTimeline.error ??
+                cancelCampaign.error ??
+                pauseCampaign.error ??
+                resumeCampaign.error) as Error
+            ).message
+          }
         </p>
       )}
 
-      {(isReviewing || isCancellable) && (
+      {(isReviewing || isCancellable || isPausable || isResumable) && (
         <div className="flex flex-wrap gap-2">
           {isReviewing && (
             <>
@@ -277,13 +306,37 @@ export default function CampaignTimelinePage() {
               </button>
             </>
           )}
+          {isPausable && (
+            <button
+              type="button"
+              onClick={() => pauseCampaign.mutate()}
+              disabled={pauseCampaign.isPending}
+              className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-40"
+            >
+              {pauseCampaign.isPending ? 'Pausando…' : 'Pausar campanha'}
+            </button>
+          )}
+          {isResumable && (
+            <button
+              type="button"
+              onClick={() => resumeCampaign.mutate()}
+              disabled={resumeCampaign.isPending}
+              className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 disabled:opacity-40"
+            >
+              {resumeCampaign.isPending ? 'Retomando…' : 'Retomar campanha'}
+            </button>
+          )}
           {isCancellable && (
             <button
               type="button"
               onClick={() => {
+                const activeWarning =
+                  campaign?.status === 'active' || campaign?.status === 'paused'
+                    ? ' Posts ainda não publicados serão apagados; os já publicados continuam no histórico.'
+                    : ''
                 if (
                   confirm(
-                    `Tem certeza que deseja cancelar a campanha "${campaign?.name}"? Essa ação não pode ser desfeita.`,
+                    `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
                   )
                 ) {
                   cancelCampaign.mutate()
