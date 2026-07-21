@@ -136,7 +136,7 @@ describe('CancelCampaignUseCase', () => {
 
       await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
-      expect(postRepo.delete).toHaveBeenCalledWith('post-1')
+      expect(postRepo.delete).toHaveBeenCalledWith('post-1', 'user-1', 'brand-1')
       const savedItems = vi.mocked(itemRepo.saveAll).mock.calls[0]![0]
       expect(savedItems[0]).toMatchObject({ status: 'planned', postId: null })
       const savedCampaign = vi.mocked(campaignRepo.save).mock.calls[0]![0]
