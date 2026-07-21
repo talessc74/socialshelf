@@ -144,7 +144,7 @@ describe('MetaAnalyticsReader', () => {
             { name: 'reach', values: [{ value: 800 }] },
             { name: 'likes', values: [{ value: 60 }] },
             { name: 'comments', values: [{ value: 9 }] },
-            { name: 'sends', values: [{ value: 3 }] },
+            { name: 'shares', values: [{ value: 3 }] },
           ],
         }),
       })
@@ -155,7 +155,11 @@ describe('MetaAnalyticsReader', () => {
       expect(fetchMock.mock.calls[0]![0]).toContain('/media-888/insights')
     })
 
-    it('requests "sends", not the renamed-away "shares" metric — Meta rejects the whole call otherwise', async () => {
+    // "sends" não é um nome de métrica válido pra este endpoint — a própria Graph API rejeita
+    // com a lista de valores aceitos quando alguém pede, e "shares" está nessa lista. Trava
+    // aqui pra não reintroduzir por engano a suposição errada (baseada numa busca na web sem
+    // verificação) que já causou essa regressão numa sessão anterior.
+    it('requests "shares", not "sends" — "sends" is rejected by the Graph API as an invalid metric name', async () => {
       const vault = makeVault({ page_access_token: 'page-token' })
       const reader = new MetaAnalyticsReader(vault)
 
@@ -164,8 +168,8 @@ describe('MetaAnalyticsReader', () => {
       await reader.fetchPostMetrics('media-888', makeConnection(Platform.INSTAGRAM))
 
       const url = fetchMock.mock.calls[0]![0] as string
-      expect(url).toContain('sends')
-      expect(url).not.toContain('shares')
+      expect(url).toContain('shares')
+      expect(url).not.toContain('sends')
     })
 
     it('reads metrics via graph.instagram.com for a Login do Instagram connection', async () => {
