@@ -175,8 +175,13 @@ export default function CampaignUploadPage() {
   }
 
   function handlePointerUp() {
-    if (draggedId && dragPreview) {
-      reorderPhotos.mutate(dragPreview.map((p) => p.id))
+    // Só persiste se a ordem de fato mudou — um toque/clique simples também passa por
+    // pointerdown+pointerup na miniatura (não só um arraste real), e mandar a lista inteira de
+    // volta sem necessidade eleva a chance de pegar uma foto excluída bem nesse instante (achado
+    // real em produção: exclusão + reorder quase simultâneos derrubavam o backend).
+    if (draggedId && dragPreview && photos) {
+      const reordered = dragPreview.some((photo, index) => photo.id !== photos[index]?.id)
+      if (reordered) reorderPhotos.mutate(dragPreview.map((p) => p.id))
     }
     setDraggedId(null)
     setDragPreview(undefined)

@@ -52,9 +52,16 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
   async reorder(userId: string, brandId: string, campaignId: string, orderedPhotoIds: string[]): Promise<void> {
     if (orderedPhotoIds.length === 0) return
     const collection = this.collectionFor(userId, brandId, campaignId)
+    const refs = orderedPhotoIds.map((photoId) => collection.doc(photoId))
+    // batch.update() exige que o documento já exista — sem checar antes, um id de foto excluída
+    // um instante antes (ex: exclusão e arraste-pra-reordenar disparados quase juntos) derruba o
+    // lote inteiro com "5 NOT_FOUND: No document to update" (achado real em produção). getAll()
+    // busca a existência de todos de uma vez; ids que já não existem só são pulados — a posição
+    // dos demais continua correta em relação à ordem pedida.
+    const docs = await db.getAll(...refs)
     const batch = db.batch()
-    orderedPhotoIds.forEach((photoId, index) => {
-      batch.update(collection.doc(photoId), { order: index })
+    docs.forEach((doc, index) => {
+      if (doc.exists) batch.update(refs[index]!, { order: index })
     })
     await batch.commit()
   }
