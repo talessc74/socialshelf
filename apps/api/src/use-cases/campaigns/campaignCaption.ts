@@ -1,6 +1,14 @@
 import type { AccountType, CampaignPhoto, PhotoCampaign } from '@socialshelf/domain'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
+// Quantas chamadas de legenda por IA rodam em voo ao mesmo tempo (ver mapWithConcurrency.ts).
+// generator-service roda em Cloud Run com max-instances=2 — disparar uma chamada por item sem
+// limite (campanhas grandes chegam a dezenas de itens) sobrecarrega o serviço e a maioria das
+// chamadas volta com 503 puro do próprio Cloud Run, nunca chegando na rota (achado real em
+// produção, 2026-07-21). 3 é conservador o bastante pra nunca saturar sozinho as 2 instâncias,
+// mesmo com outro tráfego (geração manual de post, tick de autonomia) concorrente no serviço.
+export const CAPTION_CONCURRENCY = 3
+
 // Compartilhado entre GenerateCampaignTimelineUseCase e ExtendCampaignTimelineUseCase — os dois
 // precisam da mesma legenda por IA (com fallback determinístico) pra cada grupo de fotos.
 // accountType decide o registro do texto (pessoal x profissional); os metadados EXIF da foto de
@@ -31,14 +39,15 @@ export async function captionForGroup(
     return caption
   } catch (err) {
     // O fallback é intencional (nunca trava a campanha por 1 item — _local-edr-policy-048), mas
-    // cair em silêncio impede qualquer diagnóstico depois: sem isto, "toda legenda saiu com o
-    // texto genérico" fica sem rastro nenhum em produção. console.error chega ao Cloud Run Logs
-    // do api-service mesmo sem logger injetado no use case.
+    // cair em silêncio impede qualquer diagnóstico depois. console.error chega ao Cloud Run Logs
+    // do api-service mesmo sem logger injetado no use case — achado real em produção
+    // (2026-07-21): a causa mais comum é 503 do próprio Cloud Run por excesso de chamadas
+    // simultâneas, corrigida limitando a concorrência do lado de quem chama (CAPTION_CONCURRENCY).
     const detail = err instanceof Error ? err.message : String(err)
     console.error(
       `[campaignCaption] AI caption failed for campaign ${campaign.id}, cover photo ${coverPhoto.storagePath} — falling back to template: ${detail}`,
     )
-    return debugFallbackCaption(campaign, detail)
+    return defaultCaption(campaign)
   }
 }
 
@@ -50,13 +59,4 @@ export function defaultCaption(campaign: PhotoCampaign): string {
   if (campaign.keywords.length === 0) return base
   const hashtags = campaign.keywords.map((k) => `#${k.trim().replace(/\s+/g, '')}`).join(' ')
   return `${base}\n\n${hashtags}`
-}
-
-// DIAGNÓSTICO TEMPORÁRIO — investigação em andamento de por que a legenda por IA cai no
-// fallback em 100% dos itens (2026-07-21). Expõe o motivo real do erro diretamente na legenda
-// (visível só na tela de revisão, nunca publicada sem edição) porque não há acesso a Cloud
-// Logging nesta sessão. Remover esta função e voltar a chamar defaultCaption puro assim que a
-// causa raiz for corrigida — não deixar em produção.
-function debugFallbackCaption(campaign: PhotoCampaign, detail: string): string {
-  return `[DEBUG-IA: ${detail}]\n\n${defaultCaption(campaign)}`
 }

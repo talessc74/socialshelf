@@ -19,10 +19,11 @@ import {
   interleaveGroups,
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
-import { captionForGroup } from './campaignCaption.js'
+import { captionForGroup, CAPTION_CONCURRENCY } from './campaignCaption.js'
 import { collapseNearDuplicates } from './nearDuplicates.js'
 import { applyDuplicateMarks } from './duplicateMarks.js'
 import { materializeCampaignItems } from './materializeCampaignItems.js'
+import { mapWithConcurrency } from './mapWithConcurrency.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 export interface ExtendCampaignTimelineInput {
@@ -108,8 +109,10 @@ export class ExtendCampaignTimelineUseCase {
       const brand = await this.brandRepo.findById(input.userId, input.brandId)
       const accountType = brand?.accountType ?? DEFAULT_ACCOUNT_TYPE
 
-      const captions = await Promise.all(
-        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType)),
+      // Concorrência limitada (CAPTION_CONCURRENCY) — mesma proteção de GenerateCampaignTimelineUseCase
+      // contra sobrecarregar o generator-service com uma rajada de chamadas simultâneas.
+      const captions = await mapWithConcurrency(orderedGroups, CAPTION_CONCURRENCY, (photoIds) =>
+        captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType),
       )
 
       const plannedItems: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
