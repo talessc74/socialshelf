@@ -65,17 +65,16 @@ describe('captionForGroup', () => {
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('campaign-1'))
   })
 
-  it('embeds the failure detail in the fallback caption for on-screen diagnosis (temporary, remove once root cause is fixed)', async () => {
+  it('falls back to the plain default caption (no leaked error text) when the AI call throws', async () => {
     captionClient = { suggestCaption: vi.fn().mockRejectedValue(new Error('boom detail here')) }
     const photo = makePhoto()
     const result = await captionForGroup(captionClient, makeCampaign(), new Map([[photo.id, photo]]), [photo.id], 'professional')
 
-    expect(result).toContain('DEBUG-IA')
-    expect(result).toContain('boom detail here')
-    expect(result).toContain(defaultCaption(makeCampaign()))
+    expect(result).toBe(defaultCaption(makeCampaign()))
+    expect(result).not.toContain('boom detail here')
   })
 
-  it('falls back to the plain default caption (no debug marker) when there is simply no cover photo to look up', async () => {
+  it('falls back to the plain default caption when there is simply no cover photo to look up', async () => {
     captionClient = { suggestCaption: vi.fn() }
     const result = await captionForGroup(captionClient, makeCampaign(), new Map(), ['missing-photo'], 'professional')
 

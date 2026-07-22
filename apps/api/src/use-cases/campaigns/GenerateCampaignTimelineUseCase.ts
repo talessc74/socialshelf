@@ -15,9 +15,10 @@ import {
   interleaveGroups,
   maxCarouselSizeForPlatforms,
 } from './locationClustering.js'
-import { captionForGroup } from './campaignCaption.js'
+import { captionForGroup, CAPTION_CONCURRENCY } from './campaignCaption.js'
 import { collapseNearDuplicates } from './nearDuplicates.js'
 import { applyDuplicateMarks } from './duplicateMarks.js'
+import { mapWithConcurrency } from './mapWithConcurrency.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
 export interface GenerateCampaignTimelineInput {
@@ -79,12 +80,14 @@ export class GenerateCampaignTimelineUseCase {
 
       // Uma legenda por item, olhando a foto de capa daquele item (Gemini vision) — em paralelo,
       // não sequencial, porque uma campanha pode ter dezenas de itens e isso rodaria dentro de
-      // uma única requisição HTTP. Item cujo pedido falha (generator-service fora do ar, foto
-      // corrompida, etc.) cai pro template determinístico antigo — nunca trava a campanha
-      // inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca do tick
-      // de autonomia).
-      const captions = await Promise.all(
-        orderedGroups.map((photoIds) => captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType)),
+      // uma única requisição HTTP. A concorrência é limitada (CAPTION_CONCURRENCY): disparar
+      // TODAS de uma vez sobrecarregava o generator-service (Cloud Run com max-instances=2),
+      // derrubando a legenda pra template em quase todo item — achado real em produção. Item
+      // cujo pedido falha mesmo assim cai pro template determinístico antigo — nunca trava a
+      // campanha inteira por causa de 1 item (mesmo espírito de isolamento de falha por marca
+      // do tick de autonomia).
+      const captions = await mapWithConcurrency(orderedGroups, CAPTION_CONCURRENCY, (photoIds) =>
+        captionForGroup(this.captionClient, campaign, photosById, photoIds, accountType),
       )
 
       const items: CampaignItem[] = orderedGroups.map((photoIds, index) => ({
