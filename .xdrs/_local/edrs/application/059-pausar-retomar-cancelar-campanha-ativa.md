@@ -1,11 +1,11 @@
 ---
-name: _local-edr-policy-059-pausar-retomar-cancelar-campanha-ativa
+name: _local-edr-policy-059-pausar-retomar-e-cancelar-campanha-ativa
 description: Uma PhotoCampaign 'active' não podia ser parada por nenhum caminho — CancelCampaignUseCase só aceitava draft/reviewing, e não existia pausa. Campanha ganha o status 'paused'; PauseCampaignUseCase apaga os Posts ainda 'scheduled' (o publisher só olha Post.status, não a campanha) e devolve os CampaignItems a 'planned'; ResumeCampaignUseCase rematerializa esses itens com scheduledAt recalculado a partir de agora; CancelCampaignUseCase passa a aceitar qualquer status não-terminal, cascateando a mesma limpeza. Use ao mexer em qualquer PhotoCampaignStatus ou nos use cases de campanha em apps/api/src/use-cases/campaigns.
 apply-to: apps/api — use-cases/campaigns (Pause/Resume/CancelCampaignUseCase), packages/domain — PhotoCampaign
 valid-from: 2026-07-21
 ---
 
-# _local-edr-policy-059: Pausar, retomar e cancelar uma campanha ativa
+# _local-edr-policy-059: Pausar, retomar e cancelar campanha ativa
 
 ## Context and Problem Statement
 
