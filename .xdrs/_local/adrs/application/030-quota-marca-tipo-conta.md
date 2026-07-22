@@ -47,6 +47,14 @@ Como aplicar o limite de marcas por tipo de conta de forma que (a) a regra valha
 - Toda criação de marca passa a depender de uma leitura de `Subscription`, mesmo que ela ainda não tenha cobrança real associada — introduz uma dependência nova no fluxo de `POST /brands`.
 - Usuários existentes (pré-multi-marca) continuam com sua única marca classificada como `professional` por causa de `ensureDefaultBrand`, sem necessidade de migração manual de dados.
 
+## Atualização — accountType implementado; imutabilidade relaxada temporariamente (2026-07-22)
+
+`accountType` estava decidido nesta policy desde 2026-06-26 mas nunca tinha sido implementado no código — toda marca era tratada como `professional` por padrão, sem nenhum campo real em `Brand`. Isso causava um bug relatado pelo usuário: uma conta pessoal, cujo "nome de marca" é o nome da própria pessoa, recebia o mesmo prompt de IA que cita a marca em terceira pessoa e usa CTA — gerando texto do tipo "a Fulana conseguiu chegar no destino!" numa conta que não é uma empresa.
+
+**Implementado**: `accountType` agora existe de fato em `Brand` (leitura tolerante para marcas gravadas antes deste campo, default `professional` — sem migração em lote, mesmo padrão desta ADR). `EDR-061` documenta como o tipo de conta muda o registro da legenda gerada por IA.
+
+**Imutabilidade relaxada — switch no site**: em vez do fluxo "criar marca nova pra trocar de tipo" previsto nesta ADR, foi adicionado um **switch simples pessoal/profissional** na página da marca (`PATCH /brands/:id` passa a aceitar `accountType`). Esta é uma exceção deliberada e temporária à regra de imutabilidade da seção `### Imutabilidade` acima — o motivo original da imutabilidade (impedir declarar `personal` pra pagar menos enquanto se opera como `professional`) só se aplica quando existe cobrança real ligada ao tipo de conta, e o billing descrito nesta ADR (`Subscription`, limites por plano) segue não implementado. Enquanto isso for verdade, o switch é seguro. **Quando o billing for implementado**, esta seção deve ser revisitada: ou o switch é removido (voltando à imutabilidade original), ou passa a exigir confirmação/proração explícita de cobrança antes de aceitar a troca.
+
 ## References
 
 - [_local-bdr-policy-009-contas-pessoal-profissional-cobranca](../../bdrs/product/009-contas-pessoal-profissional-cobranca.md) - Decisão de negócio que origina esta regra técnica
