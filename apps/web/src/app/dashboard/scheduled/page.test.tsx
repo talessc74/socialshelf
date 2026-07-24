@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform } from '@socialshelf/domain'
@@ -219,6 +219,58 @@ describe('ScheduledPostsPage', () => {
         new Date('2026-07-01T12:00:00.000Z'),
       )
     })
+  })
+
+  it('marca a foto com proporção incompatível ao editar um post que tem Instagram entre as redes', async () => {
+    mockedApi.getPosts.mockResolvedValue([
+      makePost({
+        imageStoragePaths: ['panorama.jpg'],
+        content: [
+          { platform: Platform.LINKEDIN, text: 'Texto agendado para o LinkedIn' },
+          { platform: Platform.INSTAGRAM, text: 'Texto pro Instagram' },
+        ],
+      }),
+    ])
+    mockedApi.getImageUrl.mockResolvedValue('https://example.com/panorama.jpg')
+
+    const user = await renderListView()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    const img = await waitFor(() => {
+      const el = document.querySelector('img')
+      if (!el) throw new Error('image not rendered yet')
+      return el
+    })
+    Object.defineProperty(img, 'naturalWidth', { value: 2400, configurable: true })
+    Object.defineProperty(img, 'naturalHeight', { value: 1000, configurable: true })
+    fireEvent.load(img)
+
+    expect(
+      await screen.findByTitle('Proporção incompatível com o Instagram (fora de 4:5–1.91:1)'),
+    ).toBeInTheDocument()
+  })
+
+  it('não marca a foto quando o post não tem Instagram entre as redes', async () => {
+    mockedApi.getPosts.mockResolvedValue([makePost({ imageStoragePaths: ['panorama.jpg'] })])
+    mockedApi.getImageUrl.mockResolvedValue('https://example.com/panorama.jpg')
+
+    const user = await renderListView()
+    await screen.findByText('Texto agendado para o LinkedIn')
+
+    await user.click(screen.getByRole('button', { name: 'Editar' }))
+    const img = await waitFor(() => {
+      const el = document.querySelector('img')
+      if (!el) throw new Error('image not rendered yet')
+      return el
+    })
+    Object.defineProperty(img, 'naturalWidth', { value: 2400, configurable: true })
+    Object.defineProperty(img, 'naturalHeight', { value: 1000, configurable: true })
+    fireEvent.load(img)
+
+    expect(
+      screen.queryByTitle('Proporção incompatível com o Instagram (fora de 4:5–1.91:1)'),
+    ).not.toBeInTheDocument()
   })
 
   it('permite alterar a data de publicação ao editar', async () => {
