@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import { Platform, PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
+import { Platform, PLATFORM_CHARACTER_LIMITS, isAspectRatioUnsupportedForInstagram } from '@socialshelf/domain'
 import type { ApiPost, PostContent } from '../../../lib/api'
 import { PostDetailModal } from '../../../components/PostDetailModal'
 import { buildScheduleSummary } from '../../../lib/selfieScheduleSummary'
@@ -26,18 +26,55 @@ function toDatetimeLocalValue(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function PostThumbnail({ path }: { path: string }) {
+function PostThumbnail({
+  path,
+  flagUnsupportedForInstagram = false,
+}: {
+  path: string
+  // Só faz sentido quando o post tem Instagram entre as redes-alvo (ver PostCard) — carrega a
+  // imagem real no navegador e lê as dimensões (naturalWidth/naturalHeight), sem chamada nova ao
+  // backend. Acha qual foto específica é incompatível (ver _local-edr-policy-066), não só que
+  // "alguma" é.
+  flagUnsupportedForInstagram?: boolean
+}) {
   const { data: url, isLoading } = useQuery({
     queryKey: ['image-url', path],
     queryFn: () => api.getImageUrl(path),
   })
+  const [unsupported, setUnsupported] = useState(false)
 
   if (isLoading || !url) {
     return <div className="h-16 w-16 shrink-0 animate-pulse rounded-lg bg-card-2" />
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+  return (
+    <div className="relative">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt=""
+        className={`h-16 w-16 shrink-0 rounded-lg object-cover ${unsupported ? 'ring-2 ring-red-500' : ''}`}
+        onLoad={
+          flagUnsupportedForInstagram
+            ? (e) => {
+                const { naturalWidth, naturalHeight } = e.currentTarget
+                if (naturalHeight > 0) {
+                  setUnsupported(isAspectRatioUnsupportedForInstagram(naturalWidth / naturalHeight))
+                }
+              }
+            : undefined
+        }
+      />
+      {unsupported && (
+        <span
+          title="Proporção incompatível com o Instagram (fora de 4:5–1.91:1)"
+          className="absolute -bottom-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] leading-none text-white"
+        >
+          ⚠
+        </span>
+      )}
+    </div>
+  )
 }
 
 const WEEKDAY_LABELS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
@@ -170,6 +207,7 @@ function PostCard({
 }) {
   const queryClient = useQueryClient()
   const firstImage = post.imageStoragePaths[0]
+  const targetsInstagram = post.content.some((c) => c.platform === Platform.INSTAGRAM)
 
   const [isEditing, setIsEditing] = useState(false)
   const [texts, setTexts] = useState<Partial<Record<Platform, string>>>(
@@ -336,11 +374,17 @@ function PostCard({
 
             <div>
               <span className="mb-1.5 block text-xs font-medium text-muted">Fotos</span>
+              {targetsInstagram && (
+                <p className="mb-1.5 text-xs text-muted">
+                  Fotos com <span className="font-semibold text-red-600">⚠</span> têm proporção incompatível com o
+                  Instagram (fora de 4:5–1.91:1) — remova ou troque antes de tentar publicar de novo.
+                </p>
+              )}
               {images.length > 0 && (
                 <ul className="mb-2 flex flex-wrap gap-2">
                   {images.map((path) => (
                     <li key={path} className="relative">
-                      <PostThumbnail path={path} />
+                      <PostThumbnail path={path} flagUnsupportedForInstagram={targetsInstagram} />
                       <button
                         type="button"
                         onClick={() => setImages((prev) => prev.filter((p) => p !== path))}

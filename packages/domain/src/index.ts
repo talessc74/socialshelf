@@ -124,3 +124,8 @@ export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLoc
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
 export { computeDailySlotHours } from './value-objects/DailyPostingSlots.js'
+export {
+  isAspectRatioUnsupportedForInstagram,
+  INSTAGRAM_MIN_ASPECT_RATIO,
+  INSTAGRAM_MAX_ASPECT_RATIO,
+} from './value-objects/InstagramAspectRatio.js'
