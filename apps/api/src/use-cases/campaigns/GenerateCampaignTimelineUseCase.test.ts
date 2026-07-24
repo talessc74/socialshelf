@@ -62,6 +62,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     order: null,
     perceptualHash: null,
     duplicateOfPhotoId: null,
+    aspectRatio: null,
+    unsupportedAspectRatio: false,
     ...overrides,
   }
 }
@@ -218,6 +220,39 @@ describe('GenerateCampaignTimelineUseCase', () => {
     expect(photoRepo.saveAll).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ id: 'p2', duplicateOfPhotoId: 'p1' })]),
     )
+  })
+
+  it('excludes a panoramic photo from any carousel and marks it as unsupported when the campaign targets Instagram', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([
+      makePhoto({ id: 'p1', aspectRatio: 1 }),
+      makePhoto({ id: 'panorama', aspectRatio: 2.4 }),
+    ])
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    const scheduledPhotoIds = items.flatMap((i) => i.photoIds)
+    expect(scheduledPhotoIds).toContain('p1')
+    expect(scheduledPhotoIds).not.toContain('panorama')
+    expect(photoRepo.saveAll).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'panorama', unsupportedAspectRatio: true })]),
+    )
+  })
+
+  it('does not exclude a panoramic photo when the campaign does not target Instagram', async () => {
+    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ platforms: [Platform.FACEBOOK] }))
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'panorama', aspectRatio: 2.4 })])
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(items.flatMap((i) => i.photoIds)).toContain('panorama')
+  })
+
+  it('rejects when every photo has an aspect ratio unsupported by Instagram', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'panorama', aspectRatio: 2.4 })])
+
+    await expect(
+      useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+    ).rejects.toThrow('unsupported by Instagram')
   })
 
   it('defaults to a professional accountType when the brand has no record', async () => {

@@ -22,6 +22,8 @@ import {
 import { captionForGroup, CAPTION_CONCURRENCY } from './campaignCaption.js'
 import { collapseNearDuplicates } from './nearDuplicates.js'
 import { applyDuplicateMarks } from './duplicateMarks.js'
+import { splitByAspectRatioSupport } from './unsupportedAspectRatio.js'
+import { applyAspectRatioMarks } from './aspectRatioMarks.js'
 import { materializeCampaignItems } from './materializeCampaignItems.js'
 import { mapWithConcurrency } from './mapWithConcurrency.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
@@ -82,9 +84,16 @@ export class ExtendCampaignTimelineUseCase {
       const scheduledPhotoIds = new Set(existingItems.flatMap((item) => item.photoIds))
       const newPhotos = photos.filter((photo) => !scheduledPhotoIds.has(photo.id))
       if (newPhotos.length === 0) throw new Error('No new photos to schedule')
-      const photosById = new Map(newPhotos.map((p) => [p.id, p]))
 
-      const clusters = clusterByLocation(newPhotos)
+      // Mesmo tratamento de GenerateCampaignTimelineUseCase: fotos incompatíveis com o Instagram
+      // nunca entram num carrossel quando a campanha inclui Instagram.
+      const { supported, unsupported } = splitByAspectRatioSupport(newPhotos, campaign.platforms)
+      if (supported.length === 0) {
+        throw new Error('All new photos have an aspect ratio unsupported by Instagram — remove Instagram from the campaign or add compatible photos')
+      }
+      const photosById = new Map(supported.map((p) => [p.id, p]))
+
+      const clusters = clusterByLocation(supported)
       const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
       // Colapsa quase-iguais só entre as fotos novas (as já agendadas não são tocadas).
       const collapsedExtras: Array<{ photo: (typeof newPhotos)[number]; representativeId: string }> = []
@@ -135,6 +144,7 @@ export class ExtendCampaignTimelineUseCase {
 
       await this.itemRepo.saveAll(newItems)
       await applyDuplicateMarks(this.photoRepo, newPhotos, collapsedExtras)
+      await applyAspectRatioMarks(this.photoRepo, newPhotos, unsupported)
       campaign.updatedAt = new Date()
       await this.campaignRepo.save(campaign)
 

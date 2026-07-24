@@ -67,6 +67,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     createdAt: new Date().toISOString(),
     order: null,
     duplicateOfPhotoId: null,
+    unsupportedAspectRatio: false,
   }
 }
 

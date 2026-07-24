@@ -17,6 +17,8 @@ function makePhoto(id: string, perceptualHash: string | null): CampaignPhoto {
     order: null,
     perceptualHash,
     duplicateOfPhotoId: null,
+    aspectRatio: null,
+    unsupportedAspectRatio: false,
   }
 }
 
