@@ -456,7 +456,7 @@ function PostCard({
                 {updateMutation.error instanceof Error ? updateMutation.error.message : 'Erro ao salvar.'}
               </p>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={handleSave}
                 disabled={!canSave || updateMutation.isPending}
@@ -487,7 +487,7 @@ function PostCard({
                 {failedPlatforms.map((f) => f.reason).join(' · ')}
               </p>
             )}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setIsEditing(true)}
                 className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
@@ -629,7 +629,7 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
           </p>
         )}
         <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setShowDetail(true)}
             className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
