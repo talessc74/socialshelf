@@ -66,6 +66,7 @@ Padrões de implementação de código nas aplicações.
 - [_local-edr-policy-063-deteccao-fotos-quase-iguais](application/063-deteccao-fotos-quase-iguais.md) - Hash perceptual (dHash) no upload; fotos quase-iguais dentro do mesmo cluster colapsam num representante, extras visíveis num pool na revisão, nada é descartado
 - [_local-edr-policy-064-normalizacao-brandprofile-operation](application/064-normalizacao-brandprofile-operation.md) - normalizeBrandProfileOperation corrige "Invalid request body" ao salvar marca antiga sem maxAutoPostsPerDay/stylePreferences
 - [_local-edr-policy-065-confiabilidade-timeline-campanha-concorrencia](application/065-confiabilidade-timeline-campanha-concorrencia.md) - Legenda caindo 100% em fallback por rajada de chamadas simultâneas ao generator-service (CAPTION_CONCURRENCY); exclusão de foto quebrando com NOT_FOUND ao colidir com reordenação
+- [_local-edr-policy-066-proporcao-incompativel-com-instagram](application/066-foto-de-campanha-com-proporcao-incompativel-com-instagram.md) - Instagram rejeita "The aspect ratio is not supported" pra fotos fora de 4:5–1.91:1, sem retry possível; aspectRatio calculado no upload, Generate/ExtendCampaignTimelineUseCase excluem essas fotos de qualquer carrossel só quando a campanha inclui Instagram, mesma filosofia do pool de quase-iguais (nada é descartado)
 
 ### devops
 Pipeline de entrega e práticas de build.

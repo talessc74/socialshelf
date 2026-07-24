@@ -12,7 +12,7 @@ Este escopo fica neste workspace apenas e nunca é distribuído para outros cont
 
 Cobertura: princípios de engenharia, arquitetura hexagonal, monorepo, decomposição de serviços, Zero Trust, minimização de dados, identidade pairwise, retenção de dados, integração OAuth, infraestrutura GCP, geração multiartefato, transparência em incidentes, Cloud Scheduler para publicação agendada com scale-to-zero, integração TikTok (OAuth, publicação multi-etapa), geração de vídeo assíncrona com sincronização de áudio, ativação do modo automático de publicação, a espinha dorsal de campanhas de fotos e login com Google via Google Identity Services.
 
-### EDRs — Decisões de Engenharia (61 documentos)
+### EDRs — Decisões de Engenharia (62 documentos)
 
 Cobertura: TDD obrigatória, TypeScript strict, Fastify + plugins, Next.js App Router, pipeline CI/CD, Docker multi-stage, Cloud Run, vocabulário proibido, pipeline de sinal de audiência e pauta, geração multiartefato, testes de componente em apps/web, testes visuais de regressão por viewport, tolerância a variação de formato na resposta do Gemini, pipeline de vídeo TikTok, consentimento de conteúdo de terceiros no upload, tick diário/horário de autonomia (frequência, teto por dia, histórico de tentativas), implementação e curadoria de campanhas de fotos, ordenação/visibilidade da lista de posts agendados, confiabilidade de publicação/métricas do Instagram, redesenho da entrada /dashboard sob interruptor de visual, legenda de campanha por tipo de conta e EXIF, detecção de fotos quase-iguais no carrossel, e confiabilidade da timeline de campanha sob concorrência.
 
