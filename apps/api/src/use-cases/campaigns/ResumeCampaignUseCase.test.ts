@@ -65,6 +65,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     order: null,
     perceptualHash: null,
     duplicateOfPhotoId: null,
+    aspectRatio: null,
+    unsupportedAspectRatio: false,
     ...overrides,
   }
 }

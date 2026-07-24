@@ -41,6 +41,7 @@ function makePhoto(id: string): ApiCampaignPhoto {
     createdAt: new Date().toISOString(),
     order: null,
     duplicateOfPhotoId: null,
+    unsupportedAspectRatio: false,
   }
 }
 
@@ -168,6 +169,36 @@ describe('CampaignTimelinePage', () => {
 
     await screen.findByText('Carrossel · 2 fotos')
     expect(screen.queryByText('Fotos quase iguais deixadas de fora')).not.toBeInTheDocument()
+  })
+
+  it('shows the unsupported aspect ratio pool for a photo excluded from every carousel', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([
+      makePhoto('photo-1'),
+      { ...makePhoto('panorama'), unsupportedAspectRatio: true },
+    ])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPage()
+
+    expect(await screen.findByText('Fotos com formato incompatível com o Instagram')).toBeInTheDocument()
+  })
+
+  it('hides the unsupported aspect ratio pool when every photo is compatible', async () => {
+    mockedApi.getCampaign.mockResolvedValue(makeCampaign())
+    mockedApi.getCampaignPhotos.mockResolvedValue([makePhoto('photo-1'), makePhoto('photo-2')])
+    mockedApi.getCampaignTimeline.mockResolvedValue([makeItem('item-1', ['photo-1', 'photo-2'])])
+    mockedApi.getImageUrls.mockImplementation(async (paths) =>
+      Object.fromEntries(paths.map((path) => [path, `https://example.com/${path}`])),
+    )
+
+    renderPage()
+
+    await screen.findByText('Carrossel · 2 fotos')
+    expect(screen.queryByText('Fotos com formato incompatível com o Instagram')).not.toBeInTheDocument()
   })
 
   it('reorders photos within a post using the move-forward arrow', async () => {

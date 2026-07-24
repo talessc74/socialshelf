@@ -15,6 +15,7 @@ import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePo
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
 import { computePerceptualHash } from '../lib/perceptualHash.js'
+import { computeAspectRatio } from '../lib/imageAspectRatio.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -237,11 +238,14 @@ export async function generationRoutes(app: FastifyInstance) {
 
     try {
       const buffer = Buffer.from(parsed.data.base64, 'base64')
-      const [path, perceptualHash] = await Promise.all([
+      // aspectRatio anda junto do mesmo flag de perceptualHash — hoje só o upload de foto de
+      // campanha (que também detecta quase-iguais) precisa de qualquer um dos dois.
+      const [path, perceptualHash, aspectRatio] = await Promise.all([
         imageStorage.upload(parsed.data.userId, parsed.data.brandId, buffer, parsed.data.mimeType, 'upload'),
         parsed.data.perceptualHash ? computePerceptualHash(buffer) : Promise.resolve(null),
+        parsed.data.perceptualHash ? computeAspectRatio(buffer) : Promise.resolve(null),
       ])
-      return reply.send({ path, perceptualHash })
+      return reply.send({ path, perceptualHash, aspectRatio })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       app.log.error({ err }, 'image upload failed')

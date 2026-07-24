@@ -99,6 +99,10 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
       // nunca são tratadas como duplicata.
       perceptualHash: (data['perceptualHash'] as string | null | undefined) ?? null,
       duplicateOfPhotoId: (data['duplicateOfPhotoId'] as string | null | undefined) ?? null,
+      // Fotos enviadas antes da detecção de proporção incompatível também caem no default
+      // neutro — nunca tratadas como incompatíveis sem o dado real pra decidir.
+      aspectRatio: (data['aspectRatio'] as number | null | undefined) ?? null,
+      unsupportedAspectRatio: (data['unsupportedAspectRatio'] as boolean | undefined) ?? false,
     }
   }
 }

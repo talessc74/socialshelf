@@ -18,6 +18,8 @@ import {
 import { captionForGroup, CAPTION_CONCURRENCY } from './campaignCaption.js'
 import { collapseNearDuplicates } from './nearDuplicates.js'
 import { applyDuplicateMarks } from './duplicateMarks.js'
+import { splitByAspectRatioSupport } from './unsupportedAspectRatio.js'
+import { applyAspectRatioMarks } from './aspectRatioMarks.js'
 import { mapWithConcurrency } from './mapWithConcurrency.js'
 import type { CampaignCaptionClient } from '../../infrastructure/generator/CampaignCaptionClient.js'
 
@@ -59,9 +61,17 @@ export class GenerateCampaignTimelineUseCase {
     try {
       const photos = await this.photoRepo.findByCampaign(input.campaignId)
       if (photos.length === 0) throw new Error('Campaign has no photos to schedule')
-      const photosById = new Map(photos.map((p) => [p.id, p]))
 
-      const clusters = clusterByLocation(photos)
+      // Fotos com proporção incompatível com o Instagram (achado real em produção: "The aspect
+      // ratio is not supported") nunca entram num carrossel quando a campanha inclui Instagram —
+      // ficam de fora e aparecem no pool de revisão, mesmo tratamento do near-duplicate.
+      const { supported, unsupported } = splitByAspectRatioSupport(photos, campaign.platforms)
+      if (supported.length === 0) {
+        throw new Error('All photos have an aspect ratio unsupported by Instagram — remove Instagram from the campaign or add compatible photos')
+      }
+      const photosById = new Map(supported.map((p) => [p.id, p]))
+
+      const clusters = clusterByLocation(supported)
       const carouselSize = Math.min(campaign.carouselSizeDefault, maxCarouselSizeForPlatforms(campaign.platforms))
       // Dentro de cada cluster (mesmo local/momento) colapsa as fotos quase-iguais: só os
       // representantes entram nos carrosséis; os extras são marcados e aparecem no pool de revisão.
@@ -107,6 +117,7 @@ export class GenerateCampaignTimelineUseCase {
       await this.itemRepo.saveAll(items)
       // Regeneração é do zero: reseta todas as fotos e remarca só os extras deste passo.
       await applyDuplicateMarks(this.photoRepo, photos, collapsedExtras)
+      await applyAspectRatioMarks(this.photoRepo, photos, unsupported)
 
       campaign.status = 'reviewing'
       campaign.updatedAt = new Date()

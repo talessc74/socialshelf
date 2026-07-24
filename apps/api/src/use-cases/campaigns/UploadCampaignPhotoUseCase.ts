@@ -46,7 +46,11 @@ export class UploadCampaignPhotoUseCase {
     if (!res.ok) {
       throw new Error(`Failed to store campaign photo: ${res.status}`)
     }
-    const { path, perceptualHash } = (await res.json()) as { path: string; perceptualHash?: string | null }
+    const { path, perceptualHash, aspectRatio } = (await res.json()) as {
+      path: string
+      perceptualHash?: string | null
+      aspectRatio?: number | null
+    }
 
     const photo: CampaignPhoto = {
       id: randomUUID(),
@@ -62,6 +66,8 @@ export class UploadCampaignPhotoUseCase {
       order,
       perceptualHash: perceptualHash ?? null,
       duplicateOfPhotoId: null,
+      aspectRatio: aspectRatio ?? null,
+      unsupportedAspectRatio: false,
     }
 
     await this.photoRepo.save(photo)

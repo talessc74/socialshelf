@@ -81,6 +81,8 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
     order: null,
     perceptualHash: null,
     duplicateOfPhotoId: null,
+    aspectRatio: null,
+    unsupportedAspectRatio: false,
     ...overrides,
   }
 }
@@ -202,6 +204,35 @@ describe('ExtendCampaignTimelineUseCase', () => {
     const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
     expect(items).toHaveLength(1)
     expect(items[0]!.photoIds).toEqual(['p2'])
+  })
+
+  it('excludes a new panoramic photo from any carousel and marks it unsupported (Instagram is a target platform)', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([
+      makePhoto({ id: 'p1' }), // já agendada (item-1), não entra em newPhotos
+      makePhoto({ id: 'p2' }),
+      makePhoto({ id: 'panorama', aspectRatio: 2.4 }),
+    ])
+
+    const items = await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    const scheduledPhotoIds = items.flatMap((i) => i.photoIds)
+    expect(scheduledPhotoIds).toContain('p2')
+    expect(scheduledPhotoIds).not.toContain('panorama')
+    expect(photoRepo.saveAll).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 'panorama', unsupportedAspectRatio: true })]),
+    )
+  })
+
+  it('rejects when every new photo has an aspect ratio unsupported by Instagram', async () => {
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([
+      makePhoto({ id: 'p1' }),
+      makePhoto({ id: 'panorama', aspectRatio: 2.4 }),
+    ])
+    vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem({ photoIds: ['p1'] })])
+
+    await expect(
+      useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+    ).rejects.toThrow('unsupported by Instagram')
   })
 
   it('never touches the existing items — only appends', async () => {

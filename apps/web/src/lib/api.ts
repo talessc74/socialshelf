@@ -334,6 +334,9 @@ export interface ApiCampaignPhoto {
   // Quando preenchido, esta foto ficou fora do carrossel por ser quase-igual à foto de id
   // apontado — aparece no "pool de extras" da revisão, nunca é descartada.
   duplicateOfPhotoId: string | null
+  // true quando a proporção da foto é incompatível com o Instagram (fora de 4:5–1.91:1) e a
+  // campanha inclui Instagram — fica fora do carrossel e aparece no pool da revisão.
+  unsupportedAspectRatio: boolean
 }
 
 export interface ApiCampaignItem {

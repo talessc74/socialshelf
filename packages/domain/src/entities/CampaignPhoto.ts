@@ -24,4 +24,13 @@ export interface CampaignPhoto {
   // únicas ficam null. Uma foto com este campo preenchido fica FORA dos carrosséis e aparece no
   // "pool de extras" da tela de revisão, nunca é descartada em silêncio.
   duplicateOfPhotoId: string | null
+  // Razão largura/altura calculada no upload (ex: 2.1 para uma foto bem panorâmica). Null quando
+  // o sharp não conseguiu decodificar as dimensões (formato exótico) — nesse caso a foto nunca é
+  // tratada como incompatível com nenhuma rede.
+  aspectRatio: number | null
+  // Preenchido pela geração da linha do tempo (só quando a campanha inclui Instagram): true
+  // quando aspectRatio cai fora do intervalo 4:5–1.91:1 que a Graph API aceita pra publicar. Uma
+  // foto assim fica FORA dos carrosséis e aparece no "pool de fora" da tela de revisão — mesma
+  // filosofia do duplicateOfPhotoId, nunca é descartada em silêncio.
+  unsupportedAspectRatio: boolean
 }

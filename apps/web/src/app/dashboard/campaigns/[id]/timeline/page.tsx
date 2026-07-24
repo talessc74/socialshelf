@@ -105,6 +105,10 @@ export default function CampaignTimelinePage() {
   }
   const hasExtras = extrasByRepresentative.size > 0
 
+  // Fotos com proporção incompatível com o Instagram (ex: panorama) — ficam de fora de qualquer
+  // carrossel e aparecem aqui, mesma filosofia do pool de quase-iguais acima.
+  const unsupportedAspectRatioPhotos = (photos ?? []).filter((photo) => photo.unsupportedAspectRatio)
+
   // Uma única requisição pro lote inteiro de miniaturas em vez de uma por foto — ver
   // _local-edr-policy-039 pro rate limit global que uma requisição por miniatura esgota
   // sozinha numa campanha com muitas fotos.
@@ -328,6 +332,33 @@ export default function CampaignTimelinePage() {
               )
             })}
           </ul>
+        </section>
+      )}
+
+      {unsupportedAspectRatioPhotos.length > 0 && (
+        <section className="rounded-2xl border border-line bg-card-2 p-4">
+          <h2 className="text-sm font-semibold text-ink">Fotos com formato incompatível com o Instagram</h2>
+          <p className="mt-1 text-xs text-muted">
+            O Instagram só aceita fotos entre 4:5 (retrato) e 1.91:1 (paisagem) — essas fotos estão fora desse
+            intervalo (ex: panorama) e não entram em nenhum carrossel. Nenhuma foto foi apagada — elas continuam aqui.
+          </p>
+          <div className="mt-3 flex gap-2 overflow-x-auto">
+            {unsupportedAspectRatioPhotos.map((photo) => (
+              <div key={photo.id} className="flex flex-col items-center gap-1">
+                {imageUrls?.[photo.storagePath] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imageUrls[photo.storagePath]}
+                    alt=""
+                    className="h-14 w-14 shrink-0 rounded-lg object-cover opacity-70"
+                  />
+                ) : (
+                  <div className="h-14 w-14 shrink-0 rounded-lg bg-card-2" />
+                )}
+                <span className="text-[10px] text-muted">de fora</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
