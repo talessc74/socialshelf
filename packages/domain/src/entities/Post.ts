@@ -34,6 +34,11 @@ export interface Post {
   // ainda existe — imageStoragePaths continua populado mesmo depois, como histórico do que
   // existiu; é este campo que diz se o blob ainda está lá.
   imagesDeletedAt: Date | null
+  // Marcado pelo usuário num rascunho aguardando aprovação que ele ainda não quer aprovar
+  // nem descartar — mesmo padrão de "prateleira" já usado em PerformanceSuggestion.shelved.
+  // Aparece numa seção própria em Agendados e no hub "Guardados Para Depois" (que junta
+  // isso com as sugestões guardadas de Insights).
+  savedForLater: boolean
   status: PostStatus
   origin: PostOrigin
   // Id da PhotoCampaign que materializou este Post, quando origin === 'campaign'. Null pra

@@ -43,6 +43,7 @@ export async function materializeCampaignItems(
       externalIds: {},
       sourceArticleUrl: null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

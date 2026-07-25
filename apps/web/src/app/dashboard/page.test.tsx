@@ -31,6 +31,8 @@ vi.mock('../../lib/api', () => ({
     getPerformanceSuggestions: vi.fn(),
     getPosts: vi.fn(),
     getTopicSuggestions: vi.fn(),
+    getShelvedPerformanceSuggestions: vi.fn(),
+    getSavedForLaterPosts: vi.fn(),
   },
 }))
 
@@ -70,6 +72,7 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     scheduledAt: new Date('2026-07-01T12:00:00.000Z').toISOString(),
     publishedAt: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     updatedAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     ...overrides,
@@ -183,6 +186,8 @@ beforeEach(() => {
   mockedApi.getPerformanceSuggestions.mockResolvedValue([])
   mockedApi.getPosts.mockResolvedValue([])
   mockedApi.getTopicSuggestions.mockResolvedValue([])
+  mockedApi.getShelvedPerformanceSuggestions.mockResolvedValue([])
+  mockedApi.getSavedForLaterPosts.mockResolvedValue([])
 })
 
 describe('DashboardPage - badges dos Atalhos', () => {
@@ -225,6 +230,23 @@ describe('DashboardPage - badges dos Atalhos', () => {
 
     const badge = await screen.findByText('1 agendado')
     expect(badge.closest('a')).toHaveAttribute('href', '/dashboard/scheduled')
+  })
+
+  it('não mostra badge de guardados quando não há nada guardado', async () => {
+    renderPage()
+
+    await screen.findByText('Guardados Para Depois')
+    expect(screen.queryByText(/^\d+ guardados?$/)).not.toBeInTheDocument()
+  })
+
+  it('mostra a contagem combinada de sugestões guardadas e rascunhos guardados no atalho "Guardados Para Depois"', async () => {
+    mockedApi.getShelvedPerformanceSuggestions.mockResolvedValue([makeSuggestion({ id: 'shelved-1', shelved: true })])
+    mockedApi.getSavedForLaterPosts.mockResolvedValue([makePost({ id: 'saved-1' }), makePost({ id: 'saved-2' })])
+
+    renderPage()
+
+    const badge = await screen.findByText('3 guardados')
+    expect(badge.closest('a')).toHaveAttribute('href', '/dashboard/saved-for-later')
   })
 
   it('não mostra badge de sugestões quando todas estão arquivadas (shelved)', async () => {

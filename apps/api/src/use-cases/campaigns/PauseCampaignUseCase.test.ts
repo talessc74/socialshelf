@@ -66,6 +66,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     externalIds: {},
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -102,6 +103,7 @@ describe('PauseCampaignUseCase', () => {
       delete: vi.fn().mockResolvedValue(undefined),
       claimForPublishing: vi.fn(),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
     lockRepo = {
       tryAcquire: vi.fn().mockResolvedValue(true),

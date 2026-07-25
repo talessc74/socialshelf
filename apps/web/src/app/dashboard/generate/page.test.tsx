@@ -343,6 +343,7 @@ describe('GenerateContentPage', () => {
       scheduledAt: null,
       publishedAt: null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -424,6 +425,7 @@ describe('GenerateContentPage', () => {
       scheduledAt: null,
       publishedAt: null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -458,6 +460,7 @@ describe('GenerateContentPage', () => {
       scheduledAt: null,
       publishedAt: null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -528,6 +531,7 @@ describe('GenerateContentPage', () => {
       scheduledAt: null,
       publishedAt: null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

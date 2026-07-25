@@ -65,6 +65,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     externalIds: {},
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -100,6 +101,7 @@ describe('CancelCampaignUseCase', () => {
       delete: vi.fn().mockResolvedValue(undefined),
       claimForPublishing: vi.fn(),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
     useCase = new CancelCampaignUseCase(campaignRepo, itemRepo, postRepo)
   })
