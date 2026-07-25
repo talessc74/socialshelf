@@ -11,6 +11,7 @@ vi.mock('../../../lib/api', () => ({
     cancelCampaign: vi.fn(),
     pauseCampaign: vi.fn(),
     resumeCampaign: vi.fn(),
+    discardCampaign: vi.fn(),
   },
 }))
 
@@ -178,6 +179,63 @@ describe('CampaignsPage', () => {
 
       expect(
         await screen.findByText('Não foi possível cancelar: Only a campaign that has not started can be cancelled'),
+      ).toBeInTheDocument()
+    })
+  })
+
+  describe('discard campaign', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+    })
+
+    it('shows a discard button only for a cancelled campaign', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([
+        makeCampaign({ id: 'c-cancelled', status: 'cancelled' }),
+        makeCampaign({ id: 'c-draft', status: 'draft' }),
+        makeCampaign({ id: 'c-completed', status: 'completed' }),
+      ])
+      renderPage()
+      expect(await screen.findAllByText('Viagem à Europa')).toHaveLength(3)
+      expect(screen.getAllByRole('button', { name: 'Descartar' })).toHaveLength(1)
+    })
+
+    it('asks for confirmation, warning what happens, and discards the campaign when confirmed', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'cancelled' })])
+      mockedApi.discardCampaign.mockResolvedValue(undefined)
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        'Tem certeza que deseja descartar a campanha "Viagem à Europa"? As fotos ainda não usadas em nenhum post serão apagadas do armazenamento agora mesmo, não em 7 dias. A campanha some por completo dos nossos servidores e você não terá mais acesso a ela. Essa ação não pode ser desfeita.',
+      )
+      await waitFor(() => expect(mockedApi.discardCampaign).toHaveBeenCalledWith('campaign-1'))
+    })
+
+    it('does not discard the campaign when the user backs out of the confirmation', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'cancelled' })])
+      vi.spyOn(window, 'confirm').mockReturnValue(false)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+
+      expect(mockedApi.discardCampaign).not.toHaveBeenCalled()
+    })
+
+    it('shows an error message when discarding fails', async () => {
+      mockedApi.listCampaigns.mockResolvedValue([makeCampaign({ status: 'cancelled' })])
+      mockedApi.discardCampaign.mockRejectedValue(new Error('Only cancelled campaigns can be discarded'))
+      vi.spyOn(window, 'confirm').mockReturnValue(true)
+
+      const user = userEvent.setup()
+      renderPage()
+      await user.click(await screen.findByRole('button', { name: 'Descartar' }))
+
+      expect(
+        await screen.findByText('Não foi possível descartar: Only cancelled campaigns can be discarded'),
       ).toBeInTheDocument()
     })
   })

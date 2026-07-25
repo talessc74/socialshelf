@@ -1,7 +1,7 @@
 ---
 name: _local-edr-policy-068-guardados-para-depois
 description: Estende o padrão "guardar na prateleira" (PerformanceSuggestion.shelved, Insights) para rascunhos de post em Agendados via Post.savedForLater — um rascunho aguardando aprovação sai da fila de decisão imediata e ganha seção própria "Guardados para depois", mantendo aprovar/editar/descartar disponíveis. Novo hub /dashboard/saved-for-later junta as duas listas (sugestões guardadas + rascunhos guardados) sem unificá-las num tipo de dado genérico — só agrega duas queries existentes. Link a partir da Home (ClassicHome) com badge de contagem combinada. Use ao mexer em SetPostSavedForLaterUseCase, PostRepository.findSavedForLaterByBrand, ou na página /dashboard/saved-for-later.
-apply-to: apps/api — SetPostSavedForLaterUseCase, posts.routes.ts (/posts/saved-for-later, /posts/:id/save-for-later), FirestorePostRepository; apps/web — dashboard/scheduled/page.tsx, dashboard/saved-for-later/page.tsx, dashboard/ClassicHome.tsx; packages/domain — Post.savedForLater
+apply-to: apps/api — SetPostSavedForLaterUseCase, posts.routes.ts (/posts/saved-for-later, /posts/:id/save-for-later), FirestorePostRepository; apps/web — dashboard/scheduled/page.tsx, dashboard/saved-for-later/page.tsx, dashboard/ClassicHome.tsx, components/SavedForLaterCarousel.tsx; packages/domain — Post.savedForLater
 valid-from: 2026-07-25
 ---
 
@@ -66,6 +66,20 @@ Novo atalho "Guardados Para Depois" em `ClassicHome.tsx` com badge somando suges
 guardadas + rascunhos guardados. Não estendeu o `ShelfHome` (prateleira 3D,
 `_local-bdr-policy-010`) — aquele modo é gated por allowlist de admin (Fase 0) e exigiria
 um novo "livro" com assets visuais próprios, fora do escopo desta mudança funcional.
+
+**Atualização 2026-07-25 — faixa/carrossel na Home, mesmo padrão do `NewsCarousel`**
+
+O atalho estático não deixava o usuário ver o conteúdo guardado sem clicar — pedido
+explícito de ter uma faixa horizontal na Home, igual à de "Notícias para pauta"
+(`NewsCarousel`), pra ver os rascunhos prontos pra publicação direto ali. Novo
+`SavedForLaterCarousel.tsx` (componente próprio, cards inline não compartilhados com o
+hub — o hub já tem seus próprios `SavedPostCard`/`SavedSuggestionCard` com ações mais
+completas; o carrossel é só uma prévia compacta, mesmo papel que `NewsCard` faz pra
+notícia) busca as duas mesmas queries do hub e renderiza scroll horizontal com `snap-x`.
+Convive com o atalho antigo (não substitui) — mesmo padrão de "Notícias" ter carrossel
+E atalho ao mesmo tempo em `ClassicHome.tsx`. Rascunho guardado com foto mostra a
+miniatura; sem foto cai num placeholder com o ícone de guardado (`Bookmark`), nunca um
+quadro quebrado.
 
 ## References
 

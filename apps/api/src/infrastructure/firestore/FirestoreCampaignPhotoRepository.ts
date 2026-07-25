@@ -44,6 +44,14 @@ export class FirestoreCampaignPhotoRepository implements CampaignPhotoRepository
     return photo
   }
 
+  async deleteByCampaign(userId: string, brandId: string, campaignId: string): Promise<void> {
+    const snapshot = await this.collectionFor(userId, brandId, campaignId).get()
+    if (snapshot.empty) return
+    const batch = db.batch()
+    for (const doc of snapshot.docs) batch.delete(doc.ref)
+    await batch.commit()
+  }
+
   async countByCampaign(userId: string, brandId: string, campaignId: string): Promise<number> {
     const snapshot = await this.collectionFor(userId, brandId, campaignId).count().get()
     return snapshot.data().count

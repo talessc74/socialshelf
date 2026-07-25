@@ -35,6 +35,11 @@ const CAN_ADD_PHOTOS_STATUSES = new Set<ApiPhotoCampaign['status']>(['reviewing'
 // Cancelar é permitido em qualquer estado que não seja terminal — espelha a mesma validação do
 // CancelCampaignUseCase no backend (completed/cancelled são os únicos bloqueados).
 const CANCELLABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['draft', 'reviewing', 'active', 'paused'])
+
+// Só campanhas já canceladas podem ser descartadas — espelha DiscardCampaignUseCase, que
+// rejeita qualquer outro status. Descartar é a versão sob demanda do prazo de retenção
+// automático (_local-edr-policy-067): o usuário não precisa esperar os 7 dias.
+const DISCARDABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['cancelled'])
 const PAUSABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['active'])
 const RESUMABLE_STATUSES = new Set<ApiPhotoCampaign['status']>(['paused'])
 
@@ -55,6 +60,11 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
 
   const resumeMutation = useMutation({
     mutationFn: () => api.resumeCampaign(campaign.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
+  })
+
+  const discardMutation = useMutation({
+    mutationFn: () => api.discardCampaign(campaign.id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['campaigns'] }),
   })
 
@@ -85,6 +95,11 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
         {resumeMutation.isError && (
           <p className="mt-1 text-xs text-red-600">
             Não foi possível retomar: {(resumeMutation.error as Error).message}
+          </p>
+        )}
+        {discardMutation.isError && (
+          <p className="mt-1 text-xs text-red-600">
+            Não foi possível descartar: {(discardMutation.error as Error).message}
           </p>
         )}
       </div>
@@ -129,6 +144,24 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
             className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
           >
             {cancelMutation.isPending ? 'Cancelando…' : 'Cancelar campanha'}
+          </button>
+        )}
+        {DISCARDABLE_STATUSES.has(campaign.status) && (
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  `Tem certeza que deseja descartar a campanha "${campaign.name}"? As fotos ainda não usadas em nenhum post serão apagadas do armazenamento agora mesmo, não em ${CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS} dias. A campanha some por completo dos nossos servidores e você não terá mais acesso a ela. Essa ação não pode ser desfeita.`,
+                )
+              ) {
+                discardMutation.mutate()
+              }
+            }}
+            disabled={discardMutation.isPending}
+            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-40"
+          >
+            {discardMutation.isPending ? 'Descartando…' : 'Descartar'}
           </button>
         )}
         {CAN_ADD_PHOTOS_STATUSES.has(campaign.status) && (

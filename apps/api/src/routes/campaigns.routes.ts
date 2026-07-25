@@ -12,6 +12,7 @@ import { ActivateCampaignUseCase } from '../use-cases/campaigns/ActivateCampaign
 import { CancelCampaignUseCase } from '../use-cases/campaigns/CancelCampaignUseCase.js'
 import { PauseCampaignUseCase } from '../use-cases/campaigns/PauseCampaignUseCase.js'
 import { ResumeCampaignUseCase } from '../use-cases/campaigns/ResumeCampaignUseCase.js'
+import { DiscardCampaignUseCase } from '../use-cases/campaigns/DiscardCampaignUseCase.js'
 import { FirestorePhotoCampaignRepository } from '../infrastructure/firestore/FirestorePhotoCampaignRepository.js'
 import { FirestoreCampaignPhotoRepository } from '../infrastructure/firestore/FirestoreCampaignPhotoRepository.js'
 import { FirestoreCampaignItemRepository } from '../infrastructure/firestore/FirestoreCampaignItemRepository.js'
@@ -112,6 +113,7 @@ export async function campaignsRoutes(app: FastifyInstance) {
     brandProfileRepo,
     timelineLockRepo,
   )
+  const discardCampaign = new DiscardCampaignUseCase(campaignRepo, itemRepo, photoRepo, generatorUrl, internalSecret)
 
   app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
     const parsed = createCampaignSchema.safeParse(request.body)
@@ -364,6 +366,21 @@ export async function campaignsRoutes(app: FastifyInstance) {
       await resumeCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
       const campaign = await campaignRepo.findByIdAndBrand(id, request.userId, request.brandId)
       return reply.send({ campaign })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      return reply.status(statusForCampaignError(message)).send({ error: message })
+    }
+  })
+
+  // Descarta por completo uma campanha 'cancelled': apaga o documento da campanha, seus
+  // CampaignItem e CampaignPhoto, e os blobs de foto ainda não usados em nenhum post real
+  // (_local-edr-policy-069) — o usuário não tem mais acesso a ela depois disso.
+  app.delete('/campaigns/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    try {
+      await discardCampaign.execute({ userId: request.userId, brandId: request.brandId, campaignId: id })
+      return reply.status(204).send()
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       return reply.status(statusForCampaignError(message)).send({ error: message })

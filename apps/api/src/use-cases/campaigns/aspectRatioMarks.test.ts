@@ -32,6 +32,7 @@ describe('applyAspectRatioMarks', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
+      deleteByCampaign: vi.fn(),
     }
     const supported = makePhoto({ id: 'ok', unsupportedAspectRatio: false })
     const panorama = makePhoto({ id: 'panorama', unsupportedAspectRatio: false })
@@ -52,6 +53,7 @@ describe('applyAspectRatioMarks', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
+      deleteByCampaign: vi.fn(),
     }
     const previouslyUnsupported = makePhoto({ id: 'photo-1', unsupportedAspectRatio: true })
 
@@ -70,6 +72,7 @@ describe('applyAspectRatioMarks', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
+      deleteByCampaign: vi.fn(),
     }
     const stable = makePhoto({ id: 'photo-1', unsupportedAspectRatio: false })
 

@@ -88,6 +88,7 @@ describe('ResumeCampaignUseCase', () => {
       findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
       findCancelledForPhotoCleanup: vi.fn(),
+      delete: vi.fn(),
     }
     itemRepo = {
       save: vi.fn(),
@@ -102,6 +103,7 @@ describe('ResumeCampaignUseCase', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
+      deleteByCampaign: vi.fn(),
     }
     postRepo = {
       save: vi.fn().mockResolvedValue(undefined),

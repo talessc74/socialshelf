@@ -10,4 +10,10 @@ export interface PhotoCampaignRepository {
    * (photosDeletedAt null) — usado pela limpeza diária de storage (_local-edr-policy-067).
    */
   findCancelledForPhotoCleanup(cutoff: Date): Promise<PhotoCampaign[]>
+  /**
+   * Apaga o documento da campanha — usado por DiscardCampaignUseCase ao descartar uma
+   * campanha cancelada (_local-edr-policy-069). Só o documento da campanha; CampaignPhoto
+   * e CampaignItem são apagados à parte pelo use case, cada um com sua própria regra.
+   */
+  delete(userId: string, brandId: string, id: string): Promise<void>
 }

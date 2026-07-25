@@ -33,6 +33,8 @@ vi.mock('../../lib/api', () => ({
     getTopicSuggestions: vi.fn(),
     getShelvedPerformanceSuggestions: vi.fn(),
     getSavedForLaterPosts: vi.fn(),
+    getImageUrl: vi.fn(),
+    publishPost: vi.fn(),
   },
 }))
 
@@ -235,7 +237,7 @@ describe('DashboardPage - badges dos Atalhos', () => {
   it('não mostra badge de guardados quando não há nada guardado', async () => {
     renderPage()
 
-    await screen.findByText('Guardados Para Depois')
+    await screen.findAllByText('Guardados Para Depois')
     expect(screen.queryByText(/^\d+ guardados?$/)).not.toBeInTheDocument()
   })
 
@@ -247,6 +249,20 @@ describe('DashboardPage - badges dos Atalhos', () => {
 
     const badge = await screen.findByText('3 guardados')
     expect(badge.closest('a')).toHaveAttribute('href', '/dashboard/saved-for-later')
+  })
+
+  it('mostra o carrossel de Guardados Para Depois com os rascunhos e sugestões guardados', async () => {
+    mockedApi.getShelvedPerformanceSuggestions.mockResolvedValue([
+      makeSuggestion({ id: 'shelved-1', headline: 'Sugestão guardada de teste' }),
+    ])
+    mockedApi.getSavedForLaterPosts.mockResolvedValue([
+      makePost({ id: 'saved-1', content: [{ platform: Platform.INSTAGRAM, text: 'Rascunho guardado de teste' }] }),
+    ])
+
+    renderPage()
+
+    expect(await screen.findByText('Rascunho guardado de teste')).toBeInTheDocument()
+    expect(screen.getByText('Sugestão guardada de teste')).toBeInTheDocument()
   })
 
   it('não mostra badge de sugestões quando todas estão arquivadas (shelved)', async () => {
