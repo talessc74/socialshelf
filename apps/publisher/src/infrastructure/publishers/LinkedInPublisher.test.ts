@@ -20,6 +20,7 @@ const mockPost: Post = {
   externalIds: {},
   sourceArticleUrl: null,
   imagesDeletedAt: null,
+  savedForLater: false,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
 }

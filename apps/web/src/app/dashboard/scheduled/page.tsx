@@ -231,7 +231,13 @@ function PostCard({
     queryClient.invalidateQueries({ queryKey: ['posts', 'published'] })
     queryClient.invalidateQueries({ queryKey: ['posts', 'ai-draft'] })
     queryClient.invalidateQueries({ queryKey: ['posts', 'failed'] })
+    queryClient.invalidateQueries({ queryKey: ['posts', 'saved-for-later'] })
   }
+
+  const savedForLaterMutation = useMutation({
+    mutationFn: (savedForLater: boolean) => api.setPostSavedForLater(post.id, savedForLater),
+    onSuccess: invalidateAllLists,
+  })
 
   const updateMutation = useMutation({
     mutationFn: async (input: {
@@ -534,6 +540,15 @@ function PostCard({
                     ? 'Descartar'
                     : 'Cancelar agendamento'}
               </button>
+              {isDraft && (
+                <button
+                  onClick={() => savedForLaterMutation.mutate(!post.savedForLater)}
+                  disabled={savedForLaterMutation.isPending}
+                  className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2 disabled:opacity-40"
+                >
+                  {post.savedForLater ? 'Remover dos guardados' : 'Guardar para depois'}
+                </button>
+              )}
             </div>
           </>
         )}
@@ -719,6 +734,10 @@ export default function ScheduledPostsPage() {
     queryKey: ['posts', 'failed'],
     queryFn: () => api.getPosts('failed'),
   })
+  const savedForLaterQuery = useQuery({
+    queryKey: ['posts', 'saved-for-later'],
+    queryFn: () => api.getSavedForLaterPosts(),
+  })
 
   const scheduledPosts = sortByWhen(
     (scheduledQuery.data ?? []).filter((p) => p.status === 'scheduled'),
@@ -732,9 +751,15 @@ export default function ScheduledPostsPage() {
   // /dashboard/generate também passa por status 'ai-draft', mas nunca fica pendente: o
   // próprio fluxo de publicar/agendar já cria um Post novo na hora, deixando esse rascunho
   // original órfão. Sem o filtro por origin, esta lista ficaria cheia de lixo antigo.
+  // Rascunhos guardados (savedForLater) saem desta lista e ganham a seção própria abaixo —
+  // "guardar para depois" existe justamente pra tirar o rascunho da fila de decisão imediata,
+  // não pra ele aparecer duplicado nos dois lugares.
   const draftPosts = [...(draftQuery.data ?? [])]
-    .filter((p) => p.status === 'ai-draft' && p.origin === 'autonomy-tick')
+    .filter((p) => p.status === 'ai-draft' && p.origin === 'autonomy-tick' && !p.savedForLater)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  const savedForLaterPosts = [...(savedForLaterQuery.data ?? [])].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
   // Post que falhou em todas as redes-alvo (PublishPostUseCase só marca 'failed' quando
   // nenhuma plataforma publicou) — sem esta lista ele desaparecia da tela ao virar 'failed',
   // sem lugar nenhum pra reaparecer, editar ou tentar de novo.
@@ -807,6 +832,26 @@ export default function ScheduledPostsPage() {
       )}
       {draftQuery.isError && (
         <p className="text-xs text-red-600">Não foi possível carregar os rascunhos automáticos aguardando aprovação.</p>
+      )}
+
+      {savedForLaterPosts.length > 0 && (
+        <div className="space-y-3 rounded-2xl border border-sky-200 bg-sky-50/60 p-4">
+          <div>
+            <h2 className="text-sm font-semibold text-ink">🔖 Guardados para depois</h2>
+            <p className="text-xs text-muted">
+              {savedForLaterPosts.length === 1 ? 'Este rascunho' : `Estes ${savedForLaterPosts.length} rascunhos`}{' '}
+              ficaram de lado pra você decidir com calma — aprove, edite ou descarte quando quiser.
+            </p>
+          </div>
+          <ul className="space-y-3">
+            {savedForLaterPosts.map((post) => (
+              <PostCard key={post.id} post={post} highlighted={post.id === highlightedPostId} isDraft />
+            ))}
+          </ul>
+        </div>
+      )}
+      {savedForLaterQuery.isError && (
+        <p className="text-xs text-red-600">Não foi possível carregar os rascunhos guardados para depois.</p>
       )}
 
       {failedPosts.length > 0 && (

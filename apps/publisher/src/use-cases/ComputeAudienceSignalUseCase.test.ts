@@ -28,6 +28,7 @@ function makePost(externalId: string | undefined): Post {
     externalIds: externalId ? { [Platform.LINKEDIN]: externalId } : {},
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -65,6 +66,7 @@ describe('ComputeAudienceSignalUseCase', () => {
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
 
     oauthRepo = {

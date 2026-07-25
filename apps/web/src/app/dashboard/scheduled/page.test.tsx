@@ -20,6 +20,8 @@ vi.mock('../../../lib/api', () => ({
     publishPost: vi.fn(),
     deletePost: vi.fn(),
     uploadImage: vi.fn(),
+    getSavedForLaterPosts: vi.fn(),
+    setPostSavedForLater: vi.fn(),
   },
 }))
 
@@ -40,6 +42,7 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     scheduledAt: new Date('2026-07-01T12:00:00.000Z').toISOString(),
     publishedAt: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     updatedAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     ...overrides,
@@ -91,6 +94,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(new Date('2026-06-25T00:00:00.000Z'))
+  mockedApi.getSavedForLaterPosts.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -753,6 +757,59 @@ describe('ScheduledPostsPage', () => {
           new Date('2026-08-15T09:30'),
         )
       })
+    })
+
+    it('guarda um rascunho para depois, tirando-o da fila de aprovação', async () => {
+      mockDrafts([makeDraftPost()])
+      mockedApi.setPostSavedForLater.mockResolvedValue(makeDraftPost({ savedForLater: true }))
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho gerado automaticamente')
+
+      await user.click(screen.getByRole('button', { name: 'Guardar para depois' }))
+
+      await waitFor(() => expect(mockedApi.setPostSavedForLater).toHaveBeenCalledWith('draft-1', true))
+    })
+  })
+
+  describe('rascunhos guardados para depois', () => {
+    function makeSavedDraftPost(overrides: Partial<ApiPost> = {}): ApiPost {
+      return makePost({
+        id: 'saved-1',
+        status: 'ai-draft',
+        origin: 'autonomy-tick',
+        scheduledAt: null,
+        publishedAt: null,
+        savedForLater: true,
+        content: [{ platform: Platform.INSTAGRAM, text: 'Rascunho guardado para depois' }],
+        ...overrides,
+      })
+    }
+
+    it('mostra os rascunhos guardados numa seção própria, com opção de aprovar, descartar ou remover dos guardados', async () => {
+      mockedApi.getPosts.mockResolvedValue([])
+      mockedApi.getSavedForLaterPosts.mockResolvedValue([makeSavedDraftPost()])
+
+      await renderListView()
+
+      expect(await screen.findByText('Rascunho guardado para depois')).toBeInTheDocument()
+      expect(screen.getByText('🔖 Guardados para depois')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Aprovar e publicar agora' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Descartar' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Remover dos guardados' })).toBeInTheDocument()
+    })
+
+    it('remove um rascunho dos guardados, devolvendo-o à fila de aprovação', async () => {
+      mockedApi.getPosts.mockResolvedValue([])
+      mockedApi.getSavedForLaterPosts.mockResolvedValue([makeSavedDraftPost()])
+      mockedApi.setPostSavedForLater.mockResolvedValue(makeSavedDraftPost({ savedForLater: false }))
+
+      const user = await renderListView()
+      await screen.findByText('Rascunho guardado para depois')
+
+      await user.click(screen.getByRole('button', { name: 'Remover dos guardados' }))
+
+      await waitFor(() => expect(mockedApi.setPostSavedForLater).toHaveBeenCalledWith('saved-1', false))
     })
   })
 

@@ -128,6 +128,9 @@ export interface ApiPost {
   // automática (7 dias após publishedAt, _local-edr-policy-067) — null enquanto o arquivo
   // ainda existe.
   imagesDeletedAt: string | null
+  // Marcado pelo usuário num rascunho aguardando aprovação que ele ainda não quer aprovar
+  // nem descartar. Aparece em Agendados e no hub "Guardados Para Depois".
+  savedForLater: boolean
   createdAt: string
   updatedAt: string
 }
@@ -477,6 +480,19 @@ export const api = {
     const query = status ? `?status=${status}` : ''
     const data = await apiFetch<{ posts: ApiPost[] }>(`/posts${query}`)
     return data.posts
+  },
+
+  async getSavedForLaterPosts(): Promise<ApiPost[]> {
+    const data = await apiFetch<{ posts: ApiPost[] }>('/posts/saved-for-later')
+    return data.posts
+  },
+
+  async setPostSavedForLater(postId: string, savedForLater: boolean): Promise<ApiPost> {
+    const data = await apiFetch<{ post: ApiPost }>(`/posts/${postId}/save-for-later`, {
+      method: 'POST',
+      body: JSON.stringify({ savedForLater }),
+    })
+    return data.post
   },
 
   async getPost(postId: string): Promise<ApiPost> {

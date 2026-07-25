@@ -21,6 +21,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     externalIds: { [Platform.LINKEDIN]: 'urn:li:share:1' },
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -58,6 +59,7 @@ describe('GetPostsPerformanceUseCase', () => {
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
 
     oauthRepo = {

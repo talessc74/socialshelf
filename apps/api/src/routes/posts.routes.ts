@@ -4,6 +4,7 @@ import { Platform } from '@socialshelf/domain'
 import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
 import { UpdatePostUseCase } from '../use-cases/posts/UpdatePostUseCase.js'
 import { DeletePostUseCase } from '../use-cases/posts/DeletePostUseCase.js'
+import { SetPostSavedForLaterUseCase } from '../use-cases/posts/SetPostSavedForLaterUseCase.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
@@ -47,6 +48,7 @@ export async function postsRoutes(app: FastifyInstance) {
   const createPost = new CreatePostUseCase(postRepo, brandProfileRepo)
   const updatePost = new UpdatePostUseCase(postRepo)
   const deletePost = new DeletePostUseCase(postRepo)
+  const setSavedForLater = new SetPostSavedForLaterUseCase(postRepo)
 
   const publisherUrl = process.env['PUBLISHER_URL'] ?? 'http://localhost:3002'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
@@ -80,6 +82,18 @@ export async function postsRoutes(app: FastifyInstance) {
     },
   )
 
+  // List posts marcados "guardar para depois" — rota estática, o find-my-way do Fastify
+  // sempre prioriza um segmento literal sobre o parâmetro de /posts/:id abaixo, então a
+  // ordem de registro aqui não importa pra evitar colisão.
+  app.get(
+    '/posts/saved-for-later',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const posts = await postRepo.findSavedForLaterByBrand(request.userId, request.brandId)
+      return reply.send({ posts })
+    },
+  )
+
   // Get a single post by id
   app.get(
     '/posts/:id',
@@ -88,6 +102,26 @@ export async function postsRoutes(app: FastifyInstance) {
       const { id } = request.params as { id: string }
       const post = await postRepo.findByIdAndBrand(id, request.userId, request.brandId)
       if (!post) return reply.status(404).send({ error: 'Post not found' })
+      return reply.send({ post })
+    },
+  )
+
+  // Marca ou desmarca um rascunho como "guardado para depois" — não muda status nem
+  // qualquer outro campo, só adia a decisão de aprovar/descartar.
+  app.post(
+    '/posts/:id/save-for-later',
+    { preHandler: [app.authenticate] },
+    async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const parsed = z.object({ savedForLater: z.boolean() }).safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
+
+      const existing = await postRepo.findByIdAndBrand(id, request.userId, request.brandId)
+      if (!existing) return reply.status(404).send({ error: 'Post not found' })
+
+      const post = await setSavedForLater.execute(existing, parsed.data.savedForLater)
       return reply.send({ post })
     },
   )

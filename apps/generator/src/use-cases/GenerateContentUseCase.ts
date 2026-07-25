@@ -279,6 +279,7 @@ export class GenerateContentUseCase {
       externalIds: {},
       sourceArticleUrl: topicSuggestion?.articleUrl ?? null,
       imagesDeletedAt: null,
+      savedForLater: false,
       createdAt: new Date(),
       updatedAt: new Date(),
     })

@@ -24,6 +24,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     externalIds: {},
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date('2026-06-20T00:00:00.000Z'),
     updatedAt: new Date('2026-06-20T00:00:00.000Z'),
     ...overrides,
@@ -44,6 +45,7 @@ describe('CleanupPublishedPostImagesUseCase', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       findPublishedForImageCleanup: vi.fn().mockResolvedValue([]),
+      findSavedForLaterByBrand: vi.fn(),
       delete: vi.fn(),
       claimForPublishing: vi.fn(),
     }

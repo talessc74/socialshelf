@@ -11,6 +11,11 @@ export interface PostRepository {
    * (imagesDeletedAt null) — usado pela limpeza diária de storage (_local-edr-policy-067).
    */
   findPublishedForImageCleanup(cutoff: Date): Promise<Post[]>
+  /**
+   * Posts marcados savedForLater pelo usuário — mesma ideia de PerformanceSuggestion.shelved,
+   * aplicada a rascunhos aguardando aprovação (ver seção "Guardados para depois" em Agendados).
+   */
+  findSavedForLaterByBrand(userId: string, brandId: string): Promise<Post[]>
   delete(id: string, userId: string, brandId: string): Promise<void>
   /**
    * Atomically transitions the post into the transient 'publishing' lock state, returning

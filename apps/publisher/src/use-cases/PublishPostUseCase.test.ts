@@ -28,6 +28,7 @@ function makePost(platforms: Platform[]): Post {
     externalIds: {},
     sourceArticleUrl: null,
     imagesDeletedAt: null,
+    savedForLater: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -66,6 +67,7 @@ describe('PublishPostUseCase', () => {
       delete: vi.fn(),
       claimForPublishing: vi.fn().mockResolvedValue(makePost([Platform.LINKEDIN])),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
 
     oauthRepo = {

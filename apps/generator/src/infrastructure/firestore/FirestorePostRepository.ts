@@ -17,6 +17,7 @@ export class FirestorePostRepository implements PostRepository {
         videoConsentAcceptedAt: post.videoConsentAcceptedAt?.toISOString() ?? null,
         publishedAt: post.publishedAt?.toISOString() ?? null,
         imagesDeletedAt: post.imagesDeletedAt?.toISOString() ?? null,
+        savedForLater: post.savedForLater,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString(),
       })
@@ -76,6 +77,24 @@ export class FirestorePostRepository implements PostRepository {
       .filter((post) => post.imagesDeletedAt === null && post.imageStoragePaths.length > 0)
   }
 
+  // status === 'ai-draft' filtra em memória (single-field where já cobre savedForLater sem
+  // índice novo) — uma vez que o rascunho é aprovado (vira 'scheduled') ou publicado, ele sai
+  // desta lista mesmo que savedForLater continue true no documento; a flag nunca é limpa
+  // explicitamente, só perde efeito.
+  async findSavedForLaterByBrand(userId: string, brandId: string): Promise<Post[]> {
+    const snapshot = await db
+      .collection('users').doc(userId)
+      .collection('brands').doc(brandId)
+      .collection('posts')
+      .where('savedForLater', '==', true)
+      .get()
+
+    return snapshot.docs
+      .map((doc) => this.fromFirestore(doc.data()))
+      .filter((post) => post.status === 'ai-draft')
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
   async claimForPublishing(id: string, userId: string, brandId: string): Promise<Post | null> {
     const ref = db
       .collection('users').doc(userId)
@@ -123,6 +142,7 @@ export class FirestorePostRepository implements PostRepository {
       externalIds: (data['externalIds'] as Partial<Record<Platform, string>>) ?? {},
       sourceArticleUrl: (data['sourceArticleUrl'] as string | null | undefined) ?? null,
       imagesDeletedAt: data['imagesDeletedAt'] ? new Date(data['imagesDeletedAt'] as string) : null,
+      savedForLater: (data['savedForLater'] as boolean | undefined) ?? false,
       createdAt: new Date(data['createdAt'] as string),
       updatedAt: new Date(data['updatedAt'] as string),
     }

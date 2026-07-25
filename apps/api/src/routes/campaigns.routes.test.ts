@@ -55,6 +55,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
     delete: vi.fn(),
     claimForPublishing: vi.fn(),
     findPublishedForImageCleanup: vi.fn(),
+    findSavedForLaterByBrand: vi.fn(),
   })),
 }))
 

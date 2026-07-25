@@ -112,6 +112,7 @@ describe('ResumeCampaignUseCase', () => {
       delete: vi.fn(),
       claimForPublishing: vi.fn(),
       findPublishedForImageCleanup: vi.fn(),
+      findSavedForLaterByBrand: vi.fn(),
     }
     brandProfileRepo = {
       save: vi.fn(),

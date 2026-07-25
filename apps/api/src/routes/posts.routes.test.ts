@@ -9,6 +9,7 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
 
 const mockFindByBrand = vi.fn().mockResolvedValue([])
 const mockFindByIdAndBrand = vi.fn().mockResolvedValue(null)
+const mockFindSavedForLaterByBrand = vi.fn().mockResolvedValue([])
 const mockSave = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
@@ -18,7 +19,10 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
     findByIdAndBrand: mockFindByIdAndBrand,
     findByBrand: mockFindByBrand,
     findScheduledBefore: vi.fn().mockResolvedValue([]),
+    findPublishedForImageCleanup: vi.fn().mockResolvedValue([]),
+    findSavedForLaterByBrand: mockFindSavedForLaterByBrand,
     delete: vi.fn().mockResolvedValue(undefined),
+    claimForPublishing: vi.fn().mockResolvedValue(null),
   })),
 }))
 
@@ -201,6 +205,93 @@ describe('Posts routes', () => {
 
     it('returns 401 without auth header', async () => {
       const response = await app.inject({ method: 'GET', url: '/posts/post-1' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('GET /posts/saved-for-later', () => {
+    it('returns posts marked as saved for later', async () => {
+      mockFindSavedForLaterByBrand.mockResolvedValueOnce([{ id: 'post-1', savedForLater: true }])
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/posts/saved-for-later',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ posts: Array<{ id: string }> }>()
+      expect(body.posts.map((p) => p.id)).toEqual(['post-1'])
+      expect(mockFindSavedForLaterByBrand).toHaveBeenCalledWith('user-test-123', 'user-test-123')
+    })
+
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({ method: 'GET', url: '/posts/saved-for-later' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /posts/:id/save-for-later', () => {
+    it('marks a draft as saved for later', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce({
+        id: 'post-1',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        brandProfileVersion: null,
+        content: [{ platform: 'linkedin', text: 'Rascunho', charCount: 8 }],
+        imageStoragePaths: [],
+        status: 'ai-draft',
+        scheduledAt: null,
+        publishedAt: null,
+        externalIds: {},
+        savedForLater: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts/post-1/save-for-later',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { savedForLater: true },
+      })
+
+      expect(response.statusCode).toBe(200)
+      const body = response.json<{ post: { savedForLater: boolean } }>()
+      expect(body.post.savedForLater).toBe(true)
+      expect(mockSave).toHaveBeenCalledWith(expect.objectContaining({ id: 'post-1', savedForLater: true }))
+    })
+
+    it('returns 404 when the post does not exist for this brand', async () => {
+      mockFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts/missing/save-for-later',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { savedForLater: true },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 400 when savedForLater is missing', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts/post-1/save-for-later',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {},
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 401 without auth header', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts/post-1/save-for-later',
+        payload: { savedForLater: true },
+      })
       expect(response.statusCode).toBe(401)
     })
   })
