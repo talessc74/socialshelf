@@ -26,6 +26,14 @@
       ]
     },
     {
+      "collectionGroup": "posts",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "publishedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "generation_requests",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -107,6 +115,14 @@
       "fields": [
         { "fieldPath": "id", "order": "ASCENDING" },
         { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "photo_campaigns",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "ASCENDING" }
       ]
     }
   ],

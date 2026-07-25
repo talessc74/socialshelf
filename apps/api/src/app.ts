@@ -24,6 +24,7 @@ import { videosRoutes } from './routes/videos.routes.js'
 import { mediaRoutes } from './routes/media.routes.js'
 import { campaignsRoutes } from './routes/campaigns.routes.js'
 import { autonomyTickLogRoutes } from './routes/autonomy-tick-log.routes.js'
+import { storageCleanupRoutes } from './routes/storage-cleanup.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
 
 export async function buildApp() {
@@ -70,6 +71,7 @@ export async function buildApp() {
   await app.register(generationRoutes)
   await app.register(campaignsRoutes)
   await app.register(autonomyTickLogRoutes)
+  await app.register(storageCleanupRoutes)
 
   return app
 }

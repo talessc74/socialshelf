@@ -4,7 +4,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
-import { Platform, PLATFORM_CHARACTER_LIMITS, isAspectRatioUnsupportedForInstagram } from '@socialshelf/domain'
+import {
+  Platform,
+  PLATFORM_CHARACTER_LIMITS,
+  isAspectRatioUnsupportedForInstagram,
+  PUBLISHED_POST_IMAGE_RETENTION_DAYS,
+} from '@socialshelf/domain'
 import type { ApiPost, PostContent } from '../../../lib/api'
 import { PostDetailModal } from '../../../components/PostDetailModal'
 import { buildScheduleSummary } from '../../../lib/selfieScheduleSummary'
@@ -456,7 +461,7 @@ function PostCard({
                 {updateMutation.error instanceof Error ? updateMutation.error.message : 'Erro ao salvar.'}
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={handleSave}
                 disabled={!canSave || updateMutation.isPending}
@@ -487,7 +492,7 @@ function PostCard({
                 {failedPlatforms.map((f) => f.reason).join(' · ')}
               </p>
             )}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
               <button
                 onClick={() => setIsEditing(true)}
                 className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-muted hover:bg-card-2"
@@ -565,6 +570,7 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
   // neutro de antes pra não acusar "falhou" indevidamente em dados legados.
   const showPerPlatform = hasOutcomeData
   const partial = showPerPlatform && failed.length > 0 && published.length > 0
+  const daysLeft = daysUntilImageDeletion(post)
 
   return (
     <li
@@ -573,7 +579,7 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
         highlighted ? 'border-accent ring-2 ring-accent ring-offset-2' : 'border-line'
       }`}
     >
-      {firstImage && <PostThumbnail path={firstImage} />}
+      {firstImage && (post.imagesDeletedAt ? <DeletedImagePlaceholder /> : <PostThumbnail path={firstImage} />)}
       <div className="min-w-0 flex-1 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {partial ? (
@@ -629,7 +635,17 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
           </p>
         )}
         <p className="truncate text-sm text-ink">{post.content[0]?.text}</p>
-        <div className="flex flex-wrap gap-2">
+        {firstImage && (
+          <p className="text-xs text-muted">
+            {post.imagesDeletedAt
+              ? `Imagem removida automaticamente ${PUBLISHED_POST_IMAGE_RETENTION_DAYS} dias após a publicação, para economizar espaço de armazenamento.`
+              : daysLeft !== null &&
+                (daysLeft > 0
+                  ? `A imagem deste post será removida do site em ${daysLeft} ${daysLeft === 1 ? 'dia' : 'dias'} (mantemos por ${PUBLISHED_POST_IMAGE_RETENTION_DAYS} dias após a publicação).`
+                  : 'A imagem deste post será removida do site em breve.')}
+          </p>
+        )}
+        <div className="flex gap-2">
           <button
             onClick={() => setShowDetail(true)}
             className="rounded-lg border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:bg-card-2"
@@ -647,6 +663,30 @@ function PublishedPostCard({ post, highlighted }: { post: ApiPost; highlighted: 
       {showDetail && <PostDetailModal post={post} onClose={() => setShowDetail(false)} />}
     </li>
   )
+}
+
+// Placeholder pro caso do blob já ter sido apagado pela limpeza automática — nunca tenta buscar
+// uma signed URL pra um arquivo que não existe mais (ver PublishedPostCard).
+function DeletedImagePlaceholder() {
+  return (
+    <div
+      className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-card-2 text-center text-[10px] leading-tight text-muted"
+      title={`A imagem foi removida automaticamente ${PUBLISHED_POST_IMAGE_RETENTION_DAYS} dias após a publicação`}
+    >
+      Imagem removida
+    </div>
+  )
+}
+
+// _local-edr-policy-067: quantos dias faltam até a limpeza automática apagar a imagem deste post
+// publicado — null quando já foi apagada ou quando o post não tem publishedAt (não deveria
+// acontecer pra um post 'published', mas evita NaN se acontecer).
+function daysUntilImageDeletion(post: ApiPost): number | null {
+  if (post.imagesDeletedAt || !post.publishedAt) return null
+  const deletionDate = new Date(post.publishedAt)
+  deletionDate.setDate(deletionDate.getDate() + PUBLISHED_POST_IMAGE_RETENTION_DAYS)
+  const daysLeft = Math.ceil((deletionDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  return Math.max(daysLeft, 0)
 }
 
 function sortByWhen(posts: ApiPost[], direction: 'desc' | 'asc'): ApiPost[] {

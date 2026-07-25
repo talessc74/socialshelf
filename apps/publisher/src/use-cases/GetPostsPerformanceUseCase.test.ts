@@ -20,6 +20,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     publishedAt: new Date('2026-01-01T00:00:00.000Z'),
     externalIds: { [Platform.LINKEDIN]: 'urn:li:share:1' },
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -56,6 +57,7 @@ describe('GetPostsPerformanceUseCase', () => {
       findByBrand: vi.fn().mockResolvedValue([makePost()]),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
 
     oauthRepo = {

@@ -238,6 +238,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy api-service to Cloud Run
+        id: deploy
         run: |
           # Delimitador trocado de vírgula para ';' (sintaxe --set-env-vars="^;^...") porque
           # CORS_ORIGINS carrega uma lista separada por vírgula (socialshelf.com.br,radiokactus.com) —
@@ -281,6 +282,48 @@ jobs:
             --memory=512Mi \
             --cpu=1 \
             --timeout=300
+
+          URL=$(gcloud run services describe api-service --region=${{ env.GCP_REGION }} --format='value(status.url)')
+          echo "url=${URL}" >> "$GITHUB_OUTPUT"
+
+      - name: Grant api-service invoker access on itself (used by Cloud Scheduler below)
+        run: |
+          gcloud run services add-iam-policy-binding api-service \
+            --region=${{ env.GCP_REGION }} \
+            --member="serviceAccount:api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com" \
+            --role="roles/run.invoker"
+
+      # Protege o bucket de imagens contra crescimento ilimitado (_local-edr-policy-067): apaga
+      # imagens de posts publicados e de campanhas canceladas fora do prazo de retenção. Mesmo
+      # padrão continue-on-error do job de vídeo no deploy-generator abaixo — a permissão de
+      # habilitar a API do Cloud Scheduler pode não estar disponível ao deployer SA, e isso não
+      # deve bloquear o resto do deploy.
+      - name: Create/update Cloud Scheduler job for daily storage cleanup
+        continue-on-error: true
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
+          URL="${{ steps.deploy.outputs.url }}/internal/storage-cleanup-tick"
+          SA="api-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+          if gcloud scheduler jobs describe api-storage-cleanup-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+            gcloud scheduler jobs update http api-storage-cleanup-tick \
+              --location=${{ env.GCP_REGION }} \
+              --uri="${URL}" \
+              --http-method=POST \
+              --update-headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          else
+            gcloud scheduler jobs create http api-storage-cleanup-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="0 4 * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          fi
 
   deploy-publisher:
     name: Deploy publisher-service

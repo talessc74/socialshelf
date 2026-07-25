@@ -6,6 +6,11 @@ export interface PostRepository {
   findByIdAndBrand(id: string, userId: string, brandId: string): Promise<Post | null>
   findByBrand(userId: string, brandId: string, status?: PostStatus): Promise<Post[]>
   findScheduledBefore(cutoff: Date): Promise<Post[]>
+  /**
+   * Posts publicados há mais de `cutoff` cujas imagens ainda não foram apagadas
+   * (imagesDeletedAt null) — usado pela limpeza diária de storage (_local-edr-policy-067).
+   */
+  findPublishedForImageCleanup(cutoff: Date): Promise<Post[]>
   delete(id: string, userId: string, brandId: string): Promise<void>
   /**
    * Atomically transitions the post into the transient 'publishing' lock state, returning

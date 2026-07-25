@@ -23,6 +23,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     publishedAt: null,
     externalIds: {},
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

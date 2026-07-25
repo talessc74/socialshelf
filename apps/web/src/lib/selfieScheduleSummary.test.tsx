@@ -16,6 +16,7 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     externalIds: {},
     scheduledAt: null,
     publishedAt: null,
+    imagesDeletedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     ...overrides,

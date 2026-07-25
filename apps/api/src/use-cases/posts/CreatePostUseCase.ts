@@ -54,6 +54,7 @@ export class CreatePostUseCase {
       publishedAt: null,
       externalIds: {},
       sourceArticleUrl: input.sourceArticleUrl ?? null,
+      imagesDeletedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

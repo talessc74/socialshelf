@@ -74,6 +74,7 @@ function makeCampaign(overrides: Partial<ApiPhotoCampaign> = {}): ApiPhotoCampai
     updatedAt: new Date().toISOString(),
     startedAt: null,
     completedAt: null,
+    photosDeletedAt: null,
     ...overrides,
   }
 }
@@ -339,7 +340,7 @@ describe('CampaignTimelinePage', () => {
       await user.click(await screen.findByRole('button', { name: 'Cancelar campanha' }))
 
       expect(window.confirm).toHaveBeenCalledWith(
-        'Tem certeza que deseja cancelar a campanha "Viagem à Europa"? Essa ação não pode ser desfeita.',
+        'Tem certeza que deseja cancelar a campanha "Viagem à Europa"? As fotos ainda não usadas em nenhum post serão apagadas do armazenamento em 7 dias. Essa ação não pode ser desfeita.',
       )
       await waitFor(() => expect(mockedApi.cancelCampaign).toHaveBeenCalledWith('campaign-1'))
       await waitFor(() => expect(pushMock).toHaveBeenCalledWith('/dashboard/campaigns'))

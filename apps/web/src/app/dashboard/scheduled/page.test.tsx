@@ -39,6 +39,7 @@ function makePost(overrides: Partial<ApiPost> = {}): ApiPost {
     externalIds: {},
     scheduledAt: new Date('2026-07-01T12:00:00.000Z').toISOString(),
     publishedAt: null,
+    imagesDeletedAt: null,
     createdAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     updatedAt: new Date('2026-06-20T00:00:00.000Z').toISOString(),
     ...overrides,
@@ -429,6 +430,32 @@ describe('ScheduledPostsPage', () => {
       expect(screen.getByText('Publicados')).toBeInTheDocument()
       expect(screen.getByText(/✓ Publicado/)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Repostar' })).toBeInTheDocument()
+    })
+
+    it('mostra a contagem de dias até a remoção automática da imagem quando ela ainda existe', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-06-22T00:00:00.000Z'))
+      mockScheduledAndPublished([makePublishedPost({ imageStoragePaths: ['user-1/photo.jpg'] })])
+
+      await renderListView()
+
+      expect(await screen.findByText(/será removida do site em 6 dias/)).toBeInTheDocument()
+      vi.useRealTimers()
+    })
+
+    it('mostra um placeholder e o aviso de remoção quando a imagem já foi apagada, sem tentar buscar a signed URL', async () => {
+      mockScheduledAndPublished([
+        makePublishedPost({
+          imageStoragePaths: ['user-1/photo.jpg'],
+          imagesDeletedAt: new Date('2026-06-27T00:00:00.000Z').toISOString(),
+        }),
+      ])
+
+      await renderListView()
+
+      expect(await screen.findByText('Imagem removida')).toBeInTheDocument()
+      expect(screen.getByText(/Imagem removida automaticamente 7 dias após a publicação/)).toBeInTheDocument()
+      expect(mockedApi.getImageUrl).not.toHaveBeenCalled()
     })
 
     it('mostra cada rede como publicada (✓) quando todas receberam o post', async () => {

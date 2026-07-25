@@ -129,3 +129,7 @@ export {
   INSTAGRAM_MIN_ASPECT_RATIO,
   INSTAGRAM_MAX_ASPECT_RATIO,
 } from './value-objects/InstagramAspectRatio.js'
+export {
+  PUBLISHED_POST_IMAGE_RETENTION_DAYS,
+  CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS,
+} from './value-objects/StorageRetention.js'

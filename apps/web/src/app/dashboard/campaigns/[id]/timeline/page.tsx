@@ -7,6 +7,7 @@ import { api } from '../../../../../lib/api'
 import type { ApiCampaignItem, ApiCampaignPhoto } from '../../../../../lib/api'
 import { buildCampaignSummary } from '../../../../../lib/selfieCampaignSummary'
 import { useSelfieNarrateOnReady } from '../../../../../contexts/AssistantContext'
+import { CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS } from '@socialshelf/domain'
 
 function ItemThumbnail({
   url,
@@ -428,7 +429,7 @@ export default function CampaignTimelinePage() {
                     : ''
                 if (
                   confirm(
-                    `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
+                    `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} As fotos ainda não usadas em nenhum post serão apagadas do armazenamento em ${CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS} dias. Essa ação não pode ser desfeita.`,
                   )
                 ) {
                   cancelCampaign.mutate()

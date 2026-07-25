@@ -15,6 +15,7 @@ describe('DeletePostUseCase', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
+      findPublishedForImageCleanup: vi.fn(),
     }
     useCase = new DeletePostUseCase(postRepo)
   })

@@ -27,6 +27,7 @@ function makePost(externalId: string | undefined): Post {
     publishedAt: new Date(),
     externalIds: externalId ? { [Platform.LINKEDIN]: externalId } : {},
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -63,6 +64,7 @@ describe('ComputeAudienceSignalUseCase', () => {
       findByBrand: vi.fn().mockResolvedValue([makePost('urn:li:share:1'), makePost('urn:li:share:2')]),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
 
     oauthRepo = {

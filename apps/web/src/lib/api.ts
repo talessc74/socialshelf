@@ -124,6 +124,10 @@ export interface ApiPost {
   externalIds: Partial<Record<Platform, string>>
   scheduledAt: string | null
   publishedAt: string | null
+  // Quando as imagens deste post publicado foram apagadas do Cloud Storage pela limpeza
+  // automática (7 dias após publishedAt, _local-edr-policy-067) — null enquanto o arquivo
+  // ainda existe.
+  imagesDeletedAt: string | null
   createdAt: string
   updatedAt: string
 }
@@ -316,6 +320,9 @@ export interface ApiPhotoCampaign {
   updatedAt: string
   startedAt: string | null
   completedAt: string | null
+  // Quando as fotos ainda não usadas em nenhum post real foram apagadas do Cloud Storage
+  // pela limpeza automática de campanhas canceladas (_local-edr-policy-067).
+  photosDeletedAt: string | null
   // Só vem preenchido em listCampaigns() — diferencia um rascunho vazio de um que já tem
   // fotos esperando a próxima etapa.
   photoCount?: number
