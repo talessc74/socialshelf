@@ -16,6 +16,7 @@ export class FirestorePostRepository implements PostRepository {
         scheduledAt: post.scheduledAt?.toISOString() ?? null,
         videoConsentAcceptedAt: post.videoConsentAcceptedAt?.toISOString() ?? null,
         publishedAt: post.publishedAt?.toISOString() ?? null,
+        imagesDeletedAt: post.imagesDeletedAt?.toISOString() ?? null,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString(),
       })
@@ -61,6 +62,18 @@ export class FirestorePostRepository implements PostRepository {
       .get()
 
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+  }
+
+  async findPublishedForImageCleanup(cutoff: Date): Promise<Post[]> {
+    const snapshot = await db
+      .collectionGroup('posts')
+      .where('status', '==', 'published')
+      .where('publishedAt', '<=', cutoff.toISOString())
+      .get()
+
+    return snapshot.docs
+      .map((doc) => this.fromFirestore(doc.data()))
+      .filter((post) => post.imagesDeletedAt === null && post.imageStoragePaths.length > 0)
   }
 
   async claimForPublishing(id: string, userId: string, brandId: string): Promise<Post | null> {
@@ -109,6 +122,7 @@ export class FirestorePostRepository implements PostRepository {
       publishedAt: data['publishedAt'] ? new Date(data['publishedAt'] as string) : null,
       externalIds: (data['externalIds'] as Partial<Record<Platform, string>>) ?? {},
       sourceArticleUrl: (data['sourceArticleUrl'] as string | null | undefined) ?? null,
+      imagesDeletedAt: data['imagesDeletedAt'] ? new Date(data['imagesDeletedAt'] as string) : null,
       createdAt: new Date(data['createdAt'] as string),
       updatedAt: new Date(data['updatedAt'] as string),
     }

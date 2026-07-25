@@ -26,6 +26,7 @@ function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
     updatedAt: new Date(),
     startedAt: null,
     completedAt: null,
+    photosDeletedAt: null,
     ...overrides,
   }
 }
@@ -63,6 +64,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     publishedAt: null,
     externalIds: {},
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -81,6 +83,7 @@ describe('CancelCampaignUseCase', () => {
       findById: vi.fn(),
       findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
+      findCancelledForPhotoCleanup: vi.fn(),
     }
     itemRepo = {
       save: vi.fn(),
@@ -96,6 +99,7 @@ describe('CancelCampaignUseCase', () => {
       findScheduledBefore: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
       claimForPublishing: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
     useCase = new CancelCampaignUseCase(campaignRepo, itemRepo, postRepo)
   })

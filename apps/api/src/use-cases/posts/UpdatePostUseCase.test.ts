@@ -20,6 +20,7 @@ function makePost(overrides: Partial<Post> = {}): Post {
     publishedAt: null,
     externalIds: {},
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date('2026-06-20T00:00:00.000Z'),
     updatedAt: new Date('2026-06-20T00:00:00.000Z'),
     ...overrides,
@@ -39,6 +40,7 @@ describe('UpdatePostUseCase', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
     useCase = new UpdatePostUseCase(postRepo)
   })

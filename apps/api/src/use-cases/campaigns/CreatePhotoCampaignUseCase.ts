@@ -42,6 +42,7 @@ export class CreatePhotoCampaignUseCase {
       updatedAt: now,
       startedAt: null,
       completedAt: null,
+      photosDeletedAt: null,
     }
 
     await this.campaignRepo.save(campaign)

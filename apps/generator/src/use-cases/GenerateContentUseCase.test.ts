@@ -97,6 +97,7 @@ function makeDeps(
     findByBrand: vi.fn(),
     findScheduledBefore: vi.fn(),
     delete: vi.fn(),
+    findPublishedForImageCleanup: vi.fn(),
   }
 
   const brandProfileRepo: BrandProfileRepository = {

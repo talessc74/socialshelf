@@ -29,6 +29,11 @@ export interface Post {
   // do upload (_local-edr-policy-034) e carregado para o Post no momento da criação.
   videoStoragePath: string | null
   videoConsentAcceptedAt: Date | null
+  // Quando o post publicado teve suas imagens apagadas do Cloud Storage pela limpeza
+  // automática (7 dias após publishedAt, _local-edr-policy-067). Null enquanto o arquivo
+  // ainda existe — imageStoragePaths continua populado mesmo depois, como histórico do que
+  // existiu; é este campo que diz se o blob ainda está lá.
+  imagesDeletedAt: Date | null
   status: PostStatus
   origin: PostOrigin
   // Id da PhotoCampaign que materializou este Post, quando origin === 'campaign'. Null pra

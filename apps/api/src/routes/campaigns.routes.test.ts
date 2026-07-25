@@ -54,6 +54,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
     findScheduledBefore: vi.fn(),
     delete: vi.fn(),
     claimForPublishing: vi.fn(),
+    findPublishedForImageCleanup: vi.fn(),
   })),
 }))
 

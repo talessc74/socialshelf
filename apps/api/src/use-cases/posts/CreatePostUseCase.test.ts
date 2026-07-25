@@ -17,6 +17,7 @@ describe('CreatePostUseCase', () => {
       findByBrand: vi.fn(),
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
     brandProfileRepo = {
       save: vi.fn().mockResolvedValue(undefined),

@@ -72,6 +72,7 @@ describe('NewCampaignPage', () => {
       updatedAt: new Date().toISOString(),
       startedAt: null,
       completedAt: null,
+      photosDeletedAt: null,
     })
 
     renderPage()

@@ -19,6 +19,7 @@ function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
     updatedAt: new Date(),
     startedAt: null,
     completedAt: null,
+    photosDeletedAt: null,
     ...overrides,
   }
 }
@@ -34,6 +35,7 @@ describe('ReorderCampaignPhotosUseCase', () => {
       findById: vi.fn(),
       findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
+      findCancelledForPhotoCleanup: vi.fn(),
     }
     photoRepo = {
       save: vi.fn(),

@@ -13,6 +13,7 @@ describe('CreatePhotoCampaignUseCase', () => {
       findById: vi.fn(),
       findByIdAndBrand: vi.fn(),
       findByBrand: vi.fn(),
+      findCancelledForPhotoCleanup: vi.fn(),
     }
     useCase = new CreatePhotoCampaignUseCase(campaignRepo)
   })

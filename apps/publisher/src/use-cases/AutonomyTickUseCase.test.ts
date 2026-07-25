@@ -59,6 +59,7 @@ function makeDraftPost(id: string): Post {
     publishedAt: null,
     externalIds: {},
     sourceArticleUrl: null,
+    imagesDeletedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }
@@ -111,6 +112,7 @@ describe('AutonomyTickUseCase', () => {
       findScheduledBefore: vi.fn(),
       delete: vi.fn(),
       claimForPublishing: vi.fn(),
+      findPublishedForImageCleanup: vi.fn(),
     }
     publishPostUseCase = {
       execute: vi.fn().mockResolvedValue({ postId: 'post-new', results: [], failedPlatforms: [] }),

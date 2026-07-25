@@ -342,6 +342,7 @@ describe('GenerateContentPage', () => {
       externalIds: {},
       scheduledAt: null,
       publishedAt: null,
+      imagesDeletedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -422,6 +423,7 @@ describe('GenerateContentPage', () => {
       externalIds: {},
       scheduledAt: null,
       publishedAt: null,
+      imagesDeletedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -455,6 +457,7 @@ describe('GenerateContentPage', () => {
       externalIds: {},
       scheduledAt: null,
       publishedAt: null,
+      imagesDeletedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
@@ -524,6 +527,7 @@ describe('GenerateContentPage', () => {
       externalIds: {},
       scheduledAt: null,
       publishedAt: null,
+      imagesDeletedAt: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })

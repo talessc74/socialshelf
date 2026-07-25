@@ -16,6 +16,7 @@ export class FirestorePhotoCampaignRepository implements PhotoCampaignRepository
         updatedAt: campaign.updatedAt.toISOString(),
         startedAt: campaign.startedAt?.toISOString() ?? null,
         completedAt: campaign.completedAt?.toISOString() ?? null,
+        photosDeletedAt: campaign.photosDeletedAt?.toISOString() ?? null,
       })
   }
 
@@ -54,6 +55,18 @@ export class FirestorePhotoCampaignRepository implements PhotoCampaignRepository
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
+  async findCancelledForPhotoCleanup(cutoff: Date): Promise<PhotoCampaign[]> {
+    const snapshot = await db
+      .collectionGroup('photo_campaigns')
+      .where('status', '==', 'cancelled')
+      .where('updatedAt', '<=', cutoff.toISOString())
+      .get()
+
+    return snapshot.docs
+      .map((doc) => this.fromFirestore(doc.data()))
+      .filter((campaign) => campaign.photosDeletedAt === null)
+  }
+
   private fromFirestore(data: FirebaseFirestore.DocumentData): PhotoCampaign {
     return {
       id: data['id'] as string,
@@ -70,6 +83,7 @@ export class FirestorePhotoCampaignRepository implements PhotoCampaignRepository
       updatedAt: new Date(data['updatedAt'] as string),
       startedAt: data['startedAt'] ? new Date(data['startedAt'] as string) : null,
       completedAt: data['completedAt'] ? new Date(data['completedAt'] as string) : null,
+      photosDeletedAt: data['photosDeletedAt'] ? new Date(data['photosDeletedAt'] as string) : null,
     }
   }
 }

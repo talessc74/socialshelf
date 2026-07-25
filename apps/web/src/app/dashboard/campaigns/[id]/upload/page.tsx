@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../../../lib/api'
 import type { ApiCampaignPhoto } from '../../../../../lib/api'
+import { CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS } from '@socialshelf/domain'
 
 function UploadedPhotoThumbnail({
   url,
@@ -361,7 +362,7 @@ export default function CampaignUploadPage() {
                 : ''
               if (
                 confirm(
-                  `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
+                  `Tem certeza que deseja cancelar a campanha "${campaign?.name}"?${activeWarning} As fotos ainda não usadas em nenhum post serão apagadas do armazenamento em ${CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS} dias. Essa ação não pode ser desfeita.`,
                 )
               ) {
                 cancelCampaign.mutate()

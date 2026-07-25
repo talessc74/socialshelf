@@ -25,4 +25,10 @@ export interface PhotoCampaign {
   updatedAt: Date
   startedAt: Date | null
   completedAt: Date | null
+  // Quando as fotos ainda não usadas em nenhum post real (CampaignItem 'planned' no momento
+  // do cancelamento) foram apagadas do Cloud Storage pela limpeza automática — 7 dias após
+  // updatedAt da transição pra 'cancelled' (_local-edr-policy-067). Preenchido só quando
+  // status === 'cancelled'; nunca mexe em fotos cujo CampaignItem ficou 'materialized'
+  // (o Post real que as referencia segue seu próprio prazo via imagesDeletedAt).
+  photosDeletedAt: Date | null
 }

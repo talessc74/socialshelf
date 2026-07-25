@@ -19,6 +19,7 @@ function makeCampaign(overrides: Partial<PhotoCampaign> = {}): PhotoCampaign {
     updatedAt: new Date(),
     startedAt: null,
     completedAt: null,
+    photosDeletedAt: null,
     ...overrides,
   }
 }

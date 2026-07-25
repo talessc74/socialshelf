@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import type { ApiPhotoCampaign } from '../../../lib/api'
+import { CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS } from '@socialshelf/domain'
 
 const STATUS_LABELS: Record<ApiPhotoCampaign['status'], { label: string; className: string }> = {
   draft: { label: 'Rascunho', className: 'bg-card-2 text-muted' },
@@ -118,7 +119,7 @@ function CampaignRow({ campaign }: { campaign: ApiPhotoCampaign }) {
                   : ''
               if (
                 confirm(
-                  `Tem certeza que deseja cancelar a campanha "${campaign.name}"?${activeWarning} Essa ação não pode ser desfeita.`,
+                  `Tem certeza que deseja cancelar a campanha "${campaign.name}"?${activeWarning} As fotos ainda não usadas em nenhum post serão apagadas do armazenamento em ${CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS} dias. Essa ação não pode ser desfeita.`,
                 )
               ) {
                 cancelMutation.mutate()
