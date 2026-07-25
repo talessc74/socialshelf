@@ -36,6 +36,7 @@ describe('ReorderCampaignPhotosUseCase', () => {
       findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
       findCancelledForPhotoCleanup: vi.fn(),
+      delete: vi.fn(),
     }
     photoRepo = {
       save: vi.fn(),
@@ -44,6 +45,7 @@ describe('ReorderCampaignPhotosUseCase', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn().mockResolvedValue(undefined),
+      deleteByCampaign: vi.fn(),
     }
     useCase = new ReorderCampaignPhotosUseCase(campaignRepo, photoRepo)
   })

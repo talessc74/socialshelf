@@ -9,6 +9,7 @@ import { Platform } from '@socialshelf/domain'
 import { api } from '../../lib/api'
 import { LogoImage } from '../../components/LogoImage'
 import { NewsCarousel } from '../../components/NewsCarousel'
+import { SavedForLaterCarousel } from '../../components/SavedForLaterCarousel'
 import { useAuth } from '../../contexts/AuthContext'
 import { getTimeSavedTotal, formatMinutes } from '../../lib/selfieTimeSaved'
 import { useSelfieNarrateOnReady } from '../../contexts/AssistantContext'
@@ -381,6 +382,8 @@ export function ClassicHome() {
       </section>
 
       <NewsCarousel />
+
+      <SavedForLaterCarousel />
 
       <section>
         <h2 className="mb-4 text-lg font-semibold text-ink">Atalhos</h2>

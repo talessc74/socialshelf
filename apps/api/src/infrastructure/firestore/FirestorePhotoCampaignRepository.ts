@@ -67,6 +67,14 @@ export class FirestorePhotoCampaignRepository implements PhotoCampaignRepository
       .filter((campaign) => campaign.photosDeletedAt === null)
   }
 
+  async delete(userId: string, brandId: string, id: string): Promise<void> {
+    await db
+      .collection('users').doc(userId)
+      .collection('brands').doc(brandId)
+      .collection('photo_campaigns').doc(id)
+      .delete()
+  }
+
   private fromFirestore(data: FirebaseFirestore.DocumentData): PhotoCampaign {
     return {
       id: data['id'] as string,

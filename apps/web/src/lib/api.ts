@@ -854,6 +854,10 @@ export const api = {
     return data.campaign
   },
 
+  async discardCampaign(id: string): Promise<void> {
+    await apiFetch(`/campaigns/${id}`, { method: 'DELETE' })
+  },
+
   async renderCard(
     imageStoragePath: string,
     headline: string,

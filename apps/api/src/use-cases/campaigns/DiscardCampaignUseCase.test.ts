@@ -8,7 +8,7 @@ import type {
   PhotoCampaign,
   PhotoCampaignRepository,
 } from '@socialshelf/domain'
-import { CleanupCancelledCampaignPhotosUseCase } from './CleanupCancelledCampaignPhotosUseCase.js'
+import { DiscardCampaignUseCase } from './DiscardCampaignUseCase.js'
 
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
@@ -71,11 +71,11 @@ function makePhoto(overrides: Partial<CampaignPhoto> = {}): CampaignPhoto {
   }
 }
 
-describe('CleanupCancelledCampaignPhotosUseCase', () => {
+describe('DiscardCampaignUseCase', () => {
   let campaignRepo: PhotoCampaignRepository
   let itemRepo: CampaignItemRepository
   let photoRepo: CampaignPhotoRepository
-  let useCase: CleanupCancelledCampaignPhotosUseCase
+  let useCase: DiscardCampaignUseCase
 
   beforeEach(() => {
     mockFetch.mockReset()
@@ -83,16 +83,16 @@ describe('CleanupCancelledCampaignPhotosUseCase', () => {
     campaignRepo = {
       save: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn(),
-      findByIdAndBrand: vi.fn(),
+      findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
-      findCancelledForPhotoCleanup: vi.fn().mockResolvedValue([]),
-      delete: vi.fn(),
+      findCancelledForPhotoCleanup: vi.fn(),
+      delete: vi.fn().mockResolvedValue(undefined),
     }
     itemRepo = {
       save: vi.fn(),
       saveAll: vi.fn(),
       findByCampaign: vi.fn().mockResolvedValue([]),
-      deleteByCampaign: vi.fn(),
+      deleteByCampaign: vi.fn().mockResolvedValue(undefined),
     }
     photoRepo = {
       save: vi.fn(),
@@ -101,31 +101,56 @@ describe('CleanupCancelledCampaignPhotosUseCase', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
-      deleteByCampaign: vi.fn(),
+      deleteByCampaign: vi.fn().mockResolvedValue(undefined),
     }
-    useCase = new CleanupCancelledCampaignPhotosUseCase(campaignRepo, itemRepo, photoRepo, 'http://localhost:3003', 'internal-secret', 7)
+    useCase = new DiscardCampaignUseCase(campaignRepo, itemRepo, photoRepo, 'http://localhost:3003', 'internal-secret')
   })
 
-  it('deletes photos never used by a real post and marks photosDeletedAt', async () => {
-    const campaign = makeCampaign()
-    vi.mocked(campaignRepo.findCancelledForPhotoCleanup).mockResolvedValue([campaign])
+  it('throws when the campaign does not exist', async () => {
+    vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(null)
+
+    await expect(
+      useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+    ).rejects.toThrow('Campaign not found')
+  })
+
+  it.each(['draft', 'reviewing', 'active', 'paused', 'completed'] as const)(
+    'rejects discarding a campaign that is %s, not cancelled',
+    async (status) => {
+      vi.mocked(campaignRepo.findByIdAndBrand).mockResolvedValue(makeCampaign({ status }))
+
+      await expect(
+        useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' }),
+      ).rejects.toThrow('Only cancelled campaigns can be discarded')
+      expect(campaignRepo.delete).not.toHaveBeenCalled()
+    },
+  )
+
+  it('deletes the campaign, its items and its photos', async () => {
     vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem({ status: 'planned', photoIds: ['photo-1'] })])
     vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'photo-1' })])
 
-    const result = await useCase.execute()
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
+
+    expect(itemRepo.deleteByCampaign).toHaveBeenCalledWith('campaign-1')
+    expect(photoRepo.deleteByCampaign).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+    expect(campaignRepo.delete).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
+  })
+
+  it('deletes the blob of a photo never used by a real post', async () => {
+    vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem({ status: 'planned', photoIds: ['photo-1'] })])
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'photo-1' })])
+
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
     const [url, init] = mockFetch.mock.calls[0] as [string, RequestInit]
     expect(url).toBe('http://localhost:3003/images/delete')
     expect(init.method).toBe('POST')
     expect((init.headers as Headers).get('X-Internal-Secret')).toBe('internal-secret')
     expect(init.body).toBe(JSON.stringify({ path: 'user-1/brand-1/photo-1.jpg' }))
-    expect(campaignRepo.save).toHaveBeenCalledWith(expect.objectContaining({ id: 'campaign-1', photosDeletedAt: expect.any(Date) }))
-    expect(result).toEqual({ campaignsCleaned: 1, blobsDeleted: 1, blobsFailed: 0 })
   })
 
-  it('never deletes a photo whose item is materialized into a real post', async () => {
-    const campaign = makeCampaign()
-    vi.mocked(campaignRepo.findCancelledForPhotoCleanup).mockResolvedValue([campaign])
+  it('never deletes the blob of a photo whose item is materialized into a real post', async () => {
     vi.mocked(itemRepo.findByCampaign).mockResolvedValue([
       makeItem({ id: 'item-1', status: 'materialized', postId: 'post-1', photoIds: ['photo-1'] }),
       makeItem({ id: 'item-2', status: 'planned', photoIds: ['photo-2'] }),
@@ -135,23 +160,25 @@ describe('CleanupCancelledCampaignPhotosUseCase', () => {
       makePhoto({ id: 'photo-2', storagePath: 'user-1/brand-1/photo-2.jpg' }),
     ])
 
-    const result = await useCase.execute()
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
     expect(mockFetch).toHaveBeenCalledTimes(1)
     expect(mockFetch).toHaveBeenCalledWith(
       'http://localhost:3003/images/delete',
       expect.objectContaining({ body: JSON.stringify({ path: 'user-1/brand-1/photo-2.jpg' }) }),
     )
-    expect(result).toEqual({ campaignsCleaned: 1, blobsDeleted: 1, blobsFailed: 0 })
+    // Mesmo protegendo o blob, o registro de bookkeeping da campanha some por completo —
+    // deleteByCampaign apaga todos os CampaignPhoto, protegidos ou não.
+    expect(photoRepo.deleteByCampaign).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
   })
 
-  it('does nothing when there are no cancelled campaigns due for cleanup', async () => {
-    vi.mocked(campaignRepo.findCancelledForPhotoCleanup).mockResolvedValue([])
+  it('still deletes the campaign and its records even when a blob delete fails', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('boom'))
+    vi.mocked(itemRepo.findByCampaign).mockResolvedValue([makeItem({ status: 'planned', photoIds: ['photo-1'] })])
+    vi.mocked(photoRepo.findByCampaign).mockResolvedValue([makePhoto({ id: 'photo-1' })])
 
-    const result = await useCase.execute()
+    await useCase.execute({ userId: 'user-1', brandId: 'brand-1', campaignId: 'campaign-1' })
 
-    expect(mockFetch).not.toHaveBeenCalled()
-    expect(campaignRepo.save).not.toHaveBeenCalled()
-    expect(result).toEqual({ campaignsCleaned: 0, blobsDeleted: 0, blobsFailed: 0 })
+    expect(campaignRepo.delete).toHaveBeenCalledWith('user-1', 'brand-1', 'campaign-1')
   })
 })

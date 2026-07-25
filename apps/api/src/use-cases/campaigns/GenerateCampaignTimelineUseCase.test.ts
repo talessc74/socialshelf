@@ -86,6 +86,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
       findByIdAndBrand: vi.fn().mockResolvedValue(makeCampaign()),
       findByBrand: vi.fn(),
       findCancelledForPhotoCleanup: vi.fn(),
+      delete: vi.fn(),
     }
     photoRepo = {
       save: vi.fn(),
@@ -94,6 +95,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
       delete: vi.fn(),
       countByCampaign: vi.fn(),
       reorder: vi.fn(),
+      deleteByCampaign: vi.fn(),
     }
     itemRepo = {
       save: vi.fn(),

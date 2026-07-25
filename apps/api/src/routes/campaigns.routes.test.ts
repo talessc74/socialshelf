@@ -10,6 +10,7 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
 const mockCampaignSave = vi.fn().mockResolvedValue(undefined)
 const mockCampaignFindByBrand = vi.fn().mockResolvedValue([])
 const mockCampaignFindByIdAndBrand = vi.fn().mockResolvedValue(null)
+const mockCampaignDelete = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('../infrastructure/firestore/FirestorePhotoCampaignRepository.js', () => ({
   FirestorePhotoCampaignRepository: vi.fn().mockImplementation(() => ({
@@ -17,6 +18,8 @@ vi.mock('../infrastructure/firestore/FirestorePhotoCampaignRepository.js', () =>
     findById: vi.fn().mockResolvedValue(null),
     findByIdAndBrand: mockCampaignFindByIdAndBrand,
     findByBrand: mockCampaignFindByBrand,
+    findCancelledForPhotoCleanup: vi.fn().mockResolvedValue([]),
+    delete: mockCampaignDelete,
   })),
 }))
 
@@ -24,6 +27,7 @@ const mockPhotoFindByCampaign = vi.fn().mockResolvedValue([])
 const mockPhotoDelete = vi.fn().mockResolvedValue(null)
 const mockPhotoCountByCampaign = vi.fn().mockResolvedValue(0)
 const mockPhotoReorder = vi.fn().mockResolvedValue(undefined)
+const mockPhotoDeleteByCampaign = vi.fn().mockResolvedValue(undefined)
 vi.mock('../infrastructure/firestore/FirestoreCampaignPhotoRepository.js', () => ({
   FirestoreCampaignPhotoRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
@@ -32,6 +36,7 @@ vi.mock('../infrastructure/firestore/FirestoreCampaignPhotoRepository.js', () =>
     delete: mockPhotoDelete,
     countByCampaign: mockPhotoCountByCampaign,
     reorder: mockPhotoReorder,
+    deleteByCampaign: mockPhotoDeleteByCampaign,
   })),
 }))
 
@@ -431,6 +436,53 @@ describe('Campaigns routes', () => {
 
     it('requires authentication', async () => {
       const response = await app.inject({ method: 'POST', url: '/campaigns/campaign-1/resume' })
+      expect(response.statusCode).toBe(401)
+    })
+  })
+
+  describe('DELETE /campaigns/:id', () => {
+    it('discards a cancelled campaign, its items and its photos, returning 204', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'cancelled' })
+      mockItemFindByCampaign.mockResolvedValueOnce([])
+      mockPhotoFindByCampaign.mockResolvedValueOnce([])
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/campaign-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(204)
+      expect(mockPhotoDeleteByCampaign).toHaveBeenCalledWith('user-test-123', 'user-test-123', 'campaign-1')
+      expect(mockCampaignDelete).toHaveBeenCalledWith('user-test-123', 'user-test-123', 'campaign-1')
+    })
+
+    it('returns 404 when the campaign does not exist', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce(null)
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/missing',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('returns 422 when the campaign is not cancelled', async () => {
+      mockCampaignFindByIdAndBrand.mockResolvedValueOnce({ id: 'campaign-1', status: 'active' })
+
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/campaigns/campaign-1',
+        headers: { authorization: 'Bearer valid-token' },
+      })
+
+      expect(response.statusCode).toBe(422)
+    })
+
+    it('requires authentication', async () => {
+      const response = await app.inject({ method: 'DELETE', url: '/campaigns/campaign-1' })
       expect(response.statusCode).toBe(401)
     })
   })
