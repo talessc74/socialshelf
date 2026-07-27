@@ -252,7 +252,11 @@ export function ClassicHome() {
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-card">
           {brandProfile?.visual.logoStoragePath ? (
-            <LogoImage path={brandProfile.visual.logoStoragePath} className="h-28 w-full rounded-xl border border-line" />
+            <LogoImage
+              path={brandProfile.visual.logoStoragePath}
+              fit="contain"
+              className="h-28 w-full rounded-xl border border-line bg-card-2"
+            />
           ) : (
             <div className="flex h-28 w-full items-center justify-center rounded-xl bg-accent-soft text-3xl font-bold text-accent">
               {(user?.email?.[0] ?? 'S').toUpperCase()}
