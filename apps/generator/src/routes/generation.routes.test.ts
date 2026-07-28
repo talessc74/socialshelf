@@ -211,6 +211,22 @@ describe('POST /generate', () => {
 
     expect(response.statusCode).toBe(401)
   })
+
+  it('returns 400 when imageStoragePaths exceeds the Instagram carousel cap (10)', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/generate',
+      payload: {
+        brandId: 'brand-1',
+        description: 'Post sobre lançamento',
+        targetPlatforms: ['linkedin'],
+        imageStoragePaths: Array.from({ length: 11 }, (_, i) => `path-${i}`),
+      },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
 })
 
 describe('GET /generation-requests/:id', () => {

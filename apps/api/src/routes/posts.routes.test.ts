@@ -324,6 +324,20 @@ describe('Posts routes', () => {
       expect(response.statusCode).toBe(400)
     })
 
+    it('returns 400 when imageStoragePaths exceeds the Instagram carousel cap (10)', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/posts',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: {
+          content: [{ platform: 'linkedin', text: 'Hello LinkedIn!' }],
+          imageStoragePaths: Array.from({ length: 11 }, (_, i) => `path-${i}`),
+        },
+      })
+
+      expect(response.statusCode).toBe(400)
+    })
+
     it('returns 422 when text exceeds character limit', async () => {
       const response = await app.inject({
         method: 'POST',
