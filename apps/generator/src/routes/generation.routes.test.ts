@@ -160,6 +160,12 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   })),
 }))
 
+vi.mock('../infrastructure/firestore/FirestoreAiUsageRepository.js', () => ({
+  FirestoreAiUsageRepository: vi.fn().mockImplementation(() => ({
+    record: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
 describe('POST /generate', () => {
   let app: FastifyInstance
 

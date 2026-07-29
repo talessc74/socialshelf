@@ -53,6 +53,8 @@ export class EditArtifactUseCase {
       const bodyText = request.outputs.bodyTexts?.[artifact.position - 1] ?? ''
       const hasBodyOverlay = request.inputs.includeBodyText && bodyText.trim().length > 0
       const image = await this.imageGenerator.generateImage({
+        userId: request.userId,
+        brandId: request.brandId,
         description: `${visualBrief}. Ajuste solicitado pelo usuário: ${input.instruction}`,
         brandTokens,
         position: artifact.position,

@@ -1,12 +1,13 @@
-import type { CopyGeneratorPort, ContentInputs, CopyGenerationResult, ArtifactPlan } from '@socialshelf/domain'
+import type { CopyGeneratorPort, ContentInputs, CopyGenerationResult, ArtifactPlan, AiUsageRecorderPort } from '@socialshelf/domain'
 import { PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 export class GeminiCopyGenerator implements CopyGeneratorPort {
   constructor(
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async generateCopy(inputs: ContentInputs): Promise<CopyGenerationResult> {
@@ -18,6 +19,11 @@ export class GeminiCopyGenerator implements CopyGeneratorPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: inputs.userId, brandId: inputs.brandId, operation: 'copy-generation', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for copy generation')
 

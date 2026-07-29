@@ -1,12 +1,13 @@
 import { GoogleAuth } from 'google-auth-library'
-import { TemplateStyle } from '@socialshelf/domain'
-import type { ImageGeneratorPort, ImagePrompt, GeneratedImage } from '@socialshelf/domain'
+import { TemplateStyle, estimateImagenCostUsd } from '@socialshelf/domain'
+import type { ImageGeneratorPort, ImagePrompt, GeneratedImage, AiUsageRecorderPort } from '@socialshelf/domain'
 
 export class ImagenImageGenerator implements ImageGeneratorPort {
   constructor(
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
     private readonly auth: GoogleAuth = new GoogleAuth({
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
     }),
@@ -53,6 +54,16 @@ export class ImagenImageGenerator implements ImageGeneratorPort {
     }
     const prediction = data.predictions?.[0]
     if (!prediction?.bytesBase64Encoded) throw new Error('Imagen returned no image data')
+
+    void this.usageRecorder.record({
+      userId: prompt.userId,
+      brandId: prompt.brandId,
+      category: 'image-generation',
+      operation: 'imagen-generation',
+      model: this.model,
+      imageCount: 1,
+      estimatedCostUsd: estimateImagenCostUsd(1),
+    })
 
     return {
       base64: prediction.bytesBase64Encoded,

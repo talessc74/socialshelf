@@ -86,6 +86,14 @@
       ]
     },
     {
+      "collectionGroup": "ai_usage_events",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "brandId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "audience_signals",
       "queryScope": "COLLECTION",
       "fields": [

@@ -14,6 +14,7 @@ import { FirestoreGenerationRequestRepository } from '../infrastructure/firestor
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 import { computePerceptualHash } from '../lib/perceptualHash.js'
 import { computeAspectRatio } from '../lib/imageAspectRatio.js'
 
@@ -82,9 +83,10 @@ export async function generationRoutes(app: FastifyInstance) {
   const imagenModel = process.env['IMAGEN_MODEL'] ?? 'imagen-4.0-generate-001'
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
 
-  const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel)
-  const artDirector = new GeminiArtDirector(projectId, geminiLocation, geminiModel)
-  const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel)
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel, aiUsageRepo)
+  const artDirector = new GeminiArtDirector(projectId, geminiLocation, geminiModel, aiUsageRepo)
+  const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel, aiUsageRepo)
   const templateRenderer = new SharpTemplateRenderer()
   const imageStorage = new GcsImageStorage(generatedBucket)
   const generationRequestRepo = new FirestoreGenerationRequestRepository()

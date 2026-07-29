@@ -1,5 +1,5 @@
-import type { ArtDirectorPort, ArtDirectionInput, ArtDirectionResult, ArtifactDirection } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { ArtDirectorPort, ArtDirectionInput, ArtDirectionResult, ArtifactDirection, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 // ---------------------------------------------------------------------
 // Especificação do agente — fornecida pelo usuário, usada de forma completa
@@ -89,6 +89,7 @@ export class GeminiArtDirector implements ArtDirectorPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async direct(input: ArtDirectionInput): Promise<ArtDirectionResult> {
@@ -100,6 +101,11 @@ export class GeminiArtDirector implements ArtDirectorPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: input.userId, brandId: input.brandId, operation: 'art-direction', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for art direction')
 
