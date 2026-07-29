@@ -13,10 +13,11 @@ export type ViewMode = 'classic' | 'shelf'
 
 export const DEFAULT_VIEW_MODE: ViewMode = 'classic'
 
-// isAdminEmail mudou para @socialshelf/domain (compartilhado com apps/api, que agora também
-// precisa autorizar admin de verdade — ver _local-edr-policy-072). Reexportado aqui para não
-// quebrar quem já importava de './viewMode'.
-export { isAdminEmail } from '@socialshelf/domain'
+// isAdminEmail mora em @socialshelf/domain (compartilhado com apps/api, que agora também
+// precisa autorizar admin de verdade — ver _local-edr-policy-072). Não reexportado aqui de
+// propósito: este módulo é consumido pelo TopNav via ViewModeContext (ver comentário lá) e não
+// deve arrastar nenhuma dependência a mais para esse grafo de import — quem precisar de
+// isAdminEmail deve importar direto de '@socialshelf/domain' (ex.: ViewModeProvider.tsx).
 
 function storageKey(userId: string): string {
   return `socialshelf:viewMode:${userId}`

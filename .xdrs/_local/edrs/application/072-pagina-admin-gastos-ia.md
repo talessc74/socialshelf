@@ -34,9 +34,18 @@ a proteção em si.**
 
 Movido de `apps/web/src/lib/viewMode.ts` para `packages/domain/src/value-objects/
 AdminAccess.ts` — mesma lista (`talessc@me.com`), mesma comparação case-insensitive.
-`viewMode.ts` reexporta de `@socialshelf/domain` para não quebrar quem já importava dali.
-Agora tanto `apps/web` (esconder o link) quanto `apps/api` (autorizar de verdade) leem a
-mesma allowlist — nenhuma chance de as duas divergirem.
+`viewMode.ts` NÃO reexporta `isAdminEmail` — quem precisa dele importa direto de
+`@socialshelf/domain` (`ViewModeProvider.tsx`, `dashboard/layout.tsx`). Isso não é só
+estilo: `viewMode.ts` é consumido por `ViewModeContext.tsx`, que o próprio arquivo já
+documentava como "não importa nada de auth/firebase" de propósito, porque o `TopNav` (e o
+teste de componente visual `TopNav.ct.tsx`) consome esse hook sem precisar montar o resto
+da árvore de dependências. Um re-export ali quebrou exatamente isso na prática: o job de
+regressão visual (Playwright CT) nunca builda `@socialshelf/domain` antes de rodar (só
+`pnpm --filter web test:visual`, sem passar pelo `dependsOn: ["^build"]` do turbo), e
+qualquer módulo que `viewMode.ts` re-exportasse de fora passava a ser resolvido nesse
+grafo também — quebrando `TopNav.ct.tsx` mesmo sem `isAdminEmail` ser usado ali. Corrigido
+removendo o re-export; `apps/web` (esconder o link) e `apps/api` (autorizar de verdade)
+continuam lendo a mesma allowlist, só que cada import direto de `@socialshelf/domain`.
 
 **`requireAdmin`: segundo preHandler, depende de `authenticate` já ter rodado**
 
