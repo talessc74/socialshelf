@@ -45,6 +45,7 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
       blockedTopics: [],
       maxAutoPostsPerDay: 1,
       stylePreferences: [],
+      dailyAiSpendingLimitBrl: null,
     },
     createdAt: new Date().toISOString(),
     ...overrides,

@@ -104,6 +104,7 @@ export async function generationRoutes(app: FastifyInstance) {
     postRepo,
     brandProfileRepo,
     topicSuggestionRepo,
+    aiUsageRepo,
   )
 
   const editArtifactUseCase = new EditArtifactUseCase(
@@ -112,6 +113,7 @@ export async function generationRoutes(app: FastifyInstance) {
     imageStorage,
     generationRequestRepo,
     brandProfileRepo,
+    aiUsageRepo,
   )
 
   const renderCardUseCase = new RenderCardUseCase(templateRenderer, imageStorage, brandProfileRepo)

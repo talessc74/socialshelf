@@ -3,11 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api, type ApiAdminAiUsageBrandSummary } from '../../../../lib/api'
-
-// Estimativa a partir do preço público de lista da Vertex AI, não da fatura real (que tem
-// desconto/crédito) — mesmo aviso já dado no EDR-071 sobre o custo em USD gravado no evento.
-// Câmbio aproximado, atualizado manualmente aqui — não é uma cotação em tempo real.
-const USD_TO_BRL_RATE = 5.4
+import { USD_TO_BRL_RATE } from '@socialshelf/domain'
 
 function formatBrl(usd: number): string {
   return (usd * USD_TO_BRL_RATE).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })

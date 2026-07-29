@@ -20,11 +20,17 @@ export function normalizeBrandProfileOperation(raw: unknown): BrandProfileOperat
       ? data.stylePreferences
       : ALL_TEMPLATE_STYLES
 
+  const dailyAiSpendingLimitBrl =
+    typeof data.dailyAiSpendingLimitBrl === 'number' && Number.isFinite(data.dailyAiSpendingLimitBrl)
+      ? data.dailyAiSpendingLimitBrl
+      : null
+
   return {
     autonomyLevel: data.autonomyLevel ?? 'manual',
     autoPublishTopics: data.autoPublishTopics ?? [],
     blockedTopics: data.blockedTopics ?? [],
     maxAutoPostsPerDay,
     stylePreferences,
+    dailyAiSpendingLimitBrl,
   }
 }

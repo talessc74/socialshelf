@@ -31,3 +31,20 @@ export function estimateGeminiCostUsd(usage: GeminiUsageTokens): number {
 export function estimateImagenCostUsd(imageCount: number): number {
   return imageCount * IMAGEN_4_STANDARD_USD_PER_IMAGE
 }
+
+// Câmbio fixo e aproximado, atualizado manualmente aqui — não é uma cotação em tempo real.
+// Único lugar da conversão USD→R$: a tela de gastos (apps/web) e a trava de gasto diário
+// (apps/generator) precisam do mesmo número, ou o valor mostrado ao usuário divergiria do que
+// de fato bloqueia a geração.
+export const USD_TO_BRL_RATE = 5.4
+
+export function convertUsdToBrl(usd: number): number {
+  return usd * USD_TO_BRL_RATE
+}
+
+// Mensagem exibida ao usuário quando GenerateContentUseCase/EditArtifactUseCase (apps/generator)
+// recusam gerar por a marca ter atingido o teto diário configurado — exata e compartilhada
+// entre os dois use-cases para nunca divergir, e para os testes poderem checar a mensagem real
+// em vez de um texto solto reescrito em cada lugar (_local-edr-policy-073).
+export const AI_SPENDING_LIMIT_REACHED_MESSAGE =
+  'Limite diário de gasto com IA desta conta foi atingido. Novos posts poderão ser gerados a partir de amanhã.'

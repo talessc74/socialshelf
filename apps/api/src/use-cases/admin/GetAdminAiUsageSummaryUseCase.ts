@@ -1,17 +1,10 @@
-import type { AiUsageReaderPort, BrandRepository, AiUsageEvent } from '@socialshelf/domain'
-
-export interface AdminAiUsageMonth {
-  // Formato 'YYYY-MM', ordenado do mais recente para o mais antigo.
-  month: string
-  textUsd: number
-  imageUsd: number
-  totalUsd: number
-}
+import { groupAiUsageEventsByMonth } from '@socialshelf/domain'
+import type { AiUsageReaderPort, BrandRepository, AiUsageEvent, AiUsageMonthSummary } from '@socialshelf/domain'
 
 export interface AdminAiUsageBrandSummary {
   brandId: string
   brandName: string
-  months: AdminAiUsageMonth[]
+  months: AiUsageMonthSummary[]
 }
 
 export interface AdminAiUsageSummary {
@@ -41,24 +34,11 @@ export class GetAdminAiUsageSummaryUseCase {
     const brandSummaries = brands.map((brand) => ({
       brandId: brand.id,
       brandName: brand.name,
-      months: this.groupByMonth(eventsByBrand.get(brand.id) ?? []),
+      months: groupAiUsageEventsByMonth(eventsByBrand.get(brand.id) ?? []),
     }))
 
     brandSummaries.sort((a, b) => a.brandName.localeCompare(b.brandName))
 
     return { brands: brandSummaries }
-  }
-
-  private groupByMonth(events: AiUsageEvent[]): AdminAiUsageMonth[] {
-    const byMonth = new Map<string, AdminAiUsageMonth>()
-    for (const event of events) {
-      const month = event.createdAt.toISOString().slice(0, 7)
-      const entry = byMonth.get(month) ?? { month, textUsd: 0, imageUsd: 0, totalUsd: 0 }
-      if (event.category === 'text-generation') entry.textUsd += event.estimatedCostUsd
-      else entry.imageUsd += event.estimatedCostUsd
-      entry.totalUsd += event.estimatedCostUsd
-      byMonth.set(month, entry)
-    }
-    return [...byMonth.values()].sort((a, b) => b.month.localeCompare(a.month))
   }
 }

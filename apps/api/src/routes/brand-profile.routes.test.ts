@@ -64,6 +64,7 @@ const validSections = {
     blockedTopics: [],
     maxAutoPostsPerDay: 1,
     stylePreferences: ['bold-bottom', 'centered-overlay', 'top-strip', 'no-text'],
+    dailyAiSpendingLimitBrl: null,
   },
 }
 
@@ -193,6 +194,30 @@ describe('Brand profile routes', () => {
       })
 
       expect(response.statusCode).toBe(401)
+    })
+
+    it('saves a positive dailyAiSpendingLimitBrl', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { ...validSections, operation: { ...validSections.operation, dailyAiSpendingLimitBrl: 20 } },
+      })
+
+      expect(response.statusCode).toBe(201)
+      const body = response.json<{ brandProfile: { operation: { dailyAiSpendingLimitBrl: number | null } } }>()
+      expect(body.brandProfile.operation.dailyAiSpendingLimitBrl).toBe(20)
+    })
+
+    it('returns 400 when dailyAiSpendingLimitBrl is negative', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { ...validSections, operation: { ...validSections.operation, dailyAiSpendingLimitBrl: -5 } },
+      })
+
+      expect(response.statusCode).toBe(400)
     })
   })
 })

@@ -254,6 +254,12 @@ export interface ApiAdminAiUsageSummary {
   brands: ApiAdminAiUsageBrandSummary[]
 }
 
+// Mesma agregação mensal texto/imagem da tela de admin, aqui escopada à própria marca — vem de
+// GET /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073).
+export interface ApiAiUsageSummary {
+  months: ApiAdminAiUsageMonth[]
+}
+
 export interface ApiAutonomyTickLogEntry {
   id: string
   userId: string
@@ -280,6 +286,9 @@ export interface ApiBrandProfile {
     blockedTopics: string[]
     maxAutoPostsPerDay: number
     stylePreferences: TemplateStyle[]
+    // Teto de gasto estimado com IA por dia, em R$, escolhido pelo usuário — null desliga a
+    // trava (_local-edr-policy-073).
+    dailyAiSpendingLimitBrl: number | null
   }
   createdAt: string
 }
@@ -882,6 +891,12 @@ export const api = {
   // R$ acontece na tela.
   async getAdminAiUsageSummary(): Promise<ApiAdminAiUsageSummary> {
     return apiFetch<ApiAdminAiUsageSummary>('/admin/ai-usage')
+  },
+
+  // Gasto de IA da própria marca — qualquer usuário autenticado, diferente do endpoint acima
+  // que exige admin (_local-edr-policy-073).
+  async getAiUsageSummary(): Promise<ApiAiUsageSummary> {
+    return apiFetch<ApiAiUsageSummary>('/ai-usage')
   },
 
   async renderCard(

@@ -34,7 +34,7 @@ const mockBrandProfile: BrandProfile = {
   visual: { primaryColor: '#000', secondaryColor: '#fff', typography: 'Inter', logoStoragePath: null },
   voice: { tone: 'casual', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: ['inteligência artificial', 'startups'] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [], dailyAiSpendingLimitBrl: null },
   createdAt: new Date(),
 }
 

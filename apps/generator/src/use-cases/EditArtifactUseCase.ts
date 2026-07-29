@@ -1,12 +1,14 @@
-import { TemplateStyle } from '@socialshelf/domain'
+import { TemplateStyle, AI_SPENDING_LIMIT_REACHED_MESSAGE } from '@socialshelf/domain'
 import type {
   ImageGeneratorPort,
   TemplateRendererPort,
   ImageStoragePort,
   GenerationRequestRepository,
   BrandProfileRepository,
+  AiSpendingGuardPort,
   GenerationRequest,
 } from '@socialshelf/domain'
+import { isAiSpendingLimitReached } from '../lib/aiSpendingLimit.js'
 
 export interface EditArtifactInput {
   generationRequestId: string
@@ -21,6 +23,7 @@ export class EditArtifactUseCase {
     private readonly imageStorage: ImageStoragePort,
     private readonly generationRequestRepo: GenerationRequestRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
+    private readonly aiSpendingGuard: AiSpendingGuardPort,
   ) {}
 
   async execute(input: EditArtifactInput): Promise<GenerationRequest> {
@@ -32,6 +35,21 @@ export class EditArtifactUseCase {
     if (!artifact) throw new Error(`Artifact at position ${input.position} not found`)
 
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.userId, request.brandId)
+
+    if (
+      await isAiSpendingLimitReached(
+        this.aiSpendingGuard,
+        request.userId,
+        request.brandId,
+        brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
+      )
+    ) {
+      artifact.status = 'failed'
+      artifact.error = AI_SPENDING_LIMIT_REACHED_MESSAGE
+      await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
+      return request
+    }
+
     const brandTokens = brandProfile
       ? {
           primaryColor: brandProfile.visual.primaryColor,

@@ -123,6 +123,7 @@ export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLockRepository.js'
 export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
 export type { AiUsageReaderPort } from './ports/AiUsageReaderPort.js'
+export type { AiSpendingGuardPort } from './ports/AiSpendingGuardPort.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
@@ -140,8 +141,14 @@ export {
   GEMINI_FLASH_INPUT_USD_PER_1M_TOKENS,
   GEMINI_FLASH_OUTPUT_USD_PER_1M_TOKENS,
   IMAGEN_4_STANDARD_USD_PER_IMAGE,
+  USD_TO_BRL_RATE,
   estimateGeminiCostUsd,
   estimateImagenCostUsd,
+  convertUsdToBrl,
+  AI_SPENDING_LIMIT_REACHED_MESSAGE,
 } from './value-objects/AiPricing.js'
 export type { GeminiUsageTokens } from './value-objects/AiPricing.js'
 export { isAdminEmail } from './value-objects/AdminAccess.js'
+export { brasiliaDateNow, startOfBrasiliaDay } from './value-objects/BrasiliaDate.js'
+export { groupAiUsageEventsByMonth } from './value-objects/AiUsageAggregation.js'
+export type { AiUsageMonthSummary } from './value-objects/AiUsageAggregation.js'

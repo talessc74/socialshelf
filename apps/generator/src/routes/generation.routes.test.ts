@@ -163,6 +163,7 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
 vi.mock('../infrastructure/firestore/FirestoreAiUsageRepository.js', () => ({
   FirestoreAiUsageRepository: vi.fn().mockImplementation(() => ({
     record: vi.fn().mockResolvedValue(undefined),
+    sumCostUsdSince: vi.fn().mockResolvedValue(0),
   })),
 }))
 

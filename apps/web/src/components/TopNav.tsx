@@ -72,12 +72,15 @@ const NAV_ITEMS = [
   { href: '/dashboard/performance', label: 'Performance', icon: BarChart3 },
   { href: '/dashboard/accounts', label: 'Contas', icon: Share2 },
   { href: '/dashboard/brand', label: 'Marca', icon: Tag },
+  // Gasto da própria conta — sempre visível, qualquer usuário autenticado (_local-edr-policy-073).
+  { href: '/dashboard/ai-usage', label: 'Meus Gastos de IA', icon: DollarSign },
 ]
 
 // Só para quem está na allowlist de admin (isAdminEmail) — o link em si não é o gate de
 // segurança (a rota /admin/ai-usage exige o mesmo e-mail no backend, _local-edr-policy-072),
-// mas não faz sentido mostrá-lo a quem receberia 403 ao clicar.
-const ADMIN_NAV_ITEM = { href: '/dashboard/admin/ai-usage', label: 'Gastos de IA', icon: DollarSign }
+// mas não faz sentido mostrá-lo a quem receberia 403 ao clicar. Nome distinto do link "Meus
+// Gastos de IA" (sempre visível) pra deixar claro que este enxerga TODAS as contas.
+const ADMIN_NAV_ITEM = { href: '/dashboard/admin/ai-usage', label: 'Gastos de IA (todas as contas)', icon: DollarSign }
 
 interface TopNavBrand {
   id: string

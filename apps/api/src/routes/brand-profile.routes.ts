@@ -52,6 +52,9 @@ const brandProfileSchema = z.object({
     // fora da faixa, o modo automático nunca publica mais que 10 posts por dia por marca.
     maxAutoPostsPerDay: z.number().int().min(1).max(10),
     stylePreferences: stylePreferencesSchema,
+    // Teto de gasto estimado com IA por dia, em R$, escolhido pelo usuário — null desliga a
+    // trava (_local-edr-policy-073). min(0) porque um limite negativo não faz sentido.
+    dailyAiSpendingLimitBrl: z.number().min(0).nullable(),
   }),
 })
 

@@ -9,6 +9,7 @@ describe('normalizeBrandProfileOperation', () => {
       blockedTopics: ['política'],
       maxAutoPostsPerDay: 3,
       stylePreferences: ['bold-bottom', 'centered-overlay', 'top-strip', 'no-text'],
+      dailyAiSpendingLimitBrl: 50,
     }
     expect(normalizeBrandProfileOperation(operation)).toEqual(operation)
   })
@@ -20,5 +21,9 @@ describe('normalizeBrandProfileOperation', () => {
   it('defaults stylePreferences to the full permutation when the field predates the feature', () => {
     const result = normalizeBrandProfileOperation({})
     expect(result.stylePreferences).toEqual(['bold-bottom', 'centered-overlay', 'top-strip', 'no-text'])
+  })
+
+  it('defaults dailyAiSpendingLimitBrl to null when the field predates the feature', () => {
+    expect(normalizeBrandProfileOperation({}).dailyAiSpendingLimitBrl).toBeNull()
   })
 })

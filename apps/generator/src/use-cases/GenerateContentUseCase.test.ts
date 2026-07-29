@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { GenerateContentUseCase } from './GenerateContentUseCase.js'
-import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio, AI_SPENDING_LIMIT_REACHED_MESSAGE } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ArtDirectorPort,
@@ -11,6 +11,7 @@ import type {
   PostRepository,
   BrandProfileRepository,
   TopicSuggestionRepository,
+  AiSpendingGuardPort,
   BrandProfile,
   TopicSuggestion,
 } from '@socialshelf/domain'
@@ -25,7 +26,7 @@ const mockBrandProfile: BrandProfile = {
   visual: { primaryColor: '#000', secondaryColor: '#fff', typography: 'Inter', logoStoragePath: null },
   voice: { tone: 'casual', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [] },
+  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [], dailyAiSpendingLimitBrl: null },
   createdAt: new Date(),
 }
 
@@ -113,6 +114,10 @@ function makeDeps(
     findById: vi.fn().mockResolvedValue(null),
   }
 
+  const aiSpendingGuard: AiSpendingGuardPort = {
+    sumCostUsdSince: vi.fn().mockResolvedValue(0),
+  }
+
   return {
     copyGenerator,
     artDirector,
@@ -123,6 +128,7 @@ function makeDeps(
     postRepo,
     brandProfileRepo,
     topicSuggestionRepo,
+    aiSpendingGuard,
   }
 }
 
@@ -155,6 +161,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -180,6 +187,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -206,6 +214,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute({
@@ -230,6 +239,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -254,6 +264,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -276,6 +287,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -299,6 +311,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -335,6 +348,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute({ ...baseInput(), topicSuggestionId: 'suggestion-1' })
@@ -358,6 +372,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute(baseInput())
@@ -379,6 +394,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute(baseInput())
@@ -408,6 +424,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute({ ...baseInput(), targetPlatforms: [Platform.INSTAGRAM] })
@@ -433,6 +450,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute(baseInput())
@@ -454,6 +472,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute(baseInput())
@@ -488,6 +507,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     const result = await useCase.execute(baseInput())
@@ -510,6 +530,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute({ ...baseInput(), imageStoragePaths: ['brand-1/uploads/foto.png'] })
@@ -530,6 +551,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute({ ...baseInput(), includeBodyText: true })
@@ -557,6 +579,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
     )
 
     await useCase.execute({ ...baseInput(), includeBodyText: false })
@@ -567,5 +590,56 @@ describe('GenerateContentUseCase', () => {
     expect(deps.templateRenderer.render).toHaveBeenCalledWith(
       expect.objectContaining({ body: null }),
     )
+  })
+
+  it('recusa gerar e marca a requisição como failed quando o limite diário de gasto foi atingido', async () => {
+    const deps = makeDeps()
+    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...mockBrandProfile,
+      operation: { ...mockBrandProfile.operation, dailyAiSpendingLimitBrl: 1 },
+    })
+    // 1 USD * USD_TO_BRL_RATE (5.4) = R$5,40, acima do limite de R$1 configurado.
+    ;(deps.aiSpendingGuard.sumCostUsdSince as ReturnType<typeof vi.fn>).mockResolvedValue(1)
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.status).toBe('failed')
+    expect(result.error).toBe(AI_SPENDING_LIMIT_REACHED_MESSAGE)
+    expect(deps.copyGenerator.generateCopy).not.toHaveBeenCalled()
+    expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
+    expect(deps.postRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('gera normalmente sem consultar o gasto quando a marca não configurou limite diário', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.status).toBe('ready')
+    expect(deps.aiSpendingGuard.sumCostUsdSince).not.toHaveBeenCalled()
   })
 })
