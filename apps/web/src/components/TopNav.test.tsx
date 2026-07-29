@@ -1,3 +1,4 @@
+import type { ComponentProps } from 'react'
 import { describe, it, expect, vi } from 'vitest'
 import { render, fireEvent, screen } from '@testing-library/react'
 import { TopNav } from './TopNav'
@@ -18,11 +19,11 @@ function getMobileNav(container: HTMLElement) {
   return container.querySelector('nav.overflow-x-auto') as HTMLElement
 }
 
-function renderTopNav() {
+function renderTopNav(props: Partial<ComponentProps<typeof TopNav>> = {}) {
   return render(
     <ThemeProvider>
       <AssistantProvider>
-        <TopNav email="user@example.com" onLogout={vi.fn()} />
+        <TopNav email="user@example.com" onLogout={vi.fn()} {...props} />
       </AssistantProvider>
     </ThemeProvider>
   )
@@ -57,6 +58,20 @@ describe('TopNav - nav mobile (segunda linha)', () => {
 
     expect(container.querySelector('.bg-gradient-to-r')).toBeInTheDocument()
     expect(container.querySelector('.bg-gradient-to-l')).not.toBeInTheDocument()
+  })
+})
+
+describe('TopNav - link de admin', () => {
+  it('não mostra "Gastos de IA" para quem não é admin', () => {
+    renderTopNav()
+
+    expect(screen.queryByText('Gastos de IA')).not.toBeInTheDocument()
+  })
+
+  it('mostra "Gastos de IA" só para quem é admin', () => {
+    renderTopNav({ isAdmin: true })
+
+    expect(screen.getAllByText('Gastos de IA').length).toBeGreaterThan(0)
   })
 })
 

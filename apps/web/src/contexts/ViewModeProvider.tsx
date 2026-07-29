@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { isAdminEmail } from '@socialshelf/domain'
 import { useAuth } from './AuthContext'
 import { ViewModeContext, type ViewModeContextValue } from './ViewModeContext'
-import { DEFAULT_VIEW_MODE, isAdminEmail, readViewMode, writeViewMode, type ViewMode } from '../lib/viewMode'
+import { DEFAULT_VIEW_MODE, readViewMode, writeViewMode, type ViewMode } from '../lib/viewMode'
 
 /**
  * Provider do interruptor de visual. Isolado do hook (ViewModeContext.tsx)

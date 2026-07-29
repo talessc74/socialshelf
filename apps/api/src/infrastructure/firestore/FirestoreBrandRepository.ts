@@ -48,6 +48,11 @@ export class FirestoreBrandRepository implements BrandRepository {
       .delete()
   }
 
+  async findAll(): Promise<Brand[]> {
+    const snapshot = await db.collectionGroup('brands').get()
+    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+  }
+
   private fromFirestore(data: FirebaseFirestore.DocumentData): Brand {
     // Marcas gravadas antes do accountType existir não têm o campo — caem no default
     // 'professional', preservando o comportamento atual sem migração em lote (_local-adr-policy-030).

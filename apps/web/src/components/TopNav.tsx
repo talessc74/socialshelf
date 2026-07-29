@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid, DollarSign } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
 import { useSelfieDismissal } from '../contexts/AssistantContext'
 import { useViewMode } from '../contexts/ViewModeContext'
@@ -74,6 +74,11 @@ const NAV_ITEMS = [
   { href: '/dashboard/brand', label: 'Marca', icon: Tag },
 ]
 
+// Só para quem está na allowlist de admin (isAdminEmail) — o link em si não é o gate de
+// segurança (a rota /admin/ai-usage exige o mesmo e-mail no backend, _local-edr-policy-072),
+// mas não faz sentido mostrá-lo a quem receberia 403 ao clicar.
+const ADMIN_NAV_ITEM = { href: '/dashboard/admin/ai-usage', label: 'Gastos de IA', icon: DollarSign }
+
 interface TopNavBrand {
   id: string
   name: string
@@ -85,10 +90,12 @@ interface TopNavProps {
   brands?: TopNavBrand[]
   activeBrandId?: string | null
   onBrandChange?: (brandId: string) => void
+  isAdmin?: boolean
 }
 
-export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }: TopNavProps) {
+export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, isAdmin }: TopNavProps) {
   const pathname = usePathname()
+  const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS
   const mobileNavRef = useRef<HTMLElement>(null)
   const brandMenuRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -202,7 +209,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
       <div className="relative w-full border-t border-line">
         <div className="hidden justify-center px-4 py-2 lg:flex">
           <nav className="flex items-center gap-1 rounded-full bg-card-2 p-1">
-            {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
               return (
                 <Link
@@ -227,7 +234,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange }
           onScroll={updateScrollAffordance}
           className="flex w-full items-center gap-1 overflow-x-auto bg-transparent px-3 py-2 lg:hidden"
         >
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
             return (
               <Link

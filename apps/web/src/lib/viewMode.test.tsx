@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { isAdminEmail, readViewMode, writeViewMode, DEFAULT_VIEW_MODE } from './viewMode'
+import { isAdminEmail } from '@socialshelf/domain'
+import { readViewMode, writeViewMode, DEFAULT_VIEW_MODE } from './viewMode'
 
 describe('viewMode - isAdminEmail', () => {
   it('reconhece o e-mail do administrador', () => {

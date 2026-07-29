@@ -13,17 +13,11 @@ export type ViewMode = 'classic' | 'shelf'
 
 export const DEFAULT_VIEW_MODE: ViewMode = 'classic'
 
-/**
- * Allowlist de administradores. O produto ainda não tem papéis/claims, então
- * o "usuário admin" é simplesmente um e-mail nesta lista — quem enxerga o
- * interruptor antes do lançamento público. Comparação sempre em minúsculas.
- */
-const ADMIN_EMAILS = ['talessc@me.com']
-
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false
-  return ADMIN_EMAILS.includes(email.trim().toLowerCase())
-}
+// isAdminEmail mora em @socialshelf/domain (compartilhado com apps/api, que agora também
+// precisa autorizar admin de verdade — ver _local-edr-policy-072). Não reexportado aqui de
+// propósito: este módulo é consumido pelo TopNav via ViewModeContext (ver comentário lá) e não
+// deve arrastar nenhuma dependência a mais para esse grafo de import — quem precisar de
+// isAdminEmail deve importar direto de '@socialshelf/domain' (ex.: ViewModeProvider.tsx).
 
 function storageKey(userId: string): string {
   return `socialshelf:viewMode:${userId}`

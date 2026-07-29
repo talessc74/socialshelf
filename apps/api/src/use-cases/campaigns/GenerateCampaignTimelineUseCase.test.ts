@@ -112,6 +112,7 @@ describe('GenerateCampaignTimelineUseCase', () => {
       findById: vi.fn().mockResolvedValue(makeBrand()),
       findByUserId: vi.fn(),
       delete: vi.fn(),
+      findAll: vi.fn(),
     }
     useCase = new GenerateCampaignTimelineUseCase(campaignRepo, photoRepo, itemRepo, captionClient, lockRepo, brandRepo)
   })

@@ -122,6 +122,7 @@ export type { CampaignPhotoRepository } from './ports/CampaignPhotoRepository.js
 export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLockRepository.js'
 export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
+export type { AiUsageReaderPort } from './ports/AiUsageReaderPort.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
@@ -143,3 +144,4 @@ export {
   estimateImagenCostUsd,
 } from './value-objects/AiPricing.js'
 export type { GeminiUsageTokens } from './value-objects/AiPricing.js'
+export { isAdminEmail } from './value-objects/AdminAccess.js'
