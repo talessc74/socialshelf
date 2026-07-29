@@ -1,5 +1,5 @@
-import { VertexAI } from '@google-cloud/vertexai'
 import type { ArtDirectorPort, ArtDirectionInput, ArtDirectionResult, ArtifactDirection } from '@socialshelf/domain'
+import { createGeminiClient } from './geminiClient.js'
 
 // ---------------------------------------------------------------------
 // Especificação do agente — fornecida pelo usuário, usada de forma completa
@@ -92,19 +92,15 @@ export class GeminiArtDirector implements ArtDirectorPort {
   ) {}
 
   async direct(input: ArtDirectionInput): Promise<ArtDirectionResult> {
-    const vertexAi = new VertexAI({
-      project: this.projectId,
-      location: this.location,
-      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
-    })
-    const generativeModel = vertexAi.getGenerativeModel({
-      model: this.model,
-      generationConfig: { responseMimeType: 'application/json' },
-    })
+    const ai = createGeminiClient(this.projectId, this.location)
 
     const prompt = this.buildPrompt(input)
-    const result = await generativeModel.generateContent(prompt)
-    const text = result.response.candidates?.[0]?.content.parts[0]?.text
+    const result = await ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    })
+    const text = result.text
     if (!text) throw new Error('Gemini returned no content for art direction')
 
     let parsed: unknown

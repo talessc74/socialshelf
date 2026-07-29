@@ -2,18 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const generateContent = vi.fn()
 
-vi.mock('@google-cloud/vertexai', () => ({
-  VertexAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({ generateContent }),
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({
+    models: { generateContent },
   })),
 }))
 
 import { GeminiAudienceFitScorer } from './GeminiAudienceFitScorer.js'
 
 function respondWith(text: string) {
-  generateContent.mockResolvedValueOnce({
-    response: { candidates: [{ content: { parts: [{ text }] } }] },
-  })
+  generateContent.mockResolvedValueOnce({ text })
 }
 
 const business = { name: 'Acme LegalTech', segment: 'legaltech', description: 'IA jurídica' }

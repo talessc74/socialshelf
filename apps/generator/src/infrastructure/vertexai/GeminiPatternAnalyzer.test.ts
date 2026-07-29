@@ -4,18 +4,16 @@ import type { PostPerformanceSummary } from '@socialshelf/domain'
 
 const generateContent = vi.fn()
 
-vi.mock('@google-cloud/vertexai', () => ({
-  VertexAI: vi.fn().mockImplementation(() => ({
-    getGenerativeModel: vi.fn().mockReturnValue({ generateContent }),
+vi.mock('@google/genai', () => ({
+  GoogleGenAI: vi.fn().mockImplementation(() => ({
+    models: { generateContent },
   })),
 }))
 
 import { GeminiPatternAnalyzer } from './GeminiPatternAnalyzer.js'
 
 function respondWith(payload: unknown) {
-  generateContent.mockResolvedValueOnce({
-    response: { candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }] },
-  })
+  generateContent.mockResolvedValueOnce({ text: JSON.stringify(payload) })
 }
 
 function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerformanceSummary {
@@ -67,7 +65,7 @@ describe('GeminiPatternAnalyzer', () => {
       makeEntry({ publishedAt: new Date('2026-07-06T17:30:00.000Z') }),
     ])
 
-    const prompt = generateContent.mock.calls[0]![0] as string
+    const prompt = (generateContent.mock.calls[0]![0] as { contents: string }).contents
     // 17:30 UTC no domingo 2026-07-06 é 14:30 em horário de Brasília (UTC-3).
     expect(prompt).toContain('14:30')
     expect(prompt).toContain('horário de Brasília')
@@ -102,9 +100,7 @@ describe('GeminiPatternAnalyzer', () => {
   })
 
   it('throws when the model returns invalid JSON', async () => {
-    generateContent.mockResolvedValueOnce({
-      response: { candidates: [{ content: { parts: [{ text: 'not json at all' }] } }] },
-    })
+    generateContent.mockResolvedValueOnce({ text: 'not json at all' })
 
     await expect(
       new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([makeEntry()]),
