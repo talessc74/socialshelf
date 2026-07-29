@@ -44,6 +44,7 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
       blockedTopics: [],
       maxAutoPostsPerDay: 1,
       stylePreferences: [],
+      dailyAiSpendingLimitBrl: null,
     },
     createdAt: new Date().toISOString(),
     ...overrides,
@@ -127,7 +128,14 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
   it('envia maxAutoPostsPerDay ao salvar', async () => {
     mockedApi.updateBrandProfile.mockResolvedValue(
       makeBrandProfile({
-        operation: { autonomyLevel: 'automatic', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 3, stylePreferences: [] },
+        operation: {
+          autonomyLevel: 'automatic',
+          autoPublishTopics: [],
+          blockedTopics: [],
+          maxAutoPostsPerDay: 3,
+          stylePreferences: [],
+          dailyAiSpendingLimitBrl: null,
+        },
       }),
     )
 
@@ -144,6 +152,60 @@ describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {
         expect.objectContaining({
           operation: expect.objectContaining({ autonomyLevel: 'automatic', maxAutoPostsPerDay: 3 }),
         }),
+      ),
+    )
+  })
+})
+
+describe('BrandSettingsPage - teto diário de gasto com IA', () => {
+  it('mostra o campo em branco (sem limite) por padrão', async () => {
+    renderPage()
+
+    const input = await screen.findByLabelText('Teto diário de gasto com IA (R$)')
+    expect(input).toHaveValue(null)
+  })
+
+  it('preenche o campo com o valor salvo do perfil', async () => {
+    mockedApi.getBrandProfile.mockResolvedValue(
+      makeBrandProfile({
+        operation: {
+          autonomyLevel: 'manual',
+          autoPublishTopics: [],
+          blockedTopics: [],
+          maxAutoPostsPerDay: 1,
+          stylePreferences: [],
+          dailyAiSpendingLimitBrl: 20,
+        },
+      }),
+    )
+
+    renderPage()
+
+    const input = await screen.findByLabelText('Teto diário de gasto com IA (R$)')
+    expect(input).toHaveValue(20)
+  })
+
+  it('envia dailyAiSpendingLimitBrl ao salvar, e null quando o campo é limpo', async () => {
+    mockedApi.updateBrandProfile.mockResolvedValue(makeBrandProfile())
+
+    renderPage()
+
+    const input = await screen.findByLabelText('Teto diário de gasto com IA (R$)')
+    fireEvent.change(input, { target: { value: '15' } })
+    fireEvent.click(screen.getByText('Salvar marca'))
+
+    await waitFor(() =>
+      expect(mockedApi.updateBrandProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ operation: expect.objectContaining({ dailyAiSpendingLimitBrl: 15 }) }),
+      ),
+    )
+
+    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.click(screen.getByText('Salvar marca'))
+
+    await waitFor(() =>
+      expect(mockedApi.updateBrandProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ operation: expect.objectContaining({ dailyAiSpendingLimitBrl: null }) }),
       ),
     )
   })

@@ -62,16 +62,24 @@ describe('TopNav - nav mobile (segunda linha)', () => {
 })
 
 describe('TopNav - link de admin', () => {
-  it('não mostra "Gastos de IA" para quem não é admin', () => {
+  it('não mostra "Gastos de IA (todas as contas)" para quem não é admin', () => {
     renderTopNav()
 
-    expect(screen.queryByText('Gastos de IA')).not.toBeInTheDocument()
+    expect(screen.queryByText('Gastos de IA (todas as contas)')).not.toBeInTheDocument()
   })
 
-  it('mostra "Gastos de IA" só para quem é admin', () => {
+  it('mostra "Gastos de IA (todas as contas)" só para quem é admin', () => {
     renderTopNav({ isAdmin: true })
 
-    expect(screen.getAllByText('Gastos de IA').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Gastos de IA (todas as contas)').length).toBeGreaterThan(0)
+  })
+})
+
+describe('TopNav - link do próprio gasto de IA', () => {
+  it('mostra "Meus Gastos de IA" para qualquer usuário autenticado, admin ou não', () => {
+    renderTopNav()
+
+    expect(screen.getAllByText('Meus Gastos de IA').length).toBeGreaterThan(0)
   })
 })
 

@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto'
-import { TemplateStyle, PLATFORM_CHARACTER_LIMITS, MAX_GENERATION_ARTIFACTS } from '@socialshelf/domain'
+import {
+  TemplateStyle,
+  PLATFORM_CHARACTER_LIMITS,
+  MAX_GENERATION_ARTIFACTS,
+  AI_SPENDING_LIMIT_REACHED_MESSAGE,
+} from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ArtDirectorPort,
@@ -10,6 +15,7 @@ import type {
   PostRepository,
   BrandProfileRepository,
   TopicSuggestionRepository,
+  AiSpendingGuardPort,
   GenerationRequest,
   GenerationArtifact,
   Platform,
@@ -19,6 +25,7 @@ import type {
   TopicSuggestion,
   PostOrigin,
 } from '@socialshelf/domain'
+import { isAiSpendingLimitReached } from '../lib/aiSpendingLimit.js'
 
 export interface GenerateContentInput {
   userId: string
@@ -45,6 +52,7 @@ export class GenerateContentUseCase {
     private readonly postRepo: PostRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly topicSuggestionRepo: TopicSuggestionRepository,
+    private readonly aiSpendingGuard: AiSpendingGuardPort,
   ) {}
 
   async execute(input: GenerateContentInput): Promise<GenerationRequest> {
@@ -72,6 +80,19 @@ export class GenerateContentUseCase {
     await this.generationRequestRepo.save(request)
 
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
+
+    if (
+      await isAiSpendingLimitReached(
+        this.aiSpendingGuard,
+        input.userId,
+        input.brandId,
+        brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
+      )
+    ) {
+      await this.generationRequestRepo.updateStatus(request.id, 'failed', AI_SPENDING_LIMIT_REACHED_MESSAGE)
+      return { ...request, status: 'failed', error: AI_SPENDING_LIMIT_REACHED_MESSAGE }
+    }
+
     const topicSuggestion = await this.resolveTopicSuggestion(input.userId, input.brandId, input.topicSuggestionId)
     const pautaContext = topicSuggestion
       ? { headline: topicSuggestion.headline, rationale: topicSuggestion.rationale }

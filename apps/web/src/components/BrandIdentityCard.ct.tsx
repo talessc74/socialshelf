@@ -19,7 +19,14 @@ const longBrandProfile: ApiBrandProfile = {
   visual: { primaryColor: '#c91577', secondaryColor: '#1a1a1a', typography: 'sans-serif', logoStoragePath: null },
   voice: { tone: '', allowedVocabulary: [], prohibitedVocabulary: [] },
   narrative: { recurringThemes: [] },
-  operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [] },
+  operation: {
+    autonomyLevel: 'manual',
+    autoPublishTopics: [],
+    blockedTopics: [],
+    maxAutoPostsPerDay: 1,
+    stylePreferences: [],
+    dailyAiSpendingLimitBrl: null,
+  },
   createdAt: new Date().toISOString(),
 }
 

@@ -44,6 +44,12 @@ export interface BrandProfileOperation {
   // apps/api). O tick não usa sempre o primeiro: TopicAutonomyMatcherPort escolhe, dentro
   // desta ordem, o que combina melhor com o assunto de cada pauta.
   stylePreferences: TemplateStyle[]
+  // Teto de gasto estimado com IA (texto + imagem) por dia, em R$, escolhido pelo próprio
+  // usuário — null significa "sem limite configurado" (comportamento atual, nunca bloqueia).
+  // Ao ser atingido, GenerateContentUseCase/EditArtifactUseCase (apps/generator) recusam gerar
+  // e devolvem um erro explicativo; o dia (Brasília) reseta o contador automaticamente, sem
+  // e-mail nem ação manual do usuário no momento (_local-edr-policy-073).
+  dailyAiSpendingLimitBrl: number | null
 }
 
 export interface BrandProfile {

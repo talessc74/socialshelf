@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type ApiBrandProfile } from '../../../lib/api'
@@ -42,6 +43,7 @@ const EMPTY_FORM: BrandProfileForm = {
     blockedTopics: [],
     maxAutoPostsPerDay: 1,
     stylePreferences: ALL_TEMPLATE_STYLES,
+    dailyAiSpendingLimitBrl: null,
   },
 }
 
@@ -105,6 +107,7 @@ export default function BrandSettingsPage() {
   const [extracting, setExtracting] = useState(false)
   const [extractionNotice, setExtractionNotice] = useState('')
   const [maxAutoPostsPerDayInput, setMaxAutoPostsPerDayInput] = useState('')
+  const [dailyAiSpendingLimitInput, setDailyAiSpendingLimitInput] = useState('')
   const { activeBrand, setAccountType } = useBrand()
   const [accountTypeSaving, setAccountTypeSaving] = useState(false)
   const [accountTypeError, setAccountTypeError] = useState('')
@@ -150,10 +153,14 @@ export default function BrandSettingsPage() {
           // leitura; este fallback é só defesa extra pro estado local do formulário.
           maxAutoPostsPerDay:
             typeof brandProfile.operation.maxAutoPostsPerDay === 'number' ? brandProfile.operation.maxAutoPostsPerDay : 1,
+          dailyAiSpendingLimitBrl: brandProfile.operation.dailyAiSpendingLimitBrl ?? null,
         },
       })
       setMaxAutoPostsPerDayInput(
         String(typeof brandProfile.operation.maxAutoPostsPerDay === 'number' ? brandProfile.operation.maxAutoPostsPerDay : 1),
+      )
+      setDailyAiSpendingLimitInput(
+        brandProfile.operation.dailyAiSpendingLimitBrl != null ? String(brandProfile.operation.dailyAiSpendingLimitBrl) : '',
       )
     }
   }, [brandProfile])
@@ -608,6 +615,46 @@ export default function BrandSettingsPage() {
             />
           </div>
         )}
+        <div className="rounded-xl border border-line p-3">
+          <label className="block text-sm font-semibold text-ink" htmlFor="daily-ai-spending-limit">
+            Teto diário de gasto com IA (R$)
+          </label>
+          <p className="mb-2 text-xs text-muted">
+            Quando o gasto estimado do dia atingir esse valor, novas gerações de post ficam bloqueadas até o dia
+            seguinte. Consulte{' '}
+            <Link href="/dashboard/ai-usage" className="font-medium text-accent hover:underline">
+              Meus Gastos de IA
+            </Link>{' '}
+            para ver o histórico real e escolher um valor com base nele. Deixe em branco para não ter limite.
+          </p>
+          <input
+            id="daily-ai-spending-limit"
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="Sem limite"
+            value={dailyAiSpendingLimitInput}
+            onChange={(e) => {
+              const raw = e.target.value
+              setDailyAiSpendingLimitInput(raw)
+              if (raw === '') {
+                setForm((prev) => ({ ...prev, operation: { ...prev.operation, dailyAiSpendingLimitBrl: null } }))
+                return
+              }
+              const parsed = Number(raw)
+              if (!Number.isNaN(parsed) && parsed >= 0) {
+                setForm((prev) => ({ ...prev, operation: { ...prev.operation, dailyAiSpendingLimitBrl: parsed } }))
+              }
+            }}
+            onBlur={() => {
+              if (dailyAiSpendingLimitInput === '') return
+              const parsed = Math.max(0, Number(dailyAiSpendingLimitInput) || 0)
+              setDailyAiSpendingLimitInput(String(parsed))
+              setForm((prev) => ({ ...prev, operation: { ...prev.operation, dailyAiSpendingLimitBrl: parsed } }))
+            }}
+            className="w-32 rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink"
+          />
+        </div>
         <TopicChecklist
           label="Tópicos com publicação automática liberada"
           helperText="Marque o que faz sentido a IA publicar sozinha, sem sua revisão."

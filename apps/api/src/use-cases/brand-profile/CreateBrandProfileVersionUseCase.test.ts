@@ -19,6 +19,7 @@ const sections: Omit<BrandProfile, 'id' | 'userId' | 'brandId' | 'version' | 'cr
     blockedTopics: ['política'],
     maxAutoPostsPerDay: 1,
     stylePreferences: [],
+    dailyAiSpendingLimitBrl: null,
   },
 }
 

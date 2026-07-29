@@ -35,7 +35,7 @@ function makeEvent(overrides: Partial<AiUsageEvent> = {}): AiUsageEvent {
 }
 
 function makeDeps(brands: Brand[], events: AiUsageEvent[]) {
-  const aiUsageReader: AiUsageReaderPort = { findAll: vi.fn().mockResolvedValue(events) }
+  const aiUsageReader: AiUsageReaderPort = { findAll: vi.fn().mockResolvedValue(events), findByBrand: vi.fn() }
   const brandRepo: BrandRepository = {
     save: vi.fn(),
     findById: vi.fn(),

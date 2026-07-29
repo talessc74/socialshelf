@@ -114,6 +114,7 @@ function makeBrandProfile(overrides: Partial<ApiBrandProfile> = {}): ApiBrandPro
       blockedTopics: [],
       maxAutoPostsPerDay: 1,
       stylePreferences: [],
+      dailyAiSpendingLimitBrl: null,
     },
     createdAt: new Date().toISOString(),
     ...overrides,
@@ -357,7 +358,14 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
   it('mostra "Manual" quando a marca está no modo manual', async () => {
     mockedApi.getBrandProfile.mockResolvedValue(
       makeBrandProfile({
-        operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [] },
+        operation: {
+          autonomyLevel: 'manual',
+          autoPublishTopics: [],
+          blockedTopics: [],
+          maxAutoPostsPerDay: 1,
+          stylePreferences: [],
+          dailyAiSpendingLimitBrl: null,
+        },
       }),
     )
 
@@ -376,6 +384,7 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
           blockedTopics: [],
           maxAutoPostsPerDay: 1,
           stylePreferences: [],
+          dailyAiSpendingLimitBrl: null,
         },
       }),
     )
@@ -395,6 +404,7 @@ describe('DashboardPage - badge de como a conta está sendo tratada', () => {
           blockedTopics: [],
           maxAutoPostsPerDay: 3,
           stylePreferences: [],
+          dailyAiSpendingLimitBrl: null,
         },
       }),
     )
