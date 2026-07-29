@@ -236,6 +236,24 @@ export type ApiAutonomyTickAction =
   | 'published-partial'
   | 'error'
 
+export interface ApiAdminAiUsageMonth {
+  // Formato 'YYYY-MM', mais recente primeiro.
+  month: string
+  textUsd: number
+  imageUsd: number
+  totalUsd: number
+}
+
+export interface ApiAdminAiUsageBrandSummary {
+  brandId: string
+  brandName: string
+  months: ApiAdminAiUsageMonth[]
+}
+
+export interface ApiAdminAiUsageSummary {
+  brands: ApiAdminAiUsageBrandSummary[]
+}
+
 export interface ApiAutonomyTickLogEntry {
   id: string
   userId: string
@@ -856,6 +874,14 @@ export const api = {
 
   async discardCampaign(id: string): Promise<void> {
     await apiFetch(`/campaigns/${id}`, { method: 'DELETE' })
+  },
+
+  // Só retorna algo útil para quem está na allowlist de admin (isAdminEmail,
+  // @socialshelf/domain) — o backend responde 403 pra qualquer outro e-mail autenticado
+  // (_local-edr-policy-072). Custo em USD, mesma unidade gravada no evento — conversão para
+  // R$ acontece na tela.
+  async getAdminAiUsageSummary(): Promise<ApiAdminAiUsageSummary> {
+    return apiFetch<ApiAdminAiUsageSummary>('/admin/ai-usage')
   },
 
   async renderCard(

@@ -2,10 +2,12 @@ import Fastify from 'fastify'
 import type { FastifyInstance } from 'fastify'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+const mockVerifyIdToken = vi.fn().mockResolvedValue({ uid: 'user-test-123' })
+
 vi.mock('../infrastructure/firebase-admin.js', () => ({
   db: {},
   adminAuth: {
-    verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }),
+    verifyIdToken: mockVerifyIdToken,
   },
 }))
 
@@ -73,5 +75,49 @@ describe('auth middleware — resolução de request.brandId', () => {
 
     expect(response.statusCode).toBe(403)
     expect(response.json()).toEqual({ error: 'invalid_brand' })
+  })
+})
+
+describe('auth middleware — requireAdmin', () => {
+  let app: FastifyInstance
+
+  beforeEach(async () => {
+    mockFindById.mockReset()
+    mockVerifyIdToken.mockReset().mockResolvedValue({ uid: 'user-test-123' })
+    const { registerAuthMiddleware } = await import('./auth.middleware.js')
+    app = Fastify()
+    await registerAuthMiddleware(app)
+    app.get('/admin-only', { preHandler: [app.authenticate, app.requireAdmin] }, async () => ({ ok: true }))
+    await app.ready()
+  })
+
+  afterEach(async () => {
+    await app.close()
+  })
+
+  it('rejeita com 403 quando o e-mail do token não está na allowlist de admin', async () => {
+    mockVerifyIdToken.mockResolvedValueOnce({ uid: 'user-test-123', email: 'alguem@exemplo.com' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/admin-only',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json()).toEqual({ error: 'Forbidden' })
+  })
+
+  it('permite acesso quando o e-mail do token está na allowlist de admin', async () => {
+    mockVerifyIdToken.mockResolvedValueOnce({ uid: 'admin-uid', email: 'talessc@me.com' })
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/admin-only',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ ok: true })
   })
 })

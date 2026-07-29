@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { isAdminEmail } from '@socialshelf/domain'
 import { useAuth } from '../../contexts/AuthContext'
 import { useBrand } from '../../contexts/BrandContext'
 import { AssistantProvider } from '../../contexts/AssistantContext'
@@ -36,6 +37,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             brands={brands}
             activeBrandId={activeBrandId}
             onBrandChange={setActiveBrandId}
+            isAdmin={isAdminEmail(user.email)}
           />
           <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
           <Selfie />

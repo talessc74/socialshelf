@@ -19,6 +19,7 @@ export class FirestoreAiUsageRepository implements AiUsageRecorderPort {
         .collection('ai_usage_events')
         .doc(randomUUID())
         .set({
+          userId: event.userId,
           brandId: event.brandId,
           category: event.category,
           operation: event.operation,
