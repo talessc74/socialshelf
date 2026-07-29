@@ -8,6 +8,10 @@ export interface BrandTokens {
 }
 
 export interface ImagePrompt {
+  // Usados só para atribuir o custo estimado desta chamada à marca certa (AiUsageRecorderPort)
+  // — não influenciam a imagem gerada.
+  userId: string
+  brandId: string
   description: string
   style?: string
   brandTokens: BrandTokens | null

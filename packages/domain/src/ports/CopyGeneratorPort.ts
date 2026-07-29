@@ -18,6 +18,10 @@ export interface PautaContext {
 export type ArtifactPlan = { mode: 'fixed'; count: number } | { mode: 'free'; maxCount: number }
 
 export interface ContentInputs {
+  // Usados só para atribuir o custo estimado desta chamada à marca certa (AiUsageRecorderPort)
+  // — não influenciam o conteúdo gerado.
+  userId: string
+  brandId: string
   description: string
   textContent?: string
   images: Array<{ base64: string; mimeType: string }>

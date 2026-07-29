@@ -9,6 +9,7 @@ export type { PhotoCampaign, PhotoCampaignStatus } from './entities/PhotoCampaig
 export type { CampaignPhoto } from './entities/CampaignPhoto.js'
 export type { CampaignItem, CampaignItemStatus } from './entities/CampaignItem.js'
 export type { AutonomyTickLogEntry, AutonomyTickAction } from './entities/AutonomyTickLogEntry.js'
+export type { AiUsageEvent, AiUsageCategory } from './entities/AiUsageEvent.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,
@@ -120,6 +121,7 @@ export type { PhotoCampaignRepository } from './ports/PhotoCampaignRepository.js
 export type { CampaignPhotoRepository } from './ports/CampaignPhotoRepository.js'
 export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLockRepository.js'
+export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
@@ -133,3 +135,11 @@ export {
   PUBLISHED_POST_IMAGE_RETENTION_DAYS,
   CANCELLED_CAMPAIGN_PHOTO_RETENTION_DAYS,
 } from './value-objects/StorageRetention.js'
+export {
+  GEMINI_FLASH_INPUT_USD_PER_1M_TOKENS,
+  GEMINI_FLASH_OUTPUT_USD_PER_1M_TOKENS,
+  IMAGEN_4_STANDARD_USD_PER_IMAGE,
+  estimateGeminiCostUsd,
+  estimateImagenCostUsd,
+} from './value-objects/AiPricing.js'
+export type { GeminiUsageTokens } from './value-objects/AiPricing.js'

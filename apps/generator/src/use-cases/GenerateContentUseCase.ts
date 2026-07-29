@@ -88,6 +88,8 @@ export class GenerateContentUseCase {
     let copyResult
     try {
       copyResult = await this.copyGenerator.generateCopy({
+        userId: input.userId,
+        brandId: input.brandId,
         description: input.description,
         ...(input.textContent !== null && { textContent: input.textContent }),
         images: [],
@@ -160,6 +162,8 @@ export class GenerateContentUseCase {
     if (input.imageStoragePaths.length === 0) {
       try {
         const direction = await this.artDirector.direct({
+          userId: input.userId,
+          brandId: input.brandId,
           description: input.description,
           targetPlatforms: input.targetPlatforms,
           artifacts: artifacts.map((artifact) => ({
@@ -199,6 +203,8 @@ export class GenerateContentUseCase {
           const image = uploadedPath
             ? await this.imageStorage.download(uploadedPath)
             : await this.imageGenerator.generateImage({
+                userId: input.userId,
+                brandId: input.brandId,
                 description: imagePromptsByPosition.get(artifact.position)!,
                 ...(negativePromptsByPosition.has(artifact.position) && {
                   negativePrompt: negativePromptsByPosition.get(artifact.position)!,

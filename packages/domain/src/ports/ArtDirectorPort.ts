@@ -12,6 +12,10 @@ export interface ArtifactBrief {
 }
 
 export interface ArtDirectionInput {
+  // Usados só para atribuir o custo estimado desta chamada à marca certa (AiUsageRecorderPort)
+  // — não influenciam a direção de arte gerada.
+  userId: string
+  brandId: string
   description: string
   targetPlatforms: Platform[]
   /** Um item por artefato do post — `length === 1` é post único, `length > 1` é carrossel. */
