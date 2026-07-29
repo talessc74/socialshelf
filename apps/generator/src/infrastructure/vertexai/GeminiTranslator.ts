@@ -1,5 +1,5 @@
-import { VertexAI } from '@google-cloud/vertexai'
 import type { TranslatorPort, TranslateInput } from '@socialshelf/domain'
+import { createGeminiClient } from './geminiClient.js'
 
 // Tradução fiel de manchetes/resumos de notícia para o idioma do usuário, reutilizando o mesmo
 // cliente Vertex AI (Gemini) já usado na geração de cópia — sem infra nova. A fidelidade é
@@ -14,15 +14,7 @@ export class GeminiTranslator implements TranslatorPort {
   async translate({ texts, targetLanguage }: TranslateInput): Promise<string[]> {
     if (texts.length === 0) return []
 
-    const vertexAi = new VertexAI({
-      project: this.projectId,
-      location: this.location,
-      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
-    })
-    const generativeModel = vertexAi.getGenerativeModel({
-      model: this.model,
-      generationConfig: { responseMimeType: 'application/json' },
-    })
+    const ai = createGeminiClient(this.projectId, this.location)
 
     const prompt = `Traduza cada string do array abaixo para ${targetLanguage}.
 Regras:
@@ -37,8 +29,12 @@ ${JSON.stringify(texts)}
 Responda apenas com um JSON no formato:
 {"translations": ["...", "..."]}`
 
-    const result = await generativeModel.generateContent(prompt)
-    const text = result.response.candidates?.[0]?.content.parts[0]?.text
+    const result = await ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    })
+    const text = result.text
     if (!text) throw new Error('Gemini returned no content for translation')
 
     let parsed: unknown

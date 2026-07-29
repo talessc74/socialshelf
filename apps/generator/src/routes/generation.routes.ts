@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform, TemplateStyle, AspectRatio } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio, MAX_GENERATION_ARTIFACTS } from '@socialshelf/domain'
 import { GenerateContentUseCase } from '../use-cases/GenerateContentUseCase.js'
 import { EditArtifactUseCase } from '../use-cases/EditArtifactUseCase.js'
 import { RenderCardUseCase } from '../use-cases/RenderCardUseCase.js'
@@ -29,7 +29,9 @@ const generateSchema = z.object({
   brandId: z.string().min(1),
   description: z.string().min(1),
   textContent: z.string().min(1).optional(),
-  imageStoragePaths: z.array(z.string()).optional(),
+  // Teto real do carrossel do Instagram via Graph API (packages/domain/entities/Platform.ts)
+  // — o cliente já desabilita o upload além disso, mas o backend não deve confiar só na UI.
+  imageStoragePaths: z.array(z.string()).max(MAX_GENERATION_ARTIFACTS).optional(),
   targetPlatforms: z.array(platformEnum).min(1),
   topicSuggestionId: z.string().min(1).optional(),
   style: z.nativeEnum(TemplateStyle).default(TemplateStyle.BOLD_BOTTOM),

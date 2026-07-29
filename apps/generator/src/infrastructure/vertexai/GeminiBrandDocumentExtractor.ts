@@ -1,6 +1,6 @@
-import { VertexAI } from '@google-cloud/vertexai'
 import { z } from 'zod'
 import type { BrandDocumentExtractorPort, BrandProfileExtraction } from '@socialshelf/domain'
+import { createGeminiClient } from './geminiClient.js'
 
 const extractionSchema = z.object({
   business: z
@@ -38,22 +38,19 @@ export class GeminiBrandDocumentExtractor implements BrandDocumentExtractorPort 
   ) {}
 
   async extractFromDocument(base64: string, mimeType: string): Promise<BrandProfileExtraction> {
-    const vertexAi = new VertexAI({
-      project: this.projectId,
-      location: this.location,
-      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
-    })
-    const generativeModel = vertexAi.getGenerativeModel({ model: this.model })
+    const ai = createGeminiClient(this.projectId, this.location)
 
-    const result = await generativeModel.generateContent({
+    const result = await ai.models.generateContent({
+      model: this.model,
       contents: [
         {
           role: 'user',
           parts: [{ text: this.buildPrompt() }, { inlineData: { mimeType, data: base64 } }],
         },
       ],
+      config: { thinkingConfig: { thinkingBudget: 0 } },
     })
-    const text = result.response.candidates?.[0]?.content.parts[0]?.text
+    const text = result.text
     if (!text) throw new Error('Gemini returned no content for brand document extraction')
 
     const jsonText = text.trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '')

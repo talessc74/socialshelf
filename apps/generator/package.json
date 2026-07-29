@@ -21,7 +21,7 @@
     "@fastify/multipart": "^8.3.0",
     "@google-cloud/storage": "^7.14.0",
     "@google-cloud/text-to-speech": "^6.4.1",
-    "@google-cloud/vertexai": "^1.9.2",
+    "@google/genai": "^1.52.0",
     "@socialshelf/domain": "workspace:*",
     "fast-xml-parser": "^5.8.0",
     "fastify": "^4.28.1",

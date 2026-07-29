@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { Platform } from '@socialshelf/domain'
+import { Platform, MAX_GENERATION_ARTIFACTS } from '@socialshelf/domain'
 import { CreatePostUseCase } from '../use-cases/posts/CreatePostUseCase.js'
 import { UpdatePostUseCase } from '../use-cases/posts/UpdatePostUseCase.js'
 import { DeletePostUseCase } from '../use-cases/posts/DeletePostUseCase.js'
@@ -22,7 +22,9 @@ const createPostSchema = z.object({
   content: z
     .array(z.object({ platform: platformEnum, text: z.string().min(1) }))
     .min(1),
-  imageStoragePaths: z.array(z.string()).optional(),
+  // Teto real do carrossel do Instagram via Graph API (packages/domain/entities/Platform.ts)
+  // — o cliente já desabilita o upload além disso, mas o backend não deve confiar só na UI.
+  imageStoragePaths: z.array(z.string()).max(MAX_GENERATION_ARTIFACTS).optional(),
   videoStoragePath: z.string().nullable().optional(),
   videoConsentAcceptedAt: z.string().datetime().nullable().optional(),
   scheduledAt: z.string().datetime().optional(),
@@ -37,7 +39,7 @@ const updatePostSchema = z.object({
   content: z
     .array(z.object({ platform: platformEnum, text: z.string().min(1) }))
     .min(1),
-  imageStoragePaths: z.array(z.string()).optional(),
+  imageStoragePaths: z.array(z.string()).max(MAX_GENERATION_ARTIFACTS).optional(),
   scheduledAt: z.string().datetime().nullable().optional(),
 })
 

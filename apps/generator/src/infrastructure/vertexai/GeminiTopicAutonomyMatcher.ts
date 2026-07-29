@@ -1,10 +1,10 @@
-import { VertexAI } from '@google-cloud/vertexai'
 import {
   TemplateStyle,
   TEMPLATE_STYLE_LABELS,
   type TopicAutonomyMatcherPort,
   type TopicAutonomyMatch,
 } from '@socialshelf/domain'
+import { createGeminiClient } from './geminiClient.js'
 
 type ClassifyInput = {
   topic: { headline: string; summary: string; rationale: string }
@@ -37,18 +37,14 @@ export class GeminiTopicAutonomyMatcher implements TopicAutonomyMatcherPort {
       return { blocked: false, autoPublishEligible: false, recommendedStyle: fallbackStyle }
     }
 
-    const vertexAi = new VertexAI({
-      project: this.projectId,
-      location: this.location,
-      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
-    })
-    const generativeModel = vertexAi.getGenerativeModel({
-      model: this.model,
-      generationConfig: { responseMimeType: 'application/json' },
-    })
+    const ai = createGeminiClient(this.projectId, this.location)
 
-    const result = await generativeModel.generateContent(this.buildPrompt(input))
-    const text = result.response.candidates?.[0]?.content.parts[0]?.text
+    const result = await ai.models.generateContent({
+      model: this.model,
+      contents: this.buildPrompt(input),
+      config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    })
+    const text = result.text
     if (!text) throw new Error('Gemini returned no content for topic autonomy classification')
 
     let parsed: unknown

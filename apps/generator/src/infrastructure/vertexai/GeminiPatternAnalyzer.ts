@@ -1,6 +1,6 @@
-import { VertexAI } from '@google-cloud/vertexai'
 import { z } from 'zod'
 import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic } from '@socialshelf/domain'
+import { createGeminiClient } from './geminiClient.js'
 
 // Gemini ocasionalmente devolve um campo de lista como uma única string (ex.: "08:00, 14:00")
 // em vez de array — normaliza para array antes de validar, em vez de rejeitar o diagnóstico inteiro.
@@ -39,19 +39,15 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
   ) {}
 
   async analyzePatterns(entries: PostPerformanceSummary[]): Promise<ProfileDiagnostic> {
-    const vertexAi = new VertexAI({
-      project: this.projectId,
-      location: this.location,
-      ...(this.location === 'global' && { apiEndpoint: 'aiplatform.googleapis.com' }),
-    })
-    const generativeModel = vertexAi.getGenerativeModel({
-      model: this.model,
-      generationConfig: { responseMimeType: 'application/json' },
-    })
+    const ai = createGeminiClient(this.projectId, this.location)
 
     const prompt = this.buildPrompt(entries)
-    const result = await generativeModel.generateContent(prompt)
-    const text = result.response.candidates?.[0]?.content.parts[0]?.text
+    const result = await ai.models.generateContent({
+      model: this.model,
+      contents: prompt,
+      config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
+    })
+    const text = result.text
     if (!text) throw new Error('Gemini returned no content for pattern analysis')
 
     let parsedJson: unknown
