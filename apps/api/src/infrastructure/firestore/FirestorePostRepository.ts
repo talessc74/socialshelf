@@ -1,6 +1,7 @@
 import { db } from '../firebase-admin.js'
 import type { PostRepository, Post, PostStatus } from '@socialshelf/domain'
 import { Platform } from '@socialshelf/domain'
+import { normalizePostContent } from './postContentNormalization.js'
 
 export class FirestorePostRepository implements PostRepository {
   async save(post: Post): Promise<void> {
@@ -128,7 +129,7 @@ export class FirestorePostRepository implements PostRepository {
       userId: data['userId'] as string,
       brandId: data['brandId'] as string,
       brandProfileVersion: (data['brandProfileVersion'] as number | null) ?? null,
-      content: (data['content'] as Post['content']) ?? [],
+      content: normalizePostContent(data['content']),
       imageStoragePaths: (data['imageStoragePaths'] as string[]) ?? [],
       videoStoragePath: (data['videoStoragePath'] as string | null | undefined) ?? null,
       videoConsentAcceptedAt: data['videoConsentAcceptedAt']
