@@ -1,4 +1,4 @@
-import type { CopyGeneratorPort, ContentInputs, CopyGenerationResult, ArtifactPlan, AiUsageRecorderPort } from '@socialshelf/domain'
+import type { CopyGeneratorPort, ContentInputs, CopyGenerationResult, PlatformCopies, ArtifactPlan, AiUsageRecorderPort } from '@socialshelf/domain'
 import { PLATFORM_CHARACTER_LIMITS } from '@socialshelf/domain'
 import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
@@ -150,11 +150,40 @@ Os arrays ${arraysMencionados} devem ter o mesmo tamanho${
       throw new Error('Gemini returned malformed copy generation payload')
     }
     return {
-      copies: copies as CopyGenerationResult['copies'],
+      copies: this.normalizeCopies(copies as Record<string, unknown>),
       cta,
       headlines: headlines as string[],
       visualBriefs: visualBriefs as string[],
       bodyTexts: includeBodyText ? (bodyTexts as string[]) : headlines.map(() => ''),
     }
+  }
+
+  // Gemini ocasionalmente devolve o "text" de uma plataforma como um array de parágrafos em
+  // vez de uma única string — mesma classe de inconsistência de formato já tratada para
+  // bestTimes/topFormats em GeminiPatternAnalyzer (_local-edr-policy-032), mas na direção
+  // oposta (aqui um campo string vem como array). Antes disto, o `as CopyGenerationResult['copies']`
+  // deixava esse formato passar direto para o Post salvo, e o erro só aparecia muito depois,
+  // ao validar as entradas de Banco de Insights ({"entries":["Expected string, received array"]}).
+  // charCount é sempre recalculado a partir do texto final, nunca herdado do modelo, para não
+  // ficar dessincronizado depois de juntar os parágrafos.
+  private normalizeCopies(rawCopies: Record<string, unknown>): PlatformCopies {
+    const copies: PlatformCopies = {}
+    for (const [platform, value] of Object.entries(rawCopies)) {
+      if (typeof value !== 'object' || value === null) {
+        throw new Error('Gemini returned malformed copy generation payload')
+      }
+      const rawText = (value as Record<string, unknown>)['text']
+      const text =
+        typeof rawText === 'string'
+          ? rawText
+          : Array.isArray(rawText) && rawText.every((p) => typeof p === 'string')
+            ? rawText.join('\n\n')
+            : null
+      if (text === null) {
+        throw new Error('Gemini returned malformed copy generation payload')
+      }
+      copies[platform as keyof PlatformCopies] = { text, charCount: text.length }
+    }
+    return copies
   }
 }
