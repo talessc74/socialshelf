@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid, DollarSign } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid, DollarSign, Settings } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
 import { useSelfieDismissal } from '../contexts/AssistantContext'
 import { useViewMode } from '../contexts/ViewModeContext'
@@ -82,6 +82,19 @@ const NAV_ITEMS = [
 // Gastos de IA" (sempre visível) pra deixar claro que este enxerga TODAS as contas.
 const ADMIN_NAV_ITEM = { href: '/dashboard/admin/ai-usage', label: 'Gastos de IA (todas as contas)', icon: DollarSign }
 
+// Agrupamento do nav desktop: 11+ itens soltos no topo passam de ≤5 (Início +
+// 4 clusters), cada um resolvido a partir de NAV_ITEMS para manter labels e
+// ícones numa única fonte de verdade. O nav mobile continua plano/scrollável
+// (já resolvido, ver TopNav.test.tsx) — este agrupamento é só do desktop.
+const HOME_ITEM = NAV_ITEMS[0]!
+
+const NAV_GROUPS: { id: string; label: string; icon: typeof Home; hrefs: string[] }[] = [
+  { id: 'criar', label: 'Criar', icon: Sparkles, hrefs: ['/dashboard/generate', '/dashboard/compose', '/dashboard/news'] },
+  { id: 'planejar', label: 'Planejar', icon: Clock, hrefs: ['/dashboard/campaigns', '/dashboard/scheduled'] },
+  { id: 'medir', label: 'Medir', icon: BarChart3, hrefs: ['/dashboard/insights', '/dashboard/performance'] },
+  { id: 'config', label: 'Configurações', icon: Settings, hrefs: ['/dashboard/accounts', '/dashboard/brand', '/dashboard/ai-usage', ADMIN_NAV_ITEM.href] },
+]
+
 interface TopNavBrand {
   id: string
   name: string
@@ -101,9 +114,11 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
   const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS
   const mobileNavRef = useRef<HTMLElement>(null)
   const brandMenuRef = useRef<HTMLDivElement>(null)
+  const desktopNavRef = useRef<HTMLElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [brandMenuOpen, setBrandMenuOpen] = useState(false)
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null)
 
   const showBrandSwitcher = (brands?.length ?? 0) > 1
   const activeBrand = brands?.find((b) => b.id === activeBrandId) ?? null
@@ -118,6 +133,28 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [brandMenuOpen])
+
+  useEffect(() => {
+    if (!openGroupId) return
+    function handleClickOutside(event: MouseEvent) {
+      if (!desktopNavRef.current?.contains(event.target as Node)) {
+        setOpenGroupId(null)
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setOpenGroupId(null)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscape)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [openGroupId])
+
+  useEffect(() => {
+    setOpenGroupId(null)
+  }, [pathname])
 
   const updateScrollAffordance = useCallback(() => {
     const nav = mobileNavRef.current
@@ -211,22 +248,62 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
 
       <div className="relative w-full border-t border-line">
         <div className="hidden justify-center px-4 py-2 lg:flex">
-          <nav className="flex items-center gap-1 rounded-full bg-card-2 p-1">
-            {navItems.map(({ href, label, icon: Icon }) => {
-              const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
+          <nav ref={desktopNavRef} className="flex items-center gap-1 rounded-full bg-card-2 p-1">
+            <Link
+              href={HOME_ITEM.href}
+              className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                pathname === HOME_ITEM.href ? 'bg-contrast text-contrast-ink shadow-card' : 'text-muted hover:text-ink'
+              }`}
+            >
+              <HOME_ITEM.icon className="h-4 w-4" />
+              {HOME_ITEM.label}
+            </Link>
+            {NAV_GROUPS.map((group) => {
+              const groupItems = navItems.filter((item) => group.hrefs.includes(item.href))
+              if (groupItems.length === 0) return null
+              const isGroupActive = groupItems.some((item) => pathname.startsWith(item.href))
+              const isOpen = openGroupId === group.id
+              const GroupIcon = group.icon
               return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-contrast text-contrast-ink shadow-card'
-                      : 'text-muted hover:text-ink'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </Link>
+                <div key={group.id} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setOpenGroupId(isOpen ? null : group.id)}
+                    aria-haspopup="menu"
+                    aria-expanded={isOpen}
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
+                      isGroupActive ? 'bg-contrast text-contrast-ink shadow-card' : 'text-muted hover:text-ink'
+                    }`}
+                  >
+                    <GroupIcon className="h-4 w-4" />
+                    {group.label}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  {isOpen && (
+                    <div
+                      role="menu"
+                      className="absolute left-0 top-full z-20 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-card py-1 shadow-card-elev"
+                    >
+                      {groupItems.map(({ href, label, icon: Icon }) => {
+                        const isActive = pathname.startsWith(href)
+                        return (
+                          <Link
+                            key={href}
+                            href={href}
+                            role="menuitem"
+                            onClick={() => setOpenGroupId(null)}
+                            className={`flex items-center gap-2 px-3 py-2 text-sm ${
+                              isActive ? 'bg-card-2 font-medium text-ink' : 'text-muted hover:bg-card-2 hover:text-ink'
+                            }`}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {label}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )
             })}
           </nav>

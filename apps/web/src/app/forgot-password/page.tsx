@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
           alt="SocialShelf"
           className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-lg"
         />
-        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-accent">
+        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-accent-text">
           Recuperar acesso
         </p>
         <h1 className="mb-6 text-center text-2xl font-bold text-ink">Esqueci minha senha</h1>
@@ -60,7 +60,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-ink shadow-lg shadow-accent/40 hover:bg-accent disabled:opacity-50"
+              className="w-full rounded-xl bg-contrast px-4 py-2 text-sm font-semibold text-contrast-ink shadow-lg shadow-contrast/40 hover:bg-contrast disabled:opacity-50"
             >
               {busy ? 'Enviando…' : 'Enviar link de recuperação'}
             </button>
@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
 
         <p className="mt-6 text-center text-sm text-ink/60">
           Lembrou a senha?{' '}
-          <Link href="/login" className="font-semibold text-accent hover:underline">
+          <Link href="/login" className="font-semibold text-accent-text underline">
             Entrar
           </Link>
         </p>

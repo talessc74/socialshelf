@@ -57,15 +57,8 @@ export default function StudioReference() {
 
       <main className="mx-auto max-w-6xl px-6 pb-24">
         <section className="pt-14 pb-10">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-accent">
-            Quinta-feira · seu estúdio
-          </p>
           <h1 className="max-w-3xl text-5xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-            Bora criar algo que{' '}
-            <span className="bg-gradient-to-r from-[#FF6B4A] to-[#FF3D77] bg-clip-text text-transparent">
-              valha o feed
-            </span>
-            , Tales?
+            Bora criar algo que <span className="text-accent-text">valha o feed</span>, Tales?
           </h1>
           <p className="mt-5 max-w-xl text-lg text-muted-2">
             Sua audiência cresceu 12% esta semana. Que tal manter o ritmo com uma ideia nova?
@@ -73,32 +66,35 @@ export default function StudioReference() {
         </section>
 
         <section className="grid gap-5 md:grid-cols-3">
-          <button className="group relative col-span-2 overflow-hidden rounded-3xl bg-gradient-to-br from-[#FF7A4D] via-[#FF5E7E] to-[#A24BFF] p-8 text-left text-white shadow-xl shadow-[#FF7A4D]/25 transition-transform duration-300 hover:-translate-y-1">
-            <div className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/15 blur-2xl" />
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold backdrop-blur">
-              ✦ Comece agora
+          <button className="group relative col-span-2 overflow-hidden rounded-3xl bg-contrast p-8 text-left text-contrast-ink shadow-card-elev transition-transform duration-300 hover:-translate-y-1">
+            <span className="inline-flex items-center gap-2 rounded-full bg-contrast-ink/15 px-3 py-1 text-xs font-semibold">
+              Comece agora
             </span>
             <h2 className="mt-5 max-w-md text-3xl font-bold leading-tight">
               Transforme uma ideia em post com IA
             </h2>
-            <p className="mt-2 max-w-sm text-white/85">
+            <p className="mt-2 max-w-sm text-contrast-ink/85">
               Descreva o tema. A gente escreve, ilustra e adapta para cada rede.
             </p>
-            <span className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-[#2A2320] transition-transform group-hover:gap-3">
+            <span className="mt-6 inline-flex items-center gap-2 rounded-full bg-contrast-ink px-5 py-2.5 text-sm font-semibold text-contrast transition-transform group-hover:gap-3">
               Criar com IA →
             </span>
           </button>
 
           <div className="flex flex-col gap-5">
-            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-xl">✍️</div>
-              <h3 className="font-semibold">Escrever do zero</h3>
-              <p className="mt-1 text-sm text-muted">Sua voz, sua pauta.</p>
+            <button className="flex flex-1 items-start gap-3 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
+              <span className="text-xl leading-none" aria-hidden>✍️</span>
+              <span>
+                <h3 className="font-semibold">Escrever do zero</h3>
+                <p className="mt-1 text-sm text-muted">Sua voz, sua pauta.</p>
+              </span>
             </button>
-            <button className="flex-1 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
-              <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-xl">📰</div>
-              <h3 className="font-semibold">A partir de uma notícia</h3>
-              <p className="mt-1 text-sm text-muted">Surfe o que está em alta.</p>
+            <button className="flex flex-1 items-start gap-3 rounded-3xl border border-line bg-card p-6 text-left shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev">
+              <span className="text-xl leading-none" aria-hidden>📰</span>
+              <span>
+                <h3 className="font-semibold">A partir de uma notícia</h3>
+                <p className="mt-1 text-sm text-muted">Surfe o que está em alta.</p>
+              </span>
             </button>
           </div>
         </section>
@@ -109,7 +105,7 @@ export default function StudioReference() {
               <h2 className="text-2xl font-bold tracking-tight">Suas criações</h2>
               <p className="mt-1 text-muted">O que sua marca tem dito ao mundo.</p>
             </div>
-            <a className="text-sm font-semibold text-accent hover:underline">Ver todas →</a>
+            <a className="text-sm font-semibold text-accent-text underline">Ver todas →</a>
           </div>
 
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,10 +115,11 @@ export default function StudioReference() {
                 className="group overflow-hidden rounded-3xl border border-line bg-card shadow-card transition-all hover:-translate-y-1 hover:border-accent hover:shadow-card-elev"
               >
                 <div className={`relative flex h-44 items-end bg-gradient-to-br ${c.grad} p-5`}>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                   <span className="absolute right-4 top-4 rounded-full bg-black/25 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
                     {c.platform}
                   </span>
-                  <p className="text-lg font-semibold leading-snug text-white drop-shadow">
+                  <p className="relative text-lg font-semibold leading-snug text-white">
                     {c.title}
                   </p>
                 </div>
@@ -153,7 +150,7 @@ export default function StudioReference() {
             <p className="mt-2 max-w-md text-muted-2">
               Posts colaborativos (humano + IA) vêm performando 40% acima. Quer fazer outro nesse tom?
             </p>
-            <button className="mt-5 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-accent-ink transition-transform hover:-translate-y-0.5">
+            <button className="mt-5 rounded-full bg-contrast px-5 py-2.5 text-sm font-semibold text-contrast-ink transition-transform hover:-translate-y-0.5">
               Criar parecido
             </button>
           </div>

@@ -29,6 +29,7 @@ const config: Config = {
         accent: 'var(--ss-accent)',
         'accent-soft': 'var(--ss-accent-soft)',
         'accent-ink': 'var(--ss-accent-ink)',
+        'accent-text': 'var(--ss-accent-text)',
         contrast: 'var(--ss-contrast)',
         'contrast-ink': 'var(--ss-contrast-ink)',
         positive: 'var(--ss-positive)',

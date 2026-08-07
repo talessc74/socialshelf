@@ -17,6 +17,9 @@
   --ss-accent: #39a3cc;
   --ss-accent-soft: #ddf0f8;
   --ss-accent-ink: #ffffff;
+  /* --ss-accent em texto sobre --ss-bg fica em ~2.9:1 (falha WCAG AA 4.5:1);
+     use --ss-accent-text para texto/links no accent sobre fundo claro. */
+  --ss-accent-text: #1f6f8f;
   --ss-contrast: #1c426d;
   --ss-contrast-ink: #ffffff;
   --ss-positive: #41a36e;
@@ -36,6 +39,7 @@
   --ss-accent: #44a9c1;
   --ss-accent-soft: #0e2233;
   --ss-accent-ink: #ffffff;
+  --ss-accent-text: #44a9c1;
   --ss-contrast: #172032;
   --ss-contrast-ink: #dde8f4;
   --ss-positive: #7bb752;

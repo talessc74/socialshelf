@@ -39,6 +39,7 @@ interface GoogleSignInButtonProps {
 export default function GoogleSignInButton({ onSuccess, onError }: GoogleSignInButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [scriptLoaded, setScriptLoaded] = useState(false)
+  const [scriptFailed, setScriptFailed] = useState(false)
 
   useEffect(() => {
     if (!scriptLoaded || !containerRef.current || !window.google) return
@@ -68,8 +69,23 @@ export default function GoogleSignInButton({ onSuccess, onError }: GoogleSignInB
 
   return (
     <>
-      <Script src="https://accounts.google.com/gsi/client" strategy="afterInteractive" onLoad={() => setScriptLoaded(true)} />
-      <div ref={containerRef} className="flex w-full justify-center" />
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={() => setScriptLoaded(true)}
+        onError={() => setScriptFailed(true)}
+      />
+      {scriptFailed ? (
+        <p className="w-full rounded-full border border-line bg-card-2 px-4 py-2.5 text-center text-sm text-muted">
+          Login com Google indisponível agora. Use email e senha abaixo.
+        </p>
+      ) : (
+        <div
+          ref={containerRef}
+          aria-busy={!scriptLoaded}
+          className={`flex w-full justify-center ${!scriptLoaded ? 'h-11 animate-pulse rounded-full bg-card-2' : ''}`}
+        />
+      )}
     </>
   )
 }

@@ -45,7 +45,7 @@ export default function SignupPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-bg px-4">
       <div className="w-full max-w-sm rounded-3xl border border-contrast-ink/10 bg-contrast-ink/10 p-8 shadow-2xl backdrop-blur-xl">
-        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-accent">
+        <p className="mb-1 text-center text-xs font-semibold uppercase tracking-wide text-accent-text">
           Vamos começar
         </p>
         <h1 className="mb-6 text-center text-2xl font-bold text-ink">Criar conta no SocialShelf</h1>
@@ -80,7 +80,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={busy}
-            className="w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-ink shadow-lg shadow-accent/40 hover:bg-accent disabled:opacity-50"
+            className="w-full rounded-xl bg-contrast px-4 py-2 text-sm font-semibold text-contrast-ink shadow-lg shadow-contrast/40 hover:bg-contrast disabled:opacity-50"
           >
             {busy ? 'Criando conta…' : 'Criar conta'}
           </button>
@@ -96,7 +96,7 @@ export default function SignupPage() {
 
         <p className="mt-6 text-center text-sm text-ink/60">
           Já tem conta?{' '}
-          <Link href="/login" className="font-semibold text-accent hover:underline">
+          <Link href="/login" className="font-semibold text-accent-text underline">
             Entrar
           </Link>
         </p>
