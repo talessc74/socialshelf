@@ -4,10 +4,22 @@ import type { AiUsageRecorderPort, ImagePrompt } from '@socialshelf/domain'
 
 const generateContent = vi.fn()
 
+const { FakeApiError } = vi.hoisted(() => {
+  class FakeApiError extends Error {
+    status: number
+    constructor(status: number, message: string) {
+      super(message)
+      this.status = status
+    }
+  }
+  return { FakeApiError }
+})
+
 vi.mock('@google/genai', () => ({
   GoogleGenAI: vi.fn().mockImplementation(() => ({
     models: { generateContent },
   })),
+  ApiError: FakeApiError,
 }))
 
 import { GeminiImageGenerator } from './GeminiImageGenerator.js'
@@ -89,5 +101,45 @@ describe('GeminiImageGenerator', () => {
 
     await expect(generator.generateImage(basePrompt())).rejects.toThrow('boom')
     expect(usageRecorder.record).not.toHaveBeenCalled()
+  })
+
+  it('tenta de novo em 429 RESOURCE_EXHAUSTED e devolve a imagem quando uma tentativa seguinte funciona', async () => {
+    vi.useFakeTimers()
+    generateContent
+      .mockRejectedValueOnce(new FakeApiError(429, 'Resource exhausted'))
+      .mockResolvedValueOnce({
+        candidates: [{ content: { parts: [{ inlineData: { data: 'YmFzZTY0', mimeType: 'image/png' } }] } }],
+      })
+    const generator = new GeminiImageGenerator('project-1', 'us-central1', 'gemini-2.5-flash-image', usageRecorder)
+
+    const resultPromise = generator.generateImage(basePrompt())
+    await vi.runAllTimersAsync()
+    const image = await resultPromise
+
+    expect(image).toEqual({ base64: 'YmFzZTY0', mimeType: 'image/png' })
+    expect(generateContent).toHaveBeenCalledTimes(2)
+    vi.useRealTimers()
+  })
+
+  it('lança o 429 depois de esgotar as tentativas', async () => {
+    vi.useFakeTimers()
+    generateContent.mockRejectedValue(new FakeApiError(429, 'Resource exhausted'))
+    const generator = new GeminiImageGenerator('project-1', 'us-central1', 'gemini-2.5-flash-image', usageRecorder)
+
+    const resultPromise = generator.generateImage(basePrompt())
+    const assertion = expect(resultPromise).rejects.toThrow('Resource exhausted')
+    await vi.runAllTimersAsync()
+    await assertion
+
+    expect(generateContent).toHaveBeenCalledTimes(3)
+    vi.useRealTimers()
+  })
+
+  it('não tenta de novo em um erro que não seja 429 (ex.: prompt rejeitado)', async () => {
+    generateContent.mockRejectedValueOnce(new FakeApiError(400, 'prompt rejected'))
+    const generator = new GeminiImageGenerator('project-1', 'us-central1', 'gemini-2.5-flash-image', usageRecorder)
+
+    await expect(generator.generateImage(basePrompt())).rejects.toThrow('prompt rejected')
+    expect(generateContent).toHaveBeenCalledTimes(1)
   })
 })
