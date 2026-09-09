@@ -2,13 +2,14 @@
 // projeto) — usado só para dar ao usuário uma ESTIMATIVA de gasto por chamada, nunca para
 // reconciliar com a fatura real do Google Cloud. Gemini 2.5 Flash confirmado em
 // cloud.google.com/vertex-ai/generative-ai/pricing ($0.30/1M tokens de entrada, $2.50/1M de
-// saída). Imagen 4 Standard (imagen-4.0-generate-001, IMAGEN_MODEL) não tem tabela pública tão
-// acessível quanto a do Gemini — $0.04/imagem é o valor consistentemente reportado por múltiplas
-// fontes secundárias (ex.: futureagi.com, cloudprice.net) no momento da implementação; revisar
-// se a Vertex AI publicar a tabela oficial completa de imagem.
+// saída). Gemini 2.5 Flash Image (gemini-2.5-flash-image, GEMINI_IMAGE_MODEL —
+// _local-edr-policy-077, sucessor do Imagen standalone descontinuado) não tem tabela pública tão
+// acessível quanto a do Gemini de texto — $0.04/imagem é o valor consistentemente reportado por
+// múltiplas fontes secundárias (ex.: futureagi.com, cloudprice.net) no momento da implementação;
+// revisar se a Vertex AI publicar a tabela oficial completa de imagem.
 export const GEMINI_FLASH_INPUT_USD_PER_1M_TOKENS = 0.3
 export const GEMINI_FLASH_OUTPUT_USD_PER_1M_TOKENS = 2.5
-export const IMAGEN_4_STANDARD_USD_PER_IMAGE = 0.04
+export const GEMINI_IMAGE_USD_PER_IMAGE = 0.04
 
 export interface GeminiUsageTokens {
   promptTokenCount?: number | undefined
@@ -28,8 +29,8 @@ export function estimateGeminiCostUsd(usage: GeminiUsageTokens): number {
   )
 }
 
-export function estimateImagenCostUsd(imageCount: number): number {
-  return imageCount * IMAGEN_4_STANDARD_USD_PER_IMAGE
+export function estimateGeminiImageCostUsd(imageCount: number): number {
+  return imageCount * GEMINI_IMAGE_USD_PER_IMAGE
 }
 
 // Câmbio fixo e aproximado, atualizado manualmente aqui — não é uma cotação em tempo real.

@@ -140,10 +140,10 @@ export {
 export {
   GEMINI_FLASH_INPUT_USD_PER_1M_TOKENS,
   GEMINI_FLASH_OUTPUT_USD_PER_1M_TOKENS,
-  IMAGEN_4_STANDARD_USD_PER_IMAGE,
+  GEMINI_IMAGE_USD_PER_IMAGE,
   USD_TO_BRL_RATE,
   estimateGeminiCostUsd,
-  estimateImagenCostUsd,
+  estimateGeminiImageCostUsd,
   convertUsdToBrl,
   AI_SPENDING_LIMIT_REACHED_MESSAGE,
 } from './value-objects/AiPricing.js'
