@@ -1,6 +1,15 @@
+import { ApiError, type GoogleGenAI } from '@google/genai'
 import { TemplateStyle, estimateGeminiImageCostUsd } from '@socialshelf/domain'
 import type { ImageGeneratorPort, ImagePrompt, GeneratedImage, AiUsageRecorderPort } from '@socialshelf/domain'
 import { createGeminiClient } from './geminiClient.js'
+
+// As 5 variações de artifact de um post disparam generateImage em paralelo (Promise.all em
+// GenerateContentUseCase), o que esbarra na cota de requisições-por-minuto do projeto para este
+// modelo — observado em produção como 429 RESOURCE_EXHAUSTED mesmo com prompts válidos
+// (_local-edr-policy-078). Só esse status é retentado; qualquer outro erro (prompt rejeitado,
+// permissão, etc.) continua lançando de imediato, no mesmo padrão de MetaPublisher.publishInstagram.
+const RATE_LIMIT_RETRY_MAX_ATTEMPTS = 3
+const RATE_LIMIT_RETRY_DELAY_MS = 5000
 
 // A família "Imagen" standalone (endpoint REST :predict) foi descontinuada pelo Google e
 // removida do Model Garden — geração de imagem migrou para dentro dos próprios modelos Gemini
@@ -17,14 +26,7 @@ export class GeminiImageGenerator implements ImageGeneratorPort {
   async generateImage(prompt: ImagePrompt): Promise<GeneratedImage> {
     const ai = createGeminiClient(this.projectId, this.location)
 
-    const result = await ai.models.generateContent({
-      model: this.model,
-      contents: this.buildPrompt(prompt),
-      config: {
-        responseModalities: ['Image'],
-        imageConfig: { aspectRatio: prompt.aspectRatio },
-      },
-    })
+    const result = await this.generateContentWithRateLimitRetry(ai, prompt)
 
     const parts = result.candidates?.[0]?.content?.parts ?? []
     const imagePart = parts.find((part) => part.inlineData?.data)
@@ -46,6 +48,32 @@ export class GeminiImageGenerator implements ImageGeneratorPort {
       base64: imagePart.inlineData.data,
       mimeType: imagePart.inlineData.mimeType ?? 'image/png',
     }
+  }
+
+  private async generateContentWithRateLimitRetry(ai: GoogleGenAI, prompt: ImagePrompt) {
+    for (let attempt = 0; attempt < RATE_LIMIT_RETRY_MAX_ATTEMPTS; attempt++) {
+      try {
+        return await ai.models.generateContent({
+          model: this.model,
+          contents: this.buildPrompt(prompt),
+          config: {
+            responseModalities: ['Image'],
+            imageConfig: { aspectRatio: prompt.aspectRatio },
+          },
+        })
+      } catch (err) {
+        const isRateLimited = err instanceof ApiError && err.status === 429
+        const isLastAttempt = attempt === RATE_LIMIT_RETRY_MAX_ATTEMPTS - 1
+        if (!isRateLimited || isLastAttempt) {
+          throw err
+        }
+        await new Promise((resolve) => setTimeout(resolve, RATE_LIMIT_RETRY_DELAY_MS))
+      }
+    }
+
+    // Inalcançável (o loop sempre retorna ou lança na última tentativa) — só satisfaz o
+    // TypeScript quanto ao tipo de retorno da função.
+    throw new Error('Gemini image generation failed: exhausted rate-limit retries')
   }
 
   private buildPrompt(prompt: ImagePrompt): string {
