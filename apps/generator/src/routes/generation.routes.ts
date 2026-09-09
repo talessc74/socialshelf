@@ -7,7 +7,7 @@ import { RenderCardUseCase } from '../use-cases/RenderCardUseCase.js'
 import { EditArtifactTextUseCase } from '../use-cases/EditArtifactTextUseCase.js'
 import { GeminiCopyGenerator } from '../infrastructure/vertexai/GeminiCopyGenerator.js'
 import { GeminiArtDirector } from '../infrastructure/vertexai/GeminiArtDirector.js'
-import { ImagenImageGenerator } from '../infrastructure/vertexai/ImagenImageGenerator.js'
+import { GeminiImageGenerator } from '../infrastructure/vertexai/GeminiImageGenerator.js'
 import { SharpTemplateRenderer } from '../infrastructure/template/SharpTemplateRenderer.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FirestoreGenerationRequestRepository } from '../infrastructure/firestore/FirestoreGenerationRequestRepository.js'
@@ -80,13 +80,15 @@ export async function generationRoutes(app: FastifyInstance) {
   const location = process.env['VERTEX_AI_LOCATION'] ?? 'us-central1'
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
-  const imagenModel = process.env['IMAGEN_MODEL'] ?? 'imagen-4.0-generate-001'
+  // "Imagen" standalone foi descontinuado pelo Google e removido do Model Garden — geração de
+  // imagem migrou pros modelos Gemini multimodais ("Nano Banana", _local-edr-policy-077).
+  const geminiImageModel = process.env['GEMINI_IMAGE_MODEL'] ?? 'gemini-2.5-flash-image'
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
 
   const aiUsageRepo = new FirestoreAiUsageRepository()
   const copyGenerator = new GeminiCopyGenerator(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const artDirector = new GeminiArtDirector(projectId, geminiLocation, geminiModel, aiUsageRepo)
-  const imageGenerator = new ImagenImageGenerator(projectId, location, imagenModel, aiUsageRepo)
+  const imageGenerator = new GeminiImageGenerator(projectId, location, geminiImageModel, aiUsageRepo)
   const templateRenderer = new SharpTemplateRenderer()
   const imageStorage = new GcsImageStorage(generatedBucket)
   const generationRequestRepo = new FirestoreGenerationRequestRepository()

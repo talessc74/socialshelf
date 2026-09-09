@@ -74,8 +74,8 @@ vi.mock('../infrastructure/vertexai/GeminiArtDirector.js', () => ({
 
 const mockGenerateImage = vi.fn().mockResolvedValue({ base64: 'YmFzZTY0', mimeType: 'image/png' })
 
-vi.mock('../infrastructure/vertexai/ImagenImageGenerator.js', () => ({
-  ImagenImageGenerator: vi.fn().mockImplementation(() => ({
+vi.mock('../infrastructure/vertexai/GeminiImageGenerator.js', () => ({
+  GeminiImageGenerator: vi.fn().mockImplementation(() => ({
     generateImage: mockGenerateImage,
   })),
 }))
