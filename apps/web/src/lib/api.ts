@@ -18,6 +18,30 @@ async function getToken(): Promise<string> {
   return user.getIdToken()
 }
 
+// Erro de API com os campos estruturados que as rotas de billing devolvem (código +
+// upgradeTier/feature/accountType, _local-adr-policy-0NN) — sempre um Error de verdade (mesma
+// .message computada de antes), então todo catch existente que só olha err.message continua
+// funcionando sem mudança. Código novo pode checar `err instanceof ApiError && err.code === ...`
+// pra tratar o caso específico (ex.: abrir o paywall) em vez de um toast genérico.
+export class ApiError extends Error {
+  code: string | undefined
+  upgradeTier: string | null | undefined
+  feature: string | undefined
+  accountType: string | undefined
+
+  constructor(
+    message: string,
+    body: { error?: string; upgradeTier?: string | null; feature?: string; accountType?: string },
+  ) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = body.error
+    this.upgradeTier = body.upgradeTier
+    this.feature = body.feature
+    this.accountType = body.accountType
+  }
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const token = await getToken()
   const res = await fetch(`${API_URL}${path}`, {
@@ -46,6 +70,9 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       message?: string
       detail?: string
       details?: { fieldErrors?: Record<string, string[]>; formErrors?: string[] }
+      upgradeTier?: string | null
+      feature?: string
+      accountType?: string
     }
     // details vem do zod .flatten() nas rotas de validação (ex: PUT /brand-profile) — sem isso,
     // um campo obrigatório ausente por um dado antigo (ex: perfil salvo antes de um campo novo
@@ -63,7 +90,7 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
       (b.error && fieldSummary ? `${b.error} (${fieldSummary})` : null) ??
       b.error ??
       `HTTP ${res.status}`
-    throw new Error(msg)
+    throw new ApiError(msg, b)
   }
 
   return res.json() as Promise<T>
@@ -231,6 +258,7 @@ export type ApiAutonomyTickAction =
   | 'skipped-blocked'
   | 'skipped-not-eligible'
   | 'skipped-daily-limit'
+  | 'skipped-plan-limit'
   | 'draft-created'
   | 'published'
   | 'published-partial'
@@ -241,6 +269,8 @@ export interface ApiAdminAiUsageMonth {
   month: string
   textUsd: number
   imageUsd: number
+  audioUsd: number
+  videoUsd: number
   totalUsd: number
 }
 
@@ -254,10 +284,54 @@ export interface ApiAdminAiUsageSummary {
   brands: ApiAdminAiUsageBrandSummary[]
 }
 
-// Mesma agregação mensal texto/imagem da tela de admin, aqui escopada à própria marca — vem de
-// GET /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073).
+// Mesma agregação mensal da tela de admin, aqui escopada à própria marca — vem de GET
+// /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073).
+// planDailySpendingLimitBrl é o teto diário do plano de assinatura do usuário (null = sem
+// teto, só legado/admin) — _local-adr-policy-0NN, Fase 4e.
 export interface ApiAiUsageSummary {
   months: ApiAdminAiUsageMonth[]
+  planDailySpendingLimitBrl: number | null
+}
+
+// Planos de assinatura (_local-adr-policy-0NN) — 'legacy' é o plano permanente de quem já
+// usava o produto antes do lançamento do billing, nunca oferecido na página de planos.
+export type ApiPlanTier = 'legacy' | 'free' | 'starter' | 'pro' | 'agency'
+export type ApiBillingCycle = 'monthly' | 'annual'
+export type ApiSubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete'
+
+export interface ApiSubscription {
+  userId: string
+  tier: ApiPlanTier
+  billingCycle: ApiBillingCycle | null
+  status: ApiSubscriptionStatus
+  stripeCustomerId: string | null
+  stripeSubscriptionId: string | null
+  additionalProfessionalBrands: number
+  adminOverrideUnlimited: boolean
+  trialEndsAt: string | null
+  currentPeriodEnd: string | null
+  cancelAtPeriodEnd: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ApiPlanLimits {
+  tier: ApiPlanTier
+  includedBrands: number | null
+  allowedAccountTypes: AccountType[]
+  additionalBrandPriceBrl: number | null
+  maxAutonomyLevel: 'manual' | 'semi-automatic' | 'automatic'
+  maxAutoPostsPerDayCeiling: number
+  historyRetentionDays: number | null
+  defaultDailyAiSpendingLimitBrl: number | null
+  allowTikTokVideo: boolean
+  allowPhotoCampaigns: boolean
+  allowPerformanceAnalytics: boolean
+}
+
+export interface ApiSubscriptionResponse {
+  subscription: ApiSubscription
+  limits: ApiPlanLimits
 }
 
 export interface ApiAutonomyTickLogEntry {
@@ -410,6 +484,20 @@ export const api = {
       body: JSON.stringify({ accountType }),
     })
     return data.brand
+  },
+
+  async getSubscription(): Promise<ApiSubscriptionResponse> {
+    return apiFetch<ApiSubscriptionResponse>('/billing/subscription')
+  },
+
+  async createCheckoutSession(tier: 'starter' | 'pro' | 'agency', cycle: ApiBillingCycle): Promise<string> {
+    const data = await apiFetch<{ url: string }>(`/billing/checkout?tier=${tier}&cycle=${cycle}`)
+    return data.url
+  },
+
+  async createPortalSession(): Promise<string> {
+    const data = await apiFetch<{ url: string }>('/billing/portal')
+    return data.url
   },
 
   async getConnections(): Promise<ApiConnection[]> {

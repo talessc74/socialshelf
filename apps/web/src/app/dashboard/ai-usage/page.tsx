@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
@@ -7,6 +8,12 @@ import { USD_TO_BRL_RATE } from '@socialshelf/domain'
 
 function formatBrl(usd: number): string {
   return (usd * USD_TO_BRL_RATE).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+// planDailySpendingLimitBrl já vem em BRL (é o teto do plano, não uma estimativa de custo de
+// chamada de IA) — nunca passar por formatBrl, que espera USD e multiplicaria duas vezes.
+function formatBrlDirect(valueBrl: number): string {
+  return valueBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
 export default function AiUsagePage() {
@@ -43,9 +50,23 @@ export default function AiUsagePage() {
         <p className="text-sm text-muted">Nenhum uso de IA registrado ainda.</p>
       ) : (
         <div className="space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card">
-          <div className="flex items-baseline justify-between gap-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold text-ink">Resumo mensal</h2>
             <span className="text-sm font-medium text-muted">Total: {formatBrl(totalUsd)}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card-2/60 px-3 py-2 text-sm">
+            <span className="text-muted">
+              Teto diário do seu plano:{' '}
+              <span className="font-medium text-ink">
+                {data.planDailySpendingLimitBrl === null
+                  ? 'sem teto'
+                  : formatBrlDirect(data.planDailySpendingLimitBrl)}
+              </span>
+            </span>
+            <Link href="/dashboard/billing/plans" className="font-medium text-accent hover:underline">
+              Ver planos →
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[28rem] text-sm">
@@ -54,6 +75,7 @@ export default function AiUsagePage() {
                   <th className="py-1.5 pr-3">Mês</th>
                   <th className="py-1.5 pr-3">Texto</th>
                   <th className="py-1.5 pr-3">Imagem</th>
+                  <th className="py-1.5 pr-3">Áudio</th>
                   <th className="py-1.5">Total</th>
                 </tr>
               </thead>
@@ -63,6 +85,7 @@ export default function AiUsagePage() {
                     <td className="py-1.5 pr-3 font-medium text-ink">{m.month}</td>
                     <td className="py-1.5 pr-3 text-muted">{formatBrl(m.textUsd)}</td>
                     <td className="py-1.5 pr-3 text-muted">{formatBrl(m.imageUsd)}</td>
+                    <td className="py-1.5 pr-3 text-muted">{formatBrl(m.audioUsd)}</td>
                     <td className="py-1.5 font-medium text-ink">{formatBrl(m.totalUsd)}</td>
                   </tr>
                 ))}

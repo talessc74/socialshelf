@@ -25,6 +25,7 @@ Como organizar as coleções do Firestore para que a hierarquia reflita a propri
 users/{userId}
   ├── ai_consent/{doc}           ← consentimento do usuário para geração por IA
   ├── daily_quota/{date}         ← cotas diárias de geração (backend-only write)
+  ├── subscription/{doc}         ← assinatura de billing, doc único (backend-only write)
   └── brands/{brandId}
         ├── oauth_connections/{pairwiseId}   ← conexões OAuth por plataforma
         ├── posts/{postId}                   ← posts criados
@@ -32,6 +33,11 @@ users/{userId}
 
 token_vault/{tokenRef}             ← tokens OAuth criptografados (sem acesso cliente)
 ```
+
+**Atualização (2026-11-01)**: `subscription` segue o mesmo padrão de `daily_quota` —
+sub-coleção de `users/{userId}` (não de `brands`, porque o `Subscription` é por usuário, não
+por marca — `_local-bdr-policy-013`), leitura pelo dono, escrita exclusiva do backend. Ver
+`_local-adr-policy-043`.
 
 **Princípio de aninhamento**
 
@@ -56,6 +62,7 @@ Toda nova coleção deve:
 
 ## References
 
+- [_local-adr-policy-043-assinatura-via-stripe-integracao-tecnica](../application/043-assinatura-stripe-integracao-tecnica.md) - Implementação do billing que introduz a subcoleção `subscription`
 - [_local-adr-policy-015-firestore-security-rules-implicit-deny](../controls/015-firestore-security-rules.md) - Regras de segurança derivadas desta hierarquia
 - [_local-adr-policy-021-firestore-indices-compostos-por-query](021-firestore-indexes.md) - Índices compostos para queries sobre esta hierarquia
 - [_local-adr-policy-017-separacao-pairwiseid-e-tokenref-oauth](../data/017-separacao-pairwiseid-tokenref-oauth.md) - pairwiseId como chave de oauth_connections

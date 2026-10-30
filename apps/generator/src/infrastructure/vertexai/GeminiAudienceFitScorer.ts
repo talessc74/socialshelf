@@ -1,5 +1,5 @@
-import type { AudienceFitScorerPort, AudienceFitScorerInput, AudienceFitResult } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { AudienceFitScorerPort, AudienceFitScorerInput, AudienceFitResult, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 const MIN_STRENGTH = 0
 const MAX_STRENGTH = 3
@@ -12,6 +12,7 @@ export class GeminiAudienceFitScorer implements AudienceFitScorerPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async score(input: AudienceFitScorerInput): Promise<AudienceFitResult[]> {
@@ -25,6 +26,11 @@ export class GeminiAudienceFitScorer implements AudienceFitScorerPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: input.userId, brandId: input.brandId, operation: 'audience-fit-scoring', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for audience fit scoring')
 

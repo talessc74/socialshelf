@@ -3,6 +3,9 @@ import type { BrandProfileBusiness } from '../entities/BrandProfile.js'
 export interface TopicQueryPlannerInput {
   business: BrandProfileBusiness
   recurringThemes: string[]
+  // Atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  userId: string
+  brandId: string
 }
 
 /**

@@ -31,18 +31,36 @@ describe('GetBrandAiUsageSummaryUseCase', () => {
     }
     const useCase = new GetBrandAiUsageSummaryUseCase(aiUsageReader)
 
-    const result = await useCase.execute('user-1', 'brand-1')
+    const result = await useCase.execute('user-1', 'brand-1', null)
 
     expect(aiUsageReader.findByBrand).toHaveBeenCalledWith('user-1', 'brand-1')
-    expect(result.months).toEqual([{ month: '2026-07', textUsd: 0.002, imageUsd: 0.04, totalUsd: 0.042 }])
+    expect(result.months).toEqual([
+      { month: '2026-07', textUsd: 0.002, imageUsd: 0.04, audioUsd: 0, videoUsd: 0, totalUsd: 0.042 },
+    ])
   })
 
   it('retorna months vazio quando a marca não tem nenhum evento', async () => {
     const aiUsageReader: AiUsageReaderPort = { findAll: vi.fn(), findByBrand: vi.fn().mockResolvedValue([]) }
     const useCase = new GetBrandAiUsageSummaryUseCase(aiUsageReader)
 
-    const result = await useCase.execute('user-1', 'brand-1')
+    const result = await useCase.execute('user-1', 'brand-1', null)
 
     expect(result.months).toEqual([])
+  })
+
+  it('filtra eventos mais antigos que o teto de retenção do plano', async () => {
+    const aiUsageReader: AiUsageReaderPort = {
+      findAll: vi.fn(),
+      findByBrand: vi.fn().mockResolvedValue([
+        makeEvent({ id: 'old', createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000), estimatedCostUsd: 0.5 }),
+        makeEvent({ id: 'recent', createdAt: new Date(), estimatedCostUsd: 0.1 }),
+      ]),
+    }
+    const useCase = new GetBrandAiUsageSummaryUseCase(aiUsageReader)
+
+    const result = await useCase.execute('user-1', 'brand-1', 30)
+
+    const totalUsd = result.months.reduce((sum, m) => sum + m.totalUsd, 0)
+    expect(totalUsd).toBeCloseTo(0.1)
   })
 })

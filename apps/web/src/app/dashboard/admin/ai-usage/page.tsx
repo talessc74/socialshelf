@@ -29,6 +29,7 @@ function BrandUsageCard({ brand }: { brand: ApiAdminAiUsageBrandSummary }) {
                 <th className="py-1.5 pr-3">Mês</th>
                 <th className="py-1.5 pr-3">Texto</th>
                 <th className="py-1.5 pr-3">Imagem</th>
+                <th className="py-1.5 pr-3">Áudio</th>
                 <th className="py-1.5">Total</th>
               </tr>
             </thead>
@@ -38,6 +39,7 @@ function BrandUsageCard({ brand }: { brand: ApiAdminAiUsageBrandSummary }) {
                   <td className="py-1.5 pr-3 font-medium text-ink">{m.month}</td>
                   <td className="py-1.5 pr-3 text-muted">{formatBrl(m.textUsd)}</td>
                   <td className="py-1.5 pr-3 text-muted">{formatBrl(m.imageUsd)}</td>
+                  <td className="py-1.5 pr-3 text-muted">{formatBrl(m.audioUsd)}</td>
                   <td className="py-1.5 font-medium text-ink">{formatBrl(m.totalUsd)}</td>
                 </tr>
               ))}

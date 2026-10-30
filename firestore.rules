@@ -31,6 +31,12 @@ service cloud.firestore {
         allow write: if false; // written only by backend services
       }
 
+      // Billing subscription sub-document (singleton, _local-adr-policy-0NN)
+      match /subscription/{doc} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false; // written only by api-service (webhook + ensure-subscription)
+      }
+
       // ── Brands ───────────────────────────────────────────────────────
       match /brands/{brandId} {
         allow read: if isAuthenticated() && isOwner(userId);

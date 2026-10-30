@@ -31,7 +31,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
   // cada carregamento da tela de Performance (_local-edr-policy-040).
   app.post(
     '/performance-insights',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const parsed = analyzeSchema.safeParse(request.body)
       if (!parsed.success) {
@@ -60,7 +60,7 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
 
   app.get(
     '/performance-insights/latest',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const res = await fetchInternal(
         `${generatorUrl}/performance-insights/latest?brandId=${encodeURIComponent(request.brandId)}`,

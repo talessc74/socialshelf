@@ -63,7 +63,7 @@ describe('GetAdminAiUsageSummaryUseCase', () => {
       {
         brandId: 'brand-1',
         brandName: 'Eai Jurídico',
-        months: [{ month: '2026-07', textUsd: 0.002, imageUsd: 0.04, totalUsd: 0.042 }],
+        months: [{ month: '2026-07', textUsd: 0.002, imageUsd: 0.04, audioUsd: 0, videoUsd: 0, totalUsd: 0.042 }],
       },
     ])
   })

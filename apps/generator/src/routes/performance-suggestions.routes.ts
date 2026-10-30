@@ -5,6 +5,7 @@ import { RecordPerformanceSuggestionFeedbackUseCase } from '../use-cases/RecordP
 import { SetPerformanceSuggestionShelvedUseCase } from '../use-cases/SetPerformanceSuggestionShelvedUseCase.js'
 import { GeminiPerformanceSuggester } from '../infrastructure/vertexai/GeminiPerformanceSuggester.js'
 import { FirestorePerformanceSuggestionRepository } from '../infrastructure/firestore/FirestorePerformanceSuggestionRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 
 const profileDiagnosticSchema = z.object({
   niche: z.string(),
@@ -42,7 +43,8 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
-  const suggester = new GeminiPerformanceSuggester(projectId, geminiLocation, geminiModel)
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const suggester = new GeminiPerformanceSuggester(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const suggestionRepo = new FirestorePerformanceSuggestionRepository()
   const generateUseCase = new GeneratePerformanceSuggestionsUseCase(suggester, suggestionRepo)
   const feedbackUseCase = new RecordPerformanceSuggestionFeedbackUseCase(suggestionRepo)

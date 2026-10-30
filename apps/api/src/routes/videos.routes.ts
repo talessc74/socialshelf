@@ -19,7 +19,7 @@ export async function videosRoutes(app: FastifyInstance) {
 
   app.post(
     '/videos/upload',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('tiktokVideo')] },
     async (request, reply) => {
       const parts = request.parts()
       let fileBuffer: Buffer | null = null
@@ -95,7 +95,7 @@ export async function videosRoutes(app: FastifyInstance) {
   // é gerado pelo próprio pipeline de IA.
   app.post(
     '/videos/compose-slideshow',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('tiktokVideo')] },
     async (request, reply) => {
       const parsed = composeSlideshowSchema.safeParse(request.body)
       if (!parsed.success) {

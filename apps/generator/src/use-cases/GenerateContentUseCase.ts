@@ -4,6 +4,7 @@ import {
   PLATFORM_CHARACTER_LIMITS,
   MAX_GENERATION_ARTIFACTS,
   AI_SPENDING_LIMIT_REACHED_MESSAGE,
+  resolveEffectivePlanLimits,
 } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
@@ -16,6 +17,7 @@ import type {
   BrandProfileRepository,
   TopicSuggestionRepository,
   AiSpendingGuardPort,
+  SubscriptionRepository,
   GenerationRequest,
   GenerationArtifact,
   Platform,
@@ -25,7 +27,7 @@ import type {
   TopicSuggestion,
   PostOrigin,
 } from '@socialshelf/domain'
-import { isAiSpendingLimitReached } from '../lib/aiSpendingLimit.js'
+import { isAiSpendingLimitReached, resolveEffectiveDailyLimitBrl } from '../lib/aiSpendingLimit.js'
 
 export interface GenerateContentInput {
   userId: string
@@ -53,6 +55,7 @@ export class GenerateContentUseCase {
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly topicSuggestionRepo: TopicSuggestionRepository,
     private readonly aiSpendingGuard: AiSpendingGuardPort,
+    private readonly subscriptionRepo: SubscriptionRepository,
   ) {}
 
   async execute(input: GenerateContentInput): Promise<GenerationRequest> {
@@ -81,13 +84,18 @@ export class GenerateContentUseCase {
 
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
 
+    // Subscription deveria sempre existir aqui (toda marca passa por EnsureSubscriptionUseCase
+    // na criação, em apps/api) — null é tratado como "sem teto do plano" por segurança contra
+    // falha, mesma filosofia fail-open do resto desta trava (_local-adr-policy-0NN, Fase 4b).
+    const subscription = await this.subscriptionRepo.findByUserId(input.userId)
+    const planDailyLimitBrl = subscription ? resolveEffectivePlanLimits(subscription).defaultDailyAiSpendingLimitBrl : null
+    const effectiveDailyLimitBrl = resolveEffectiveDailyLimitBrl(
+      brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
+      planDailyLimitBrl,
+    )
+
     if (
-      await isAiSpendingLimitReached(
-        this.aiSpendingGuard,
-        input.userId,
-        input.brandId,
-        brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
-      )
+      await isAiSpendingLimitReached(this.aiSpendingGuard, input.userId, input.brandId, effectiveDailyLimitBrl)
     ) {
       await this.generationRequestRepo.updateStatus(request.id, 'failed', AI_SPENDING_LIMIT_REACHED_MESSAGE)
       return { ...request, status: 'failed', error: AI_SPENDING_LIMIT_REACHED_MESSAGE }

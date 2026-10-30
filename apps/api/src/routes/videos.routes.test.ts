@@ -7,6 +7,29 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: { verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }) },
 }))
 
+// requirePlanFeature('tiktokVideo') precisa de um Subscription resolvível — 'legacy' libera
+// tudo, preservando o comportamento destes testes de antes do gate existir.
+vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => ({
+  FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: vi.fn().mockResolvedValue({
+      userId: 'user-test-123',
+      tier: 'legacy',
+      billingCycle: null,
+      status: 'active',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      additionalProfessionalBrands: 0,
+      adminOverrideUnlimited: false,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      createdAt: new Date('2026-01-01T00:00:00Z'),
+      updatedAt: new Date('2026-01-01T00:00:00Z'),
+    }),
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
 const originalFetch = global.fetch
 
 function buildMultipartBody(fields: {

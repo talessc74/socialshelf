@@ -6,5 +6,9 @@ export interface VideoComposerPort {
     // imagens, em vez de usar silentSlideDurationSeconds.
     narrationAudioBuffer: Buffer | null
     silentSlideDurationSeconds: number
+    // Atribuição do evento de observabilidade (Fase 0 de billing, sem custo real — ver
+    // FfmpegVideoComposer) — a quem atribuir o evento de volume de composição.
+    userId: string
+    brandId: string
   }): Promise<{ videoBuffer: Buffer; durationSeconds: number }>
 }

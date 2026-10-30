@@ -307,6 +307,8 @@ describe('POST /videos/compose-slideshow', () => {
       imageBuffers: [expect.any(Buffer), expect.any(Buffer)],
       narrationAudioBuffer: null,
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
     const body = response.json<{ path: string; durationSeconds: number }>()
     expect(body.path).toBe('videos/user-1/brand-1/upload-123.mp4')
@@ -328,11 +330,17 @@ describe('POST /videos/compose-slideshow', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    expect(mockSynthesize).toHaveBeenCalledWith('Confira essa novidade incrível.')
+    expect(mockSynthesize).toHaveBeenCalledWith({
+      text: 'Confira essa novidade incrível.',
+      userId: 'user-1',
+      brandId: 'brand-1',
+    })
     expect(mockComposeSlideshow).toHaveBeenCalledWith({
       imageBuffers: [expect.any(Buffer)],
       narrationAudioBuffer: expect.any(Buffer),
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
   })
 

@@ -10,6 +10,7 @@ export type { CampaignPhoto } from './entities/CampaignPhoto.js'
 export type { CampaignItem, CampaignItemStatus } from './entities/CampaignItem.js'
 export type { AutonomyTickLogEntry, AutonomyTickAction } from './entities/AutonomyTickLogEntry.js'
 export type { AiUsageEvent, AiUsageCategory } from './entities/AiUsageEvent.js'
+export type { Subscription, PlanTier, BillingCycle, SubscriptionStatus } from './entities/Subscription.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,
@@ -124,6 +125,7 @@ export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLoc
 export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
 export type { AiUsageReaderPort } from './ports/AiUsageReaderPort.js'
 export type { AiSpendingGuardPort } from './ports/AiSpendingGuardPort.js'
+export type { SubscriptionRepository } from './ports/SubscriptionRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
@@ -141,14 +143,18 @@ export {
   GEMINI_FLASH_INPUT_USD_PER_1M_TOKENS,
   GEMINI_FLASH_OUTPUT_USD_PER_1M_TOKENS,
   GEMINI_IMAGE_USD_PER_IMAGE,
+  GOOGLE_TTS_USD_PER_MILLION_CHARS,
   USD_TO_BRL_RATE,
   estimateGeminiCostUsd,
   estimateGeminiImageCostUsd,
+  estimateTtsCostUsd,
   convertUsdToBrl,
   AI_SPENDING_LIMIT_REACHED_MESSAGE,
 } from './value-objects/AiPricing.js'
 export type { GeminiUsageTokens } from './value-objects/AiPricing.js'
 export { isAdminEmail } from './value-objects/AdminAccess.js'
+export { PLAN_LIMITS, resolveEffectivePlanLimits, isAutonomyLevelWithinPlan } from './value-objects/PlanLimits.js'
+export type { PlanLimits } from './value-objects/PlanLimits.js'
 export { brasiliaDateNow, startOfBrasiliaDay } from './value-objects/BrasiliaDate.js'
 export { groupAiUsageEventsByMonth } from './value-objects/AiUsageAggregation.js'
 export type { AiUsageMonthSummary } from './value-objects/AiUsageAggregation.js'

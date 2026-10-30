@@ -31,7 +31,7 @@ function makeSummary(overrides: Partial<ApiAdminAiUsageSummary> = {}): ApiAdminA
       {
         brandId: 'brand-1',
         brandName: 'Eai Jurídico',
-        months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, totalUsd: 0.41 }],
+        months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, audioUsd: 0, videoUsd: 0, totalUsd: 0.41 }],
       },
     ],
     ...overrides,

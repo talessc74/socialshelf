@@ -1,5 +1,5 @@
-import type { TranslatorPort, TranslateInput } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { TranslatorPort, TranslateInput, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 // Tradução fiel de manchetes/resumos de notícia para o idioma do usuário, reutilizando o mesmo
 // cliente Vertex AI (Gemini) já usado na geração de cópia — sem infra nova. A fidelidade é
@@ -9,9 +9,10 @@ export class GeminiTranslator implements TranslatorPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
-  async translate({ texts, targetLanguage }: TranslateInput): Promise<string[]> {
+  async translate({ texts, targetLanguage, userId, brandId }: TranslateInput): Promise<string[]> {
     if (texts.length === 0) return []
 
     const ai = createGeminiClient(this.projectId, this.location)
@@ -34,6 +35,7 @@ Responda apenas com um JSON no formato:
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(this.usageRecorder, { userId, brandId, operation: 'translation', model: this.model }, result.usageMetadata)
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for translation')
 

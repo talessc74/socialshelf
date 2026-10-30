@@ -7,7 +7,7 @@ export async function postsPerformanceRoutes(app: FastifyInstance) {
 
   app.get(
     '/posts-performance',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const res = await fetchInternal(`${publisherUrl}/posts-performance`, {
         method: 'POST',

@@ -3,7 +3,7 @@ import { promisify } from 'node:util'
 import { mkdtemp, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { VideoComposerPort } from '@socialshelf/domain'
+import type { VideoComposerPort, AiUsageRecorderPort } from '@socialshelf/domain'
 
 const run = promisify(execFile)
 
@@ -26,10 +26,14 @@ const MIN_SLIDE_DURATION_SECONDS = 1.5
 const MAX_SLIDE_DURATION_SECONDS = 8
 
 export class FfmpegVideoComposer implements VideoComposerPort {
+  constructor(private readonly usageRecorder: AiUsageRecorderPort) {}
+
   async composeSlideshow(input: {
     imageBuffers: Buffer[]
     narrationAudioBuffer: Buffer | null
     silentSlideDurationSeconds: number
+    userId: string
+    brandId: string
   }): Promise<{ videoBuffer: Buffer; durationSeconds: number }> {
     if (input.imageBuffers.length === 0) {
       throw new Error('composeSlideshow requires at least one image')
@@ -95,6 +99,20 @@ export class FfmpegVideoComposer implements VideoComposerPort {
 
       const videoBuffer = await readFile(outputPath)
       const durationSeconds = slideDurationSeconds * input.imageBuffers.length
+
+      // estimatedCostUsd: 0 é deliberado — FFmpeg roda como compute do próprio Cloud Run
+      // (já pago pelo plano de hosting), não uma API externa cobrada por unidade como o
+      // Gemini ou o Text-to-Speech. Este evento existe só para observabilidade/volume de
+      // quantas composições rodam, nunca para o cálculo de gasto do usuário.
+      void this.usageRecorder.record({
+        userId: input.userId,
+        brandId: input.brandId,
+        category: 'video-composition',
+        operation: 'video-composition',
+        model: 'ffmpeg',
+        estimatedCostUsd: 0,
+      })
+
       return { videoBuffer, durationSeconds }
     } finally {
       await rm(workDir, { recursive: true, force: true })

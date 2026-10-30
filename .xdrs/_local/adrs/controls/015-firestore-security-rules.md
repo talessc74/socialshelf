@@ -55,14 +55,22 @@ function isOwner(userId) {
 | `brands/{id}/oauth_connections` | `isOwner(userId)` | `false` — apenas backend |
 | `brands/{id}/posts` | `isOwner(userId)` | `isOwner(userId)` |
 | `brands/{id}/generation_requests` | `isOwner(userId)` | `false` — apenas backend |
+| `users/{userId}/subscription` | `isOwner(userId)` | `false` — apenas backend |
 | `token_vault` | `false` | `false` — apenas backend via Admin SDK |
 
 **Regra de adição de coleção**
 
 Toda nova coleção deve ter regra explícita antes de entrar em produção. Coleção sem regra = inacessível (via catch-all). Não existe "provisório" — a regra vai junto com o schema.
 
+**Atualização (2026-11-01)**: `users/{userId}/subscription` (billing — `_local-adr-policy-043`)
+segue exatamente o mesmo par leitura-pelo-dono/escrita-só-backend já usado por
+`daily_quota` — nenhuma regra nova foi inventada pra isso, só mais uma aplicação do modelo
+desta policy. A escrita é feita pelo `apps/api` (webhook do Stripe + criação preguiçosa de
+`Subscription`) via Admin SDK, que ignora as rules do cliente.
+
 ## References
 
 - [_local-adr-policy-005-zero-trust-baseline](005-zero-trust-baseline.md) - Implicit deny como princípio base de segurança
 - [_local-adr-policy-020-firestore-hierarquia-de-sub-documentos](../platform/020-firestore-schema.md) - Hierarquia de coleções documentada
+- [_local-adr-policy-043-assinatura-via-stripe-integracao-tecnica](../application/043-assinatura-stripe-integracao-tecnica.md) - Implementação do billing que introduz `users/{userId}/subscription`
 - [_local-adr-policy-012-token-vault-criptografia-aes-256-gcm](012-token-vault-encryption.md) - token_vault protegido adicionalmente por criptografia

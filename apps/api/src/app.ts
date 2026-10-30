@@ -27,7 +27,10 @@ import { autonomyTickLogRoutes } from './routes/autonomy-tick-log.routes.js'
 import { adminRoutes } from './routes/admin.routes.js'
 import { aiUsageRoutes } from './routes/ai-usage.routes.js'
 import { storageCleanupRoutes } from './routes/storage-cleanup.routes.js'
+import { billingRoutes } from './routes/billing.routes.js'
+import { stripeWebhookRoutes } from './routes/stripe-webhook.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
+import { registerPlanLimitsMiddleware } from './middleware/planLimits.middleware.js'
 
 export async function buildApp() {
   const app = Fastify({
@@ -52,6 +55,7 @@ export async function buildApp() {
   })
 
   await registerAuthMiddleware(app)
+  await registerPlanLimitsMiddleware(app)
 
   await app.register(healthRoutes)
   await app.register(linkedinOAuthRoutes)
@@ -76,6 +80,8 @@ export async function buildApp() {
   await app.register(adminRoutes)
   await app.register(aiUsageRoutes)
   await app.register(storageCleanupRoutes)
+  await app.register(billingRoutes)
+  await app.register(stripeWebhookRoutes)
 
   return app
 }

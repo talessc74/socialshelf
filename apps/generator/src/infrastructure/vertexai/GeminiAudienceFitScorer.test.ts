@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { AiUsageRecorderPort } from '@socialshelf/domain'
 
 const generateContent = vi.fn()
 
@@ -10,8 +11,12 @@ vi.mock('@google/genai', () => ({
 
 import { GeminiAudienceFitScorer } from './GeminiAudienceFitScorer.js'
 
-function respondWith(text: string) {
-  generateContent.mockResolvedValueOnce({ text })
+function respondWith(text: string, usageMetadata?: unknown) {
+  generateContent.mockResolvedValueOnce({ text, usageMetadata })
+}
+
+function makeUsageRecorder(): AiUsageRecorderPort {
+  return { record: vi.fn().mockResolvedValue(undefined) }
 }
 
 const business = { name: 'Acme LegalTech', segment: 'legaltech', description: 'IA jurídica' }
@@ -22,10 +27,12 @@ describe('GeminiAudienceFitScorer', () => {
   })
 
   it('returns an empty array without calling the model when there are no items', async () => {
-    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash').score({
+    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).score({
       business,
       recurringThemes: [],
       items: [],
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     expect(result).toEqual([])
@@ -42,13 +49,15 @@ describe('GeminiAudienceFitScorer', () => {
       }),
     )
 
-    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash').score({
+    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).score({
       business,
       recurringThemes: ['inteligência artificial'],
       items: [
         { headline: 'Notícia sem relação', summary: 'Assunto neutro' },
         { headline: 'IA vence causa no Reino Unido', summary: 'Tribunal usa IA em decisão histórica' },
       ],
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     expect(result).toEqual([
@@ -57,13 +66,38 @@ describe('GeminiAudienceFitScorer', () => {
     ])
   })
 
-  it('clamps relevanceStrength to the 0-3 range and rounds non-integer values', async () => {
-    respondWith(JSON.stringify({ items: [{ relevanceStrength: 7.6, matchedThemes: [] }] }))
+  it('records AI usage with the audience-fit-scoring operation and the caller userId/brandId', async () => {
+    respondWith(JSON.stringify({ items: [{ relevanceStrength: 1, matchedThemes: [] }] }))
+    const usageRecorder = makeUsageRecorder()
 
-    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash').score({
+    await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', usageRecorder).score({
       business,
       recurringThemes: [],
       items: [{ headline: 'h', summary: 's' }],
+      userId: 'user-1',
+      brandId: 'brand-1',
+    })
+
+    expect(usageRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        brandId: 'brand-1',
+        category: 'text-generation',
+        operation: 'audience-fit-scoring',
+        model: 'gemini-2.5-flash',
+      }),
+    )
+  })
+
+  it('clamps relevanceStrength to the 0-3 range and rounds non-integer values', async () => {
+    respondWith(JSON.stringify({ items: [{ relevanceStrength: 7.6, matchedThemes: [] }] }))
+
+    const result = await new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).score({
+      business,
+      recurringThemes: [],
+      items: [{ headline: 'h', summary: 's' }],
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     expect(result[0]?.relevanceStrength).toBe(3)
@@ -73,13 +107,15 @@ describe('GeminiAudienceFitScorer', () => {
     respondWith(JSON.stringify({ items: [{ relevanceStrength: 1, matchedThemes: [] }] }))
 
     await expect(
-      new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash').score({
+      new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).score({
         business,
         recurringThemes: [],
         items: [
           { headline: 'a', summary: 'a' },
           { headline: 'b', summary: 'b' },
         ],
+        userId: 'user-1',
+        brandId: 'brand-1',
       }),
     ).rejects.toThrow('malformed audience fit scoring payload')
   })
@@ -88,10 +124,12 @@ describe('GeminiAudienceFitScorer', () => {
     respondWith('not json at all')
 
     await expect(
-      new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash').score({
+      new GeminiAudienceFitScorer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).score({
         business,
         recurringThemes: [],
         items: [{ headline: 'a', summary: 'a' }],
+        userId: 'user-1',
+        brandId: 'brand-1',
       }),
     ).rejects.toThrow('invalid JSON for audience fit scoring')
   })

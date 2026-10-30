@@ -4,6 +4,7 @@ import { Platform } from '@socialshelf/domain'
 import { AnalyzePerformancePatternsUseCase } from '../use-cases/AnalyzePerformancePatternsUseCase.js'
 import { GeminiPatternAnalyzer } from '../infrastructure/vertexai/GeminiPatternAnalyzer.js'
 import { FirestoreProfileDiagnosticRepository } from '../infrastructure/firestore/FirestoreProfileDiagnosticRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -37,7 +38,8 @@ export async function performanceInsightsRoutes(app: FastifyInstance) {
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
-  const patternAnalyzer = new GeminiPatternAnalyzer(projectId, geminiLocation, geminiModel)
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const patternAnalyzer = new GeminiPatternAnalyzer(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const diagnosticRepo = new FirestoreProfileDiagnosticRepository()
   const useCase = new AnalyzePerformancePatternsUseCase(patternAnalyzer, diagnosticRepo)
 

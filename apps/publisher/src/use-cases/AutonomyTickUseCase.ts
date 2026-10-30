@@ -1,5 +1,12 @@
 import { randomUUID } from 'crypto'
-import { ALL_PLATFORMS, Platform, computeDailySlotHours, brasiliaDateNow } from '@socialshelf/domain'
+import {
+  ALL_PLATFORMS,
+  Platform,
+  computeDailySlotHours,
+  brasiliaDateNow,
+  resolveEffectivePlanLimits,
+  isAutonomyLevelWithinPlan,
+} from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
   AutonomyEligibleBrand,
@@ -8,6 +15,7 @@ import type {
   AutonomyTickLogRepository,
   OAuthRepository,
   PostRepository,
+  SubscriptionRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
 import type {
@@ -89,6 +97,7 @@ export class AutonomyTickUseCase {
     private readonly publishPostUseCase: PublishPostUseCase,
     private readonly generatorClient: GeneratorAutonomyClient,
     private readonly tickLog: AutonomyTickLogRepository,
+    private readonly subscriptionRepo: SubscriptionRepository,
   ) {}
 
   async execute(): Promise<AutonomyTickBrandResult[]> {
@@ -143,6 +152,20 @@ export class AutonomyTickUseCase {
     )
     if (targetPlatforms.length === 0) return { ...base, action: 'skipped-no-platforms' }
 
+    // Reclampa autonomia/posts automáticos pelo plano de assinatura a cada execução, não só ao
+    // salvar a marca — um downgrade de plano (ex.: cancelar Pro e cair pra Starter) precisa
+    // valer no próximo tick, não só quando o usuário resalvar as configurações
+    // (_local-adr-policy-0NN, Fase 4c). Subscription ausente é tratado como sem teto (igual ao
+    // resto do billing — fail-open num guardrail de custo, não uma fronteira de segurança).
+    const subscription = await this.subscriptionRepo.findByUserId(brand.userId)
+    const planLimits = subscription ? resolveEffectivePlanLimits(subscription) : null
+    if (planLimits && !isAutonomyLevelWithinPlan(brand.autonomyLevel, planLimits.maxAutonomyLevel)) {
+      return { ...base, action: 'skipped-plan-limit' }
+    }
+    const maxAutoPostsPerDay = planLimits
+      ? Math.min(brand.maxAutoPostsPerDay, planLimits.maxAutoPostsPerDayCeiling)
+      : brand.maxAutoPostsPerDay
+
     const now = new Date()
     // Prefixo "br-" evita colidir com os documentos antigos, escritos antes desta correção,
     // cuja chave era a mesma string de data mas calculada em UTC — sem o prefixo, o contador
@@ -152,7 +175,7 @@ export class AutonomyTickUseCase {
     // antigos (sem o prefixo) ficam órfãos — não precisam de limpeza, nunca mais são lidos.
     const today = `br-${brasiliaDateNow(now)}`
     const alreadyToday = await this.dailyCounter.getCount(brand.userId, brand.brandId, today)
-    if (alreadyToday >= slotsOpenByNow(brand.maxAutoPostsPerDay, now)) {
+    if (alreadyToday >= slotsOpenByNow(maxAutoPostsPerDay, now)) {
       return { ...base, action: 'skipped-not-yet-time' }
     }
 
@@ -178,6 +201,8 @@ export class AutonomyTickUseCase {
         autoPublishTopics: brand.autoPublishTopics,
         blockedTopics: brand.blockedTopics,
         stylePreferences: brand.stylePreferences,
+        userId: brand.userId,
+        brandId: brand.brandId,
       })
       if (!result.blocked) {
         topSuggestion = candidate
@@ -204,7 +229,7 @@ export class AutonomyTickUseCase {
       brand.userId,
       brand.brandId,
       today,
-      brand.maxAutoPostsPerDay,
+      maxAutoPostsPerDay,
     )
     if (!underLimit) return { ...base, action: 'skipped-daily-limit', topicHeadline: topSuggestion.headline }
 

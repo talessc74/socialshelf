@@ -19,5 +19,8 @@ export interface TopicAutonomyMatcherPort {
     autoPublishTopics: string[]
     blockedTopics: string[]
     stylePreferences: TemplateStyle[]
+    // Atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+    userId: string
+    brandId: string
   }): Promise<TopicAutonomyMatch>
 }

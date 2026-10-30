@@ -12,5 +12,6 @@ export interface PerformanceSuggestionDraft {
 }
 
 export interface PerformanceSuggesterPort {
-  suggestPosts(diagnostic: ProfileDiagnostic): Promise<PerformanceSuggestionDraft[]>
+  // userId/brandId: atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  suggestPosts(diagnostic: ProfileDiagnostic, userId: string, brandId: string): Promise<PerformanceSuggestionDraft[]>
 }

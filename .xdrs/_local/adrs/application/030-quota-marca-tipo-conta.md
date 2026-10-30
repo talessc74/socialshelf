@@ -55,7 +55,25 @@ Como aplicar o limite de marcas por tipo de conta de forma que (a) a regra valha
 
 **Imutabilidade relaxada — switch no site**: em vez do fluxo "criar marca nova pra trocar de tipo" previsto nesta ADR, foi adicionado um **switch simples pessoal/profissional** na página da marca (`PATCH /brands/:id` passa a aceitar `accountType`). Esta é uma exceção deliberada e temporária à regra de imutabilidade da seção `### Imutabilidade` acima — o motivo original da imutabilidade (impedir declarar `personal` pra pagar menos enquanto se opera como `professional`) só se aplica quando existe cobrança real ligada ao tipo de conta, e o billing descrito nesta ADR (`Subscription`, limites por plano) segue não implementado. Enquanto isso for verdade, o switch é seguro. **Quando o billing for implementado**, esta seção deve ser revisitada: ou o switch é removido (voltando à imutabilidade original), ou passa a exigir confirmação/proração explícita de cobrança antes de aceitar a troca.
 
+## Atualização — quota implementada; billing real existe (2026-11-01)
+
+`_local-adr-policy-043` implementa o que esta seção descrevia como pendente: `Subscription`
+agora existe de verdade (por usuário, lida via `SubscriptionRepository`), `POST /brands` checa
+quota de verdade contra `PlanLimits.includedBrands + additionalProfessionalBrands` e devolve
+`brand_limit_reached` ao estourar — exatamente o sinal específico previsto na seção "Checagem
+de quota" acima.
+
+**A pergunta em aberto da atualização de 2026-07-22 está respondida**: o switch pessoal/
+profissional em `PATCH /brands/:id` **não** volta a ser imutável agora que o billing existe —
+continua como switch, mas passou a ser limitado pelo plano atual do usuário (só aceita trocar
+pra um `accountType` que esteja em `PlanLimits.allowedAccountTypes`). Decisão deliberada:
+restaurar imutabilidade total exigiria o fluxo "criar marca nova pra trocar de tipo" original,
+mais fricção do que o risco real justifica por ora — se abuso real aparecer (declarar
+`personal` temporariamente pra escapar de um limite de plano), revisar esta seção de novo.
+
 ## References
 
 - [_local-bdr-policy-009-contas-pessoal-profissional-cobranca](../../bdrs/product/009-contas-pessoal-profissional-cobranca.md) - Decisão de negócio que origina esta regra técnica
+- [_local-bdr-policy-013-planos-precos-e-assinatura](../../bdrs/product/013-planos-precos-assinatura.md) - Preços e limites reais por plano, antes deixados como "a definir"
+- [_local-adr-policy-043-assinatura-via-stripe-integracao-tecnica](043-assinatura-stripe-integracao-tecnica.md) - Implementação técnica completa do billing que fecha esta ADR
 - [_local-adr-policy-020-firestore-hierarquia-de-sub-documentos](../platform/020-firestore-schema.md) - Hierarquia `users > brands > ...` onde `Brand.accountType` passa a viver

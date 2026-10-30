@@ -2,10 +2,15 @@ import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { ExtractBrandProfileFromDocumentUseCase } from '../use-cases/ExtractBrandProfileFromDocumentUseCase.js'
 import { GeminiBrandDocumentExtractor } from '../infrastructure/vertexai/GeminiBrandDocumentExtractor.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 
 const bodySchema = z.object({
   base64: z.string().min(1),
   mimeType: z.enum(['application/pdf', 'text/plain']),
+  // Atribuição de custo de IA (Fase 0 de billing) — o apps/api (único chamador real) já tem os
+  // dois em mãos via request.userId/request.brandId quando faz o proxy desta chamada.
+  userId: z.string().min(1),
+  brandId: z.string().min(1),
 })
 
 export async function brandProfileRoutes(app: FastifyInstance) {
@@ -13,7 +18,8 @@ export async function brandProfileRoutes(app: FastifyInstance) {
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
-  const extractor = new GeminiBrandDocumentExtractor(projectId, geminiLocation, geminiModel)
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const extractor = new GeminiBrandDocumentExtractor(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const useCase = new ExtractBrandProfileFromDocumentUseCase(extractor)
 
   const internalSecret = process.env['INTERNAL_SECRET']
@@ -33,7 +39,7 @@ export async function brandProfileRoutes(app: FastifyInstance) {
     }
 
     try {
-      const extraction = await useCase.execute(parsed.data.base64, parsed.data.mimeType)
+      const extraction = await useCase.execute(parsed.data.base64, parsed.data.mimeType, parsed.data.userId, parsed.data.brandId)
       return reply.send({ extraction })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)

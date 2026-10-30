@@ -1,5 +1,5 @@
-import type { TopicQueryPlannerPort, TopicQueryPlannerInput } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { TopicQueryPlannerPort, TopicQueryPlannerInput, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 const MAX_QUERIES = 5
 
@@ -8,6 +8,7 @@ export class GeminiTopicQueryPlanner implements TopicQueryPlannerPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async planQueries(input: TopicQueryPlannerInput): Promise<string[]> {
@@ -19,6 +20,11 @@ export class GeminiTopicQueryPlanner implements TopicQueryPlannerPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: input.userId, brandId: input.brandId, operation: 'topic-query-planning', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for topic query planning')
 

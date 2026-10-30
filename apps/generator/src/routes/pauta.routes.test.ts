@@ -237,7 +237,14 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: ['Caso do Dia'], blockedTopics: [], stylePreferences: ['bold-bottom'] },
+      payload: {
+        topic,
+        autoPublishTopics: ['Caso do Dia'],
+        blockedTopics: [],
+        stylePreferences: ['bold-bottom'],
+        userId: 'brand-1',
+        brandId: 'brand-1',
+      },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
@@ -254,6 +261,8 @@ describe('POST /pauta/classify-autonomy', () => {
         autoPublishTopics: [],
         blockedTopics: [],
         stylePreferences: ['bold-bottom'],
+        userId: 'brand-1',
+        brandId: 'brand-1',
       },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
@@ -265,7 +274,25 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['not-a-real-style'] },
+      payload: {
+        topic,
+        autoPublishTopics: [],
+        blockedTopics: [],
+        stylePreferences: ['not-a-real-style'],
+        userId: 'brand-1',
+        brandId: 'brand-1',
+      },
+      headers: { 'x-internal-secret': 'test-internal-secret' },
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('returns 400 when userId/brandId are missing', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/pauta/classify-autonomy',
+      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['bold-bottom'] },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 
@@ -276,7 +303,14 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['bold-bottom'] },
+      payload: {
+        topic,
+        autoPublishTopics: [],
+        blockedTopics: [],
+        stylePreferences: ['bold-bottom'],
+        userId: 'brand-1',
+        brandId: 'brand-1',
+      },
     })
 
     expect(response.statusCode).toBe(401)
@@ -288,7 +322,14 @@ describe('POST /pauta/classify-autonomy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/pauta/classify-autonomy',
-      payload: { topic, autoPublishTopics: [], blockedTopics: [], stylePreferences: ['bold-bottom'] },
+      payload: {
+        topic,
+        autoPublishTopics: [],
+        blockedTopics: [],
+        stylePreferences: ['bold-bottom'],
+        userId: 'brand-1',
+        brandId: 'brand-1',
+      },
       headers: { 'x-internal-secret': 'test-internal-secret' },
     })
 

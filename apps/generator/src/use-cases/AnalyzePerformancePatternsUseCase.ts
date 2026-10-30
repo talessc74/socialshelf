@@ -17,7 +17,7 @@ export class AnalyzePerformancePatternsUseCase {
       throw new Error('No published posts with metrics to analyze')
     }
 
-    const diagnostic = await this.patternAnalyzer.analyzePatterns(entries)
+    const diagnostic = await this.patternAnalyzer.analyzePatterns(entries, brandId, brandId)
 
     await this.diagnosticRepo.save(brandId, {
       id: randomUUID(),

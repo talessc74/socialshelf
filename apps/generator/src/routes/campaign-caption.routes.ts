@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { GeminiCampaignCaptionWriter } from '../infrastructure/vertexai/GeminiCampaignCaptionWriter.js'
 import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 
 const captionSuggestionSchema = z.object({
   brandId: z.string().min(1),
@@ -33,7 +34,8 @@ export async function campaignCaptionRoutes(app: FastifyInstance) {
     throw new Error('INTERNAL_SECRET env var is required — set it before starting the generator service')
   }
 
-  const captionWriter = new GeminiCampaignCaptionWriter(projectId, geminiLocation, geminiModel)
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const captionWriter = new GeminiCampaignCaptionWriter(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const imageStorage = new GcsImageStorage(generatedBucket)
   const brandProfileRepo = new FirestoreBrandProfileRepository()
 
@@ -67,6 +69,8 @@ export async function campaignCaptionRoutes(app: FastifyInstance) {
         photoTakenAt: photoTakenAt ? new Date(photoTakenAt) : null,
         photoHasLocation,
         photoCount,
+        userId,
+        brandId,
       })
 
       return reply.send(result)

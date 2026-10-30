@@ -3,7 +3,7 @@ import type { BrandDocumentExtractorPort, BrandProfileExtraction } from '@social
 export class ExtractBrandProfileFromDocumentUseCase {
   constructor(private readonly extractor: BrandDocumentExtractorPort) {}
 
-  async execute(base64: string, mimeType: string): Promise<BrandProfileExtraction> {
-    return this.extractor.extractFromDocument(base64, mimeType)
+  async execute(base64: string, mimeType: string, userId: string, brandId: string): Promise<BrandProfileExtraction> {
+    return this.extractor.extractFromDocument(base64, mimeType, userId, brandId)
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Platform } from '@socialshelf/domain'
-import type { PostPerformanceSummary } from '@socialshelf/domain'
+import type { PostPerformanceSummary, AiUsageRecorderPort } from '@socialshelf/domain'
 
 const generateContent = vi.fn()
 
@@ -14,6 +14,10 @@ import { GeminiPatternAnalyzer } from './GeminiPatternAnalyzer.js'
 
 function respondWith(payload: unknown) {
   generateContent.mockResolvedValueOnce({ text: JSON.stringify(payload) })
+}
+
+function makeUsageRecorder(): AiUsageRecorderPort {
+  return { record: vi.fn().mockResolvedValue(undefined) }
 }
 
 function makeEntry(overrides: Partial<PostPerformanceSummary> = {}): PostPerformanceSummary {
@@ -50,20 +54,24 @@ describe('GeminiPatternAnalyzer', () => {
   it('parses a well-formed diagnostic from the model response', async () => {
     respondWith(makeValidPayload())
 
-    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([
-      makeEntry(),
-    ])
+    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+      [makeEntry()],
+      'user-1',
+      'brand-1',
+    )
 
     expect(result.niche).toBe('Tecnologia')
     expect(result.bestTimes).toEqual(['08:00'])
   })
 
-  it('includes each post\'s publish time (Brasília) in the prompt so bestTimes has real data to work from', async () => {
+  it("includes each post's publish time (Brasília) in the prompt so bestTimes has real data to work from", async () => {
     respondWith(makeValidPayload())
 
-    await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([
-      makeEntry({ publishedAt: new Date('2026-07-06T17:30:00.000Z') }),
-    ])
+    await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+      [makeEntry({ publishedAt: new Date('2026-07-06T17:30:00.000Z') })],
+      'user-1',
+      'brand-1',
+    )
 
     const prompt = (generateContent.mock.calls[0]![0] as { contents: string }).contents
     // 17:30 UTC no domingo 2026-07-06 é 14:30 em horário de Brasília (UTC-3).
@@ -71,12 +79,35 @@ describe('GeminiPatternAnalyzer', () => {
     expect(prompt).toContain('horário de Brasília')
   })
 
+  it('records AI usage with the pattern-analysis operation and the caller userId/brandId', async () => {
+    respondWith(makeValidPayload())
+    const usageRecorder = makeUsageRecorder()
+
+    await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', usageRecorder).analyzePatterns(
+      [makeEntry()],
+      'user-1',
+      'brand-1',
+    )
+
+    expect(usageRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        brandId: 'brand-1',
+        category: 'text-generation',
+        operation: 'pattern-analysis',
+        model: 'gemini-2.5-flash',
+      }),
+    )
+  })
+
   it('normalizes bestTimes into an array when the model returns a single string', async () => {
     respondWith(makeValidPayload({ bestTimes: '08:00, 14:00' }))
 
-    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([
-      makeEntry(),
-    ])
+    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+      [makeEntry()],
+      'user-1',
+      'brand-1',
+    )
 
     expect(result.bestTimes).toEqual(['08:00', '14:00'])
   })
@@ -84,9 +115,11 @@ describe('GeminiPatternAnalyzer', () => {
   it('normalizes topFormats into an array when the model returns a single string', async () => {
     respondWith(makeValidPayload({ topFormats: 'IMAGE' }))
 
-    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([
-      makeEntry(),
-    ])
+    const result = await new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+      [makeEntry()],
+      'user-1',
+      'brand-1',
+    )
 
     expect(result.topFormats).toEqual(['IMAGE'])
   })
@@ -95,7 +128,11 @@ describe('GeminiPatternAnalyzer', () => {
     respondWith({ niche: 'Tecnologia' })
 
     await expect(
-      new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([makeEntry()]),
+      new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+        [makeEntry()],
+        'user-1',
+        'brand-1',
+      ),
     ).rejects.toThrow("doesn't match the expected shape")
   })
 
@@ -103,7 +140,11 @@ describe('GeminiPatternAnalyzer', () => {
     generateContent.mockResolvedValueOnce({ text: 'not json at all' })
 
     await expect(
-      new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash').analyzePatterns([makeEntry()]),
+      new GeminiPatternAnalyzer('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).analyzePatterns(
+        [makeEntry()],
+        'user-1',
+        'brand-1',
+      ),
     ).rejects.toThrow('invalid JSON for pattern analysis')
   })
 })

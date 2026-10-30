@@ -37,5 +37,6 @@ export interface ProfileDiagnostic {
 }
 
 export interface PatternAnalyzerPort {
-  analyzePatterns(entries: PostPerformanceSummary[]): Promise<ProfileDiagnostic>
+  // userId/brandId: atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  analyzePatterns(entries: PostPerformanceSummary[], userId: string, brandId: string): Promise<ProfileDiagnostic>
 }
