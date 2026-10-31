@@ -7,6 +7,35 @@ vi.mock('../infrastructure/firebase-admin.js', () => ({
   adminAuth: { verifyIdToken: vi.fn().mockResolvedValue({ uid: 'user-test-123' }) },
 }))
 
+const { mockFindSubscription } = vi.hoisted(() => ({ mockFindSubscription: vi.fn() }))
+
+// A rota agora resolve o plano pra aplicar a retenção de histórico (_local-adr-policy-0NN,
+// Fase 4e) — 'legacy' não corta nada, preservando o comportamento destes testes de antes.
+vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => ({
+  FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: mockFindSubscription,
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
+function makeLegacySubscription() {
+  return {
+    userId: 'user-test-123',
+    tier: 'legacy' as const,
+    billingCycle: null,
+    status: 'active' as const,
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    additionalProfessionalBrands: 0,
+    adminOverrideUnlimited: false,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    createdAt: new Date('2026-01-01T00:00:00Z'),
+    updatedAt: new Date('2026-01-01T00:00:00Z'),
+  }
+}
+
 const findRecentByBrand = vi.fn().mockResolvedValue([])
 
 vi.mock('../infrastructure/firestore/FirestoreAutonomyTickLogRepository.js', () => ({
@@ -33,6 +62,7 @@ describe('GET /autonomy-tick-log', () => {
 
   beforeEach(() => {
     findRecentByBrand.mockReset().mockResolvedValue([])
+    mockFindSubscription.mockReset().mockResolvedValue(makeLegacySubscription())
   })
 
   it('returns an empty list when the brand has no tick history yet', async () => {
@@ -75,5 +105,38 @@ describe('GET /autonomy-tick-log', () => {
   it('returns 401 without auth header', async () => {
     const response = await app.inject({ method: 'GET', url: '/autonomy-tick-log' })
     expect(response.statusCode).toBe(401)
+  })
+
+  it('filtra entradas mais antigas que a retenção do plano', async () => {
+    mockFindSubscription.mockResolvedValue({ ...makeLegacySubscription(), tier: 'free' })
+    findRecentByBrand.mockResolvedValue([
+      {
+        id: 'old-entry',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        action: 'published',
+        topicHeadline: 'Post antigo',
+        error: null,
+        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      },
+      {
+        id: 'recent-entry',
+        userId: 'user-test-123',
+        brandId: 'user-test-123',
+        action: 'published',
+        topicHeadline: 'Post recente',
+        error: null,
+        createdAt: new Date(),
+      },
+    ])
+
+    const response = await app.inject({
+      method: 'GET',
+      url: '/autonomy-tick-log',
+      headers: { authorization: 'Bearer valid-token' },
+    })
+
+    const body = response.json<{ entries: Array<{ id: string }> }>()
+    expect(body.entries).toEqual([expect.objectContaining({ id: 'recent-entry' })])
   })
 })

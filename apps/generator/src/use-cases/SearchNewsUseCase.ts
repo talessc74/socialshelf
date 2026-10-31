@@ -42,12 +42,14 @@ export class SearchNewsUseCase {
 
     const avgEngagementRate = await computeAvgEngagementRate(this.audienceSignalRepo, brandId, brandId)
 
-    const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE)
+    const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE, brandId, brandId)
     const fitResults = await scoreAudienceFit(
       this.audienceFitScorer,
       brandProfile.business,
       brandProfile.narrative.recurringThemes,
       translated,
+      brandId,
+      brandId,
     )
 
     const suggestions = await Promise.all(

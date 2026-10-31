@@ -2,8 +2,9 @@ import type {
   CampaignCaptionWriterPort,
   CampaignCaptionWriterInput,
   CampaignCaptionWriterResult,
+  AiUsageRecorderPort,
 } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 // Único ponto do projeto que manda a imagem em si (não só texto) pro Gemini pra escrever
 // legenda — os demais writers de copy (GeminiCopyGenerator) só recebem descrição textual.
@@ -15,6 +16,7 @@ export class GeminiCampaignCaptionWriter implements CampaignCaptionWriterPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async write(input: CampaignCaptionWriterInput): Promise<CampaignCaptionWriterResult> {
@@ -33,6 +35,11 @@ export class GeminiCampaignCaptionWriter implements CampaignCaptionWriterPort {
       ],
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: input.userId, brandId: input.brandId, operation: 'campaign-caption', model: this.model },
+      result.usageMetadata,
+    )
 
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for campaign caption')

@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { PerformanceSuggesterPort, PerformanceSuggestionDraft, ProfileDiagnostic } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { PerformanceSuggesterPort, PerformanceSuggestionDraft, ProfileDiagnostic, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 const suggestionDraftSchema = z.object({
   headline: z.string(),
@@ -20,9 +20,10 @@ export class GeminiPerformanceSuggester implements PerformanceSuggesterPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
-  async suggestPosts(diagnostic: ProfileDiagnostic): Promise<PerformanceSuggestionDraft[]> {
+  async suggestPosts(diagnostic: ProfileDiagnostic, userId: string, brandId: string): Promise<PerformanceSuggestionDraft[]> {
     const ai = createGeminiClient(this.projectId, this.location)
 
     const prompt = this.buildPrompt(diagnostic)
@@ -31,6 +32,11 @@ export class GeminiPerformanceSuggester implements PerformanceSuggesterPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId, brandId, operation: 'performance-suggestion', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for performance suggestions')
 

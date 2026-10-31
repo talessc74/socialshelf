@@ -3,14 +3,17 @@ import {
   TEMPLATE_STYLE_LABELS,
   type TopicAutonomyMatcherPort,
   type TopicAutonomyMatch,
+  type AiUsageRecorderPort,
 } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 type ClassifyInput = {
   topic: { headline: string; summary: string; rationale: string }
   autoPublishTopics: string[]
   blockedTopics: string[]
   stylePreferences: TemplateStyle[]
+  userId: string
+  brandId: string
 }
 
 // Julga se uma pauta se encaixa nos temas que o usuário liberou/bloqueou para publicação
@@ -25,6 +28,7 @@ export class GeminiTopicAutonomyMatcher implements TopicAutonomyMatcherPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
   async classify(input: ClassifyInput): Promise<TopicAutonomyMatch> {
@@ -44,6 +48,11 @@ export class GeminiTopicAutonomyMatcher implements TopicAutonomyMatcherPort {
       contents: this.buildPrompt(input),
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId: input.userId, brandId: input.brandId, operation: 'autonomy-matching', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for topic autonomy classification')
 

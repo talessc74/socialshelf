@@ -11,8 +11,19 @@ export interface BrandAiUsageSummary {
 export class GetBrandAiUsageSummaryUseCase {
   constructor(private readonly aiUsageReader: AiUsageReaderPort) {}
 
-  async execute(userId: string, brandId: string): Promise<BrandAiUsageSummary> {
+  // historyRetentionDays vem do plano do usuário (PlanLimits, _local-adr-policy-0NN) — null
+  // significa sem corte (plano legado). Filtra em memória, igual ao resto desta classe: o
+  // volume ainda é baixo o suficiente pra não exigir mudar o port nem adicionar índice novo.
+  async execute(userId: string, brandId: string, historyRetentionDays: number | null): Promise<BrandAiUsageSummary> {
     const events = await this.aiUsageReader.findByBrand(userId, brandId)
-    return { months: groupAiUsageEventsByMonth(events) }
+    const filtered =
+      historyRetentionDays === null
+        ? events
+        : events.filter((event) => event.createdAt >= daysAgo(historyRetentionDays))
+    return { months: groupAiUsageEventsByMonth(filtered) }
   }
+}
+
+function daysAgo(days: number): Date {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 }

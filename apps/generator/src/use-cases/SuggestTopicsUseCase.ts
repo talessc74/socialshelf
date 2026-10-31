@@ -58,12 +58,14 @@ export class SuggestTopicsUseCase {
 
     // Traduzimos antes de pontuar: os temas recorrentes da marca estão no idioma do usuário, mas a
     // notícia chega em inglês — a aderência precisa ser avaliada sobre o texto já traduzido.
-    const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE)
+    const translated = await translateNewsItems(this.translator, verifiedNews, TARGET_LANGUAGE, brandId, brandId)
     const fitResults = await scoreAudienceFit(
       this.audienceFitScorer,
       brandProfile.business,
       brandProfile.narrative.recurringThemes,
       translated,
+      brandId,
+      brandId,
     )
 
     const suggestions = await Promise.all(
@@ -88,6 +90,8 @@ export class SuggestTopicsUseCase {
       const queries = await this.queryPlanner.planQueries({
         business: brandProfile.business,
         recurringThemes: brandProfile.narrative.recurringThemes,
+        userId: brandProfile.brandId,
+        brandId: brandProfile.brandId,
       })
       return queries.length > 0 ? queries : [brandProfile.business.segment]
     } catch {

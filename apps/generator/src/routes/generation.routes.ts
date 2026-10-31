@@ -15,6 +15,7 @@ import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePo
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
 import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
+import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
 import { computePerceptualHash } from '../lib/perceptualHash.js'
 import { computeAspectRatio } from '../lib/imageAspectRatio.js'
 
@@ -95,6 +96,7 @@ export async function generationRoutes(app: FastifyInstance) {
   const postRepo = new FirestorePostRepository()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const topicSuggestionRepo = new FirestoreTopicSuggestionRepository()
+  const subscriptionRepo = new FirestoreSubscriptionRepository()
 
   const useCase = new GenerateContentUseCase(
     copyGenerator,
@@ -107,6 +109,7 @@ export async function generationRoutes(app: FastifyInstance) {
     brandProfileRepo,
     topicSuggestionRepo,
     aiUsageRepo,
+    subscriptionRepo,
   )
 
   const editArtifactUseCase = new EditArtifactUseCase(
@@ -116,6 +119,7 @@ export async function generationRoutes(app: FastifyInstance) {
     generationRequestRepo,
     brandProfileRepo,
     aiUsageRepo,
+    subscriptionRepo,
   )
 
   const renderCardUseCase = new RenderCardUseCase(templateRenderer, imageStorage, brandProfileRepo)

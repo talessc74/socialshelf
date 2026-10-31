@@ -31,7 +31,10 @@ describe('AiUsagePage', () => {
   })
 
   it('mostra o resumo mensal e o total em R$ convertido do custo estimado em USD', async () => {
-    const summary: ApiAiUsageSummary = { months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, totalUsd: 0.41 }] }
+    const summary: ApiAiUsageSummary = {
+      months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, audioUsd: 0, videoUsd: 0, totalUsd: 0.41 }],
+      planDailySpendingLimitBrl: null,
+    }
     mockedApi.getAiUsageSummary.mockResolvedValue(summary)
 
     renderPage()
@@ -41,7 +44,7 @@ describe('AiUsagePage', () => {
   })
 
   it('mostra estado vazio quando a marca não tem uso registrado', async () => {
-    mockedApi.getAiUsageSummary.mockResolvedValue({ months: [] })
+    mockedApi.getAiUsageSummary.mockResolvedValue({ months: [], planDailySpendingLimitBrl: null })
 
     renderPage()
 

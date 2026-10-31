@@ -5,6 +5,7 @@ import { GcsImageStorage } from '../infrastructure/storage/GcsImageStorage.js'
 import { FfmpegVideoComposer } from '../infrastructure/video/FfmpegVideoComposer.js'
 import { GoogleTextToSpeechSynthesizer } from '../infrastructure/tts/GoogleTextToSpeechSynthesizer.js'
 import { FirestoreGenerationRequestRepository } from '../infrastructure/firestore/FirestoreGenerationRequestRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 
 const uploadVideoSchema = z.object({
   userId: z.string().min(1),
@@ -30,8 +31,9 @@ export async function videoRoutes(app: FastifyInstance) {
   const generatedBucket = process.env['GCS_BUCKET_GENERATED'] ?? ''
   const videoStorage = new GcsVideoStorage(generatedBucket)
   const imageStorage = new GcsImageStorage(generatedBucket)
-  const videoComposer = new FfmpegVideoComposer()
-  const textToSpeech = new GoogleTextToSpeechSynthesizer()
+  const aiUsageRepo = new FirestoreAiUsageRepository()
+  const videoComposer = new FfmpegVideoComposer(aiUsageRepo)
+  const textToSpeech = new GoogleTextToSpeechSynthesizer(aiUsageRepo)
   const generationRequestRepo = new FirestoreGenerationRequestRepository()
 
   const internalSecret = process.env['INTERNAL_SECRET']
@@ -119,13 +121,19 @@ export async function videoRoutes(app: FastifyInstance) {
       )
 
       const narrationAudioBuffer = parsed.data.narrationText
-        ? await textToSpeech.synthesize(parsed.data.narrationText)
+        ? await textToSpeech.synthesize({
+            text: parsed.data.narrationText,
+            userId: parsed.data.userId,
+            brandId: parsed.data.brandId,
+          })
         : null
 
       const { videoBuffer, durationSeconds } = await videoComposer.composeSlideshow({
         imageBuffers,
         narrationAudioBuffer,
         silentSlideDurationSeconds: SLIDE_DURATION_SECONDS,
+        userId: parsed.data.userId,
+        brandId: parsed.data.brandId,
       })
       const path = await videoStorage.upload(
         parsed.data.userId,

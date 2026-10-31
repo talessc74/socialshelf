@@ -13,7 +13,7 @@ export class GeneratePerformanceSuggestionsUseCase {
   ) {}
 
   async execute(brandId: string, diagnostic: ProfileDiagnostic): Promise<PerformanceSuggestion[]> {
-    const drafts = await this.suggester.suggestPosts(diagnostic)
+    const drafts = await this.suggester.suggestPosts(diagnostic, brandId, brandId)
 
     const suggestions: PerformanceSuggestion[] = drafts.map((draft) => ({
       id: randomUUID(),

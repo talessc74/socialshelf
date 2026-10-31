@@ -27,5 +27,6 @@ export interface BrandProfileExtraction {
 }
 
 export interface BrandDocumentExtractorPort {
-  extractFromDocument(base64: string, mimeType: string): Promise<BrandProfileExtraction>
+  // userId/brandId: atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  extractFromDocument(base64: string, mimeType: string, userId: string, brandId: string): Promise<BrandProfileExtraction>
 }

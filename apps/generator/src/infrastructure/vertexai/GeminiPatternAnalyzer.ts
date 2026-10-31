@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { PatternAnalyzerPort, PostPerformanceSummary, ProfileDiagnostic, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 // Gemini ocasionalmente devolve um campo de lista como uma única string (ex.: "08:00, 14:00")
 // em vez de array — normaliza para array antes de validar, em vez de rejeitar o diagnóstico inteiro.
@@ -36,9 +36,10 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
-  async analyzePatterns(entries: PostPerformanceSummary[]): Promise<ProfileDiagnostic> {
+  async analyzePatterns(entries: PostPerformanceSummary[], userId: string, brandId: string): Promise<ProfileDiagnostic> {
     const ai = createGeminiClient(this.projectId, this.location)
 
     const prompt = this.buildPrompt(entries)
@@ -47,6 +48,7 @@ export class GeminiPatternAnalyzer implements PatternAnalyzerPort {
       contents: prompt,
       config: { responseMimeType: 'application/json', thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(this.usageRecorder, { userId, brandId, operation: 'pattern-analysis', model: this.model }, result.usageMetadata)
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for pattern analysis')
 

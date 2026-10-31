@@ -2,19 +2,41 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import BrandSettingsPage from './page'
-import { api, type ApiBrandProfile } from '../../../lib/api'
+import { api, ApiError, type ApiBrandProfile } from '../../../lib/api'
 import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }),
 }))
 
+// A classe ApiError real fica em api.ts, que importa firebase.ts (side effect real de
+// initializeAuth — quebra em teste sem credenciais reais) — não dá pra usar importOriginal
+// aqui. Reimplementa o mesmo shape; como vi.mock intercepta por caminho de módulo, qualquer
+// outro arquivo (ex.: PlanLimitPaywall.tsx) que importe '../../../lib/api' recebe esta MESMA
+// classe, então `instanceof ApiError` em isPlanLimitError continua funcionando.
 vi.mock('../../../lib/api', () => ({
   api: {
     getBrandProfile: vi.fn(),
     updateBrandProfile: vi.fn(),
     uploadImage: vi.fn(),
     uploadBrandDocument: vi.fn(),
+  },
+  ApiError: class ApiError extends Error {
+    code: string | undefined
+    upgradeTier: string | null | undefined
+    feature: string | undefined
+    accountType: string | undefined
+    constructor(
+      message: string,
+      body: { error?: string; upgradeTier?: string | null; feature?: string; accountType?: string },
+    ) {
+      super(message)
+      this.name = 'ApiError'
+      this.code = body.error
+      this.upgradeTier = body.upgradeTier
+      this.feature = body.feature
+      this.accountType = body.accountType
+    }
   },
 }))
 
@@ -84,6 +106,30 @@ beforeEach(() => {
   vi.clearAllMocks()
   mockedApi.getBrandProfile.mockResolvedValue(makeBrandProfile())
   brandMock.current = { activeBrand: null, setAccountType: vi.fn() }
+})
+
+describe('BrandSettingsPage — paywall de limite de plano', () => {
+  it('mostra o PlanLimitPaywall em vez do erro genérico quando o salvamento esbarra num limite de plano', async () => {
+    mockedApi.updateBrandProfile.mockRejectedValue(
+      new ApiError('autonomy_level_not_in_plan', { error: 'autonomy_level_not_in_plan', upgradeTier: 'pro' }),
+    )
+
+    renderPage()
+    fireEvent.click(await screen.findByText('Salvar marca'))
+
+    expect(await screen.findByText('Fazer upgrade para o Pro')).toBeInTheDocument()
+    expect(screen.queryByText('Erro ao salvar a marca.')).not.toBeInTheDocument()
+  })
+
+  it('mostra o erro genérico quando a falha não é de limite de plano', async () => {
+    mockedApi.updateBrandProfile.mockRejectedValue(new Error('firestore unavailable'))
+
+    renderPage()
+    fireEvent.click(await screen.findByText('Salvar marca'))
+
+    expect(await screen.findByText('firestore unavailable')).toBeInTheDocument()
+    expect(screen.queryByText('Ver planos')).not.toBeInTheDocument()
+  })
 })
 
 describe('BrandSettingsPage - guardrail de posts automáticos por dia', () => {

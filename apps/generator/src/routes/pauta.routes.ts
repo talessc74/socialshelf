@@ -12,6 +12,7 @@ import { GeminiTopicAutonomyMatcher } from '../infrastructure/vertexai/GeminiTop
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
 import { FirestoreAudienceSignalRepository } from '../infrastructure/firestore/FirestoreAudienceSignalRepository.js'
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
+import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 import { getTrustedDomains } from '../lib/factVerification.js'
 
 const bodySchema = z.object({ brandId: z.string().min(1) })
@@ -25,6 +26,10 @@ const classifyAutonomySchema = z.object({
   autoPublishTopics: z.array(z.string()),
   blockedTopics: z.array(z.string()),
   stylePreferences: z.array(z.nativeEnum(TemplateStyle)),
+  // Atribuição de custo de IA (Fase 0 de billing) — o publisher-service (único chamador real,
+  // via GeneratorAutonomyClient) já tem os dois em mãos no tick de autonomia.
+  userId: z.string().min(1),
+  brandId: z.string().min(1),
 })
 
 export async function pautaRoutes(app: FastifyInstance) {
@@ -32,11 +37,12 @@ export async function pautaRoutes(app: FastifyInstance) {
   const geminiLocation = process.env['GEMINI_LOCATION'] ?? 'global'
   const geminiModel = process.env['GEMINI_MODEL'] ?? 'gemini-2.5-flash'
 
+  const aiUsageRepo = new FirestoreAiUsageRepository()
   const newsSource = new GoogleNewsRssReader()
-  const queryPlanner = new GeminiTopicQueryPlanner(projectId, geminiLocation, geminiModel)
-  const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel)
-  const audienceFitScorer = new GeminiAudienceFitScorer(projectId, geminiLocation, geminiModel)
-  const topicAutonomyMatcher = new GeminiTopicAutonomyMatcher(projectId, geminiLocation, geminiModel)
+  const queryPlanner = new GeminiTopicQueryPlanner(projectId, geminiLocation, geminiModel, aiUsageRepo)
+  const translator = new GeminiTranslator(projectId, geminiLocation, geminiModel, aiUsageRepo)
+  const audienceFitScorer = new GeminiAudienceFitScorer(projectId, geminiLocation, geminiModel, aiUsageRepo)
+  const topicAutonomyMatcher = new GeminiTopicAutonomyMatcher(projectId, geminiLocation, geminiModel, aiUsageRepo)
   const thumbnailFetcher = new OgImageThumbnailFetcher()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const audienceSignalRepo = new FirestoreAudienceSignalRepository()

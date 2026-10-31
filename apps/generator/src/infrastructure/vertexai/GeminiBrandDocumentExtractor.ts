@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import type { BrandDocumentExtractorPort, BrandProfileExtraction } from '@socialshelf/domain'
-import { createGeminiClient } from './geminiClient.js'
+import type { BrandDocumentExtractorPort, BrandProfileExtraction, AiUsageRecorderPort } from '@socialshelf/domain'
+import { createGeminiClient, recordGeminiUsage } from './geminiClient.js'
 
 const extractionSchema = z.object({
   business: z
@@ -35,9 +35,10 @@ export class GeminiBrandDocumentExtractor implements BrandDocumentExtractorPort 
     private readonly projectId: string,
     private readonly location: string,
     private readonly model: string,
+    private readonly usageRecorder: AiUsageRecorderPort,
   ) {}
 
-  async extractFromDocument(base64: string, mimeType: string): Promise<BrandProfileExtraction> {
+  async extractFromDocument(base64: string, mimeType: string, userId: string, brandId: string): Promise<BrandProfileExtraction> {
     const ai = createGeminiClient(this.projectId, this.location)
 
     const result = await ai.models.generateContent({
@@ -50,6 +51,11 @@ export class GeminiBrandDocumentExtractor implements BrandDocumentExtractorPort 
       ],
       config: { thinkingConfig: { thinkingBudget: 0 } },
     })
+    recordGeminiUsage(
+      this.usageRecorder,
+      { userId, brandId, operation: 'brand-document-extraction', model: this.model },
+      result.usageMetadata,
+    )
     const text = result.text
     if (!text) throw new Error('Gemini returned no content for brand document extraction')
 

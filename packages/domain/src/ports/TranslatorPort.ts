@@ -2,6 +2,9 @@ export interface TranslateInput {
   texts: string[]
   // Idioma de destino em linguagem natural (ex.: "português do Brasil").
   targetLanguage: string
+  // Atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  userId: string
+  brandId: string
 }
 
 // Tradução fiel de textos curtos (manchetes, resumos de notícia). A implementação deve preservar

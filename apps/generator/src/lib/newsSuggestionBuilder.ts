@@ -22,12 +22,14 @@ export async function translateNewsItems(
   translator: TranslatorPort,
   items: VerifiedNewsItem[],
   targetLanguage: string,
+  userId: string,
+  brandId: string,
 ): Promise<TranslatedText[]> {
   if (items.length === 0) return []
 
   const flat = items.flatMap((item) => [item.title, item.summary])
   try {
-    const out = await translator.translate({ texts: flat, targetLanguage })
+    const out = await translator.translate({ texts: flat, targetLanguage, userId, brandId })
     return items.map((item, i) => ({
       title: out[2 * i] ?? item.title,
       summary: out[2 * i + 1] ?? item.summary,
@@ -46,6 +48,8 @@ export async function scoreAudienceFit(
   business: BrandProfileBusiness,
   recurringThemes: string[],
   items: TranslatedText[],
+  userId: string,
+  brandId: string,
 ): Promise<AudienceFitResult[]> {
   if (items.length === 0) return []
 
@@ -54,6 +58,8 @@ export async function scoreAudienceFit(
       business,
       recurringThemes,
       items: items.map((item) => ({ headline: item.title, summary: item.summary })),
+      userId,
+      brandId,
     })
   } catch {
     return items.map(() => ({ matchedThemes: [], relevanceStrength: 0 }))

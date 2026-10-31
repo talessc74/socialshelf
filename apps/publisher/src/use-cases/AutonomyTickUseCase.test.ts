@@ -10,6 +10,7 @@ import type {
   OAuthConnection,
   PostRepository,
   Post,
+  SubscriptionRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
 import type { GeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
@@ -81,6 +82,7 @@ describe('AutonomyTickUseCase', () => {
   let publishPostUseCase: PublishPostUseCase
   let generatorClient: GeneratorAutonomyClient
   let tickLog: AutonomyTickLogRepository
+  let subscriptionRepo: SubscriptionRepository
   let useCase: AutonomyTickUseCase
 
   beforeEach(() => {
@@ -127,6 +129,26 @@ describe('AutonomyTickUseCase', () => {
       generate: vi.fn().mockResolvedValue({ status: 'ready' }),
     }
     tickLog = { save: vi.fn().mockResolvedValue(undefined), findRecentByBrand: vi.fn().mockResolvedValue([]) }
+    // 'legacy' não impõe teto de autonomia/posts automáticos — preserva o comportamento destes
+    // testes de antes do reclamping por plano existir (_local-adr-policy-0NN, Fase 4c).
+    subscriptionRepo = {
+      findByUserId: vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'legacy',
+        billingCycle: null,
+        status: 'active',
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: false,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+      save: vi.fn().mockResolvedValue(undefined),
+    }
     useCase = new AutonomyTickUseCase(
       brandDiscovery,
       dailyCounter,
@@ -135,6 +157,7 @@ describe('AutonomyTickUseCase', () => {
       publishPostUseCase,
       generatorClient,
       tickLog,
+      subscriptionRepo,
     )
   })
 
@@ -235,7 +258,11 @@ describe('AutonomyTickUseCase', () => {
       expect.objectContaining({ style: TemplateStyle.CENTERED_OVERLAY }),
     )
     expect(generatorClient.classifyAutonomy).toHaveBeenCalledWith(
-      expect.objectContaining({ stylePreferences: [TemplateStyle.BOLD_BOTTOM, TemplateStyle.CENTERED_OVERLAY] }),
+      expect.objectContaining({
+        stylePreferences: [TemplateStyle.BOLD_BOTTOM, TemplateStyle.CENTERED_OVERLAY],
+        userId: 'user-1',
+        brandId: 'brand-1',
+      }),
     )
     // O contador diário passa a valer pros dois níveis de autonomia (não só automático) —
     // agora que o tick roda de hora em hora, sem isso semi-automático geraria um rascunho
@@ -472,6 +499,97 @@ describe('AutonomyTickUseCase', () => {
       const [result] = await useCase.execute()
 
       expect(result).toMatchObject({ action: 'draft-created' })
+    })
+  })
+
+  describe('reclamping pelo plano de assinatura', () => {
+    it('pula com skipped-plan-limit quando o nível de autonomia da marca excede o teto do plano', async () => {
+      brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'starter',
+        billingCycle: 'monthly',
+        status: 'active',
+        stripeCustomerId: 'cus_1',
+        stripeSubscriptionId: 'sub_1',
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: false,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const [result] = await useCase.execute()
+
+      expect(result).toMatchObject({ action: 'skipped-plan-limit' })
+      expect(generatorClient.suggestTopics).not.toHaveBeenCalled()
+    })
+
+    it('clampa maxAutoPostsPerDay pelo teto do plano mesmo com um valor maior salvo na marca', async () => {
+      // Relógio fixo em 12h Brasília (ver beforeEach). Sem clamp, maxAutoPostsPerDay=5 abre
+      // computeDailySlotHours(5) = [9,12,15,18,21] → 2 slots até 12h (9 e 12), então
+      // alreadyToday=1 ainda estaria sob o teto (passaria). Com o plano Pro clampando pra 2,
+      // computeDailySlotHours(2) = [9,21] → só 1 slot até 12h — alreadyToday=1 já bate nesse
+      // teto e o tick pula, provando que é o valor clampado (2) que está em uso, não o 5 salvo
+      // na marca.
+      brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([
+        makeBrand({ autonomyLevel: 'automatic', maxAutoPostsPerDay: 5 }),
+      ])
+      dailyCounter.getCount = vi.fn().mockResolvedValue(1)
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'pro',
+        billingCycle: 'monthly',
+        status: 'active',
+        stripeCustomerId: 'cus_1',
+        stripeSubscriptionId: 'sub_1',
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: false,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const [result] = await useCase.execute()
+
+      expect(result).toMatchObject({ action: 'skipped-not-yet-time' })
+      expect(dailyCounter.incrementIfUnderLimit).not.toHaveBeenCalled()
+    })
+
+    it('libera tudo (sem teto de plano) quando o usuário tem adminOverrideUnlimited', async () => {
+      brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'free',
+        billingCycle: null,
+        status: 'active',
+        stripeCustomerId: null,
+        stripeSubscriptionId: null,
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: true,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const [result] = await useCase.execute()
+
+      expect(result).not.toMatchObject({ action: 'skipped-plan-limit' })
+    })
+
+    it('não bloqueia quando o usuário ainda não tem Subscription persistido (fail-open)', async () => {
+      brandDiscovery.findEligibleBrands = vi.fn().mockResolvedValue([makeBrand({ autonomyLevel: 'automatic' })])
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue(null)
+
+      const [result] = await useCase.execute()
+
+      expect(result).not.toMatchObject({ action: 'skipped-plan-limit' })
     })
   })
 })

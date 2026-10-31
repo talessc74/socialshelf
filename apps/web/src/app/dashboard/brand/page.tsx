@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, type ApiBrandProfile } from '../../../lib/api'
+import { api, ApiError, type ApiBrandProfile } from '../../../lib/api'
 import { ALL_TEMPLATE_STYLES, type AutonomyLevel } from '@socialshelf/domain'
 import { TagListEditor } from '../../../components/TagListEditor'
 import { TopicChecklist } from '../../../components/TopicChecklist'
 import { AutonomyTickHistory } from '../../../components/AutonomyTickHistory'
 import { BrandPostPreview } from '../../../components/BrandPostPreview'
 import { StylePreferenceRanking } from '../../../components/StylePreferenceRanking'
+import { PlanLimitPaywall, isPlanLimitError } from '../../../components/PlanLimitPaywall'
 import { buildBrandMessage } from '../../../lib/selfieBrandCompleteness'
 import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 import { useBrand } from '../../../contexts/BrandContext'
@@ -103,6 +104,7 @@ export default function BrandSettingsPage() {
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [planLimitError, setPlanLimitError] = useState<ApiError | null>(null)
   const [saved, setSaved] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [extractionNotice, setExtractionNotice] = useState('')
@@ -242,6 +244,7 @@ export default function BrandSettingsPage() {
 
   const handleSave = async () => {
     setError('')
+    setPlanLimitError(null)
     setSaved(false)
     setSaving(true)
     try {
@@ -249,7 +252,11 @@ export default function BrandSettingsPage() {
       await queryClient.invalidateQueries({ queryKey: ['brand-profile'] })
       setSaved(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao salvar a marca.')
+      if (isPlanLimitError(err)) {
+        setPlanLimitError(err)
+      } else {
+        setError(err instanceof Error ? err.message : 'Erro ao salvar a marca.')
+      }
     } finally {
       setSaving(false)
     }
@@ -688,6 +695,7 @@ export default function BrandSettingsPage() {
       </section>
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
+      {planLimitError && <PlanLimitPaywall error={planLimitError} />}
       {saved && (
         <p className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-800">Marca salva com sucesso.</p>
       )}

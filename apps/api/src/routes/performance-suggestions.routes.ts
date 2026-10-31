@@ -8,7 +8,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
 
   app.get(
     '/performance-suggestions',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const performanceRes = await fetchInternal(`${publisherUrl}/posts-performance`, {
         method: 'POST',
@@ -73,7 +73,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
 
   app.post(
     '/performance-suggestions/:id/feedback',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const { id } = request.params as { id: string }
       const res = await fetchInternal(`${generatorUrl}/performance-suggestions/${id}/feedback`, {
@@ -97,7 +97,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
 
   app.post(
     '/performance-suggestions/:id/shelve',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const { id } = request.params as { id: string }
       const res = await fetchInternal(`${generatorUrl}/performance-suggestions/${id}/shelve`, {
@@ -121,7 +121,7 @@ export async function performanceSuggestionsRoutes(app: FastifyInstance) {
 
   app.get(
     '/performance-suggestions/shelved',
-    { preHandler: [app.authenticate] },
+    { preHandler: [app.authenticate, app.requirePlanFeature('performanceAnalytics')] },
     async (request, reply) => {
       const res = await fetchInternal(
         `${generatorUrl}/performance-suggestions/shelved?brandId=${encodeURIComponent(request.brandId)}`,

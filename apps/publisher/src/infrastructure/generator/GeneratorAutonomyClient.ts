@@ -26,6 +26,8 @@ export interface GeneratorAutonomyClient {
     autoPublishTopics: string[]
     blockedTopics: string[]
     stylePreferences: TemplateStyle[]
+    userId: string
+    brandId: string
   }): Promise<AutonomyClassification>
   // Reaproveita o mesmo /generate usado pelo fluxo manual — sem foto própria (o pipeline
   // automático não tem de onde tirar uma), então a IA gera a imagem, igual ao caso "sem
@@ -63,6 +65,8 @@ export class HttpGeneratorAutonomyClient implements GeneratorAutonomyClient {
     autoPublishTopics: string[]
     blockedTopics: string[]
     stylePreferences: TemplateStyle[]
+    userId: string
+    brandId: string
   }): Promise<AutonomyClassification> {
     const res = await fetchInternal(`${this.generatorUrl}/pauta/classify-autonomy`, {
       method: 'POST',

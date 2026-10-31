@@ -104,7 +104,7 @@ describe('GET /admin/ai-usage', () => {
         {
           brandId: 'brand-1',
           brandName: 'Eai Jurídico',
-          months: [{ month: '2026-07', textUsd: 0, imageUsd: 0.04, totalUsd: 0.04 }],
+          months: [{ month: '2026-07', textUsd: 0, imageUsd: 0.04, audioUsd: 0, videoUsd: 0, totalUsd: 0.04 }],
         },
       ],
     })

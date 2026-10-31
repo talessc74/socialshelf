@@ -33,6 +33,18 @@ export function estimateGeminiImageCostUsd(imageCount: number): number {
   return imageCount * GEMINI_IMAGE_USD_PER_IMAGE
 }
 
+// Google Cloud Text-to-Speech, camada "Standard" ($4.00/1M caracteres, confirmado em
+// cloud.google.com/text-to-speech/pricing) — GoogleTextToSpeechSynthesizer não pede uma voz
+// pelo nome (só languageCode + ssmlGender), então o Google aloca uma voz padrão da camada
+// Standard, nunca WaveNet/Neural2 (camada nomeada, $16.00/1M caracteres). Se o generator passar
+// a pedir uma voz WaveNet/Neural2/Studio no futuro, este valor subestima o custo real e precisa
+// ser revisado junto com a mudança.
+export const GOOGLE_TTS_USD_PER_MILLION_CHARS = 4.0
+
+export function estimateTtsCostUsd(charCount: number): number {
+  return (charCount / 1_000_000) * GOOGLE_TTS_USD_PER_MILLION_CHARS
+}
+
 // Câmbio fixo e aproximado, atualizado manualmente aqui — não é uma cotação em tempo real.
 // Único lugar da conversão USD→R$: a tela de gastos (apps/web) e a trava de gasto diário
 // (apps/generator) precisam do mesmo número, ou o valor mostrado ao usuário divergiria do que

@@ -7,6 +7,7 @@ import type {
   GenerationRequestRepository,
   BrandProfileRepository,
   AiSpendingGuardPort,
+  SubscriptionRepository,
   BrandProfile,
   GenerationRequest,
 } from '@socialshelf/domain'
@@ -94,8 +95,36 @@ function makeDeps(request: GenerationRequest = makeRequest()) {
   const aiSpendingGuard: AiSpendingGuardPort = {
     sumCostUsdSince: vi.fn().mockResolvedValue(0),
   }
+  // 'legacy' não tem teto de plano (null) — preserva o comportamento destes testes de antes do
+  // reclamping por plano existir (_local-adr-policy-0NN, Fase 4b).
+  const subscriptionRepo: SubscriptionRepository = {
+    findByUserId: vi.fn().mockResolvedValue({
+      userId: 'user-1',
+      tier: 'legacy',
+      billingCycle: null,
+      status: 'active',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      additionalProfessionalBrands: 0,
+      adminOverrideUnlimited: false,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+    save: vi.fn().mockResolvedValue(undefined),
+  }
 
-  return { imageGenerator, templateRenderer, imageStorage, generationRequestRepo, brandProfileRepo, aiSpendingGuard }
+  return {
+    imageGenerator,
+    templateRenderer,
+    imageStorage,
+    generationRequestRepo,
+    brandProfileRepo,
+    aiSpendingGuard,
+    subscriptionRepo,
+  }
 }
 
 describe('EditArtifactUseCase', () => {
@@ -108,6 +137,7 @@ describe('EditArtifactUseCase', () => {
       deps.generationRequestRepo,
       deps.brandProfileRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
@@ -133,6 +163,7 @@ describe('EditArtifactUseCase', () => {
       deps.generationRequestRepo,
       deps.brandProfileRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
@@ -151,6 +182,7 @@ describe('EditArtifactUseCase', () => {
       deps.generationRequestRepo,
       deps.brandProfileRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
@@ -168,6 +200,7 @@ describe('EditArtifactUseCase', () => {
       deps.generationRequestRepo,
       deps.brandProfileRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await expect(

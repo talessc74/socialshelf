@@ -1,10 +1,22 @@
 import { randomUUID } from 'node:crypto'
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { DEFAULT_ACCOUNT_TYPE, Platform } from '@socialshelf/domain'
+import { DEFAULT_ACCOUNT_TYPE, Platform, resolveEffectivePlanLimits } from '@socialshelf/domain'
 import type { Brand } from '@socialshelf/domain'
 import { FirestoreBrandRepository } from '../infrastructure/firestore/FirestoreBrandRepository.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
+import { EnsureSubscriptionUseCase } from '../use-cases/billing/EnsureSubscriptionUseCase.js'
+
+// Sugestão de upgrade pra UI quando um limite de plano é estourado — próximo tier pago na
+// escalada (_local-adr-policy-0NN, Fase 4a). 'agency' não tem próximo passo (já é o maior).
+const UPGRADE_SUGGESTION: Record<string, string | null> = {
+  legacy: null,
+  free: 'starter',
+  starter: 'pro',
+  pro: 'agency',
+  agency: null,
+}
 
 const platformEnum = z.enum([
   Platform.LINKEDIN,
@@ -21,9 +33,11 @@ const createBrandSchema = z.object({
   accountType: accountTypeEnum.default(DEFAULT_ACCOUNT_TYPE),
 })
 
-// accountType é editável aqui por ora — o switch pessoal/profissional do site. O ADR-030 o
-// previa imutável (proteção contra gaming de cobrança); como billing ainda não existe, o switch
-// vale para o piloto e a imutabilidade volta quando o billing for implementado (emenda pendente).
+// accountType segue editável aqui — o switch pessoal/profissional do site, previsto como
+// imutável pelo ADR-030 original. Agora que o billing existe (_local-adr-policy-0NN), a troca
+// continua permitida mas limitada ao accountType que o plano atual do usuário cobre — trocar
+// pra um tipo fora do plano exige upgrade primeiro, o que já resolve o motivo original da
+// imutabilidade (declarar 'personal' pra pagar menos enquanto opera como 'professional').
 const updateBrandSchema = z.object({
   name: z.string().min(1).optional(),
   slug: z.string().min(1).optional(),
@@ -38,6 +52,8 @@ function toPublicBrand(brand: Brand) {
 export async function brandsRoutes(app: FastifyInstance) {
   const brandRepo = new FirestoreBrandRepository()
   const brandProfileRepo = new FirestoreBrandProfileRepository()
+  const subscriptionRepo = new FirestoreSubscriptionRepository()
+  const ensureSubscription = new EnsureSubscriptionUseCase(subscriptionRepo, brandRepo)
 
   // Cobre todo usuário existente sem migração em lote: como brandId === userId
   // hoje, dados já existentes (conexões, posts, brand profiles) já estão no
@@ -81,6 +97,30 @@ export async function brandsRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
       }
 
+      const subscription = await ensureSubscription.execute(request.userId, request.userEmail)
+      const limits = resolveEffectivePlanLimits(subscription)
+
+      if (!limits.allowedAccountTypes.includes(parsed.data.accountType)) {
+        return reply.status(403).send({
+          error: 'account_type_not_in_plan',
+          accountType: parsed.data.accountType,
+          upgradeTier: UPGRADE_SUGGESTION[subscription.tier] ?? null,
+        })
+      }
+
+      const existingBrands = await brandRepo.findByUserId(request.userId)
+      const includedPlusAdditional =
+        limits.includedBrands === null
+          ? Number.POSITIVE_INFINITY
+          : limits.includedBrands + subscription.additionalProfessionalBrands
+      if (existingBrands.length >= includedPlusAdditional) {
+        return reply.status(409).send({
+          error: 'brand_limit_reached',
+          accountType: parsed.data.accountType,
+          upgradeTier: UPGRADE_SUGGESTION[subscription.tier] ?? null,
+        })
+      }
+
       const now = new Date()
       const brand: Brand = {
         id: randomUUID(),
@@ -109,6 +149,18 @@ export async function brandsRoutes(app: FastifyInstance) {
 
       const existing = await brandRepo.findById(request.userId, id)
       if (!existing) return reply.status(404).send({ error: 'Brand not found' })
+
+      if (parsed.data.accountType !== undefined) {
+        const subscription = await ensureSubscription.execute(request.userId, request.userEmail)
+        const limits = resolveEffectivePlanLimits(subscription)
+        if (!limits.allowedAccountTypes.includes(parsed.data.accountType)) {
+          return reply.status(403).send({
+            error: 'account_type_not_in_plan',
+            accountType: parsed.data.accountType,
+            upgradeTier: UPGRADE_SUGGESTION[subscription.tier] ?? null,
+          })
+        }
+      }
 
       const updated: Brand = {
         ...existing,

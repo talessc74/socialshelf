@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { writeFileSync } from 'node:fs'
 import { promisify } from 'node:util'
+import type { AiUsageRecorderPort } from '@socialshelf/domain'
+
+function makeUsageRecorder(): AiUsageRecorderPort {
+  return { record: vi.fn().mockResolvedValue(undefined) }
+}
 
 let narrationDurationResponse = '9.0\n'
 
@@ -50,18 +55,49 @@ describe('FfmpegVideoComposer', () => {
   })
 
   it('throws when given no images', async () => {
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await expect(
-      composer.composeSlideshow({ imageBuffers: [], narrationAudioBuffer: null, silentSlideDurationSeconds: 3 }),
+      composer.composeSlideshow({
+        imageBuffers: [],
+        narrationAudioBuffer: null,
+        silentSlideDurationSeconds: 3,
+        userId: 'user-1',
+        brandId: 'brand-1',
+      }),
     ).rejects.toThrow('composeSlideshow requires at least one image')
   })
 
+  it('records an observability-only AI usage event (estimatedCostUsd: 0) after a successful composition', async () => {
+    const usageRecorder = makeUsageRecorder()
+    const composer = new FfmpegVideoComposer(usageRecorder)
+
+    await composer.composeSlideshow({
+      imageBuffers: [Buffer.from('img-1')],
+      narrationAudioBuffer: null,
+      silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
+    })
+
+    expect(usageRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        brandId: 'brand-1',
+        category: 'video-composition',
+        operation: 'video-composition',
+        estimatedCostUsd: 0,
+      }),
+    )
+  })
+
   it('runs one ffmpeg pass per image plus one concat pass, and returns the composed buffer', async () => {
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     const result = await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2')],
       narrationAudioBuffer: null,
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     // 2 images -> 2 per-slide ffmpeg passes + 1 concat pass = 3 calls
@@ -71,11 +107,13 @@ describe('FfmpegVideoComposer', () => {
   })
 
   it('builds the zoompan filter using silentSlideDurationSeconds when there is no narration', async () => {
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img')],
       narrationAudioBuffer: null,
       silentSlideDurationSeconds: 5,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     const [, firstCallArgs] = execFileMock.mock.calls[0]!
@@ -84,11 +122,13 @@ describe('FfmpegVideoComposer', () => {
   })
 
   it('concatenates segments and mixes in a silent audio track when there is no narration', async () => {
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2')],
       narrationAudioBuffer: null,
       silentSlideDurationSeconds: 2,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     const concatArgs = execFileMock.mock.calls[2]![1] as string[]
@@ -100,11 +140,13 @@ describe('FfmpegVideoComposer', () => {
 
   it('derives slide duration from the narration audio length instead of silentSlideDurationSeconds', async () => {
     narrationDurationResponse = '10.0\n'
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     const result = await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2')],
       narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     // calls[0] is the ffprobe call for narration duration; calls[1] is the first slide's ffmpeg pass.
@@ -117,11 +159,13 @@ describe('FfmpegVideoComposer', () => {
 
   it('uses the narration file (not anullsrc) as the audio input when narrating', async () => {
     narrationDurationResponse = '6.0\n'
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1')],
       narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     const concatCallArgs = execFileMock.mock.calls[execFileMock.mock.calls.length - 1]![1] as string[]
@@ -131,11 +175,13 @@ describe('FfmpegVideoComposer', () => {
 
   it('enforces a minimum slide duration when narration is too short for the image count', async () => {
     narrationDurationResponse = '1.0\n'
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2'), Buffer.from('img-3')],
       narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     // calls[0] is the ffprobe call; calls[1] is the first slide's ffmpeg pass.
@@ -147,11 +193,13 @@ describe('FfmpegVideoComposer', () => {
 
   it('caps slide duration when narration is long relative to the image count', async () => {
     narrationDurationResponse = '90.0\n'
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     const result = await composer.composeSlideshow({
       imageBuffers: [Buffer.from('img-1'), Buffer.from('img-2')],
       narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
       silentSlideDurationSeconds: 3,
+      userId: 'user-1',
+      brandId: 'brand-1',
     })
 
     // 90s / 2 images = 45s, above the 8s cap -> clamped to 8s * 25fps = 200 frames
@@ -164,12 +212,14 @@ describe('FfmpegVideoComposer', () => {
 
   it('throws when ffprobe returns an unparseable duration', async () => {
     narrationDurationResponse = 'not-a-number\n'
-    const composer = new FfmpegVideoComposer()
+    const composer = new FfmpegVideoComposer(makeUsageRecorder())
     await expect(
       composer.composeSlideshow({
         imageBuffers: [Buffer.from('img-1')],
         narrationAudioBuffer: Buffer.from('fake-mp3-bytes'),
         silentSlideDurationSeconds: 3,
+        userId: 'user-1',
+        brandId: 'brand-1',
       }),
     ).rejects.toThrow('ffprobe returned an invalid duration')
   })

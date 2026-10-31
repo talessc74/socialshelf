@@ -18,6 +18,47 @@ vi.mock('../infrastructure/firestore/FirestoreBrandProfileRepository.js', () => 
   })),
 }))
 
+const { mockFindSubscription } = vi.hoisted(() => ({ mockFindSubscription: vi.fn() }))
+
+function makeSubscription(overrides: Record<string, unknown> = {}) {
+  return {
+    userId: 'user-test-123',
+    tier: 'legacy',
+    billingCycle: null,
+    status: 'active',
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    additionalProfessionalBrands: 0,
+    adminOverrideUnlimited: false,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
+// A rota agora valida autonomyLevel/dailyAiSpendingLimitBrl contra o plano antes de salvar
+// (_local-adr-policy-0NN, Fase 4b/4c) — 'legacy' libera qualquer valor, preservando o
+// comportamento destes testes de antes da validação existir.
+vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => ({
+  FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: mockFindSubscription,
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
+vi.mock('../infrastructure/firestore/FirestoreBrandRepository.js', () => ({
+  FirestoreBrandRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: vi.fn().mockResolvedValue([]),
+    findById: vi.fn(),
+    save: vi.fn(),
+    delete: vi.fn(),
+    findAll: vi.fn(),
+  })),
+}))
+
 vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
   FirestorePostRepository: vi.fn().mockImplementation(() => ({
     save: vi.fn().mockResolvedValue(undefined),
@@ -86,6 +127,7 @@ describe('Brand profile routes', () => {
   beforeEach(() => {
     findLatestByBrand.mockReset().mockResolvedValue(null)
     save.mockReset().mockResolvedValue(undefined)
+    mockFindSubscription.mockReset().mockResolvedValue(makeSubscription())
   })
 
   describe('GET /brand-profile', () => {
@@ -218,6 +260,49 @@ describe('Brand profile routes', () => {
       })
 
       expect(response.statusCode).toBe(400)
+    })
+
+    it('returns 403 autonomy_level_not_in_plan ao salvar automatic num plano Starter (só até semi-automatic)', async () => {
+      mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'starter' }))
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { ...validSections, operation: { ...validSections.operation, autonomyLevel: 'automatic' } },
+      })
+
+      expect(response.statusCode).toBe(403)
+      expect(response.json()).toMatchObject({ error: 'autonomy_level_not_in_plan', upgradeTier: 'pro' })
+      expect(save).not.toHaveBeenCalled()
+    })
+
+    it('returns 403 spending_limit_above_plan ao pedir um teto acima do plano Grátis (R$5/dia)', async () => {
+      mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'free' }))
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { ...validSections, operation: { ...validSections.operation, dailyAiSpendingLimitBrl: 50 } },
+      })
+
+      expect(response.statusCode).toBe(403)
+      expect(response.json()).toMatchObject({ error: 'spending_limit_above_plan', upgradeTier: 'starter' })
+      expect(save).not.toHaveBeenCalled()
+    })
+
+    it('aceita um teto dentro do limite do plano', async () => {
+      mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'free' }))
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/brand-profile',
+        headers: { authorization: 'Bearer valid-token' },
+        payload: { ...validSections, operation: { ...validSections.operation, dailyAiSpendingLimitBrl: 5 } },
+      })
+
+      expect(response.statusCode).toBe(201)
     })
   })
 })

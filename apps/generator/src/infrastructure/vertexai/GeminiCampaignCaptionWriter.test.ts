@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type { AiUsageRecorderPort } from '@socialshelf/domain'
 
 const generateContent = vi.fn()
 
@@ -14,6 +15,10 @@ function respondWith(text: string) {
   generateContent.mockResolvedValueOnce({ text })
 }
 
+function makeUsageRecorder(): AiUsageRecorderPort {
+  return { record: vi.fn().mockResolvedValue(undefined) }
+}
+
 const baseInput = {
   coverImage: { base64: 'ZmFrZS1pbWFnZQ==', mimeType: 'image/jpeg' },
   campaignName: 'Viagem à Europa',
@@ -25,6 +30,8 @@ const baseInput = {
   photoTakenAt: null,
   photoHasLocation: false,
   photoCount: 1,
+  userId: 'user-1',
+  brandId: 'brand-1',
 }
 
 function promptTextOf(callIndex = 0): string {
@@ -40,7 +47,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('sends the cover image as inlineData alongside the text prompt', async () => {
     respondWith(JSON.stringify({ caption: 'Um pôr do sol inesquecível em Paris' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)
 
     const call = generateContent.mock.calls[0]![0] as {
       contents: Array<{ parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> }>
@@ -55,15 +62,32 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('returns the caption parsed from the model response', async () => {
     respondWith(JSON.stringify({ caption: 'Um pôr do sol inesquecível em Paris' }))
 
-    const result = await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)
+    const result = await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)
 
     expect(result).toEqual({ caption: 'Um pôr do sol inesquecível em Paris' })
+  })
+
+  it('records AI usage with the campaign-caption operation and the caller userId/brandId', async () => {
+    respondWith(JSON.stringify({ caption: 'x' }))
+    const usageRecorder = makeUsageRecorder()
+
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', usageRecorder).write(baseInput)
+
+    expect(usageRecorder.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        brandId: 'brand-1',
+        category: 'text-generation',
+        operation: 'campaign-caption',
+        model: 'gemini-2.5-flash',
+      }),
+    )
   })
 
   it('throws when the model returns invalid JSON', async () => {
     respondWith('not json at all')
 
-    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)).rejects.toThrow(
+    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)).rejects.toThrow(
       'invalid JSON for campaign caption',
     )
   })
@@ -71,7 +95,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('throws when the model response is missing the caption field', async () => {
     respondWith(JSON.stringify({ notCaption: 'x' }))
 
-    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)).rejects.toThrow(
+    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)).rejects.toThrow(
       'malformed campaign caption payload',
     )
   })
@@ -79,7 +103,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('throws when the model returns an empty caption', async () => {
     respondWith(JSON.stringify({ caption: '   ' }))
 
-    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)).rejects.toThrow(
+    await expect(new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)).rejects.toThrow(
       'malformed campaign caption payload',
     )
   })
@@ -87,7 +111,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('includes brand voice and business in the prompt when provided', async () => {
     respondWith(JSON.stringify({ caption: 'x' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write({
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write({
       ...baseInput,
       brandBusiness: { name: 'Rádio Kactus', segment: 'Media', description: '' },
       brandVoice: { tone: 'caloroso e direto', allowedVocabulary: ['galera'], prohibitedVocabulary: ['formal demais'] },
@@ -102,7 +126,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('writes a first-person, no-CTA prompt for a personal account and never asks to cite a brand name', async () => {
     respondWith(JSON.stringify({ caption: 'Cheguei!' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write({
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write({
       ...baseInput,
       accountType: 'personal',
       brandBusiness: { name: 'Tales', segment: 'Pessoal', description: '' },
@@ -120,7 +144,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('keeps citing the brand name for a professional account', async () => {
     respondWith(JSON.stringify({ caption: 'x' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write({
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write({
       ...baseInput,
       accountType: 'professional',
       brandBusiness: { name: 'Rádio Kactus', segment: 'Media', description: '' },
@@ -132,7 +156,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('feeds the photo date, location signal and carousel size into the prompt', async () => {
     respondWith(JSON.stringify({ caption: 'x' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write({
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write({
       ...baseInput,
       photoTakenAt: new Date('2026-07-12T15:00:00Z'),
       photoHasLocation: true,
@@ -148,7 +172,7 @@ describe('GeminiCampaignCaptionWriter', () => {
   it('omits the metadata section when the photo has no EXIF and is a single image', async () => {
     respondWith(JSON.stringify({ caption: 'x' }))
 
-    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash').write(baseInput)
+    await new GeminiCampaignCaptionWriter('p', 'global', 'gemini-2.5-flash', makeUsageRecorder()).write(baseInput)
 
     expect(promptTextOf()).not.toContain('Informações reais desta foto')
   })

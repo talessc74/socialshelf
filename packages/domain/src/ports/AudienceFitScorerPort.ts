@@ -9,6 +9,9 @@ export interface AudienceFitScorerInput {
   business: BrandProfileBusiness
   recurringThemes: string[]
   items: AudienceFitScorerItem[]
+  // Atribuição de custo de IA (Fase 0 de billing) — quem pagou por esta chamada.
+  userId: string
+  brandId: string
 }
 
 export interface AudienceFitResult {

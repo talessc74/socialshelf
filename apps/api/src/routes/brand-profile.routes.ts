@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { TemplateStyle, ALL_TEMPLATE_STYLES } from '@socialshelf/domain'
+import { TemplateStyle, ALL_TEMPLATE_STYLES, resolveEffectivePlanLimits, isAutonomyLevelWithinPlan } from '@socialshelf/domain'
 import { CreateBrandProfileVersionUseCase } from '../use-cases/brand-profile/CreateBrandProfileVersionUseCase.js'
 import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/FirestoreBrandProfileRepository.js'
+import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
+import { FirestoreBrandRepository } from '../infrastructure/firestore/FirestoreBrandRepository.js'
+import { EnsureSubscriptionUseCase } from '../use-cases/billing/EnsureSubscriptionUseCase.js'
 import { fetchInternal } from '../lib/serviceAuth.js'
 
 const autonomyLevelEnum = z.enum(['manual', 'semi-automatic', 'automatic'])
@@ -61,6 +64,9 @@ const brandProfileSchema = z.object({
 export async function brandProfileRoutes(app: FastifyInstance) {
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const createBrandProfileVersion = new CreateBrandProfileVersionUseCase(brandProfileRepo)
+  const subscriptionRepo = new FirestoreSubscriptionRepository()
+  const brandRepo = new FirestoreBrandRepository()
+  const ensureSubscription = new EnsureSubscriptionUseCase(subscriptionRepo, brandRepo)
   const generatorUrl = process.env['GENERATOR_URL'] ?? 'http://localhost:3003'
   const internalSecret = process.env['INTERNAL_SECRET'] ?? ''
 
@@ -83,6 +89,31 @@ export async function brandProfileRoutes(app: FastifyInstance) {
           error: 'Invalid request body',
           details: parsed.error.flatten(),
         })
+      }
+
+      // Erro explícito em vez de clamp silencioso — o usuário precisa saber que o valor pedido
+      // excede o plano atual, não achar que salvou um teto/nível que na prática nunca vale
+      // (_local-adr-policy-0NN, Fase 4b/4c — reclampado de novo no momento do uso, mas a UI
+      // deve poder oferecer upgrade aqui, não só confundir depois).
+      const subscription = await ensureSubscription.execute(request.userId, request.userEmail)
+      const limits = resolveEffectivePlanLimits(subscription)
+      const upgradeTier = { legacy: null, free: 'starter', starter: 'pro', pro: 'agency', agency: null }[subscription.tier]
+
+      if (!isAutonomyLevelWithinPlan(parsed.data.operation.autonomyLevel, limits.maxAutonomyLevel)) {
+        return reply.status(403).send({
+          error: 'autonomy_level_not_in_plan',
+          autonomyLevel: parsed.data.operation.autonomyLevel,
+          upgradeTier,
+        })
+      }
+
+      const requestedLimit = parsed.data.operation.dailyAiSpendingLimitBrl
+      if (
+        requestedLimit !== null &&
+        limits.defaultDailyAiSpendingLimitBrl !== null &&
+        requestedLimit > limits.defaultDailyAiSpendingLimitBrl
+      ) {
+        return reply.status(403).send({ error: 'spending_limit_above_plan', upgradeTier })
       }
 
       const profile = await createBrandProfileVersion.execute({
@@ -118,6 +149,8 @@ export async function brandProfileRoutes(app: FastifyInstance) {
         body: JSON.stringify({
           base64: buffer.toString('base64'),
           mimeType: file.mimetype,
+          userId: request.userId,
+          brandId: request.brandId,
         }),
       })
 

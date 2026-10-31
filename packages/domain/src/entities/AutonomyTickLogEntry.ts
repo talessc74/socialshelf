@@ -8,6 +8,10 @@ export type AutonomyTickAction =
   | 'skipped-blocked'
   | 'skipped-not-eligible'
   | 'skipped-daily-limit'
+  // Nível de autonomia (ou maxAutoPostsPerDay) da marca excede o teto do plano de assinatura
+  // do usuário — ex.: marca configurada como 'automatic' mas o plano caiu pra 'starter' num
+  // downgrade. Reclampado a cada tick, não só ao salvar a marca (_local-adr-policy-0NN, Fase 4c).
+  | 'skipped-plan-limit'
   | 'draft-created'
   | 'published'
   // Publicou em pelo menos uma rede, mas falhou em outra(s) — o motivo de cada falha vai no

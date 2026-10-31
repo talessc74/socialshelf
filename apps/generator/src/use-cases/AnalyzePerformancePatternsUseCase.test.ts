@@ -53,7 +53,7 @@ describe('AnalyzePerformancePatternsUseCase', () => {
     const result = await useCase.execute('brand-1', [makeEntry()])
 
     expect(result).toEqual(diagnostic)
-    expect(patternAnalyzer.analyzePatterns).toHaveBeenCalledWith([makeEntry()])
+    expect(patternAnalyzer.analyzePatterns).toHaveBeenCalledWith([makeEntry()], 'brand-1', 'brand-1')
   })
 
   it('persiste o diagnóstico com a marca, a contagem de posts e o horário do cálculo', async () => {

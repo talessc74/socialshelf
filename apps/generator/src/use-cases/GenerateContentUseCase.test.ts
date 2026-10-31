@@ -12,6 +12,7 @@ import type {
   BrandProfileRepository,
   TopicSuggestionRepository,
   AiSpendingGuardPort,
+  SubscriptionRepository,
   BrandProfile,
   TopicSuggestion,
 } from '@socialshelf/domain'
@@ -118,6 +119,27 @@ function makeDeps(
     sumCostUsdSince: vi.fn().mockResolvedValue(0),
   }
 
+  // 'legacy' não tem teto de plano (null) — preserva o comportamento destes testes de antes do
+  // reclamping por plano existir (_local-adr-policy-0NN, Fase 4b).
+  const subscriptionRepo: SubscriptionRepository = {
+    findByUserId: vi.fn().mockResolvedValue({
+      userId: 'user-1',
+      tier: 'legacy',
+      billingCycle: null,
+      status: 'active',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      additionalProfessionalBrands: 0,
+      adminOverrideUnlimited: false,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+    save: vi.fn().mockResolvedValue(undefined),
+  }
+
   return {
     copyGenerator,
     artDirector,
@@ -129,6 +151,7 @@ function makeDeps(
     brandProfileRepo,
     topicSuggestionRepo,
     aiSpendingGuard,
+    subscriptionRepo,
   }
 }
 
@@ -162,6 +185,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -188,6 +212,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -215,6 +240,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute({
@@ -240,6 +266,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -265,6 +292,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -288,6 +316,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -312,6 +341,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -349,6 +379,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute({ ...baseInput(), topicSuggestionId: 'suggestion-1' })
@@ -373,6 +404,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute(baseInput())
@@ -395,6 +427,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute(baseInput())
@@ -425,6 +458,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute({ ...baseInput(), targetPlatforms: [Platform.INSTAGRAM] })
@@ -451,6 +485,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute(baseInput())
@@ -473,6 +508,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute(baseInput())
@@ -508,6 +544,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -531,6 +568,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute({ ...baseInput(), imageStoragePaths: ['brand-1/uploads/foto.png'] })
@@ -552,6 +590,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute({ ...baseInput(), includeBodyText: true })
@@ -580,6 +619,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     await useCase.execute({ ...baseInput(), includeBodyText: false })
@@ -611,6 +651,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
@@ -620,6 +661,52 @@ describe('GenerateContentUseCase', () => {
     expect(deps.copyGenerator.generateCopy).not.toHaveBeenCalled()
     expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
     expect(deps.postRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('reclampa o limite configurado na marca pelo teto do plano — recusa mesmo com margem no limite da marca', async () => {
+    const deps = makeDeps()
+    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...mockBrandProfile,
+      // Marca configurou um teto generoso (R$100)...
+      operation: { ...mockBrandProfile.operation, dailyAiSpendingLimitBrl: 100 },
+    })
+    // ...mas o plano (free) só cobre R$5/dia — downgrade de plano precisa valer na hora, sem
+    // o usuário precisar resalvar a marca (_local-adr-policy-0NN, Fase 4b).
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue({
+      userId: 'user-1',
+      tier: 'free',
+      billingCycle: null,
+      status: 'active',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      additionalProfessionalBrands: 0,
+      adminOverrideUnlimited: false,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    // 2 USD * 5.4 = R$10,80 — acima do teto do plano (R$5), mas bem abaixo do teto da marca (R$100).
+    ;(deps.aiSpendingGuard.sumCostUsdSince as ReturnType<typeof vi.fn>).mockResolvedValue(2)
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+      deps.aiSpendingGuard,
+      deps.subscriptionRepo,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.status).toBe('failed')
+    expect(result.error).toBe(AI_SPENDING_LIMIT_REACHED_MESSAGE)
   })
 
   it('gera normalmente sem consultar o gasto quando a marca não configurou limite diário', async () => {
@@ -635,6 +722,7 @@ describe('GenerateContentUseCase', () => {
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
       deps.aiSpendingGuard,
+      deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())

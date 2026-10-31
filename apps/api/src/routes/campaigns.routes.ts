@@ -115,24 +115,28 @@ export async function campaignsRoutes(app: FastifyInstance) {
   )
   const discardCampaign = new DiscardCampaignUseCase(campaignRepo, itemRepo, photoRepo, generatorUrl, internalSecret)
 
-  app.post('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
-    const parsed = createCampaignSchema.safeParse(request.body)
-    if (!parsed.success) {
-      return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
-    }
+  app.post(
+    '/campaigns',
+    { preHandler: [app.authenticate, app.requirePlanFeature('photoCampaigns')] },
+    async (request, reply) => {
+      const parsed = createCampaignSchema.safeParse(request.body)
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'Invalid request body', details: parsed.error.flatten() })
+      }
 
-    try {
-      const campaign = await createCampaign.execute({
-        userId: request.userId,
-        brandId: request.brandId,
-        ...parsed.data,
-      })
-      return reply.status(201).send({ campaign })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      return reply.status(422).send({ error: message })
-    }
-  })
+      try {
+        const campaign = await createCampaign.execute({
+          userId: request.userId,
+          brandId: request.brandId,
+          ...parsed.data,
+        })
+        return reply.status(201).send({ campaign })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        return reply.status(422).send({ error: message })
+      }
+    },
+  )
 
   app.get('/campaigns', { preHandler: [app.authenticate] }, async (request, reply) => {
     try {

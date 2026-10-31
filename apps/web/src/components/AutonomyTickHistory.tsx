@@ -40,6 +40,10 @@ const ACTION_INFO: Record<ApiAutonomyTickAction, { label: string; className: str
     label: 'Pulado — limite diário de posts automáticos já atingido',
     className: 'bg-card-2 text-muted',
   },
+  'skipped-plan-limit': {
+    label: 'Pulado — nível de autonomia acima do que o plano atual permite',
+    className: 'bg-amber-50 text-amber-700',
+  },
   error: { label: 'Erro ao gerar ou publicar', className: 'bg-red-50 text-red-700' },
 }
 

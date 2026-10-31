@@ -167,6 +167,30 @@ vi.mock('../infrastructure/firestore/FirestoreAiUsageRepository.js', () => ({
   })),
 }))
 
+// GenerateContentUseCase/EditArtifactUseCase agora reclampam o teto de gasto pelo plano
+// (_local-adr-policy-0NN, Fase 4b) — 'legacy' não tem teto, preservando o comportamento
+// destes testes de antes do reclamping existir.
+vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => ({
+  FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: vi.fn().mockResolvedValue({
+      userId: 'brand-1',
+      tier: 'legacy',
+      billingCycle: null,
+      status: 'active',
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      additionalProfessionalBrands: 0,
+      adminOverrideUnlimited: false,
+      trialEndsAt: null,
+      currentPeriodEnd: null,
+      cancelAtPeriodEnd: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
 describe('POST /generate', () => {
   let app: FastifyInstance
 
