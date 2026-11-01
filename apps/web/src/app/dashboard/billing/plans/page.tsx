@@ -15,8 +15,9 @@ interface PlanDefinition {
   additionalBrandMonthly: number | null
   features: string[]
   // Recursos que existem tecnicamente (OAuth, pipeline de publicação) mas não são vendidos
-  // ainda — hoje só o vídeo para TikTok, travado por falta de CNPJ (mesmo bloqueio do App
-  // Review da Meta, _local-bdr-policy-012). Sem data prometida.
+  // ainda — TikTok e X (Twitter) exigem CNPJ pra validar a conexão, e o usuário não vai abrir
+  // CNPJ agora (mesma natureza do bloqueio do App Review da Meta, _local-bdr-policy-012). Sem
+  // data prometida, vale pra todo plano — não é um recurso pago, é disponibilidade real.
   comingSoon?: string[]
 }
 
@@ -37,10 +38,11 @@ const PLANS: PlanDefinition[] = [
     features: [
       '1 marca pessoal',
       'Geração manual',
-      'Todas as 5 redes sociais',
+      'LinkedIn, Instagram e Facebook',
       'Histórico de 7 dias',
       '30 créditos de IA/mês',
     ],
+    comingSoon: ['TikTok e X (Twitter)'],
   },
   {
     tier: 'starter',
@@ -52,11 +54,12 @@ const PLANS: PlanDefinition[] = [
     features: [
       '1 marca pessoal',
       'Autonomia manual ou semi-automática',
-      'Todas as 5 redes sociais',
+      'LinkedIn, Instagram e Facebook',
       'Histórico de 30 dias',
       '100 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
+    comingSoon: ['TikTok e X (Twitter)'],
   },
   {
     tier: 'pro',
@@ -68,13 +71,14 @@ const PLANS: PlanDefinition[] = [
     features: [
       '1 marca profissional incluída',
       'Autonomia automática (até 2 posts/dia)',
+      'LinkedIn, Instagram e Facebook',
       'Campanhas de fotos',
       'Dashboard de performance',
       'Histórico de 180 dias',
       '200 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
-    comingSoon: ['Vídeo para TikTok'],
+    comingSoon: ['TikTok e X (Twitter)'],
   },
   {
     tier: 'agency',
@@ -86,13 +90,14 @@ const PLANS: PlanDefinition[] = [
     features: [
       '3 marcas profissionais incluídas',
       'Autonomia automática (até 3 posts/dia/marca)',
+      'LinkedIn, Instagram e Facebook',
       'Campanhas de fotos',
       'Dashboard de performance',
       'Histórico de 1 ano',
       '600 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
-    comingSoon: ['Vídeo para TikTok'],
+    comingSoon: ['TikTok e X (Twitter)'],
   },
 ]
 
