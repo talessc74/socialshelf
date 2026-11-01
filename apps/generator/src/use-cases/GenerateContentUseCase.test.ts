@@ -154,9 +154,18 @@ function makeDeps(
   // destes testes de antes do reclamping por plano existir (_local-adr-policy-0NN). findByUserId
   // devolvendo null simula "nunca gerou nada" — resolveEffectiveCreditState trata como saldo
   // cheio do período atual.
+  const creditFindByUserId = vi.fn().mockResolvedValue(null)
   const creditBalanceRepo: CreditBalanceRepository = {
-    findByUserId: vi.fn().mockResolvedValue(null),
+    findByUserId: creditFindByUserId,
     save: vi.fn().mockResolvedValue(undefined),
+    // Mock funcional (não só um stub): aplica `mutate` de verdade em cima do que
+    // findByUserId resolve no momento, pra testar o resultado real da dedução, igual a
+    // implementação de verdade faria dentro da transação do Firestore.
+    atomicUpdate: vi.fn(async (userId: string, mutate: (current: CreditBalance | null) => CreditBalance) => {
+      const current = await creditFindByUserId(userId)
+      return mutate(current)
+    }),
+    applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
   }
 
   const subscriptionRepo: SubscriptionRepository = {
@@ -736,8 +745,8 @@ describe('GenerateContentUseCase', () => {
     const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('ready')
-    expect(deps.creditBalanceRepo.save).toHaveBeenCalledTimes(1)
-    const saved = (deps.creditBalanceRepo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(deps.creditBalanceRepo.atomicUpdate).toHaveBeenCalledTimes(1)
+    const saved = await (deps.creditBalanceRepo.atomicUpdate as ReturnType<typeof vi.fn>).mock.results[0]!.value
     expect(saved.planCreditsUsed).toBe(13)
   })
 
@@ -761,7 +770,7 @@ describe('GenerateContentUseCase', () => {
 
     await useCase.execute({ ...baseInput(), imageStoragePaths: ['brand-1/uploads/foto.png'] })
 
-    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
   })
 
   it('não bloqueia nem desconta saldo quando a conta é ilimitada (legacy/admin)', async () => {
@@ -783,6 +792,6 @@ describe('GenerateContentUseCase', () => {
     const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('ready')
-    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
   })
 })

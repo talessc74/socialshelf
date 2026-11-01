@@ -1,6 +1,6 @@
 import type Stripe from 'stripe'
 import type { Subscription, SubscriptionRepository, SubscriptionStatus, CreditBalanceRepository } from '@socialshelf/domain'
-import { resolveEffectivePlanLimits, applyCreditPurchase } from '@socialshelf/domain'
+import { resolveEffectivePlanLimits } from '@socialshelf/domain'
 import { resolveTierAndCycleFromPriceId } from '../../infrastructure/stripe/priceMapping.js'
 
 // Mapeia o status do Stripe pro nosso enum, mais restrito. 'unpaid'/'paused' viram 'past_due':
@@ -75,8 +75,10 @@ export class HandleStripeWebhookUseCase {
 
     const subscription = await this.subscriptionRepo.findByUserId(userId)
     const monthlyCreditsIncluded = subscription ? resolveEffectivePlanLimits(subscription).monthlyCreditsIncluded : null
-    const balance = await this.creditBalanceRepo.findByUserId(userId)
-    await this.creditBalanceRepo.save(applyCreditPurchase(balance, userId, monthlyCreditsIncluded, creditAmount, new Date()))
+    // applyPurchaseOnce, não um read+save solto: o Stripe pode reenviar o mesmo webhook (retry
+    // em timeout/5xx é esperado), e sem dedup por session.id o usuário seria creditado duas
+    // vezes pela mesma compra (_local-adr-policy-044).
+    await this.creditBalanceRepo.applyPurchaseOnce(userId, session.id, monthlyCreditsIncluded, creditAmount, new Date())
   }
 
   private async applySubscriptionUpdate(stripeSubscription: Stripe.Subscription): Promise<void> {

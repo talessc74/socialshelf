@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type Stripe from 'stripe'
 import { HandleStripeWebhookUseCase } from './HandleStripeWebhookUseCase.js'
-import type { Subscription, SubscriptionRepository, CreditBalance, CreditBalanceRepository } from '@socialshelf/domain'
+import type { Subscription, SubscriptionRepository, CreditBalanceRepository } from '@socialshelf/domain'
 
 function makeSubscription(overrides: Partial<Subscription> = {}): Subscription {
   return {
@@ -44,19 +44,6 @@ function makeCheckoutSession(overrides: Record<string, unknown> = {}): Stripe.Ch
   } as unknown as Stripe.Checkout.Session
 }
 
-function makeCreditBalance(overrides: Partial<CreditBalance> = {}): CreditBalance {
-  return {
-    userId: 'user-1',
-    periodKey: '2026-01',
-    planCreditsTotal: 100,
-    planCreditsUsed: 10,
-    purchasedCreditsBalance: 5,
-    createdAt: new Date('2026-01-01T00:00:00Z'),
-    updatedAt: new Date('2026-01-01T00:00:00Z'),
-    ...overrides,
-  }
-}
-
 describe('HandleStripeWebhookUseCase', () => {
   let useCase: HandleStripeWebhookUseCase
   let mockSubscriptionRepo: SubscriptionRepository
@@ -76,6 +63,8 @@ describe('HandleStripeWebhookUseCase', () => {
     mockCreditBalanceRepo = {
       findByUserId: vi.fn().mockResolvedValue(null),
       save: vi.fn().mockResolvedValue(undefined),
+      atomicUpdate: vi.fn(),
+      applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
     }
 
     constructEvent = vi.fn()
@@ -170,9 +159,8 @@ describe('HandleStripeWebhookUseCase', () => {
   })
 
   describe('checkout.session.completed — compra avulsa de créditos', () => {
-    it('credita o pacote avulso quando mode é payment e o metadata está completo', async () => {
+    it('credita o pacote avulso quando mode é payment e o metadata está completo, via applyPurchaseOnce (idempotente)', async () => {
       // makeSubscription() default (tier 'free') resolve monthlyCreditsIncluded 30.
-      mockCreditBalanceRepo.findByUserId = vi.fn().mockResolvedValue(makeCreditBalance({ purchasedCreditsBalance: 5 }))
       constructEvent.mockReturnValue({
         type: 'checkout.session.completed',
         data: { object: makeCheckoutSession({ mode: 'payment', metadata: { userId: 'user-1', creditAmount: '150' } }) },
@@ -180,15 +168,15 @@ describe('HandleStripeWebhookUseCase', () => {
 
       await useCase.execute(Buffer.from('{}'), 'sig')
 
-      expect(mockCreditBalanceRepo.findByUserId).toHaveBeenCalledWith('user-1')
-      expect(mockCreditBalanceRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user-1', planCreditsTotal: 30, purchasedCreditsBalance: 155 }),
-      )
+      // applyPurchaseOnce, não save solto: a dedução/dedup por session.id acontece inteira
+      // dentro da transação do repositório (_local-adr-policy-044) — o use-case nunca lê o
+      // saldo e grava num passo separado, que seria vulnerável a correr duas vezes.
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).toHaveBeenCalledWith('user-1', 'cs_123', 30, 150, expect.any(Date))
+      expect(mockCreditBalanceRepo.save).not.toHaveBeenCalled()
     })
 
     it('busca o monthlyCreditsIncluded do plano certo do usuário antes de creditar', async () => {
       mockSubscriptionRepo.findByUserId = vi.fn().mockResolvedValue(makeSubscription({ tier: 'pro' }))
-      mockCreditBalanceRepo.findByUserId = vi.fn().mockResolvedValue(null)
       constructEvent.mockReturnValue({
         type: 'checkout.session.completed',
         data: { object: makeCheckoutSession({ mode: 'payment', metadata: { userId: 'user-1', creditAmount: '50' } }) },
@@ -196,9 +184,24 @@ describe('HandleStripeWebhookUseCase', () => {
 
       await useCase.execute(Buffer.from('{}'), 'sig')
 
-      expect(mockCreditBalanceRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({ planCreditsTotal: 200, purchasedCreditsBalance: 50 }),
-      )
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).toHaveBeenCalledWith('user-1', 'cs_123', 200, 50, expect.any(Date))
+    })
+
+    it('reenvio do mesmo webhook (mesma Checkout Session) não credita duas vezes — dedup fica a cargo do repositório', async () => {
+      // applyPurchaseOnce é quem decide se já processou aquele session.id — o use-case sempre
+      // chama, não tem lógica de dedup própria. Este teste prova que o use-case passa o MESMO
+      // session.id em reentregas, pra o repositório conseguir deduplicar.
+      const session = makeCheckoutSession({ mode: 'payment', metadata: { userId: 'user-1', creditAmount: '150' } })
+      constructEvent.mockReturnValue({ type: 'checkout.session.completed', data: { object: session } })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).toHaveBeenCalledTimes(2)
+      const [firstCallSessionId] = (mockCreditBalanceRepo.applyPurchaseOnce as ReturnType<typeof vi.fn>).mock.calls[0]!.slice(1, 2)
+      const [secondCallSessionId] = (mockCreditBalanceRepo.applyPurchaseOnce as ReturnType<typeof vi.fn>).mock.calls[1]!.slice(1, 2)
+      expect(firstCallSessionId).toBe('cs_123')
+      expect(secondCallSessionId).toBe('cs_123')
     })
 
     it('ignora quando mode é subscription (já tratado por customer.subscription.*)', async () => {
@@ -209,7 +212,7 @@ describe('HandleStripeWebhookUseCase', () => {
 
       await useCase.execute(Buffer.from('{}'), 'sig')
 
-      expect(mockCreditBalanceRepo.save).not.toHaveBeenCalled()
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).not.toHaveBeenCalled()
     })
 
     it('ignora quando falta userId no metadata', async () => {
@@ -220,7 +223,7 @@ describe('HandleStripeWebhookUseCase', () => {
 
       await useCase.execute(Buffer.from('{}'), 'sig')
 
-      expect(mockCreditBalanceRepo.save).not.toHaveBeenCalled()
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).not.toHaveBeenCalled()
     })
 
     it('ignora quando falta creditAmount no metadata', async () => {
@@ -231,7 +234,7 @@ describe('HandleStripeWebhookUseCase', () => {
 
       await useCase.execute(Buffer.from('{}'), 'sig')
 
-      expect(mockCreditBalanceRepo.save).not.toHaveBeenCalled()
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).not.toHaveBeenCalled()
     })
   })
 })

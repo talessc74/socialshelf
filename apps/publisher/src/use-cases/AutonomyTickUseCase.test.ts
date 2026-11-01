@@ -157,6 +157,8 @@ describe('AutonomyTickUseCase', () => {
     creditBalanceRepo = {
       findByUserId: vi.fn().mockResolvedValue(null),
       save: vi.fn().mockResolvedValue(undefined),
+      atomicUpdate: vi.fn(),
+      applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
     }
     useCase = new AutonomyTickUseCase(
       brandDiscovery,

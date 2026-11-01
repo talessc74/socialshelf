@@ -118,10 +118,12 @@ export class EditArtifactUseCase {
       artifact.imageStoragePath = path
       artifact.backgroundImageStoragePath = backgroundImageStoragePath
       // Editar sempre chama generateImage exatamente 1 vez — cobra 1 crédito só quando a edição
-      // de fato produziu uma imagem nova (não cobra nada se o try acima falhar).
+      // de fato produziu uma imagem nova (não cobra nada se o try acima falhar). atomicUpdate,
+      // não save: o saldo lido antes da chamada de IA pode estar velho quando chega aqui
+      // (_local-adr-policy-044, mesmo raciocínio de GenerateContentUseCase).
       if (monthlyCreditsIncluded !== null) {
-        await this.creditBalanceRepo.save(
-          applyCreditConsumption(creditBalance, request.userId, monthlyCreditsIncluded, 1, now),
+        await this.creditBalanceRepo.atomicUpdate(request.userId, (current) =>
+          applyCreditConsumption(current, request.userId, monthlyCreditsIncluded, 1, new Date()),
         )
       }
     } catch (err) {

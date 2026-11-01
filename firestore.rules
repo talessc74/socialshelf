@@ -45,6 +45,13 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // Marcadores de idempotência de compra avulsa de créditos (_local-adr-policy-044) — um
+      // doc por Checkout Session já processada, pra o webhook do Stripe nunca creditar duas
+      // vezes a mesma compra num reenvio. Puramente interno, nenhuma UI lê isto.
+      match /processed_credit_purchases/{sessionId} {
+        allow read, write: if false;
+      }
+
       // ── Brands ───────────────────────────────────────────────────────
       match /brands/{brandId} {
         allow read: if isAuthenticated() && isOwner(userId);

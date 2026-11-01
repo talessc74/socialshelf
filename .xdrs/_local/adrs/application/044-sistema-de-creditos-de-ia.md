@@ -134,6 +134,38 @@ aiSpendingLimit.ts`, arquivo deletado), e a validação `spending_limit_above_pl
 nem é lido por nenhum gate. `AiUsageEvent`/`/dashboard/ai-usage` (histórico em R$) foi mantido
 como tela só informativa — não decide mais nada.
 
+**Dedução e compra são atômicas — nunca um read-then-write solto**
+
+Revisão de QA (galera de QA — Pareto puxando o agrupamento de defeitos pro caminho de
+dinheiro) encontrou duas corridas reais na primeira versão desta implementação: (1) o saldo
+era lido no início de `GenerateContentUseCase`/`EditArtifactUseCase`, a geração rodava (podendo
+levar segundos, chamando Gemini), e só depois o resultado calculado em cima daquela leitura
+antiga era gravado — duas gerações concorrentes do mesmo usuário podiam ler o mesmo saldo
+inicial e a segunda escrita (`save`) sobrescrevia a primeira, perdendo uma dedução (lost
+update); (2) o webhook do Stripe não tinha nenhuma proteção contra reentrega — o Stripe
+reenvia `checkout.session.completed` em timeout/5xx (comportamento esperado, não uma falha
+dele), e sem dedup o usuário seria creditado duas vezes pela mesma compra.
+
+Corrigido trocando todo ponto de escrita por uma operação atômica no próprio
+`CreditBalanceRepository`, nunca um `findByUserId` + `save` separados pelo chamador:
+
+- `atomicUpdate(userId, mutate)` — `FirestoreCreditBalanceRepository` envolve leitura e
+  escrita numa única `db.runTransaction`, lendo o estado de dentro da transação (nunca o
+  snapshot que o use-case tinha lido antes de gerar) e aplicando `mutate` em cima dele. O SDK
+  do Firestore reexecuta a transação inteira automaticamente se outra escrita concorrente
+  committar primeiro — garantia de atomicidade vem da infraestrutura, não de lógica própria de
+  retry. `GenerateContentUseCase`/`EditArtifactUseCase` passam a chamar isto na dedução final,
+  em vez de `save`.
+- `applyPurchaseOnce(userId, sessionId, ...)` — uma segunda transação que lê um marcador de
+  dedup (`users/{userId}/processed_credit_purchases/{sessionId}`) e o saldo juntos; se o
+  marcador já existe, é no-op; senão grava os dois atomicamente. `HandleStripeWebhookUseCase`
+  usa `session.id` (da Checkout Session) como chave — reentrega do mesmo evento nunca credita
+  duas vezes.
+
+Nenhum teste automatizado tenta provar a garantia de atomicidade do Firestore em si (isso é
+infraestrutura do Google, não lógica nossa) — os testes cobrem que o use-case chama o método
+atômico certo, com os argumentos certos, em vez do par `findByUserId`/`save` solto.
+
 ## Consequences
 
 - `PlanLimits.defaultDailyAiSpendingLimitBrl` virou `monthlyCreditsIncluded: number | null` —

@@ -129,9 +129,15 @@ function makeDeps(request: GenerationRequest = makeRequest()) {
   }
   // 'legacy' (monthlyCreditsIncluded: null) não tem teto de plano — preserva o comportamento
   // destes testes de antes do reclamping por plano existir (_local-adr-policy-0NN).
+  const creditFindByUserId = vi.fn().mockResolvedValue(null)
   const creditBalanceRepo: CreditBalanceRepository = {
-    findByUserId: vi.fn().mockResolvedValue(null),
+    findByUserId: creditFindByUserId,
     save: vi.fn().mockResolvedValue(undefined),
+    atomicUpdate: vi.fn(async (userId: string, mutate: (current: CreditBalance | null) => CreditBalance) => {
+      const current = await creditFindByUserId(userId)
+      return mutate(current)
+    }),
+    applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
   }
   const subscriptionRepo: SubscriptionRepository = {
     findByUserId: vi.fn().mockResolvedValue(makeSubscription()),
@@ -211,8 +217,8 @@ describe('EditArtifactUseCase', () => {
 
     await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
 
-    expect(deps.creditBalanceRepo.save).toHaveBeenCalledTimes(1)
-    const saved = (deps.creditBalanceRepo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(deps.creditBalanceRepo.atomicUpdate).toHaveBeenCalledTimes(1)
+    const saved = await (deps.creditBalanceRepo.atomicUpdate as ReturnType<typeof vi.fn>).mock.results[0]!.value
     expect(saved.planCreditsUsed).toBe(11)
   })
 
@@ -236,7 +242,7 @@ describe('EditArtifactUseCase', () => {
     const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
 
     expect(result.outputs?.artifacts[0]?.status).toBe('failed')
-    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
   })
 
   it('não bloqueia nem desconta saldo quando a conta é ilimitada (legacy/admin)', async () => {
@@ -254,7 +260,7 @@ describe('EditArtifactUseCase', () => {
     const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
 
     expect(result.outputs?.artifacts[0]?.status).toBe('ready')
-    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
   })
 
   it('lança quando a requisição não existe', async () => {

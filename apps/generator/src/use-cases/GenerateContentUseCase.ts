@@ -290,10 +290,14 @@ export class GenerateContentUseCase {
 
     // Cobra só pelo que de fato foi produzido (não pelo teto negociado antes de gerar) — modo
     // 'fixed' (fotos próprias) nunca chega aqui tendo consumido nada, e contas ilimitadas
-    // (monthlyCreditsIncluded null) não gravam saldo nenhum.
+    // (monthlyCreditsIncluded null) não gravam saldo nenhum. atomicUpdate (não save) porque o
+    // saldo lido no início desta função pode estar velho — a geração toda roda entre a leitura
+    // e aqui, e outra geração concorrente do mesmo usuário pode ter gravado nesse meio-tempo;
+    // uma transação garante que a dedução parte do estado real, não do snapshot antigo
+    // (_local-adr-policy-044).
     if (input.imageStoragePaths.length === 0 && monthlyCreditsIncluded !== null) {
-      await this.creditBalanceRepo.save(
-        applyCreditConsumption(creditBalance, input.userId, monthlyCreditsIncluded, readyArtifacts.length, now),
+      await this.creditBalanceRepo.atomicUpdate(input.userId, (current) =>
+        applyCreditConsumption(current, input.userId, monthlyCreditsIncluded, readyArtifacts.length, new Date()),
       )
     }
 
