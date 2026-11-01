@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { createStripeClient } from '../infrastructure/stripe/stripeClient.js'
 import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
+import { FirestoreCreditBalanceRepository } from '../infrastructure/firestore/FirestoreCreditBalanceRepository.js'
 import { HandleStripeWebhookUseCase } from '../use-cases/billing/HandleStripeWebhookUseCase.js'
 
 // Rota chamada pelo Stripe, não pelo nosso frontend — fica fora de app.authenticate (não há
@@ -11,8 +12,9 @@ import { HandleStripeWebhookUseCase } from '../use-cases/billing/HandleStripeWeb
 export async function stripeWebhookRoutes(app: FastifyInstance) {
   const stripe = createStripeClient()
   const subscriptionRepo = new FirestoreSubscriptionRepository()
+  const creditBalanceRepo = new FirestoreCreditBalanceRepository()
   const webhookSecret = process.env['STRIPE_WEBHOOK_SECRET'] ?? ''
-  const handleWebhook = new HandleStripeWebhookUseCase(stripe, subscriptionRepo, webhookSecret)
+  const handleWebhook = new HandleStripeWebhookUseCase(stripe, subscriptionRepo, creditBalanceRepo, webhookSecret)
 
   // A verificação de assinatura do Stripe precisa dos bytes exatos do corpo da requisição — o
   // parser JSON global de app.ts já fez o parse/serialize antes de chegar aqui, o que quebraria

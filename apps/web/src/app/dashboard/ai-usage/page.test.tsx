@@ -30,10 +30,17 @@ describe('AiUsagePage', () => {
     vi.clearAllMocks()
   })
 
+  const emptyCredits: ApiAiUsageSummary['credits'] = {
+    periodKey: '2026-07',
+    planRemaining: null,
+    purchasedRemaining: 0,
+    totalAvailable: null,
+  }
+
   it('mostra o resumo mensal e o total em R$ convertido do custo estimado em USD', async () => {
     const summary: ApiAiUsageSummary = {
       months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, audioUsd: 0, videoUsd: 0, totalUsd: 0.41 }],
-      planDailySpendingLimitBrl: null,
+      credits: emptyCredits,
     }
     mockedApi.getAiUsageSummary.mockResolvedValue(summary)
 
@@ -43,8 +50,20 @@ describe('AiUsagePage', () => {
     expect(screen.getByText('Resumo mensal')).toBeInTheDocument()
   })
 
+  it('mostra o saldo de créditos disponível', async () => {
+    const summary: ApiAiUsageSummary = {
+      months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, audioUsd: 0, videoUsd: 0, totalUsd: 0.41 }],
+      credits: { periodKey: '2026-07', planRemaining: 80, purchasedRemaining: 0, totalAvailable: 80 },
+    }
+    mockedApi.getAiUsageSummary.mockResolvedValue(summary)
+
+    renderPage()
+
+    expect(await screen.findByText('80')).toBeInTheDocument()
+  })
+
   it('mostra estado vazio quando a marca não tem uso registrado', async () => {
-    mockedApi.getAiUsageSummary.mockResolvedValue({ months: [], planDailySpendingLimitBrl: null })
+    mockedApi.getAiUsageSummary.mockResolvedValue({ months: [], credits: emptyCredits })
 
     renderPage()
 

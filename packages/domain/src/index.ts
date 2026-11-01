@@ -11,6 +11,7 @@ export type { CampaignItem, CampaignItemStatus } from './entities/CampaignItem.j
 export type { AutonomyTickLogEntry, AutonomyTickAction } from './entities/AutonomyTickLogEntry.js'
 export type { AiUsageEvent, AiUsageCategory } from './entities/AiUsageEvent.js'
 export type { Subscription, PlanTier, BillingCycle, SubscriptionStatus } from './entities/Subscription.js'
+export type { CreditBalance } from './entities/CreditBalance.js'
 export type {
   BrandProfile,
   BrandProfileBusiness,
@@ -124,8 +125,8 @@ export type { CampaignItemRepository } from './ports/CampaignItemRepository.js'
 export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLockRepository.js'
 export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
 export type { AiUsageReaderPort } from './ports/AiUsageReaderPort.js'
-export type { AiSpendingGuardPort } from './ports/AiSpendingGuardPort.js'
 export type { SubscriptionRepository } from './ports/SubscriptionRepository.js'
+export type { CreditBalanceRepository } from './ports/CreditBalanceRepository.js'
 
 // Value Objects
 export { derivePairwiseId } from './value-objects/PairwiseId.js'
@@ -149,12 +150,19 @@ export {
   estimateGeminiImageCostUsd,
   estimateTtsCostUsd,
   convertUsdToBrl,
-  AI_SPENDING_LIMIT_REACHED_MESSAGE,
+  NO_CREDITS_AVAILABLE_MESSAGE,
 } from './value-objects/AiPricing.js'
 export type { GeminiUsageTokens } from './value-objects/AiPricing.js'
 export { isAdminEmail } from './value-objects/AdminAccess.js'
 export { PLAN_LIMITS, resolveEffectivePlanLimits, isAutonomyLevelWithinPlan } from './value-objects/PlanLimits.js'
 export type { PlanLimits } from './value-objects/PlanLimits.js'
-export { brasiliaDateNow, startOfBrasiliaDay } from './value-objects/BrasiliaDate.js'
+export { brasiliaDateNow, startOfBrasiliaDay, brasiliaMonthKey } from './value-objects/BrasiliaDate.js'
 export { groupAiUsageEventsByMonth } from './value-objects/AiUsageAggregation.js'
 export type { AiUsageMonthSummary } from './value-objects/AiUsageAggregation.js'
+export {
+  CREDIT_COST_BRL,
+  resolveEffectiveCreditState,
+  applyCreditConsumption,
+  applyCreditPurchase,
+} from './value-objects/Credits.js'
+export type { EffectiveCreditState } from './value-objects/Credits.js'

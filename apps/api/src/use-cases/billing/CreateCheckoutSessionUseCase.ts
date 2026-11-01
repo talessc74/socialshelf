@@ -1,6 +1,7 @@
 import type Stripe from 'stripe'
 import type { Subscription, SubscriptionRepository, BillingCycle } from '@socialshelf/domain'
 import { resolvePriceId, type PayablePlanTier } from '../../infrastructure/stripe/priceMapping.js'
+import { ensureStripeCustomer } from './ensureStripeCustomer.js'
 
 export type { PayablePlanTier }
 
@@ -24,7 +25,7 @@ export class CreateCheckoutSessionUseCase {
       throw new Error(`Missing Stripe price id env var for ${input.tier}/${input.cycle}`)
     }
 
-    const customerId = await this.ensureStripeCustomer(input.subscription, input.userEmail)
+    const customerId = await ensureStripeCustomer(this.stripe, this.subscriptionRepo, input.subscription, input.userEmail)
 
     const session = await this.stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -40,25 +41,5 @@ export class CreateCheckoutSessionUseCase {
 
     if (!session.url) throw new Error('Stripe did not return a checkout URL')
     return { url: session.url }
-  }
-
-  // A primeira assinatura de um usuário cria o Customer no Stripe e persiste o id no
-  // Subscription — assinaturas seguintes (upgrade/downgrade/reassinar) reaproveitam o mesmo
-  // Customer, o que também é o que CreatePortalSessionUseCase precisa já ter pronto.
-  private async ensureStripeCustomer(subscription: Subscription, userEmail: string | null): Promise<string> {
-    if (subscription.stripeCustomerId) return subscription.stripeCustomerId
-
-    const customer = await this.stripe.customers.create({
-      ...(userEmail && { email: userEmail }),
-      metadata: { userId: subscription.userId },
-    })
-
-    await this.subscriptionRepo.save({
-      ...subscription,
-      stripeCustomerId: customer.id,
-      updatedAt: new Date(),
-    })
-
-    return customer.id
   }
 }

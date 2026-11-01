@@ -37,6 +37,21 @@ service cloud.firestore {
         allow write: if false; // written only by api-service (webhook + ensure-subscription)
       }
 
+      // AI credit balance sub-document (singleton, _local-adr-policy-0NN — substitui o teto de
+      // gasto diário em R$). Mesmo padrão de subscription: leitura pelo dono, escrita só backend
+      // (generator deduz ao gerar, api credita compra avulsa via webhook).
+      match /credits/{doc} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false;
+      }
+
+      // Marcadores de idempotência de compra avulsa de créditos (_local-adr-policy-044) — um
+      // doc por Checkout Session já processada, pra o webhook do Stripe nunca creditar duas
+      // vezes a mesma compra num reenvio. Puramente interno, nenhuma UI lê isto.
+      match /processed_credit_purchases/{sessionId} {
+        allow read, write: if false;
+      }
+
       // ── Brands ───────────────────────────────────────────────────────
       match /brands/{brandId} {
         allow read: if isAuthenticated() && isOwner(userId);

@@ -56,8 +56,9 @@ export function convertUsdToBrl(usd: number): number {
 }
 
 // Mensagem exibida ao usuário quando GenerateContentUseCase/EditArtifactUseCase (apps/generator)
-// recusam gerar por a marca ter atingido o teto diário configurado — exata e compartilhada
-// entre os dois use-cases para nunca divergir, e para os testes poderem checar a mensagem real
-// em vez de um texto solto reescrito em cada lugar (_local-edr-policy-073).
-export const AI_SPENDING_LIMIT_REACHED_MESSAGE =
-  'Limite diário de gasto com IA desta conta foi atingido. Novos posts poderão ser gerados a partir de amanhã.'
+// recusam gerar por falta de saldo de créditos — exata e compartilhada entre os dois use-cases
+// para nunca divergir, e para os testes poderem checar a mensagem real em vez de um texto solto
+// reescrito em cada lugar (_local-adr-policy-0NN, substitui a antiga trava diária em R$ de
+// _local-edr-policy-073).
+export const NO_CREDITS_AVAILABLE_MESSAGE =
+  'Seus créditos de IA deste mês acabaram. Eles são repostos no começo do próximo mês, ou você pode comprar créditos avulsos.'

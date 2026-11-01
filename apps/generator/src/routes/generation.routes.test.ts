@@ -163,13 +163,12 @@ vi.mock('../infrastructure/firestore/FirestorePostRepository.js', () => ({
 vi.mock('../infrastructure/firestore/FirestoreAiUsageRepository.js', () => ({
   FirestoreAiUsageRepository: vi.fn().mockImplementation(() => ({
     record: vi.fn().mockResolvedValue(undefined),
-    sumCostUsdSince: vi.fn().mockResolvedValue(0),
   })),
 }))
 
-// GenerateContentUseCase/EditArtifactUseCase agora reclampam o teto de gasto pelo plano
-// (_local-adr-policy-0NN, Fase 4b) — 'legacy' não tem teto, preservando o comportamento
-// destes testes de antes do reclamping existir.
+// GenerateContentUseCase/EditArtifactUseCase agora reclampam o saldo de créditos pelo plano
+// (_local-adr-policy-0NN) — 'legacy' não tem teto (monthlyCreditsIncluded null), preservando o
+// comportamento destes testes de antes do reclamping existir.
 vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => ({
   FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
     findByUserId: vi.fn().mockResolvedValue({
@@ -187,6 +186,15 @@ vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => 
       createdAt: new Date(),
       updatedAt: new Date(),
     }),
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
+// 'legacy' (mockado acima) tem monthlyCreditsIncluded null — findByUserId devolvendo null
+// simula "nunca gerou nada", tratado como saldo ilimitado pelo mesmo motivo.
+vi.mock('../infrastructure/firestore/FirestoreCreditBalanceRepository.js', () => ({
+  FirestoreCreditBalanceRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: vi.fn().mockResolvedValue(null),
     save: vi.fn().mockResolvedValue(undefined),
   })),
 }))

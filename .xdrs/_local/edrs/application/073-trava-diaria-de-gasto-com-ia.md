@@ -107,8 +107,26 @@ há e-mail nem qualquer notificação fora do site quando o teto é atingido —
 do usuário para esta fase, dado que o projeto não tem hoje infraestrutura de envio de
 e-mail. Não há override manual no mesmo dia — também decisão explícita do usuário.
 
+## Descontinuado — substituído pelo sistema de créditos (2026-11-01)
+
+O mecanismo inteiro descrito acima (`dailyAiSpendingLimitBrl`, `AiSpendingGuardPort`,
+`isAiSpendingLimitReached`, `resolveEffectiveDailyLimitBrl`) foi removido. O problema de
+fundo era real — um teto em R$ só protege o gasto *na média*, não garante nada no pior caso,
+e o risco financeiro de um usuário batendo o teto todo dia caía inteiramente sobre o
+operador do produto, não sobre quem usa. `_local-adr-policy-044` troca isso por um saldo de
+créditos mensal fechado por desenho (1 crédito = 1 imagem, nunca estoura o que o plano
+paga), descrito em `_local-bdr-policy-014`.
+
+Removido: o campo configurável por marca (a UI de "Teto diário de gasto com IA" saiu de
+`/dashboard/brand`), o port `AiSpendingGuardPort` e sua implementação
+(`sumCostUsdSince`), e a validação `spending_limit_above_plan` em `PUT /brand-profile`.
+Mantido: `AiUsageEvent`/`/dashboard/ai-usage` como histórico informativo em R$ — não trava
+mais nada, mas continua útil para o usuário entender de onde o gasto real vem.
+
 ## References
 
 - [_local-edr-policy-071-mensuracao-de-uso-de-ia-fatia-1](071-mensuracao-uso-ia-fatia-1.md) - Base de mensuração (AiUsageEvent, custo em USD) que a trava e a nova tela consomem
 - [_local-edr-policy-072-pagina-de-admin-de-gastos-ia](072-pagina-admin-gastos-ia.md) - Página de admin (todas as contas); esta decisão é o equivalente por conta própria, sem gate de admin
 - [_local-edr-policy-038-tick-de-autonomia-implementacao](038-tick-autonomia-implementacao.md) - Origem do cálculo de dia em fuso de Brasília, reaproveitado aqui
+- [_local-adr-policy-044-sistema-de-creditos-de-ia](../../adrs/application/044-sistema-de-creditos-de-ia.md) - Mecanismo que substitui esta decisão por inteiro
+- [_local-bdr-policy-014-sistema-de-creditos-e-tiktok-em-breve](../../bdrs/product/014-sistema-de-creditos-tiktok-em-breve.md) - Decisão de negócio que motivou a substituição

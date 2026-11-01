@@ -25,8 +25,13 @@ export interface PlanLimits {
   maxAutoPostsPerDayCeiling: number
   // Em dias — null significa histórico sem corte (só 'legacy').
   historyRetentionDays: number | null
-  // Em BRL/dia — null significa sem teto (só 'legacy'/admin).
-  defaultDailyAiSpendingLimitBrl: number | null
+  // Créditos de IA incluídos por mês-calendário (1 crédito = 1 imagem gerada = R$0,22, ver
+  // Credits.ts) — substitui defaultDailyAiSpendingLimitBrl (_local-adr-policy-0NN,
+  // descontinua _local-edr-policy-073). null significa ilimitado (só 'legacy'/admin).
+  monthlyCreditsIncluded: number | null
+  // Vídeo para TikTok está fora de todos os planos por enquanto — publicação real travada por
+  // falta de CNPJ (mesmo bloqueio documentado em _local-bdr-policy-012 para o Meta App Review),
+  // não uma limitação técnica. Vira "em breve" na vitrine até o bloqueio ser resolvido.
   allowTikTokVideo: boolean
   allowPhotoCampaigns: boolean
   allowPerformanceAnalytics: boolean
@@ -46,7 +51,11 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'automatic',
     maxAutoPostsPerDayCeiling: 10,
     historyRetentionDays: null,
-    defaultDailyAiSpendingLimitBrl: null,
+    monthlyCreditsIncluded: null,
+    // Única exceção: legacy/admin mantêm acesso de teste ao vídeo TikTok (contas usadas pra
+    // validar o pipeline enquanto o app não passa pela revisão do TikTok, mesmo bloqueio de
+    // CNPJ do Meta App Review em _local-bdr-policy-012) — os planos vendidos (free→agency)
+    // não oferecem isso agora, só "em breve" na vitrine.
     allowTikTokVideo: true,
     allowPhotoCampaigns: true,
     allowPerformanceAnalytics: true,
@@ -59,7 +68,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'manual',
     maxAutoPostsPerDayCeiling: 1,
     historyRetentionDays: 7,
-    defaultDailyAiSpendingLimitBrl: 5,
+    monthlyCreditsIncluded: 30,
     allowTikTokVideo: false,
     allowPhotoCampaigns: false,
     allowPerformanceAnalytics: false,
@@ -72,7 +81,7 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'semi-automatic',
     maxAutoPostsPerDayCeiling: 1,
     historyRetentionDays: 30,
-    defaultDailyAiSpendingLimitBrl: 15,
+    monthlyCreditsIncluded: 100,
     allowTikTokVideo: false,
     allowPhotoCampaigns: false,
     allowPerformanceAnalytics: false,
@@ -85,8 +94,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'automatic',
     maxAutoPostsPerDayCeiling: 2,
     historyRetentionDays: 180,
-    defaultDailyAiSpendingLimitBrl: 50,
-    allowTikTokVideo: true,
+    monthlyCreditsIncluded: 200,
+    allowTikTokVideo: false,
     allowPhotoCampaigns: true,
     allowPerformanceAnalytics: true,
   },
@@ -98,8 +107,8 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'automatic',
     maxAutoPostsPerDayCeiling: 3,
     historyRetentionDays: 365,
-    defaultDailyAiSpendingLimitBrl: 100,
-    allowTikTokVideo: true,
+    monthlyCreditsIncluded: 600,
+    allowTikTokVideo: false,
     allowPhotoCampaigns: true,
     allowPerformanceAnalytics: true,
   },

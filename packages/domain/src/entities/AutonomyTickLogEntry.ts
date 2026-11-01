@@ -12,6 +12,10 @@ export type AutonomyTickAction =
   // do usuário — ex.: marca configurada como 'automatic' mas o plano caiu pra 'starter' num
   // downgrade. Reclampado a cada tick, não só ao salvar a marca (_local-adr-policy-0NN, Fase 4c).
   | 'skipped-plan-limit'
+  // Saldo de créditos de IA do usuário (mensal, _local-adr-policy-0NN) chegou a zero —
+  // substitui o antigo gatilho de teto de gasto diário em R$ (_local-edr-policy-073,
+  // descontinuado). Reposto automaticamente no início do próximo mês-calendário.
+  | 'skipped-no-credits'
   | 'draft-created'
   | 'published'
   // Publicou em pelo menos uma rede, mas falhou em outra(s) — o motivo de cada falha vai no

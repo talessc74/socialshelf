@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Platform, AspectRatio, TemplateStyle } from '@socialshelf/domain'
 import GenerateContentPage from './page'
 import { AssistantProvider, useSelfie } from '../../../contexts/AssistantContext'
-import { api, type ApiConnection, type ApiGenerationRequest, type ApiTopicSuggestion } from '../../../lib/api'
+import { api, type ApiConnection, type ApiGenerationRequest, type ApiTopicSuggestion, type ApiCreditState } from '../../../lib/api'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
@@ -18,6 +18,7 @@ vi.mock('../../../lib/api', () => ({
     getTopicSuggestions: vi.fn(),
     getBrandProfile: vi.fn(),
     generateContent: vi.fn(),
+    editArtifact: vi.fn(),
     getImageUrl: vi.fn(),
     createPost: vi.fn(),
     publishPost: vi.fn(),
@@ -25,6 +26,21 @@ vi.mock('../../../lib/api', () => ({
 }))
 
 const mockedApi = vi.mocked(api, true)
+
+// Conta ilimitada por padrão (legado/admin) — preserva o comportamento dos testes existentes
+// de antes do sistema de créditos existir (gera direto, sem modal de confirmação). Os testes
+// de créditos, mais abaixo, trocam isso por um saldo limitado quando precisam do modal.
+const subscriptionMock = vi.hoisted(() => ({
+  current: {
+    subscription: null,
+    limits: null,
+    credits: { periodKey: '2026-01', planRemaining: null, purchasedRemaining: 0, totalAvailable: null } as ApiCreditState,
+    loading: false,
+    refresh: vi.fn().mockResolvedValue(undefined),
+    refreshCredits: vi.fn().mockImplementation(async () => subscriptionMock.current.credits),
+  },
+}))
+vi.mock('../../../contexts/SubscriptionContext', () => ({ useSubscription: () => subscriptionMock.current }))
 
 function makeConnection(platform: Platform): ApiConnection {
   return {
@@ -76,6 +92,14 @@ beforeEach(() => {
   window.localStorage.clear()
   mockedApi.getTopicSuggestions.mockResolvedValue([])
   mockedApi.getBrandProfile.mockResolvedValue(null)
+  subscriptionMock.current = {
+    subscription: null,
+    limits: null,
+    credits: { periodKey: '2026-01', planRemaining: null, purchasedRemaining: 0, totalAvailable: null },
+    loading: false,
+    refresh: vi.fn().mockResolvedValue(undefined),
+    refreshCredits: vi.fn().mockImplementation(async () => subscriptionMock.current.credits),
+  }
 })
 
 describe('GenerateContentPage', () => {
@@ -198,6 +222,71 @@ describe('GenerateContentPage', () => {
         'https://storage.googleapis.com/signed-url',
       )
     })
+  })
+
+  it('com saldo de créditos limitado, pede confirmação antes de chamar a API', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
+    mockedApi.generateContent.mockResolvedValue({
+      id: 'gen-1',
+      userId: 'user-1',
+      brandId: 'user-1',
+      status: 'ready',
+      inputs: {
+        description: 'Lançamento X',
+        textContent: null,
+        imageStoragePaths: [],
+        targetPlatforms: [Platform.LINKEDIN],
+        topicSuggestionId: null,
+        aspectRatio: AspectRatio.SQUARE,
+        style: TemplateStyle.BOLD_BOTTOM,
+      },
+      outputs: null,
+      error: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    subscriptionMock.current.credits = {
+      periodKey: '2026-01',
+      planRemaining: 4,
+      purchasedRemaining: 0,
+      totalAvailable: 4,
+    }
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+
+    expect(await screen.findByText('Confirmar geração')).toBeInTheDocument()
+    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(mockedApi.generateContent).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Gerar' }))
+
+    await waitFor(() => expect(mockedApi.generateContent).toHaveBeenCalledTimes(1))
+  })
+
+  it('com saldo de créditos zerado, bloqueia sem chamar a API', async () => {
+    mockedApi.getConnections.mockResolvedValue([makeConnection(Platform.LINKEDIN)])
+    subscriptionMock.current.credits = {
+      periodKey: '2026-01',
+      planRemaining: 0,
+      purchasedRemaining: 0,
+      totalAvailable: 0,
+    }
+
+    const user = userEvent.setup()
+    renderPage()
+
+    await user.type(screen.getByPlaceholderText(/Lançamento da nova funcionalidade/), 'Lançamento X')
+    await user.click(await screen.findByText('LinkedIn'))
+    await user.click(screen.getByRole('button', { name: 'Gerar Conteúdo' }))
+
+    expect(await screen.findByText(/Seus créditos de IA deste mês acabaram/)).toBeInTheDocument()
+    expect(mockedApi.generateContent).not.toHaveBeenCalled()
+    expect(screen.queryByText('Confirmar geração')).not.toBeInTheDocument()
   })
 
   it('narra a estimativa de tempo durante a geração e o total acumulado ao concluir, sumindo sozinha', async () => {

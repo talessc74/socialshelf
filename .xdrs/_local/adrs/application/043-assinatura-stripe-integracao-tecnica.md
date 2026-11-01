@@ -194,9 +194,17 @@ Gemini que antes não registravam custo nenhum, qualquer coisa não-texto caía 
   quantidade na assinatura existente) não foi implementado nesta rodada — só a leitura/validação
   de `additionalProfessionalBrands` já contratado. Fica como próximo passo natural.
 
+## Atualização — `defaultDailyAiSpendingLimitBrl` virou `monthlyCreditsIncluded` (2026-11-01)
+
+O campo `PlanLimits.defaultDailyAiSpendingLimitBrl` citado acima (e a trava de gasto diário em
+R$ que ele alimentava) foi removido por inteiro, substituído por um saldo de créditos mensal —
+ver `_local-adr-policy-044`. `PlanLimits` continua sendo a única fonte de verdade consultada
+por todo gate (nada mudou nesse princípio), só o campo específico de custo mudou de forma.
+
 ## References
 
 - [_local-bdr-policy-013-planos-precos-e-assinatura](../../bdrs/product/013-planos-precos-assinatura.md) - Decisão de negócio (preços, limites) que esta ADR implementa
+- [_local-adr-policy-044-sistema-de-creditos-de-ia](044-sistema-de-creditos-de-ia.md) - Substitui `defaultDailyAiSpendingLimitBrl`/a trava de gasto diário descrita nesta ADR pelo saldo de créditos mensal
 - [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](030-quota-marca-tipo-conta.md) - ADR original de quota de marca, completada por esta
 - [_local-adr-policy-020-firestore-hierarquia-de-sub-documentos](../platform/020-firestore-schema.md) - Hierarquia `users > ...` onde `subscription` passa a viver
 - [_local-adr-policy-015-firestore-security-rules-implicit-deny](../controls/015-firestore-security-rules.md) - Padrão de regra seguido pela nova subcoleção `subscription`

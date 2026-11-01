@@ -1,15 +1,21 @@
-import { TemplateStyle, AI_SPENDING_LIMIT_REACHED_MESSAGE, resolveEffectivePlanLimits } from '@socialshelf/domain'
+import {
+  TemplateStyle,
+  NO_CREDITS_AVAILABLE_MESSAGE,
+  resolveEffectivePlanLimits,
+  resolveEffectiveCreditState,
+  applyCreditConsumption,
+} from '@socialshelf/domain'
 import type {
   ImageGeneratorPort,
   TemplateRendererPort,
   ImageStoragePort,
   GenerationRequestRepository,
   BrandProfileRepository,
-  AiSpendingGuardPort,
+  CreditBalanceRepository,
   SubscriptionRepository,
   GenerationRequest,
 } from '@socialshelf/domain'
-import { isAiSpendingLimitReached, resolveEffectiveDailyLimitBrl } from '../lib/aiSpendingLimit.js'
+import { hasCreditsAvailable } from '../lib/creditSpending.js'
 
 export interface EditArtifactInput {
   generationRequestId: string
@@ -24,7 +30,7 @@ export class EditArtifactUseCase {
     private readonly imageStorage: ImageStoragePort,
     private readonly generationRequestRepo: GenerationRequestRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
-    private readonly aiSpendingGuard: AiSpendingGuardPort,
+    private readonly creditBalanceRepo: CreditBalanceRepository,
     private readonly subscriptionRepo: SubscriptionRepository,
   ) {}
 
@@ -39,20 +45,17 @@ export class EditArtifactUseCase {
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(request.userId, request.brandId)
 
     // Subscription deveria sempre existir aqui (toda marca passa por EnsureSubscriptionUseCase
-    // na criação, em apps/api) — null é tratado como "sem teto do plano" por segurança contra
-    // falha, mesma filosofia fail-open do resto desta trava (_local-adr-policy-0NN, Fase 4b).
+    // na criação, em apps/api) — null é tratado como "ilimitado" por segurança contra falha,
+    // mesma filosofia fail-open do mecanismo que isto substitui (_local-adr-policy-0NN).
     const subscription = await this.subscriptionRepo.findByUserId(request.userId)
-    const planDailyLimitBrl = subscription ? resolveEffectivePlanLimits(subscription).defaultDailyAiSpendingLimitBrl : null
-    const effectiveDailyLimitBrl = resolveEffectiveDailyLimitBrl(
-      brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
-      planDailyLimitBrl,
-    )
+    const monthlyCreditsIncluded = subscription ? resolveEffectivePlanLimits(subscription).monthlyCreditsIncluded : null
+    const now = new Date()
+    const creditBalance = await this.creditBalanceRepo.findByUserId(request.userId)
+    const creditState = resolveEffectiveCreditState(creditBalance, monthlyCreditsIncluded, now)
 
-    if (
-      await isAiSpendingLimitReached(this.aiSpendingGuard, request.userId, request.brandId, effectiveDailyLimitBrl)
-    ) {
+    if (!hasCreditsAvailable(creditState.totalAvailable)) {
       artifact.status = 'failed'
-      artifact.error = AI_SPENDING_LIMIT_REACHED_MESSAGE
+      artifact.error = NO_CREDITS_AVAILABLE_MESSAGE
       await this.generationRequestRepo.updateOutputs(request.id, request.outputs)
       return request
     }
@@ -114,6 +117,15 @@ export class EditArtifactUseCase {
       artifact.status = 'ready'
       artifact.imageStoragePath = path
       artifact.backgroundImageStoragePath = backgroundImageStoragePath
+      // Editar sempre chama generateImage exatamente 1 vez — cobra 1 crédito só quando a edição
+      // de fato produziu uma imagem nova (não cobra nada se o try acima falhar). atomicUpdate,
+      // não save: o saldo lido antes da chamada de IA pode estar velho quando chega aqui
+      // (_local-adr-policy-044, mesmo raciocínio de GenerateContentUseCase).
+      if (monthlyCreditsIncluded !== null) {
+        await this.creditBalanceRepo.atomicUpdate(request.userId, (current) =>
+          applyCreditConsumption(current, request.userId, monthlyCreditsIncluded, 1, new Date()),
+        )
+      }
     } catch (err) {
       artifact.status = 'failed'
       artifact.error = err instanceof Error ? err.message : String(err)

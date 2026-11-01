@@ -11,6 +11,7 @@ import type {
   PostRepository,
   Post,
   SubscriptionRepository,
+  CreditBalanceRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
 import type { GeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
@@ -83,6 +84,7 @@ describe('AutonomyTickUseCase', () => {
   let generatorClient: GeneratorAutonomyClient
   let tickLog: AutonomyTickLogRepository
   let subscriptionRepo: SubscriptionRepository
+  let creditBalanceRepo: CreditBalanceRepository
   let useCase: AutonomyTickUseCase
 
   beforeEach(() => {
@@ -149,6 +151,15 @@ describe('AutonomyTickUseCase', () => {
       }),
       save: vi.fn().mockResolvedValue(undefined),
     }
+    // null = usuário nunca gerou nada ainda — resolveEffectiveCreditState trata isso como saldo
+    // cheio do plano; como o plano default destes testes é 'legacy' (monthlyCreditsIncluded
+    // null), o resultado é sempre ilimitado a menos que um teste troque subscriptionRepo.
+    creditBalanceRepo = {
+      findByUserId: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue(undefined),
+      atomicUpdate: vi.fn(),
+      applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
+    }
     useCase = new AutonomyTickUseCase(
       brandDiscovery,
       dailyCounter,
@@ -158,6 +169,7 @@ describe('AutonomyTickUseCase', () => {
       generatorClient,
       tickLog,
       subscriptionRepo,
+      creditBalanceRepo,
     )
   })
 
@@ -590,6 +602,71 @@ describe('AutonomyTickUseCase', () => {
       const [result] = await useCase.execute()
 
       expect(result).not.toMatchObject({ action: 'skipped-plan-limit' })
+    })
+
+    it('pula com skipped-no-credits quando o saldo de créditos do mês já zerou', async () => {
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'starter',
+        billingCycle: 'monthly',
+        status: 'active',
+        stripeCustomerId: 'cus_1',
+        stripeSubscriptionId: 'sub_1',
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: false,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      // periodKey '2026-07' bate com o relógio fixo do beforeEach (2026-07-11 em Brasília) —
+      // saldo do plano (100) todo consumido, sem avulso.
+      creditBalanceRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        periodKey: '2026-07',
+        planCreditsTotal: 100,
+        planCreditsUsed: 100,
+        purchasedCreditsBalance: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const [result] = await useCase.execute()
+
+      expect(result).toMatchObject({ action: 'skipped-no-credits' })
+      expect(generatorClient.suggestTopics).not.toHaveBeenCalled()
+    })
+
+    it('não pula por falta de crédito quando ainda sobra saldo avulso, mesmo com o do plano zerado', async () => {
+      subscriptionRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        tier: 'starter',
+        billingCycle: 'monthly',
+        status: 'active',
+        stripeCustomerId: 'cus_1',
+        stripeSubscriptionId: 'sub_1',
+        additionalProfessionalBrands: 0,
+        adminOverrideUnlimited: false,
+        trialEndsAt: null,
+        currentPeriodEnd: null,
+        cancelAtPeriodEnd: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      creditBalanceRepo.findByUserId = vi.fn().mockResolvedValue({
+        userId: 'user-1',
+        periodKey: '2026-07',
+        planCreditsTotal: 100,
+        planCreditsUsed: 100,
+        purchasedCreditsBalance: 5,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const [result] = await useCase.execute()
+
+      expect(result).not.toMatchObject({ action: 'skipped-no-credits' })
     })
   })
 })

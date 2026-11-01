@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query'
 import { api, type ApiGenerationRequest, type PublishResponse } from '../../../lib/api'
 import { useWakeLock } from '../../../lib/useWakeLock'
 import { useSelfieNarration } from '../../../contexts/AssistantContext'
+import { useSubscription } from '../../../contexts/SubscriptionContext'
+import { CreditConfirmModal } from '../../../components/CreditConfirmModal'
 import { estimateManualMinutes, formatMinutes, addTimeSaved } from '../../../lib/selfieTimeSaved'
 import {
   Platform,
@@ -228,6 +230,8 @@ function Lightbox({
   const [bodyInput, setBodyInput] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [editError, setEditError] = useState('')
+  const { credits, refreshCredits } = useSubscription()
+  const [confirmingEdit, setConfirmingEdit] = useState(false)
 
   const artifact = artifacts[index]!
   const canEditText = artifact.backgroundImageStoragePath !== null
@@ -250,9 +254,34 @@ function Lightbox({
     setEditError('')
   }, [index, headlines, bodyTexts])
 
+  // Editar sempre gera exatamente 1 imagem nova — 1 crédito, sem variação (_local-adr-policy-0NN).
   const handleSubmitEdit = async () => {
     if (!instruction.trim()) return
     setEditError('')
+    let fresh = credits
+    try {
+      fresh = await refreshCredits()
+    } catch {
+      // Fail-open — mesmo princípio do resto dos guardrails de custo do projeto.
+    }
+
+    if (fresh && fresh.totalAvailable !== null && fresh.totalAvailable <= 0) {
+      setEditError('Seus créditos de IA deste mês acabaram. Eles são repostos no começo do próximo mês, ou você pode comprar créditos avulsos.')
+      return
+    }
+    if (fresh && fresh.totalAvailable === null) {
+      await runSubmitEdit()
+      return
+    }
+    setConfirmingEdit(true)
+  }
+
+  const handleConfirmEdit = async () => {
+    setConfirmingEdit(false)
+    await runSubmitEdit()
+  }
+
+  const runSubmitEdit = async () => {
     setSubmitting(true)
     try {
       const updated = await api.editArtifact(generationRequestId, artifact.position, instruction.trim())
@@ -263,6 +292,7 @@ function Lightbox({
       setEditError(err instanceof Error ? err.message : 'Erro ao editar o card.')
     } finally {
       setSubmitting(false)
+      refreshCredits().catch(() => {})
     }
   }
 
@@ -288,6 +318,14 @@ function Lightbox({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+      {confirmingEdit && (
+        <CreditConfirmModal
+          creditsNeeded={1}
+          onConfirm={handleConfirmEdit}
+          onCancel={() => setConfirmingEdit(false)}
+          busy={submitting}
+        />
+      )}
       <button
         onClick={onClose}
         className="absolute right-4 top-4 rounded-full bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/20"
@@ -480,6 +518,8 @@ export default function GenerateContentPage() {
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<ApiGenerationRequest | null>(null)
   const [error, setError] = useState('')
+  const { credits, refreshCredits } = useSubscription()
+  const [creditConfirm, setCreditConfirm] = useState<{ creditsNeeded: number } | null>(null)
 
   useEffect(() => {
     const data: GenerateDraft = {
@@ -571,7 +611,47 @@ export default function GenerateContentPage() {
     clearNarration()
   }
 
+  // Fotos próprias (photoFiles.length > 0) nunca chamam o gerador de imagem por IA — não
+  // consomem crédito, geram direto sem confirmação nenhuma (_local-adr-policy-0NN).
   const handleGenerate = async () => {
+    if (photoFiles.length > 0) {
+      await runGenerate()
+      return
+    }
+
+    setError('')
+    let fresh = credits
+    try {
+      fresh = await refreshCredits()
+    } catch {
+      // Falha ao buscar o saldo não deve travar quem nunca passou do limite de verdade —
+      // mesmo princípio fail-open já usado no resto dos guardrails de custo do projeto.
+    }
+
+    if (fresh && fresh.totalAvailable !== null && fresh.totalAvailable <= 0) {
+      setError('Seus créditos de IA deste mês acabaram. Eles são repostos no começo do próximo mês, ou você pode comprar créditos avulsos.')
+      return
+    }
+
+    if (fresh && fresh.totalAvailable === null) {
+      // Conta ilimitada (legado/admin) — segue direto, sem modal nem número pra mostrar.
+      await runGenerate()
+      return
+    }
+
+    const creditsNeeded =
+      fresh && fresh.totalAvailable !== null
+        ? Math.max(1, Math.min(MAX_GENERATION_ARTIFACTS, fresh.totalAvailable))
+        : MAX_GENERATION_ARTIFACTS
+    setCreditConfirm({ creditsNeeded })
+  }
+
+  const handleConfirmGenerate = async () => {
+    setCreditConfirm(null)
+    await runGenerate()
+  }
+
+  const runGenerate = async () => {
     setError('')
     setGenerating(true)
 
@@ -623,6 +703,7 @@ export default function GenerateContentPage() {
       clearNarration()
     } finally {
       setGenerating(false)
+      refreshCredits().catch(() => {})
     }
   }
 
@@ -630,6 +711,14 @@ export default function GenerateContentPage() {
 
   return (
     <div className="space-y-6">
+      {creditConfirm && (
+        <CreditConfirmModal
+          creditsNeeded={creditConfirm.creditsNeeded}
+          onConfirm={handleConfirmGenerate}
+          onCancel={() => setCreditConfirm(null)}
+          busy={generating}
+        />
+      )}
       <div className="flex items-center gap-4">
         <button onClick={() => router.back()} className="text-sm text-muted hover:text-ink">
           ← Voltar

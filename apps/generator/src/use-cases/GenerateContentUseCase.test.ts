@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { GenerateContentUseCase } from './GenerateContentUseCase.js'
-import { Platform, TemplateStyle, AspectRatio, AI_SPENDING_LIMIT_REACHED_MESSAGE } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio, NO_CREDITS_AVAILABLE_MESSAGE, brasiliaMonthKey } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
   ArtDirectorPort,
@@ -11,8 +11,10 @@ import type {
   PostRepository,
   BrandProfileRepository,
   TopicSuggestionRepository,
-  AiSpendingGuardPort,
+  CreditBalanceRepository,
+  CreditBalance,
   SubscriptionRepository,
+  Subscription,
   BrandProfile,
   TopicSuggestion,
 } from '@socialshelf/domain'
@@ -29,6 +31,39 @@ const mockBrandProfile: BrandProfile = {
   narrative: { recurringThemes: [] },
   operation: { autonomyLevel: 'manual', autoPublishTopics: [], blockedTopics: [], maxAutoPostsPerDay: 1, stylePreferences: [], dailyAiSpendingLimitBrl: null },
   createdAt: new Date(),
+}
+
+function makeSubscription(overrides: Partial<Subscription> = {}): Subscription {
+  return {
+    userId: 'brand-1',
+    tier: 'legacy',
+    billingCycle: null,
+    status: 'active',
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    additionalProfessionalBrands: 0,
+    adminOverrideUnlimited: false,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
+function makeCreditBalance(overrides: Partial<CreditBalance> = {}): CreditBalance {
+  const now = new Date()
+  return {
+    userId: 'brand-1',
+    periodKey: brasiliaMonthKey(now),
+    planCreditsTotal: 100,
+    planCreditsUsed: 0,
+    purchasedCreditsBalance: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
 }
 
 function makeDeps(
@@ -115,28 +150,26 @@ function makeDeps(
     findById: vi.fn().mockResolvedValue(null),
   }
 
-  const aiSpendingGuard: AiSpendingGuardPort = {
-    sumCostUsdSince: vi.fn().mockResolvedValue(0),
+  // 'legacy' (monthlyCreditsIncluded: null) não tem teto de plano — preserva o comportamento
+  // destes testes de antes do reclamping por plano existir (_local-adr-policy-0NN). findByUserId
+  // devolvendo null simula "nunca gerou nada" — resolveEffectiveCreditState trata como saldo
+  // cheio do período atual.
+  const creditFindByUserId = vi.fn().mockResolvedValue(null)
+  const creditBalanceRepo: CreditBalanceRepository = {
+    findByUserId: creditFindByUserId,
+    save: vi.fn().mockResolvedValue(undefined),
+    // Mock funcional (não só um stub): aplica `mutate` de verdade em cima do que
+    // findByUserId resolve no momento, pra testar o resultado real da dedução, igual a
+    // implementação de verdade faria dentro da transação do Firestore.
+    atomicUpdate: vi.fn(async (userId: string, mutate: (current: CreditBalance | null) => CreditBalance) => {
+      const current = await creditFindByUserId(userId)
+      return mutate(current)
+    }),
+    applyPurchaseOnce: vi.fn().mockResolvedValue(undefined),
   }
 
-  // 'legacy' não tem teto de plano (null) — preserva o comportamento destes testes de antes do
-  // reclamping por plano existir (_local-adr-policy-0NN, Fase 4b).
   const subscriptionRepo: SubscriptionRepository = {
-    findByUserId: vi.fn().mockResolvedValue({
-      userId: 'user-1',
-      tier: 'legacy',
-      billingCycle: null,
-      status: 'active',
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      additionalProfessionalBrands: 0,
-      adminOverrideUnlimited: false,
-      trialEndsAt: null,
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+    findByUserId: vi.fn().mockResolvedValue(makeSubscription()),
     save: vi.fn().mockResolvedValue(undefined),
   }
 
@@ -150,7 +183,7 @@ function makeDeps(
     postRepo,
     brandProfileRepo,
     topicSuggestionRepo,
-    aiSpendingGuard,
+    creditBalanceRepo,
     subscriptionRepo,
   }
 }
@@ -184,7 +217,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -211,7 +244,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -239,7 +272,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -265,7 +298,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -291,7 +324,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -315,7 +348,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -340,7 +373,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -378,7 +411,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -403,7 +436,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -426,7 +459,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -457,7 +490,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -484,7 +517,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -507,7 +540,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -543,7 +576,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -567,7 +600,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -589,7 +622,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -618,7 +651,7 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -632,14 +665,12 @@ describe('GenerateContentUseCase', () => {
     )
   })
 
-  it('recusa gerar e marca a requisição como failed quando o limite diário de gasto foi atingido', async () => {
+  it('recusa gerar e marca a requisição como failed quando o saldo de créditos do mês acabou', async () => {
     const deps = makeDeps()
-    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...mockBrandProfile,
-      operation: { ...mockBrandProfile.operation, dailyAiSpendingLimitBrl: 1 },
-    })
-    // 1 USD * USD_TO_BRL_RATE (5.4) = R$5,40, acima do limite de R$1 configurado.
-    ;(deps.aiSpendingGuard.sumCostUsdSince as ReturnType<typeof vi.fn>).mockResolvedValue(1)
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 100 }),
+    )
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.artDirector,
@@ -650,45 +681,27 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('failed')
-    expect(result.error).toBe(AI_SPENDING_LIMIT_REACHED_MESSAGE)
+    expect(result.error).toBe(NO_CREDITS_AVAILABLE_MESSAGE)
     expect(deps.copyGenerator.generateCopy).not.toHaveBeenCalled()
     expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
     expect(deps.postRepo.save).not.toHaveBeenCalled()
   })
 
-  it('reclampa o limite configurado na marca pelo teto do plano — recusa mesmo com margem no limite da marca', async () => {
+  it('clampa o teto de imagens da geração pelo saldo disponível, em vez do teto fixo de 10', async () => {
     const deps = makeDeps()
-    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...mockBrandProfile,
-      // Marca configurou um teto generoso (R$100)...
-      operation: { ...mockBrandProfile.operation, dailyAiSpendingLimitBrl: 100 },
-    })
-    // ...mas o plano (free) só cobre R$5/dia — downgrade de plano precisa valer na hora, sem
-    // o usuário precisar resalvar a marca (_local-adr-policy-0NN, Fase 4b).
-    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue({
-      userId: 'user-1',
-      tier: 'free',
-      billingCycle: null,
-      status: 'active',
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      additionalProfessionalBrands: 0,
-      adminOverrideUnlimited: false,
-      trialEndsAt: null,
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    // 2 USD * 5.4 = R$10,80 — acima do teto do plano (R$5), mas bem abaixo do teto da marca (R$100).
-    ;(deps.aiSpendingGuard.sumCostUsdSince as ReturnType<typeof vi.fn>).mockResolvedValue(2)
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    // Sobram só 3 créditos no período (100 incluídos, 97 já usados) — a geração não pode tentar
+    // mais que isso, mesmo o teto normal (MAX_GENERATION_ARTIFACTS) sendo 10.
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 97 }),
+    )
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.artDirector,
@@ -699,18 +712,22 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
-    const result = await useCase.execute(baseInput())
+    await useCase.execute(baseInput())
 
-    expect(result.status).toBe('failed')
-    expect(result.error).toBe(AI_SPENDING_LIMIT_REACHED_MESSAGE)
+    expect(deps.copyGenerator.generateCopy).toHaveBeenCalledWith(
+      expect.objectContaining({ artifactPlan: { mode: 'free', maxCount: 3 } }),
+    )
   })
 
-  it('gera normalmente sem consultar o gasto quando a marca não configurou limite diário', async () => {
-    const deps = makeDeps()
+  it('desconta do saldo de créditos exatamente a quantidade de artefatos gerados com sucesso', async () => {
+    const deps = makeDeps({ headlineCount: 3 })
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    const balance = makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 10 })
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(balance)
     const useCase = new GenerateContentUseCase(
       deps.copyGenerator,
       deps.artDirector,
@@ -721,13 +738,60 @@ describe('GenerateContentUseCase', () => {
       deps.postRepo,
       deps.brandProfileRepo,
       deps.topicSuggestionRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
     const result = await useCase.execute(baseInput())
 
     expect(result.status).toBe('ready')
-    expect(deps.aiSpendingGuard.sumCostUsdSince).not.toHaveBeenCalled()
+    expect(deps.creditBalanceRepo.atomicUpdate).toHaveBeenCalledTimes(1)
+    const saved = await (deps.creditBalanceRepo.atomicUpdate as ReturnType<typeof vi.fn>).mock.results[0]!.value
+    expect(saved.planCreditsUsed).toBe(13)
+  })
+
+  it('não desconta crédito nenhum quando o usuário envia as próprias fotos (modo fixed)', async () => {
+    const deps = makeDeps()
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeCreditBalance())
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+      deps.creditBalanceRepo,
+      deps.subscriptionRepo,
+    )
+
+    await useCase.execute({ ...baseInput(), imageStoragePaths: ['brand-1/uploads/foto.png'] })
+
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
+  })
+
+  it('não bloqueia nem desconta saldo quando a conta é ilimitada (legacy/admin)', async () => {
+    const deps = makeDeps()
+    const useCase = new GenerateContentUseCase(
+      deps.copyGenerator,
+      deps.artDirector,
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.postRepo,
+      deps.brandProfileRepo,
+      deps.topicSuggestionRepo,
+      deps.creditBalanceRepo,
+      deps.subscriptionRepo,
+    )
+
+    const result = await useCase.execute(baseInput())
+
+    expect(result.status).toBe('ready')
+    expect(deps.creditBalanceRepo.atomicUpdate).not.toHaveBeenCalled()
   })
 })
