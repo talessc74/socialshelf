@@ -27,6 +27,7 @@ Decisões de design de sistema e decomposição de serviços.
 - [_local-adr-policy-040-ativacao-do-modo-automatico-de-publicacao](application/040-ativacao-modo-automatico-publicacao.md) - Ativa o dial de autonomia (Fase 4) com guardrails como pré-condição: teto diário definido pelo usuário, classificação semântica de bloqueio, e modo automático restrito aos tópicos liberados
 - [_local-adr-policy-041-campanha-de-fotos-espinha-dorsal-fase-1](application/041-campanha-de-fotos-espinha-dorsal.md) - Fase 1 da campanha de fotos em lote: usuário sobe suas fotos, sistema agrupa por localidade/EXIF e materializa Post normais via o mesmo agendador que já existe
 - [_local-adr-policy-043-assinatura-via-stripe-integracao-tecnica](application/043-assinatura-stripe-integracao-tecnica.md) - Subscription, PlanLimits como fonte única de verdade, gates de quota/autonomia/features/retenção por plano, bypass de admin persistido e Stripe Checkout/Portal/Webhook
+- [_local-adr-policy-044-sistema-de-creditos-de-ia](application/044-sistema-de-creditos-de-ia.md) - CreditBalance, reposição mensal preguiçosa, clampagem de artifactPlan pelo saldo, débito pelo real produzido (não pelo teto), e compra avulsa via Stripe Checkout mode 'payment'
 
 ### controls
 Controles de segurança e proteção de dados em nível arquitetural.

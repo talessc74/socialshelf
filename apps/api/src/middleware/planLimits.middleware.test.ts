@@ -78,18 +78,27 @@ describe('registerPlanLimitsMiddleware', () => {
   it('bloqueia com 403 plan_feature_not_included quando o plano Grátis não tem a feature', async () => {
     mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'free' }))
 
-    const response = await app.inject({ method: 'GET', url: '/tiktokVideo' })
+    const response = await app.inject({ method: 'GET', url: '/photoCampaigns' })
 
     expect(response.statusCode).toBe(403)
-    expect(response.json()).toEqual({ error: 'plan_feature_not_included', feature: 'tiktokVideo', upgradeTier: 'starter' })
+    expect(response.json()).toEqual({ error: 'plan_feature_not_included', feature: 'photoCampaigns', upgradeTier: 'starter' })
   })
 
   it('libera quando o plano Pro inclui a feature', async () => {
     mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'pro' }))
 
-    const response = await app.inject({ method: 'GET', url: '/tiktokVideo' })
+    const response = await app.inject({ method: 'GET', url: '/photoCampaigns' })
 
     expect(response.statusCode).toBe(200)
+  })
+
+  it('vídeo para TikTok não está incluído em nenhum plano por enquanto, mesmo nos pagos — nunca sugere upgrade', async () => {
+    mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'agency' }))
+
+    const response = await app.inject({ method: 'GET', url: '/tiktokVideo' })
+
+    expect(response.statusCode).toBe(403)
+    expect(response.json()).toEqual({ error: 'plan_feature_not_included', feature: 'tiktokVideo', upgradeTier: null })
   })
 
   it('libera tudo para adminOverrideUnlimited, independente do tier', async () => {

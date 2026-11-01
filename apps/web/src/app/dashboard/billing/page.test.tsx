@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import BillingPage from './page'
 import { api } from '../../../lib/api'
-import type { ApiPlanLimits, ApiSubscription } from '../../../lib/api'
+import type { ApiPlanLimits, ApiSubscription, ApiCreditState } from '../../../lib/api'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
@@ -15,7 +15,12 @@ vi.mock('../../../lib/api', () => ({
 }))
 
 const subscriptionMock = vi.hoisted(() => ({
-  current: { subscription: null as ApiSubscription | null, limits: null as ApiPlanLimits | null, loading: true },
+  current: {
+    subscription: null as ApiSubscription | null,
+    limits: null as ApiPlanLimits | null,
+    credits: null as ApiCreditState | null,
+    loading: true,
+  },
 }))
 vi.mock('../../../contexts/SubscriptionContext', () => ({ useSubscription: () => subscriptionMock.current }))
 
@@ -49,7 +54,7 @@ function makeLimits(overrides: Partial<ApiPlanLimits> = {}): ApiPlanLimits {
     maxAutonomyLevel: 'automatic',
     maxAutoPostsPerDayCeiling: 2,
     historyRetentionDays: 180,
-    defaultDailyAiSpendingLimitBrl: 50,
+    monthlyCreditsIncluded: 200,
     allowTikTokVideo: true,
     allowPhotoCampaigns: true,
     allowPerformanceAnalytics: true,
@@ -57,10 +62,20 @@ function makeLimits(overrides: Partial<ApiPlanLimits> = {}): ApiPlanLimits {
   }
 }
 
+function makeCredits(overrides: Partial<ApiCreditState> = {}): ApiCreditState {
+  return {
+    periodKey: '2026-11',
+    planRemaining: 150,
+    purchasedRemaining: 0,
+    totalAvailable: 150,
+    ...overrides,
+  }
+}
+
 describe('BillingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    subscriptionMock.current = { subscription: null, limits: null, loading: true }
+    subscriptionMock.current = { subscription: null, limits: null, credits: null, loading: true }
   })
 
   it('mostra carregando enquanto o plano não chegou', () => {
@@ -69,7 +84,12 @@ describe('BillingPage', () => {
   })
 
   it('mostra o plano atual e os limites', async () => {
-    subscriptionMock.current = { subscription: makeSubscription(), limits: makeLimits(), loading: false }
+    subscriptionMock.current = {
+      subscription: makeSubscription(),
+      limits: makeLimits(),
+      credits: makeCredits(),
+      loading: false,
+    }
 
     render(<BillingPage />)
 
@@ -77,8 +97,29 @@ describe('BillingPage', () => {
     expect(screen.getByText('Ativa')).toBeInTheDocument()
   })
 
+  it('mostra o saldo de créditos do mês', async () => {
+    subscriptionMock.current = {
+      subscription: makeSubscription(),
+      limits: makeLimits(),
+      credits: makeCredits({ planRemaining: 120, purchasedRemaining: 30, totalAvailable: 150 }),
+      loading: false,
+    }
+
+    render(<BillingPage />)
+
+    expect(await screen.findByText('Créditos de IA este mês')).toBeInTheDocument()
+    expect(screen.getByText('120')).toBeInTheDocument()
+    expect(screen.getByText('30')).toBeInTheDocument()
+    expect(screen.getByText('150')).toBeInTheDocument()
+  })
+
   it('mostra o botão de gerenciar assinatura num plano pago e abre o portal ao clicar', async () => {
-    subscriptionMock.current = { subscription: makeSubscription(), limits: makeLimits(), loading: false }
+    subscriptionMock.current = {
+      subscription: makeSubscription(),
+      limits: makeLimits(),
+      credits: makeCredits(),
+      loading: false,
+    }
     mockedApi.createPortalSession.mockResolvedValue('https://billing.stripe.com/p/123')
     const originalLocation = window.location
     Object.defineProperty(window, 'location', { value: { ...originalLocation, href: '' }, writable: true })
@@ -94,6 +135,7 @@ describe('BillingPage', () => {
     subscriptionMock.current = {
       subscription: makeSubscription({ tier: 'free', stripeCustomerId: null, status: 'active' }),
       limits: makeLimits({ tier: 'free' }),
+      credits: makeCredits({ planRemaining: 30, totalAvailable: 30 }),
       loading: false,
     }
 

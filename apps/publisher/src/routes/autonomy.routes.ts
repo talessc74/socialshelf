@@ -6,6 +6,7 @@ import { FirestoreAutonomyTickLogRepository } from '../infrastructure/firestore/
 import { FirestoreOAuthRepository } from '../infrastructure/firestore/FirestoreOAuthRepository.js'
 import { FirestorePostRepository } from '../infrastructure/firestore/FirestorePostRepository.js'
 import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
+import { FirestoreCreditBalanceRepository } from '../infrastructure/firestore/FirestoreCreditBalanceRepository.js'
 import { HttpGeneratorAutonomyClient } from '../infrastructure/generator/GeneratorAutonomyClient.js'
 import type { PublishPostUseCase } from '../use-cases/PublishPostUseCase.js'
 
@@ -34,6 +35,7 @@ export async function autonomyRoutes(app: FastifyInstance, publishPostUseCase: P
     new HttpGeneratorAutonomyClient(generatorUrl, internalSecret),
     new FirestoreAutonomyTickLogRepository(),
     new FirestoreSubscriptionRepository(),
+    new FirestoreCreditBalanceRepository(),
   )
 
   app.post('/internal/autonomy-tick', async (request, reply) => {

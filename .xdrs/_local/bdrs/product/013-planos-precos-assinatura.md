@@ -105,8 +105,20 @@ produto antes do billing existir.
 - Preços e limites desta tabela são a fonte de verdade — qualquer mudança de valor exige uma
   revisão desta policy, não só um ajuste de código solto.
 
+## Superada — teto de gasto diário em R$ trocado por créditos mensais (2026-11-01)
+
+A linha "Teto de gasto diário de IA" da tabela acima (R$5/R$15/R$50/R$100) **não vale mais**.
+Ao revisar o desenho com o usuário, ficou claro que um teto em R$ só protege a conta na
+média, não no pior caso — e o pior caso (usuário batendo no teto todo dia do mês) chegava a
+15-36× o preço pago, com o risco caindo inteiramente sobre o operador do produto.
+`_local-bdr-policy-014` substitui essa linha por um saldo de créditos mensal (1 crédito = 1
+imagem) cujo pior caso nunca passa do que foi pago, por desenho. "Vídeo para TikTok" também
+saiu da tabela de recursos do Pro/Agência nessa mesma revisão — ver `_local-bdr-policy-014`
+pros valores novos e o motivo.
+
 ## References
 
 - [_local-bdr-policy-009-contas-pessoal-profissional-cobranca](009-contas-pessoal-profissional-cobranca.md) - Decisão original de modelo de contas que deixou os preços como "a definir"; esta policy fecha essa pendência
 - [_local-adr-policy-030-quota-de-marca-por-tipo-de-conta](../../adrs/application/030-quota-marca-tipo-conta.md) - Implementação técnica original da checagem de quota, agora completada por `_local-adr-policy-043`
 - [_local-adr-policy-043-assinatura-via-stripe-integracao-tecnica](../../adrs/application/043-assinatura-stripe-integracao-tecnica.md) - Implementação técnica completa desta decisão de preços (Stripe, `PlanLimits`, gates por plano)
+- [_local-bdr-policy-014-sistema-de-creditos-e-tiktok-em-breve](014-sistema-de-creditos-tiktok-em-breve.md) - Substitui a linha de teto de gasto diário em R$ desta tabela por créditos mensais; tira "vídeo para TikTok" da vitrine

@@ -107,15 +107,6 @@ export async function brandProfileRoutes(app: FastifyInstance) {
         })
       }
 
-      const requestedLimit = parsed.data.operation.dailyAiSpendingLimitBrl
-      if (
-        requestedLimit !== null &&
-        limits.defaultDailyAiSpendingLimitBrl !== null &&
-        requestedLimit > limits.defaultDailyAiSpendingLimitBrl
-      ) {
-        return reply.status(403).send({ error: 'spending_limit_above_plan', upgradeTier })
-      }
-
       const profile = await createBrandProfileVersion.execute({
         userId: request.userId,
         brandId: request.brandId,

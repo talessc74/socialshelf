@@ -2,11 +2,20 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import { buildApp } from '../app.js'
 import type { FastifyInstance } from 'fastify'
 
-const { mockVerifyIdToken, mockFindSubscription, mockSaveSubscription, mockBrandFindByUserId } = vi.hoisted(() => ({
+const {
+  mockVerifyIdToken,
+  mockFindSubscription,
+  mockSaveSubscription,
+  mockBrandFindByUserId,
+  mockFindCreditBalance,
+  mockSaveCreditBalance,
+} = vi.hoisted(() => ({
   mockVerifyIdToken: vi.fn(),
   mockFindSubscription: vi.fn(),
   mockSaveSubscription: vi.fn(),
   mockBrandFindByUserId: vi.fn(),
+  mockFindCreditBalance: vi.fn(),
+  mockSaveCreditBalance: vi.fn(),
 }))
 
 vi.mock('../infrastructure/firebase-admin.js', () => ({
@@ -28,6 +37,13 @@ vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => 
   FirestoreSubscriptionRepository: vi.fn().mockImplementation(() => ({
     findByUserId: mockFindSubscription,
     save: mockSaveSubscription,
+  })),
+}))
+
+vi.mock('../infrastructure/firestore/FirestoreCreditBalanceRepository.js', () => ({
+  FirestoreCreditBalanceRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: mockFindCreditBalance,
+    save: mockSaveCreditBalance,
   })),
 }))
 
@@ -68,6 +84,8 @@ describe('billing.routes', () => {
     mockCustomersCreate.mockReset().mockResolvedValue({ id: 'cus_new' })
     mockCheckoutSessionsCreate.mockReset().mockResolvedValue({ url: 'https://checkout.stripe.com/s/123' })
     mockPortalSessionsCreate.mockReset().mockResolvedValue({ url: 'https://billing.stripe.com/p/123' })
+    mockFindCreditBalance.mockReset().mockResolvedValue(null)
+    mockSaveCreditBalance.mockReset().mockResolvedValue(undefined)
   })
 
   describe('GET /billing/subscription', () => {
@@ -149,6 +167,82 @@ describe('billing.routes', () => {
 
       expect(response.statusCode).toBe(200)
       expect(response.json()).toEqual({ url: 'https://billing.stripe.com/p/123' })
+    })
+  })
+
+  describe('GET /billing/credits', () => {
+    it('exige autenticação', async () => {
+      const response = await app.inject({ method: 'GET', url: '/billing/credits' })
+      expect(response.statusCode).toBe(401)
+    })
+
+    it('devolve o saldo efetivo pro plano do usuário (free, sem compra avulsa ainda)', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/billing/credits',
+        headers: { authorization: 'Bearer test-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toMatchObject({ planRemaining: 30, purchasedRemaining: 0, totalAvailable: 30 })
+    })
+
+    it('soma o saldo avulso comprado ao total disponível', async () => {
+      mockFindCreditBalance.mockResolvedValue({
+        userId: 'user-test-123',
+        periodKey: new Date().toISOString().slice(0, 7),
+        planCreditsTotal: 30,
+        planCreditsUsed: 10,
+        purchasedCreditsBalance: 40,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/billing/credits',
+        headers: { authorization: 'Bearer test-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toMatchObject({ planRemaining: 20, purchasedRemaining: 40, totalAvailable: 60 })
+    })
+  })
+
+  describe('GET /billing/credits/checkout', () => {
+    it('exige autenticação', async () => {
+      const response = await app.inject({ method: 'GET', url: '/billing/credits/checkout?pack=50' })
+      expect(response.statusCode).toBe(401)
+    })
+
+    it('devolve 400 pra um pacote inválido', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/billing/credits/checkout?pack=99',
+        headers: { authorization: 'Bearer test-token' },
+      })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('devolve 400 sem o parâmetro pack', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/billing/credits/checkout',
+        headers: { authorization: 'Bearer test-token' },
+      })
+      expect(response.statusCode).toBe(400)
+    })
+
+    it('cria a checkout session de créditos e devolve a url, pra cada pacote permitido', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/billing/credits/checkout?pack=150',
+        headers: { authorization: 'Bearer test-token' },
+      })
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({ url: 'https://checkout.stripe.com/s/123' })
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(expect.objectContaining({ mode: 'payment' }))
     })
   })
 })

@@ -44,6 +44,10 @@ const ACTION_INFO: Record<ApiAutonomyTickAction, { label: string; className: str
     label: 'Pulado — nível de autonomia acima do que o plano atual permite',
     className: 'bg-amber-50 text-amber-700',
   },
+  'skipped-no-credits': {
+    label: 'Pulado — créditos de IA do mês acabaram',
+    className: 'bg-amber-50 text-amber-700',
+  },
   error: { label: 'Erro ao gerar ou publicar', className: 'bg-red-50 text-red-700' },
 }
 

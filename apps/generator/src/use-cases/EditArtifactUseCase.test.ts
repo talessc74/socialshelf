@@ -1,17 +1,52 @@
 import { describe, it, expect, vi } from 'vitest'
-import { Platform, TemplateStyle, AspectRatio, AI_SPENDING_LIMIT_REACHED_MESSAGE } from '@socialshelf/domain'
+import { Platform, TemplateStyle, AspectRatio, NO_CREDITS_AVAILABLE_MESSAGE, brasiliaMonthKey } from '@socialshelf/domain'
 import type {
   ImageGeneratorPort,
   TemplateRendererPort,
   ImageStoragePort,
   GenerationRequestRepository,
   BrandProfileRepository,
-  AiSpendingGuardPort,
+  CreditBalanceRepository,
+  CreditBalance,
   SubscriptionRepository,
+  Subscription,
   BrandProfile,
   GenerationRequest,
 } from '@socialshelf/domain'
 import { EditArtifactUseCase } from './EditArtifactUseCase.js'
+
+function makeSubscription(overrides: Partial<Subscription> = {}): Subscription {
+  return {
+    userId: 'user-1',
+    tier: 'legacy',
+    billingCycle: null,
+    status: 'active',
+    stripeCustomerId: null,
+    stripeSubscriptionId: null,
+    additionalProfessionalBrands: 0,
+    adminOverrideUnlimited: false,
+    trialEndsAt: null,
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }
+}
+
+function makeCreditBalance(overrides: Partial<CreditBalance> = {}): CreditBalance {
+  const now = new Date()
+  return {
+    userId: 'user-1',
+    periodKey: brasiliaMonthKey(now),
+    planCreditsTotal: 100,
+    planCreditsUsed: 0,
+    purchasedCreditsBalance: 0,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  }
+}
 
 const mockBrandProfile: BrandProfile = {
   id: 'profile-1',
@@ -92,27 +127,14 @@ function makeDeps(request: GenerationRequest = makeRequest()) {
     findLatestByBrand: vi.fn().mockResolvedValue(mockBrandProfile),
     findByBrandAndVersion: vi.fn(),
   }
-  const aiSpendingGuard: AiSpendingGuardPort = {
-    sumCostUsdSince: vi.fn().mockResolvedValue(0),
+  // 'legacy' (monthlyCreditsIncluded: null) não tem teto de plano — preserva o comportamento
+  // destes testes de antes do reclamping por plano existir (_local-adr-policy-0NN).
+  const creditBalanceRepo: CreditBalanceRepository = {
+    findByUserId: vi.fn().mockResolvedValue(null),
+    save: vi.fn().mockResolvedValue(undefined),
   }
-  // 'legacy' não tem teto de plano (null) — preserva o comportamento destes testes de antes do
-  // reclamping por plano existir (_local-adr-policy-0NN, Fase 4b).
   const subscriptionRepo: SubscriptionRepository = {
-    findByUserId: vi.fn().mockResolvedValue({
-      userId: 'user-1',
-      tier: 'legacy',
-      billingCycle: null,
-      status: 'active',
-      stripeCustomerId: null,
-      stripeSubscriptionId: null,
-      additionalProfessionalBrands: 0,
-      adminOverrideUnlimited: false,
-      trialEndsAt: null,
-      currentPeriodEnd: null,
-      cancelAtPeriodEnd: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
+    findByUserId: vi.fn().mockResolvedValue(makeSubscription()),
     save: vi.fn().mockResolvedValue(undefined),
   }
 
@@ -122,7 +144,7 @@ function makeDeps(request: GenerationRequest = makeRequest()) {
     imageStorage,
     generationRequestRepo,
     brandProfileRepo,
-    aiSpendingGuard,
+    creditBalanceRepo,
     subscriptionRepo,
   }
 }
@@ -136,7 +158,7 @@ describe('EditArtifactUseCase', () => {
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.brandProfileRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
@@ -149,31 +171,75 @@ describe('EditArtifactUseCase', () => {
     )
   })
 
-  it('recusa regenerar e marca o artefato como failed quando o limite diário de gasto foi atingido', async () => {
+  it('recusa regenerar e marca o artefato como failed quando o saldo de créditos do mês acabou', async () => {
     const deps = makeDeps()
-    ;(deps.brandProfileRepo.findLatestByBrand as ReturnType<typeof vi.fn>).mockResolvedValue({
-      ...mockBrandProfile,
-      operation: { ...mockBrandProfile.operation, dailyAiSpendingLimitBrl: 1 },
-    })
-    ;(deps.aiSpendingGuard.sumCostUsdSince as ReturnType<typeof vi.fn>).mockResolvedValue(1)
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 100 }),
+    )
     const useCase = new EditArtifactUseCase(
       deps.imageGenerator,
       deps.templateRenderer,
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.brandProfileRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
     const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
 
     expect(result.outputs?.artifacts[0]?.status).toBe('failed')
-    expect(result.outputs?.artifacts[0]?.error).toBe(AI_SPENDING_LIMIT_REACHED_MESSAGE)
+    expect(result.outputs?.artifacts[0]?.error).toBe(NO_CREDITS_AVAILABLE_MESSAGE)
     expect(deps.imageGenerator.generateImage).not.toHaveBeenCalled()
   })
 
-  it('não consulta o gasto quando a marca não configurou limite diário', async () => {
+  it('desconta exatamente 1 crédito quando a edição tem sucesso', async () => {
+    const deps = makeDeps()
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    const balance = makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 10 })
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(balance)
+    const useCase = new EditArtifactUseCase(
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.brandProfileRepo,
+      deps.creditBalanceRepo,
+      deps.subscriptionRepo,
+    )
+
+    await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
+
+    expect(deps.creditBalanceRepo.save).toHaveBeenCalledTimes(1)
+    const saved = (deps.creditBalanceRepo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0]
+    expect(saved.planCreditsUsed).toBe(11)
+  })
+
+  it('não desconta nada quando a edição falha', async () => {
+    const deps = makeDeps()
+    ;(deps.subscriptionRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(makeSubscription({ tier: 'starter' }))
+    ;(deps.creditBalanceRepo.findByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(
+      makeCreditBalance({ planCreditsTotal: 100, planCreditsUsed: 10 }),
+    )
+    ;(deps.imageGenerator.generateImage as ReturnType<typeof vi.fn>).mockRejectedValue(new Error('image gen failed'))
+    const useCase = new EditArtifactUseCase(
+      deps.imageGenerator,
+      deps.templateRenderer,
+      deps.imageStorage,
+      deps.generationRequestRepo,
+      deps.brandProfileRepo,
+      deps.creditBalanceRepo,
+      deps.subscriptionRepo,
+    )
+
+    const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
+
+    expect(result.outputs?.artifacts[0]?.status).toBe('failed')
+    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
+  })
+
+  it('não bloqueia nem desconta saldo quando a conta é ilimitada (legacy/admin)', async () => {
     const deps = makeDeps()
     const useCase = new EditArtifactUseCase(
       deps.imageGenerator,
@@ -181,13 +247,14 @@ describe('EditArtifactUseCase', () => {
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.brandProfileRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 
-    await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
+    const result = await useCase.execute({ generationRequestId: 'gen-1', position: 1, instruction: 'fundo mais claro' })
 
-    expect(deps.aiSpendingGuard.sumCostUsdSince).not.toHaveBeenCalled()
+    expect(result.outputs?.artifacts[0]?.status).toBe('ready')
+    expect(deps.creditBalanceRepo.save).not.toHaveBeenCalled()
   })
 
   it('lança quando a requisição não existe', async () => {
@@ -199,7 +266,7 @@ describe('EditArtifactUseCase', () => {
       deps.imageStorage,
       deps.generationRequestRepo,
       deps.brandProfileRepo,
-      deps.aiSpendingGuard,
+      deps.creditBalanceRepo,
       deps.subscriptionRepo,
     )
 

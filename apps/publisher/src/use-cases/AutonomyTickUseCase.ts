@@ -6,6 +6,7 @@ import {
   brasiliaDateNow,
   resolveEffectivePlanLimits,
   isAutonomyLevelWithinPlan,
+  resolveEffectiveCreditState,
 } from '@socialshelf/domain'
 import type {
   AutonomyBrandDiscoveryPort,
@@ -16,6 +17,7 @@ import type {
   OAuthRepository,
   PostRepository,
   SubscriptionRepository,
+  CreditBalanceRepository,
 } from '@socialshelf/domain'
 import type { PublishPostUseCase } from './PublishPostUseCase.js'
 import type {
@@ -98,6 +100,7 @@ export class AutonomyTickUseCase {
     private readonly generatorClient: GeneratorAutonomyClient,
     private readonly tickLog: AutonomyTickLogRepository,
     private readonly subscriptionRepo: SubscriptionRepository,
+    private readonly creditBalanceRepo: CreditBalanceRepository,
   ) {}
 
   async execute(): Promise<AutonomyTickBrandResult[]> {
@@ -167,6 +170,21 @@ export class AutonomyTickUseCase {
       : brand.maxAutoPostsPerDay
 
     const now = new Date()
+
+    // Checagem antecipada de saldo de créditos — o generator (apps/generator) já recusa gerar
+    // sem saldo de qualquer forma (_local-adr-policy-0NN), mas checar aqui antes evita gastar
+    // chamadas de sugestão/classificação à toa e dá uma ação específica no histórico do tick em
+    // vez de um 'failed' genérico vindo de dentro da geração.
+    const creditBalance = await this.creditBalanceRepo.findByUserId(brand.userId)
+    const creditState = resolveEffectiveCreditState(
+      creditBalance,
+      planLimits ? planLimits.monthlyCreditsIncluded : null,
+      now,
+    )
+    if (creditState.totalAvailable !== null && creditState.totalAvailable <= 0) {
+      return { ...base, action: 'skipped-no-credits' }
+    }
+
     // Prefixo "br-" evita colidir com os documentos antigos, escritos antes desta correção,
     // cuja chave era a mesma string de data mas calculada em UTC — sem o prefixo, o contador
     // de hoje herdaria de graça a contagem de tentativas que já tinham acontecido de

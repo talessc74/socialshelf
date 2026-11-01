@@ -2,9 +2,10 @@ import { randomUUID } from 'node:crypto'
 import {
   TemplateStyle,
   PLATFORM_CHARACTER_LIMITS,
-  MAX_GENERATION_ARTIFACTS,
-  AI_SPENDING_LIMIT_REACHED_MESSAGE,
+  NO_CREDITS_AVAILABLE_MESSAGE,
   resolveEffectivePlanLimits,
+  resolveEffectiveCreditState,
+  applyCreditConsumption,
 } from '@socialshelf/domain'
 import type {
   CopyGeneratorPort,
@@ -16,7 +17,7 @@ import type {
   PostRepository,
   BrandProfileRepository,
   TopicSuggestionRepository,
-  AiSpendingGuardPort,
+  CreditBalanceRepository,
   SubscriptionRepository,
   GenerationRequest,
   GenerationArtifact,
@@ -27,7 +28,7 @@ import type {
   TopicSuggestion,
   PostOrigin,
 } from '@socialshelf/domain'
-import { isAiSpendingLimitReached, resolveEffectiveDailyLimitBrl } from '../lib/aiSpendingLimit.js'
+import { resolveEffectiveMaxArtifacts, hasCreditsAvailable } from '../lib/creditSpending.js'
 
 export interface GenerateContentInput {
   userId: string
@@ -54,7 +55,7 @@ export class GenerateContentUseCase {
     private readonly postRepo: PostRepository,
     private readonly brandProfileRepo: BrandProfileRepository,
     private readonly topicSuggestionRepo: TopicSuggestionRepository,
-    private readonly aiSpendingGuard: AiSpendingGuardPort,
+    private readonly creditBalanceRepo: CreditBalanceRepository,
     private readonly subscriptionRepo: SubscriptionRepository,
   ) {}
 
@@ -85,20 +86,16 @@ export class GenerateContentUseCase {
     const brandProfile = await this.brandProfileRepo.findLatestByBrand(input.userId, input.brandId)
 
     // Subscription deveria sempre existir aqui (toda marca passa por EnsureSubscriptionUseCase
-    // na criação, em apps/api) — null é tratado como "sem teto do plano" por segurança contra
-    // falha, mesma filosofia fail-open do resto desta trava (_local-adr-policy-0NN, Fase 4b).
+    // na criação, em apps/api) — null é tratado como "ilimitado" por segurança contra falha,
+    // mesma filosofia fail-open do mecanismo que isto substitui (_local-adr-policy-0NN).
     const subscription = await this.subscriptionRepo.findByUserId(input.userId)
-    const planDailyLimitBrl = subscription ? resolveEffectivePlanLimits(subscription).defaultDailyAiSpendingLimitBrl : null
-    const effectiveDailyLimitBrl = resolveEffectiveDailyLimitBrl(
-      brandProfile?.operation.dailyAiSpendingLimitBrl ?? null,
-      planDailyLimitBrl,
-    )
+    const monthlyCreditsIncluded = subscription ? resolveEffectivePlanLimits(subscription).monthlyCreditsIncluded : null
+    const creditBalance = await this.creditBalanceRepo.findByUserId(input.userId)
+    const creditState = resolveEffectiveCreditState(creditBalance, monthlyCreditsIncluded, now)
 
-    if (
-      await isAiSpendingLimitReached(this.aiSpendingGuard, input.userId, input.brandId, effectiveDailyLimitBrl)
-    ) {
-      await this.generationRequestRepo.updateStatus(request.id, 'failed', AI_SPENDING_LIMIT_REACHED_MESSAGE)
-      return { ...request, status: 'failed', error: AI_SPENDING_LIMIT_REACHED_MESSAGE }
+    if (!hasCreditsAvailable(creditState.totalAvailable)) {
+      await this.generationRequestRepo.updateStatus(request.id, 'failed', NO_CREDITS_AVAILABLE_MESSAGE)
+      return { ...request, status: 'failed', error: NO_CREDITS_AVAILABLE_MESSAGE }
     }
 
     const topicSuggestion = await this.resolveTopicSuggestion(input.userId, input.brandId, input.topicSuggestionId)
@@ -109,10 +106,13 @@ export class GenerateContentUseCase {
     request.status = 'generating_copy'
     await this.generationRequestRepo.updateStatus(request.id, 'generating_copy')
 
+    // Fotos próprias (modo 'fixed') nunca chamam o gerador de imagem por IA — não consomem
+    // crédito, então o saldo não entra no teto. Modo 'free' (geração de verdade) é clampado pelo
+    // saldo disponível, pra nunca tentar produzir mais imagens do que o usuário pode pagar.
     const artifactPlan: ArtifactPlan =
       input.imageStoragePaths.length > 0
         ? { mode: 'fixed', count: input.imageStoragePaths.length }
-        : { mode: 'free', maxCount: MAX_GENERATION_ARTIFACTS }
+        : { mode: 'free', maxCount: resolveEffectiveMaxArtifacts(creditState.totalAvailable) }
 
     let copyResult
     try {
@@ -286,6 +286,15 @@ export class GenerateContentUseCase {
       request = { ...request, status: 'failed', error }
       await this.generationRequestRepo.updateStatus(request.id, 'failed', error)
       return request
+    }
+
+    // Cobra só pelo que de fato foi produzido (não pelo teto negociado antes de gerar) — modo
+    // 'fixed' (fotos próprias) nunca chega aqui tendo consumido nada, e contas ilimitadas
+    // (monthlyCreditsIncluded null) não gravam saldo nenhum.
+    if (input.imageStoragePaths.length === 0 && monthlyCreditsIncluded !== null) {
+      await this.creditBalanceRepo.save(
+        applyCreditConsumption(creditBalance, input.userId, monthlyCreditsIncluded, readyArtifacts.length, now),
+      )
     }
 
     request = { ...request, status: 'ready' }

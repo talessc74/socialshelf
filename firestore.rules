@@ -37,6 +37,14 @@ service cloud.firestore {
         allow write: if false; // written only by api-service (webhook + ensure-subscription)
       }
 
+      // AI credit balance sub-document (singleton, _local-adr-policy-0NN — substitui o teto de
+      // gasto diário em R$). Mesmo padrão de subscription: leitura pelo dono, escrita só backend
+      // (generator deduz ao gerar, api credita compra avulsa via webhook).
+      match /credits/{doc} {
+        allow read: if isAuthenticated() && isOwner(userId);
+        allow write: if false;
+      }
+
       // ── Brands ───────────────────────────────────────────────────────
       match /brands/{brandId} {
         allow read: if isAuthenticated() && isOwner(userId);

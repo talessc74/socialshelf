@@ -30,7 +30,7 @@ function formatDate(iso: string | null): string {
 
 export default function BillingPage() {
   const router = useRouter()
-  const { subscription, limits, loading } = useSubscription()
+  const { subscription, limits, credits, loading } = useSubscription()
   const [portalBusy, setPortalBusy] = useState(false)
   const [portalError, setPortalError] = useState('')
 
@@ -79,11 +79,9 @@ export default function BillingPage() {
                 <dd className="font-medium text-ink">{limits.maxAutonomyLevel}</dd>
               </div>
               <div>
-                <dt className="text-xs uppercase text-muted">Teto de gasto diário de IA</dt>
+                <dt className="text-xs uppercase text-muted">Créditos de IA por mês</dt>
                 <dd className="font-medium text-ink">
-                  {limits.defaultDailyAiSpendingLimitBrl === null
-                    ? 'Sem teto'
-                    : `R$ ${limits.defaultDailyAiSpendingLimitBrl}/dia`}
+                  {limits.monthlyCreditsIncluded === null ? 'Ilimitados' : limits.monthlyCreditsIncluded}
                 </dd>
               </div>
               <div>
@@ -128,6 +126,39 @@ export default function BillingPage() {
               </Link>
             </div>
           </div>
+
+          {credits && (
+            <div className="space-y-3 rounded-2xl border border-line bg-card p-5 shadow-card">
+              <h2 className="text-lg font-semibold text-ink">Créditos de IA este mês</h2>
+              <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <div>
+                  <dt className="text-xs uppercase text-muted">Do plano</dt>
+                  <dd className="font-medium text-ink">
+                    {credits.planRemaining === null ? 'Ilimitado' : credits.planRemaining}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase text-muted">Avulso comprado</dt>
+                  <dd className="font-medium text-ink">{credits.purchasedRemaining}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs uppercase text-muted">Total disponível</dt>
+                  <dd className="font-medium text-ink">
+                    {credits.totalAvailable === null ? 'Ilimitado' : credits.totalAvailable}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-xs text-muted">
+                O saldo do plano reinicia todo mês. Créditos avulsos comprados não expiram.
+              </p>
+              <Link
+                href="/dashboard/billing/credits"
+                className="inline-block rounded-xl border border-line px-4 py-2 text-sm font-semibold text-ink hover:bg-card-2"
+              >
+                Comprar créditos avulsos
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </div>

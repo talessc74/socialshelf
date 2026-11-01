@@ -44,7 +44,10 @@ export async function registerPlanLimitsMiddleware(app: FastifyInstance): Promis
         return reply.status(403).send({
           error: 'plan_feature_not_included',
           feature,
-          upgradeTier: UPGRADE_SUGGESTION[subscription.tier] ?? null,
+          // Vídeo para TikTok está fora de todo plano por enquanto (bloqueio de CNPJ, não um
+          // degrau de preço) — nenhum upgrade desbloqueia, então não sugere nenhum
+          // (_local-bdr-policy-012, mesmo caso do Meta App Review).
+          upgradeTier: feature === 'tiktokVideo' ? null : (UPGRADE_SUGGESTION[subscription.tier] ?? null),
         })
       }
     }

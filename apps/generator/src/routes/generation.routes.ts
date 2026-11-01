@@ -16,6 +16,7 @@ import { FirestoreBrandProfileRepository } from '../infrastructure/firestore/Fir
 import { FirestoreTopicSuggestionRepository } from '../infrastructure/firestore/FirestoreTopicSuggestionRepository.js'
 import { FirestoreAiUsageRepository } from '../infrastructure/firestore/FirestoreAiUsageRepository.js'
 import { FirestoreSubscriptionRepository } from '../infrastructure/firestore/FirestoreSubscriptionRepository.js'
+import { FirestoreCreditBalanceRepository } from '../infrastructure/firestore/FirestoreCreditBalanceRepository.js'
 import { computePerceptualHash } from '../lib/perceptualHash.js'
 import { computeAspectRatio } from '../lib/imageAspectRatio.js'
 
@@ -97,6 +98,7 @@ export async function generationRoutes(app: FastifyInstance) {
   const brandProfileRepo = new FirestoreBrandProfileRepository()
   const topicSuggestionRepo = new FirestoreTopicSuggestionRepository()
   const subscriptionRepo = new FirestoreSubscriptionRepository()
+  const creditBalanceRepo = new FirestoreCreditBalanceRepository()
 
   const useCase = new GenerateContentUseCase(
     copyGenerator,
@@ -108,7 +110,7 @@ export async function generationRoutes(app: FastifyInstance) {
     postRepo,
     brandProfileRepo,
     topicSuggestionRepo,
-    aiUsageRepo,
+    creditBalanceRepo,
     subscriptionRepo,
   )
 
@@ -118,7 +120,7 @@ export async function generationRoutes(app: FastifyInstance) {
     imageStorage,
     generationRequestRepo,
     brandProfileRepo,
-    aiUsageRepo,
+    creditBalanceRepo,
     subscriptionRepo,
   )
 

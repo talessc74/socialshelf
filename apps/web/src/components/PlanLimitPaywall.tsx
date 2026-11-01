@@ -10,7 +10,6 @@ const PLAN_LIMIT_CODES = new Set([
   'brand_limit_reached',
   'plan_feature_not_included',
   'autonomy_level_not_in_plan',
-  'spending_limit_above_plan',
   'account_type_not_in_plan',
 ])
 
@@ -38,8 +37,6 @@ function describeError(error: ApiError): string {
       return `Seu plano atual não inclui ${FEATURE_LABELS[error.feature ?? ''] ?? 'esse recurso'}.`
     case 'autonomy_level_not_in_plan':
       return 'O nível de autonomia escolhido não está incluído no seu plano atual.'
-    case 'spending_limit_above_plan':
-      return 'O teto de gasto diário escolhido é maior do que o seu plano atual permite.'
     case 'account_type_not_in_plan':
       return 'Esse tipo de conta não está disponível no seu plano atual.'
     default:

@@ -1,5 +1,6 @@
 import type Stripe from 'stripe'
-import type { Subscription, SubscriptionRepository, SubscriptionStatus } from '@socialshelf/domain'
+import type { Subscription, SubscriptionRepository, SubscriptionStatus, CreditBalanceRepository } from '@socialshelf/domain'
+import { resolveEffectivePlanLimits, applyCreditPurchase } from '@socialshelf/domain'
 import { resolveTierAndCycleFromPriceId } from '../../infrastructure/stripe/priceMapping.js'
 
 // Mapeia o status do Stripe pro nosso enum, mais restrito. 'unpaid'/'paused' viram 'past_due':
@@ -31,6 +32,7 @@ export class HandleStripeWebhookUseCase {
   constructor(
     private readonly stripe: Stripe,
     private readonly subscriptionRepo: SubscriptionRepository,
+    private readonly creditBalanceRepo: CreditBalanceRepository,
     private readonly webhookSecret: string,
   ) {}
 
@@ -45,6 +47,12 @@ export class HandleStripeWebhookUseCase {
       case 'customer.subscription.deleted':
         await this.applySubscriptionDeleted(event.data.object)
         break
+      case 'checkout.session.completed':
+        // Só interessa aqui no modo 'payment' (compra avulsa de créditos) — o modo
+        // 'subscription' já é tratado inteiramente pelos eventos customer.subscription.*
+        // acima, que o Stripe dispara em seguida de qualquer forma.
+        await this.applyCreditsPurchase(event.data.object)
+        break
       case 'invoice.payment_failed':
         // O status 'past_due'/'unpaid' resultante já chega via customer.subscription.updated
         // logo em seguida — não há lógica própria a aplicar aqui além de deixar o Stripe
@@ -53,6 +61,22 @@ export class HandleStripeWebhookUseCase {
       default:
         break
     }
+  }
+
+  private async applyCreditsPurchase(session: Stripe.Checkout.Session): Promise<void> {
+    if (session.mode !== 'payment') return
+
+    const userId = session.metadata?.['userId']
+    const creditAmountRaw = session.metadata?.['creditAmount']
+    if (!userId || !creditAmountRaw) return
+
+    const creditAmount = Number(creditAmountRaw)
+    if (!Number.isFinite(creditAmount) || creditAmount <= 0) return
+
+    const subscription = await this.subscriptionRepo.findByUserId(userId)
+    const monthlyCreditsIncluded = subscription ? resolveEffectivePlanLimits(subscription).monthlyCreditsIncluded : null
+    const balance = await this.creditBalanceRepo.findByUserId(userId)
+    await this.creditBalanceRepo.save(applyCreditPurchase(balance, userId, monthlyCreditsIncluded, creditAmount, new Date()))
   }
 
   private async applySubscriptionUpdate(stripeSubscription: Stripe.Subscription): Promise<void> {

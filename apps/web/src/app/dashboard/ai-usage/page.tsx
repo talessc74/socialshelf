@@ -10,12 +10,6 @@ function formatBrl(usd: number): string {
   return (usd * USD_TO_BRL_RATE).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
 
-// planDailySpendingLimitBrl já vem em BRL (é o teto do plano, não uma estimativa de custo de
-// chamada de IA) — nunca passar por formatBrl, que espera USD e multiplicaria duas vezes.
-function formatBrlDirect(valueBrl: number): string {
-  return valueBrl.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
 export default function AiUsagePage() {
   const router = useRouter()
 
@@ -38,8 +32,8 @@ export default function AiUsagePage() {
       <p className="text-sm text-muted">
         Estimativa de custo desta marca por mês, separada em texto (Gemini) e imagem (Imagen) — a partir do preço
         público de lista da Vertex AI e dos tokens/imagens realmente gastos em cada chamada. Não é a fatura real do
-        Google Cloud (que tem desconto/crédito), e o câmbio usado aqui é aproximado. Defina um teto diário em
-        Marca → Operação para travar novas gerações quando esse valor for atingido no dia.
+        Google Cloud (que tem desconto/crédito), e o câmbio usado aqui é aproximado. Quem trava novas gerações é o
+        saldo de créditos de IA do seu plano, não um valor em R$ — veja abaixo.
       </p>
 
       {isLoading ? (
@@ -57,15 +51,13 @@ export default function AiUsagePage() {
 
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card-2/60 px-3 py-2 text-sm">
             <span className="text-muted">
-              Teto diário do seu plano:{' '}
+              Créditos de IA disponíveis este mês:{' '}
               <span className="font-medium text-ink">
-                {data.planDailySpendingLimitBrl === null
-                  ? 'sem teto'
-                  : formatBrlDirect(data.planDailySpendingLimitBrl)}
+                {data.credits.totalAvailable === null ? 'ilimitados' : data.credits.totalAvailable}
               </span>
             </span>
-            <Link href="/dashboard/billing/plans" className="font-medium text-accent hover:underline">
-              Ver planos →
+            <Link href="/dashboard/billing/credits" className="font-medium text-accent hover:underline">
+              Comprar mais créditos →
             </Link>
           </div>
           <div className="overflow-x-auto">

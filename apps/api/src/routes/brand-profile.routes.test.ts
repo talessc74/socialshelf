@@ -277,7 +277,12 @@ describe('Brand profile routes', () => {
       expect(save).not.toHaveBeenCalled()
     })
 
-    it('returns 403 spending_limit_above_plan ao pedir um teto acima do plano Grátis (R$5/dia)', async () => {
+    // O teto de gasto diário em R$ por marca (dailyAiSpendingLimitBrl) não é mais validado
+    // contra o plano — o mecanismo real de trava agora é o saldo de créditos mensal
+    // (_local-adr-policy-0NN), que não depende de nenhum valor salvo na marca. O campo
+    // continua existindo em BrandProfile.operation só por compatibilidade de schema, sem
+    // efeito algum.
+    it('aceita qualquer valor de dailyAiSpendingLimitBrl, mesmo um que seria "acima do plano" no mecanismo antigo', async () => {
       mockFindSubscription.mockResolvedValue(makeSubscription({ tier: 'free' }))
 
       const response = await app.inject({
@@ -287,9 +292,7 @@ describe('Brand profile routes', () => {
         payload: { ...validSections, operation: { ...validSections.operation, dailyAiSpendingLimitBrl: 50 } },
       })
 
-      expect(response.statusCode).toBe(403)
-      expect(response.json()).toMatchObject({ error: 'spending_limit_above_plan', upgradeTier: 'starter' })
-      expect(save).not.toHaveBeenCalled()
+      expect(response.statusCode).toBe(201)
     })
 
     it('aceita um teto dentro do limite do plano', async () => {

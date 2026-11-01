@@ -14,12 +14,18 @@ interface PlanDefinition {
   priceAnnual: number
   additionalBrandMonthly: number | null
   features: string[]
+  // Recursos que existem tecnicamente (OAuth, pipeline de publicação) mas não são vendidos
+  // ainda — hoje só o vídeo para TikTok, travado por falta de CNPJ (mesmo bloqueio do App
+  // Review da Meta, _local-bdr-policy-012). Sem data prometida.
+  comingSoon?: string[]
 }
 
 // Mesma tabela de preços de _local-bdr-policy-0NN — mantida em sincronia manualmente com
 // packages/domain/src/value-objects/PlanLimits.ts (os limites técnicos exatos vêm de lá via
 // GET /billing/subscription; esta tabela é só a vitrine comercial, com descrição em
-// português e desconto anual já calculado — ~17%, "pague 10 meses, leve 12").
+// português e desconto anual já calculado — ~17%, "pague 10 meses, leve 12"). Créditos:
+// 1 crédito = 1 imagem gerada por IA (_local-adr-policy-0NN) — substitui o antigo teto de
+// gasto diário em R$.
 const PLANS: PlanDefinition[] = [
   {
     tier: 'free',
@@ -33,7 +39,7 @@ const PLANS: PlanDefinition[] = [
       'Geração manual',
       'Todas as 5 redes sociais',
       'Histórico de 7 dias',
-      'Teto de gasto de IA: R$ 5/dia',
+      '30 créditos de IA/mês',
     ],
   },
   {
@@ -48,7 +54,7 @@ const PLANS: PlanDefinition[] = [
       'Autonomia manual ou semi-automática',
       'Todas as 5 redes sociais',
       'Histórico de 30 dias',
-      'Teto de gasto de IA: R$ 15/dia',
+      '100 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
   },
@@ -62,13 +68,13 @@ const PLANS: PlanDefinition[] = [
     features: [
       '1 marca profissional incluída',
       'Autonomia automática (até 2 posts/dia)',
-      'Vídeo para TikTok',
       'Campanhas de fotos',
       'Dashboard de performance',
       'Histórico de 180 dias',
-      'Teto de gasto de IA: R$ 50/dia',
+      '200 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
+    comingSoon: ['Vídeo para TikTok'],
   },
   {
     tier: 'agency',
@@ -80,12 +86,13 @@ const PLANS: PlanDefinition[] = [
     features: [
       '3 marcas profissionais incluídas',
       'Autonomia automática (até 3 posts/dia/marca)',
-      'Vídeo para TikTok + campanhas de fotos',
+      'Campanhas de fotos',
       'Dashboard de performance',
       'Histórico de 1 ano',
-      'Teto de gasto de IA: R$ 100/dia/marca',
+      '600 créditos de IA/mês',
       '7 dias de teste grátis',
     ],
+    comingSoon: ['Vídeo para TikTok'],
   },
 ]
 
@@ -169,6 +176,14 @@ export default function PlansPage() {
               <ul className="flex-1 space-y-1.5 text-sm text-muted">
                 {plan.features.map((feature) => (
                   <li key={feature}>· {feature}</li>
+                ))}
+                {plan.comingSoon?.map((feature) => (
+                  <li key={feature} className="text-muted/60">
+                    · {feature}{' '}
+                    <span className="rounded-full bg-card-2 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                      Em breve
+                    </span>
+                  </li>
                 ))}
               </ul>
 

@@ -2,10 +2,11 @@ import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vites
 import { buildApp } from '../app.js'
 import type { FastifyInstance } from 'fastify'
 
-const { mockVerifyIdToken, mockFindByBrand, mockFindSubscription } = vi.hoisted(() => ({
+const { mockVerifyIdToken, mockFindByBrand, mockFindSubscription, mockFindCreditBalance } = vi.hoisted(() => ({
   mockVerifyIdToken: vi.fn(),
   mockFindByBrand: vi.fn(),
   mockFindSubscription: vi.fn(),
+  mockFindCreditBalance: vi.fn(),
 }))
 
 vi.mock('../infrastructure/firebase-admin.js', () => ({
@@ -30,6 +31,13 @@ vi.mock('../infrastructure/firestore/FirestoreSubscriptionRepository.js', () => 
   })),
 }))
 
+vi.mock('../infrastructure/firestore/FirestoreCreditBalanceRepository.js', () => ({
+  FirestoreCreditBalanceRepository: vi.fn().mockImplementation(() => ({
+    findByUserId: mockFindCreditBalance,
+    save: vi.fn().mockResolvedValue(undefined),
+  })),
+}))
+
 describe('GET /ai-usage', () => {
   let app: FastifyInstance
 
@@ -48,6 +56,7 @@ describe('GET /ai-usage', () => {
   beforeEach(() => {
     mockVerifyIdToken.mockReset().mockResolvedValue({ uid: 'user-test-123', email: 'alguem@exemplo.com' })
     mockFindByBrand.mockReset().mockResolvedValue([])
+    mockFindCreditBalance.mockReset().mockResolvedValue(null)
     mockFindSubscription.mockReset().mockResolvedValue({
       userId: 'user-test-123',
       tier: 'legacy',
@@ -93,7 +102,12 @@ describe('GET /ai-usage', () => {
     expect(mockFindByBrand).toHaveBeenCalledWith('user-test-123', 'user-test-123')
     expect(response.json()).toEqual({
       months: [{ month: '2026-07', textUsd: 0.002, imageUsd: 0, audioUsd: 0, videoUsd: 0, totalUsd: 0.002 }],
-      planDailySpendingLimitBrl: null,
+      credits: {
+        periodKey: expect.stringMatching(/^\d{4}-\d{2}$/),
+        planRemaining: null,
+        purchasedRemaining: 0,
+        totalAvailable: null,
+      },
     })
   })
 

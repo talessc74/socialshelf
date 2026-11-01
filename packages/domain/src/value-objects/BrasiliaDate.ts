@@ -23,3 +23,10 @@ export function brasiliaDateNow(now: Date): string {
 export function startOfBrasiliaDay(now: Date): Date {
   return new Date(`${brasiliaDateNow(now)}T03:00:00.000Z`)
 }
+
+// Mês-calendário corrente em Brasília, formato 'YYYY-MM' — usado pelo saldo de créditos
+// (_local-adr-policy-0NN) para decidir se o período atual já virou e o saldo do plano deve
+// repor. Mesmo raciocínio de fuso de brasiliaDateNow, só que truncado no mês.
+export function brasiliaMonthKey(now: Date): string {
+  return brasiliaDateNow(now).slice(0, 7)
+}

@@ -259,6 +259,7 @@ export type ApiAutonomyTickAction =
   | 'skipped-not-eligible'
   | 'skipped-daily-limit'
   | 'skipped-plan-limit'
+  | 'skipped-no-credits'
   | 'draft-created'
   | 'published'
   | 'published-partial'
@@ -285,12 +286,12 @@ export interface ApiAdminAiUsageSummary {
 }
 
 // Mesma agregação mensal da tela de admin, aqui escopada à própria marca — vem de GET
-// /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073).
-// planDailySpendingLimitBrl é o teto diário do plano de assinatura do usuário (null = sem
-// teto, só legado/admin) — _local-adr-policy-0NN, Fase 4e.
+// /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073). credits é o
+// saldo efetivo de créditos de IA do usuário (_local-adr-policy-0NN) — o histórico em R$ aqui
+// é só informativo, quem de fato trava a geração é o saldo.
 export interface ApiAiUsageSummary {
   months: ApiAdminAiUsageMonth[]
-  planDailySpendingLimitBrl: number | null
+  credits: ApiCreditState
 }
 
 // Planos de assinatura (_local-adr-policy-0NN) — 'legacy' é o plano permanente de quem já
@@ -323,7 +324,7 @@ export interface ApiPlanLimits {
   maxAutonomyLevel: 'manual' | 'semi-automatic' | 'automatic'
   maxAutoPostsPerDayCeiling: number
   historyRetentionDays: number | null
-  defaultDailyAiSpendingLimitBrl: number | null
+  monthlyCreditsIncluded: number | null
   allowTikTokVideo: boolean
   allowPhotoCampaigns: boolean
   allowPerformanceAnalytics: boolean
@@ -333,6 +334,17 @@ export interface ApiSubscriptionResponse {
   subscription: ApiSubscription
   limits: ApiPlanLimits
 }
+
+// Saldo efetivo de créditos de IA (_local-adr-policy-0NN) — null em planRemaining/totalAvailable
+// significa ilimitado (legacy/admin).
+export interface ApiCreditState {
+  periodKey: string
+  planRemaining: number | null
+  purchasedRemaining: number
+  totalAvailable: number | null
+}
+
+export type ApiCreditPackSize = 50 | 150 | 400
 
 export interface ApiAutonomyTickLogEntry {
   id: string
@@ -497,6 +509,15 @@ export const api = {
 
   async createPortalSession(): Promise<string> {
     const data = await apiFetch<{ url: string }>('/billing/portal')
+    return data.url
+  },
+
+  async getCreditBalance(): Promise<ApiCreditState> {
+    return apiFetch<ApiCreditState>('/billing/credits')
+  },
+
+  async createCreditsCheckoutSession(pack: ApiCreditPackSize): Promise<string> {
+    const data = await apiFetch<{ url: string }>(`/billing/credits/checkout?pack=${pack}`)
     return data.url
   },
 
