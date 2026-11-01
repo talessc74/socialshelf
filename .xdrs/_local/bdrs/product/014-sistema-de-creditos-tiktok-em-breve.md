@@ -1,6 +1,6 @@
 ---
 name: _local-bdr-policy-014-sistema-de-creditos-e-tiktok-em-breve
-description: Substitui o teto de gasto diário em R$ por um saldo de créditos mensal (1 crédito = 1 imagem), com os pacotes por plano e a venda de créditos avulsos. Também tira "vídeo para TikTok" da vitrine de planos — fica como "em breve", bloqueado por falta de CNPJ. Use ao mexer em preço/limite de plano, saldo de créditos, ou na vitrine de planos.
+description: Substitui o teto de gasto diário em R$ por um saldo de créditos mensal (1 crédito = 1 imagem), com os pacotes por plano e a venda de créditos avulsos. Também tira TikTok e X (Twitter) da vitrine de planos — ficam como "em breve", bloqueados por falta de CNPJ. Use ao mexer em preço/limite de plano, saldo de créditos, ou na vitrine de planos.
 apply-to: Modelo de controle de custo de IA e vitrine comercial do SocialShelf
 valid-from: 2026-11-01
 ---
@@ -83,6 +83,22 @@ como realidade de um plano de entrada de ticket baixo, não um problema a resolv
   da vitrine, nada é escondido do produto.
 - Contas legado/admin mantêm acesso técnico (usadas pra validar o pipeline enquanto o
   bloqueio de CNPJ não é resolvido) — não é um recurso vendido a ninguém, só acesso de teste.
+
+## Atualização — X (Twitter) entra no mesmo bloqueio (2026-11-01)
+
+O usuário confirmou que a conexão do X também exige CNPJ pra ser válida — mesma natureza do
+bloqueio do TikTok e do Meta, não um problema técnico diferente. Decisão: X sai da vitrine
+junto com o TikTok, mesmo tratamento.
+
+A vitrine de planos (`apps/web/.../billing/plans/page.tsx`) tinha um defeito específico que
+esta atualização corrige: a linha "Todas as 5 redes sociais" (presente em todo plano, inclusive
+Grátis/Starter) contava o TikTok como disponível mesmo com "Vídeo para TikTok" já marcado "em
+breve" só no Pro/Agência — como TikTok só publica vídeo (`_local-bdr-policy-003`), ele já
+estava, na prática, 100% indisponível em todo plano, só que a vitrine não deixava isso claro
+fora dos dois planos pagos. Corrigido: toda a vitrine agora lista as redes realmente
+disponíveis hoje (LinkedIn, Instagram, Facebook) como recurso, e "TikTok e X (Twitter)" como
+"em breve" — um selo só, consistente em todo plano, em vez de uma linha genérica "5 redes" que
+não refletia a realidade.
 
 ## Consequences
 
