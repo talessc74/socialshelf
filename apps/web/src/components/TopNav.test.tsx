@@ -16,7 +16,7 @@ function mockNavOverflow(nav: HTMLElement, { scrollLeft, clientWidth, scrollWidt
 }
 
 function getMobileNav(container: HTMLElement) {
-  return container.querySelector('nav.overflow-x-auto') as HTMLElement
+  return container.querySelector('[data-testid="mobile-nav"]') as HTMLElement
 }
 
 function renderTopNav(props: Partial<ComponentProps<typeof TopNav>> = {}) {

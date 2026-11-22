@@ -214,7 +214,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
 
       <div className="relative w-full border-t border-line">
         <div className="hidden justify-center px-4 py-2 lg:flex">
-          <nav className="flex items-center gap-1 rounded-full bg-card-2 p-1">
+          <nav className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-card-2 p-1">
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
               return (
@@ -237,6 +237,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
 
         <nav
           ref={mobileNavRef}
+          data-testid="mobile-nav"
           onScroll={updateScrollAffordance}
           className="flex w-full items-center gap-1 overflow-x-auto bg-transparent px-3 py-2 lg:hidden"
         >
