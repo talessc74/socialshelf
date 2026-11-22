@@ -11,8 +11,10 @@ import { LogoImage } from '../../components/LogoImage'
 import { NewsCarousel } from '../../components/NewsCarousel'
 import { SavedForLaterCarousel } from '../../components/SavedForLaterCarousel'
 import { useAuth } from '../../contexts/AuthContext'
+import { useSubscription } from '../../contexts/SubscriptionContext'
 import { getTimeSavedTotal, formatMinutes } from '../../lib/selfieTimeSaved'
 import { useSelfieNarrateOnReady } from '../../contexts/AssistantContext'
+import { CreditsMeter } from '../../components/CreditsMeter'
 
 const TOTAL_PLATFORMS = 4
 const WEEKDAY_LABELS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
@@ -68,6 +70,7 @@ export function ClassicHome() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const { user } = useAuth()
+  const { credits, limits } = useSubscription()
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data: brandProfile } = useQuery({
@@ -248,6 +251,13 @@ export function ClassicHome() {
           <BigStat icon={Sparkles} value={totals.impressions} label="Impressões totais" />
         </div>
       </section>
+
+      <Link
+        href="/dashboard/ai-usage"
+        className="block rounded-2xl border border-line bg-card p-4 shadow-card transition-colors hover:border-accent"
+      >
+        <CreditsMeter credits={credits} monthlyCreditsIncluded={limits?.monthlyCreditsIncluded} compact />
+      </Link>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <div className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-5 shadow-card">

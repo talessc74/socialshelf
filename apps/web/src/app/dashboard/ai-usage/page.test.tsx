@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AiUsagePage from './page'
-import { api, type ApiAiUsageSummary } from '../../../lib/api'
+import { api, type ApiAiUsageSummary, type ApiPlanLimits } from '../../../lib/api'
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn() }),
@@ -12,6 +12,11 @@ vi.mock('../../../lib/api', () => ({
   api: {
     getAiUsageSummary: vi.fn(),
   },
+}))
+
+const limitsMock = vi.hoisted(() => ({ current: null as ApiPlanLimits | null }))
+vi.mock('../../../contexts/SubscriptionContext', () => ({
+  useSubscription: () => ({ limits: limitsMock.current }),
 }))
 
 const mockedApi = vi.mocked(api, true)
@@ -25,9 +30,27 @@ function renderPage() {
   )
 }
 
+function makeLimits(overrides: Partial<ApiPlanLimits> = {}): ApiPlanLimits {
+  return {
+    tier: 'starter',
+    includedBrands: 1,
+    allowedAccountTypes: ['personal'],
+    additionalBrandPriceBrl: null,
+    maxAutonomyLevel: 'manual',
+    maxAutoPostsPerDayCeiling: 0,
+    historyRetentionDays: 30,
+    monthlyCreditsIncluded: 100,
+    allowTikTokVideo: false,
+    allowPhotoCampaigns: false,
+    allowPerformanceAnalytics: false,
+    ...overrides,
+  }
+}
+
 describe('AiUsagePage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    limitsMock.current = null
   })
 
   const emptyCredits: ApiAiUsageSummary['credits'] = {
@@ -51,6 +74,7 @@ describe('AiUsagePage', () => {
   })
 
   it('mostra o saldo de créditos disponível', async () => {
+    limitsMock.current = makeLimits({ monthlyCreditsIncluded: 100 })
     const summary: ApiAiUsageSummary = {
       months: [{ month: '2026-07', textUsd: 0.01, imageUsd: 0.4, audioUsd: 0, videoUsd: 0, totalUsd: 0.41 }],
       credits: { periodKey: '2026-07', planRemaining: 80, purchasedRemaining: 0, totalAvailable: 80 },
@@ -68,6 +92,20 @@ describe('AiUsagePage', () => {
     renderPage()
 
     expect(await screen.findByText('Nenhum uso de IA registrado ainda.')).toBeInTheDocument()
+  })
+
+  it('mostra o saldo de créditos mesmo sem nenhum uso registrado (não esconde o termômetro)', async () => {
+    limitsMock.current = makeLimits({ monthlyCreditsIncluded: 100 })
+    mockedApi.getAiUsageSummary.mockResolvedValue({
+      months: [],
+      credits: { periodKey: '2026-07', planRemaining: 100, purchasedRemaining: 0, totalAvailable: 100 },
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Nenhum uso de IA registrado ainda.')).toBeInTheDocument()
+    expect(screen.getByText(/créditos do plano/)).toBeInTheDocument()
+    expect(screen.getByText('100')).toBeInTheDocument()
   })
 
   it('mostra mensagem de erro quando a chamada falha', async () => {

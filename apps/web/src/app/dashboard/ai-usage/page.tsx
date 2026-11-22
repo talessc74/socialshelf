@@ -1,10 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../../../lib/api'
 import { USD_TO_BRL_RATE } from '@socialshelf/domain'
+import { useSubscription } from '../../../contexts/SubscriptionContext'
+import { CreditsMeter } from '../../../components/CreditsMeter'
 
 function formatBrl(usd: number): string {
   return (usd * USD_TO_BRL_RATE).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -12,6 +13,7 @@ function formatBrl(usd: number): string {
 
 export default function AiUsagePage() {
   const router = useRouter()
+  const { limits } = useSubscription()
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['ai-usage'],
@@ -40,50 +42,43 @@ export default function AiUsagePage() {
         <p className="text-sm text-muted">Carregando…</p>
       ) : error ? (
         <p className="text-sm text-red-600">Não foi possível carregar os gastos desta marca.</p>
-      ) : !data || data.months.length === 0 ? (
-        <p className="text-sm text-muted">Nenhum uso de IA registrado ainda.</p>
-      ) : (
+      ) : !data ? null : (
         <div className="space-y-3 rounded-2xl border border-line bg-card p-4 shadow-card">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-lg font-semibold text-ink">Resumo mensal</h2>
             <span className="text-sm font-medium text-muted">Total: {formatBrl(totalUsd)}</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card-2/60 px-3 py-2 text-sm">
-            <span className="text-muted">
-              Créditos de IA disponíveis este mês:{' '}
-              <span className="font-medium text-ink">
-                {data.credits.totalAvailable === null ? 'ilimitados' : data.credits.totalAvailable}
-              </span>
-            </span>
-            <Link href="/dashboard/billing/credits" className="font-medium text-accent hover:underline">
-              Comprar mais créditos →
-            </Link>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[28rem] text-sm">
-              <thead>
-                <tr className="text-left text-xs font-semibold uppercase text-muted">
-                  <th className="py-1.5 pr-3">Mês</th>
-                  <th className="py-1.5 pr-3">Texto</th>
-                  <th className="py-1.5 pr-3">Imagem</th>
-                  <th className="py-1.5 pr-3">Áudio</th>
-                  <th className="py-1.5">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.months.map((m) => (
-                  <tr key={m.month} className="border-t border-line">
-                    <td className="py-1.5 pr-3 font-medium text-ink">{m.month}</td>
-                    <td className="py-1.5 pr-3 text-muted">{formatBrl(m.textUsd)}</td>
-                    <td className="py-1.5 pr-3 text-muted">{formatBrl(m.imageUsd)}</td>
-                    <td className="py-1.5 pr-3 text-muted">{formatBrl(m.audioUsd)}</td>
-                    <td className="py-1.5 font-medium text-ink">{formatBrl(m.totalUsd)}</td>
+          <CreditsMeter credits={data.credits} monthlyCreditsIncluded={limits?.monthlyCreditsIncluded} />
+
+          {data.months.length === 0 ? (
+            <p className="text-sm text-muted">Nenhum uso de IA registrado ainda.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[28rem] text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-semibold uppercase text-muted">
+                    <th className="py-1.5 pr-3">Mês</th>
+                    <th className="py-1.5 pr-3">Texto</th>
+                    <th className="py-1.5 pr-3">Imagem</th>
+                    <th className="py-1.5 pr-3">Áudio</th>
+                    <th className="py-1.5">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {data.months.map((m) => (
+                    <tr key={m.month} className="border-t border-line">
+                      <td className="py-1.5 pr-3 font-medium text-ink">{m.month}</td>
+                      <td className="py-1.5 pr-3 text-muted">{formatBrl(m.textUsd)}</td>
+                      <td className="py-1.5 pr-3 text-muted">{formatBrl(m.imageUsd)}</td>
+                      <td className="py-1.5 pr-3 text-muted">{formatBrl(m.audioUsd)}</td>
+                      <td className="py-1.5 font-medium text-ink">{formatBrl(m.totalUsd)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
