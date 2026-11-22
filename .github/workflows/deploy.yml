@@ -495,6 +495,39 @@ jobs:
               --oidc-token-audience="${{ steps.deploy.outputs.url }}"
           fi
 
+      # Renovação proativa de tokens Meta (Facebook/Instagram) — fecha o gap descrito em
+      # _local-adr-policy-016 (emenda 2026-11-22): o token de usuário do Meta (60 dias) só pode
+      # ser trocado por um novo ENQUANTO ainda válido, então uma vez por dia é suficiente frente
+      # à janela de 10 dias de antecedência do próprio use-case. Mesmo padrão non-blocking dos
+      # jobs acima.
+      - name: Create/update Cloud Scheduler job for the daily OAuth token refresh tick
+        continue-on-error: true
+        run: |
+          gcloud services enable cloudscheduler.googleapis.com --project=${{ env.GCP_PROJECT_ID }} --quiet
+
+          URL="${{ steps.deploy.outputs.url }}/internal/oauth-token-refresh-tick"
+          SA="publisher-service@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com"
+
+          if gcloud scheduler jobs describe publisher-oauth-token-refresh-tick --location=${{ env.GCP_REGION }} >/dev/null 2>&1; then
+            gcloud scheduler jobs update http publisher-oauth-token-refresh-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="0 5 * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --update-headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          else
+            gcloud scheduler jobs create http publisher-oauth-token-refresh-tick \
+              --location=${{ env.GCP_REGION }} \
+              --schedule="0 5 * * *" \
+              --uri="${URL}" \
+              --http-method=POST \
+              --headers="X-Internal-Secret=${{ secrets.INTERNAL_SECRET }}" \
+              --oidc-service-account-email="${SA}" \
+              --oidc-token-audience="${{ steps.deploy.outputs.url }}"
+          fi
+
   deploy-generator:
     name: Deploy generator-service
     needs: bootstrap-iam

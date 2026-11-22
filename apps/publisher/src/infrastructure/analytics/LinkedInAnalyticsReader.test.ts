@@ -78,4 +78,40 @@ describe('LinkedInAnalyticsReader', () => {
       'LinkedIn metrics fetch failed: 403 Forbidden',
     )
   })
+
+  it('refreshes token on 401 and retries successfully', async () => {
+    const vault = makeVault({ access_token: 'li-expired-token', refresh_token: 'li-refresh-token' })
+    const reader = new LinkedInAnalyticsReader(vault)
+
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'li-new-access', refresh_token: 'li-new-refresh', expires_in: 5184000, scope: 'r_organization_social' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ likesSummary: { totalLikes: 9 }, commentsSummary: { totalFirstLevelComments: 1 } }),
+      })
+
+    const result = await reader.fetchPostMetrics('urn:li:share:111', mockConnection)
+
+    expect(result).toEqual({ impressions: 0, likes: 9, comments: 1, shares: 0 })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const stored = JSON.parse(vi.mocked(vault.store).mock.calls[0]![1] as string)
+    expect(stored.access_token).toBe('li-new-access')
+    const retryHeaders = fetchMock.mock.calls[2]![1]!.headers as Record<string, string>
+    expect(retryHeaders['Authorization']).toBe('Bearer li-new-access')
+  })
+
+  it('throws on 401 when no refresh token is stored', async () => {
+    const vault = makeVault({ access_token: 'li-expired-token' })
+    const reader = new LinkedInAnalyticsReader(vault)
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+
+    await expect(reader.fetchPostMetrics('urn:li:share:111', mockConnection)).rejects.toThrow(
+      'LinkedIn metrics fetch failed: 401 Unauthorized',
+    )
+  })
 })

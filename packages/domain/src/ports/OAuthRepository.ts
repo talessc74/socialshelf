@@ -11,5 +11,6 @@ export interface OAuthRepository {
     platform: Platform,
   ): Promise<OAuthConnection | null>
   findByBrand(userId: string, brandId: string): Promise<OAuthConnection[]>
+  findAllByPlatforms(platforms: Platform[]): Promise<OAuthConnection[]>
   delete(id: string): Promise<void>
 }

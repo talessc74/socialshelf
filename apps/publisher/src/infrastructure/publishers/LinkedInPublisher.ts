@@ -1,5 +1,6 @@
 import { Platform } from '@socialshelf/domain'
 import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
+import { refreshLinkedInToken } from '../../lib/linkedin-refresh.js'
 
 const LI_REST = 'https://api.linkedin.com/rest'
 const LI_USERINFO = 'https://api.linkedin.com/v2/userinfo'
@@ -8,6 +9,7 @@ const LI_VERSION = '202602'
 
 interface LinkedInToken {
   access_token: string
+  refresh_token?: string | null
 }
 
 export class LinkedInPublisher implements PublisherPort {
@@ -18,17 +20,26 @@ export class LinkedInPublisher implements PublisherPort {
 
   async publish(post: Post, platform: Platform, connection: OAuthConnection): Promise<PublishResult> {
     const raw = await this.tokenVault.retrieve(connection.tokenRef)
-    const token: LinkedInToken = JSON.parse(raw)
-    const accessToken = token.access_token
+    let token: LinkedInToken = JSON.parse(raw)
+
+    // Refresh proativo antes de qualquer chamada: o fluxo de publicação faz várias chamadas
+    // encadeadas (getPersonId, upload de imagem em 3 passos, criação do post) — um 401 a meio
+    // do upload de imagens forçaria re-subir tudo de novo. connection.expiresAt já diz se o
+    // access_token (60 dias) está vencido; refresh_token (90 dias) sobrevive bem além disso
+    // (_local-adr-policy-016, emenda 2026-11-22: nunca usado até aqui, embora já gravado no
+    // vault desde a conexão inicial).
+    if (connection.expiresAt && connection.expiresAt.getTime() <= Date.now() && token.refresh_token) {
+      token = await this.refreshAndStore(connection.tokenRef, token.refresh_token)
+    }
 
     const text = post.content.find((c) => c.platform === Platform.LINKEDIN)?.text ?? ''
-    const author = connection.organizationUrn ?? `urn:li:person:${await this.getPersonId(accessToken)}`
+    const author = connection.organizationUrn ?? `urn:li:person:${await this.getPersonId(token.access_token)}`
 
     // Cada imagem precisa ser registrada como URN na Images API antes de poder ser referenciada
     // no corpo do post — o /rest/posts não aceita upload de bytes inline.
     const imageUrns: string[] = []
     for (const path of post.imageStoragePaths) {
-      imageUrns.push(await this.uploadImage(accessToken, author, path))
+      imageUrns.push(await this.uploadImage(token.access_token, author, path))
     }
 
     const body: Record<string, unknown> = {
@@ -51,16 +62,14 @@ export class LinkedInPublisher implements PublisherPort {
       body['content'] = { multiImage: { images: imageUrns.map((id) => ({ id })) } }
     }
 
-    const response = await fetch(`${LI_REST}/posts`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        'LinkedIn-Version': LI_VERSION,
-        'X-Restli-Protocol-Version': '2.0.0',
-      },
-      body: JSON.stringify(body),
-    })
+    let response = await this.createPost(token.access_token, body)
+
+    // Defesa adicional além do refresh proativo acima (ex.: expiresAt desatualizado/drift) —
+    // só re-tenta a criação do post, sem re-subir imagens já enviadas.
+    if (response.status === 401 && token.refresh_token) {
+      token = await this.refreshAndStore(connection.tokenRef, token.refresh_token)
+      response = await this.createPost(token.access_token, body)
+    }
 
     if (!response.ok) {
       const err = await response.text()
@@ -70,6 +79,29 @@ export class LinkedInPublisher implements PublisherPort {
     // New REST API returns the post URN in the x-restli-id response header
     const postUrn = response.headers.get('x-restli-id') ?? response.headers.get('location') ?? 'unknown'
     return { externalId: postUrn, publishedAt: new Date() }
+  }
+
+  private async refreshAndStore(tokenRef: string, refreshToken: string): Promise<LinkedInToken> {
+    const refreshed = await refreshLinkedInToken(refreshToken)
+    const token: LinkedInToken = {
+      access_token: refreshed.access_token,
+      refresh_token: refreshed.refresh_token ?? refreshToken,
+    }
+    await this.tokenVault.store(tokenRef, JSON.stringify(token))
+    return token
+  }
+
+  private createPost(accessToken: string, body: Record<string, unknown>): Promise<Response> {
+    return fetch(`${LI_REST}/posts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'LinkedIn-Version': LI_VERSION,
+        'X-Restli-Protocol-Version': '2.0.0',
+      },
+      body: JSON.stringify(body),
+    })
   }
 
   // Images API em 3 passos: initializeUpload devolve a uploadUrl e o URN da imagem;

@@ -6,6 +6,7 @@ import { audienceSignalRoutes } from './routes/audience-signal.routes.js'
 import { postsPerformanceRoutes } from './routes/posts-performance.routes.js'
 import { schedulerRoutes } from './routes/scheduler.routes.js'
 import { autonomyRoutes } from './routes/autonomy.routes.js'
+import { oauthTokenRefreshRoutes } from './routes/oauth-token-refresh.routes.js'
 import { startScheduledPostsPoller } from './scheduler/ScheduledPostsPoller.js'
 
 export async function buildApp() {
@@ -18,6 +19,7 @@ export async function buildApp() {
   await app.register(publishRoutes)
   await app.register(audienceSignalRoutes)
   await app.register(postsPerformanceRoutes)
+  await app.register(oauthTokenRefreshRoutes)
 
   const publishPostUseCase = buildPublishPostUseCase()
   await app.register((instance) => schedulerRoutes(instance, publishPostUseCase))

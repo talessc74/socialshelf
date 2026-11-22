@@ -29,6 +29,7 @@ describe('HandleXCallbackUseCase', () => {
       findByPairwise: vi.fn(),
       findByBrandAndPlatform: vi.fn(),
       findByBrand: vi.fn(),
+      findAllByPlatforms: vi.fn(),
       delete: vi.fn(),
     }
 

@@ -51,7 +51,7 @@ Integração com sistemas externos.
 
 - [_local-adr-policy-009-oauth-exclusivo-integracao-com-redes-sociais](integration/009-oauth-social-networks.md) - OAuth exclusivo com redes sociais: sem credenciais, escopo mínimo, tokens por marca
 - [_local-adr-policy-013-pkce-por-plataforma-oauth-seletivo](integration/013-pkce-por-plataforma.md) - PKCE (RFC 7636) obrigatório para X, não aplicável para LinkedIn e Meta
-- [_local-adr-policy-016-refresh-de-token-oauth-por-plataforma](integration/016-refresh-token-oauth.md) - X com refresh automático; LinkedIn e Meta dependem de tokens de longa duração
+- [_local-adr-policy-016-refresh-de-token-oauth-por-plataforma](integration/016-refresh-token-oauth.md) - Refresh automático em todas as plataformas: reativo (401) para X/LinkedIn/TikTok, proativo (job diário) para Meta
 - [_local-adr-policy-024-instagram-publicacao-em-duas-etapas](integration/024-instagram-publicacao-duas-etapas.md) - Fluxo obrigatório de duas chamadas da Meta Graph API para publicar no Instagram
 - [_local-adr-policy-032-monitoramento-de-versao-da-api-do-linkedin](integration/032-monitoramento-versao-api-linkedin.md) - Revisão trimestral da constante LI_VERSION com data de sunset documentada inline, prevenindo falha 426 NONEXISTENT_VERSION silenciosa
 - [_local-adr-policy-034-tiktok-oauth-e-identificadores-pairwise](integration/034-tiktok-oauth-identificadores.md) - pairwiseId = open_id exclusivamente; union_id descartado no callback; refresh automático (24h/1 ano)

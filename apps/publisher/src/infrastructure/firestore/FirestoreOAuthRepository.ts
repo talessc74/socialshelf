@@ -68,6 +68,16 @@ export class FirestoreOAuthRepository implements OAuthRepository {
     return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
+  async findAllByPlatforms(platforms: Platform[]): Promise<OAuthConnection[]> {
+    if (platforms.length === 0) return []
+    const snapshot = await db
+      .collectionGroup('oauth_connections')
+      .where('platform', 'in', platforms)
+      .get()
+
+    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
+  }
+
   async delete(id: string): Promise<void> {
     const snapshot = await db
       .collectionGroup('oauth_connections')

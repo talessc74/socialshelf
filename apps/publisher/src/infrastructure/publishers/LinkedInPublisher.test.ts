@@ -252,4 +252,70 @@ describe('LinkedInPublisher', () => {
       publisher.publish(mockPost, Platform.LINKEDIN, mockConnection),
     ).rejects.toThrow('LinkedIn publish failed')
   })
+
+  it('proactively refreshes when connection.expiresAt is already in the past, before touching the API', async () => {
+    const expiredConnection: OAuthConnection = { ...mockConnection, expiresAt: new Date(Date.now() - 1000) }
+    const vault: TokenVaultPort = {
+      store: vi.fn(),
+      retrieve: vi.fn().mockResolvedValue(
+        JSON.stringify({ access_token: 'li-expired-token', refresh_token: 'li-refresh-token' }),
+      ),
+      delete: vi.fn(),
+    }
+    const expiredPublisher = new LinkedInPublisher(vault, mockResolveImageUrl)
+
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'li-new-access', refresh_token: 'li-new-refresh', expires_in: 5184000, scope: 'w_member_social' }),
+      })
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (h: string) => (h === 'x-restli-id' ? 'urn:li:share:999' : null) },
+        json: async () => ({}),
+      })
+
+    const result = await expiredPublisher.publish(mockPost, Platform.LINKEDIN, expiredConnection)
+
+    expect(result.externalId).toBe('urn:li:share:999')
+    expect(fetchMock.mock.calls[0]![0]).toContain('/oauth/v2/accessToken')
+    expect(vi.mocked(vault.store)).toHaveBeenCalledTimes(1)
+    const stored = JSON.parse(vi.mocked(vault.store).mock.calls[0]![1] as string)
+    expect(stored.access_token).toBe('li-new-access')
+
+    const userinfoHeaders = fetchMock.mock.calls[1]![1]!.headers as Record<string, string>
+    expect(userinfoHeaders['Authorization']).toBe('Bearer li-new-access')
+  })
+
+  it('refreshes on 401 from /rest/posts and retries without re-uploading images', async () => {
+    const vault: TokenVaultPort = {
+      store: vi.fn(),
+      retrieve: vi.fn().mockResolvedValue(
+        JSON.stringify({ access_token: 'li-stale-token', refresh_token: 'li-refresh-token' }),
+      ),
+      delete: vi.fn(),
+    }
+    const staleTokenPublisher = new LinkedInPublisher(vault, mockResolveImageUrl)
+
+    fetchMock
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ sub: 'li-person-123' }) })
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'li-new-access', refresh_token: 'li-new-refresh', expires_in: 5184000, scope: 'w_member_social' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: (h: string) => (h === 'x-restli-id' ? 'urn:li:share:555' : null) },
+        json: async () => ({}),
+      })
+
+    const result = await staleTokenPublisher.publish(mockPost, Platform.LINKEDIN, mockConnection)
+
+    expect(result.externalId).toBe('urn:li:share:555')
+    expect(fetchMock).toHaveBeenCalledTimes(4)
+    const retryHeaders = fetchMock.mock.calls[3]![1]!.headers as Record<string, string>
+    expect(retryHeaders['Authorization']).toBe('Bearer li-new-access')
+  })
 })
