@@ -1,6 +1,6 @@
 ---
 name: _local-adr-policy-043-assinatura-via-stripe-integracao-tecnica
-description: Implementação técnica completa do billing via Stripe — entidade Subscription, PlanLimits como fonte única de verdade dos limites, todos os gates de aplicação por plano (quota de marca, teto de gasto, autonomia, features pagas, retenção de histórico), bypass de admin explícito, tier legado e o webhook do Stripe. Use ao mexer em qualquer gate de plano, no Checkout/Portal/webhook do Stripe, ou em SubscriptionRepository.
+description: Implementação técnica completa do billing via Stripe — entidade Subscription, PlanLimits como fonte única de verdade dos limites, todos os gates de aplicação por plano (quota de marca, teto de gasto, autonomia, features pagas, retenção de histórico), bypass de admin explícito, tier legado e o webhook do Stripe. O Social Shelf roda numa conta Stripe própria (`acct_1Ueb7iIncoSmDlx6`), separada de outros produtos da Rádio Kactus. Use ao mexer em qualquer gate de plano, no Checkout/Portal/webhook do Stripe, em SubscriptionRepository, ou ao decidir se um produto novo precisa de conta Stripe própria.
 apply-to: Billing, Subscription, PlanLimits e todos os gates de plano em apps/api, apps/generator, apps/publisher
 valid-from: 2026-11-01
 ---
@@ -200,6 +200,50 @@ O campo `PlanLimits.defaultDailyAiSpendingLimitBrl` citado acima (e a trava de g
 R$ que ele alimentava) foi removido por inteiro, substituído por um saldo de créditos mensal —
 ver `_local-adr-policy-044`. `PlanLimits` continua sendo a única fonte de verdade consultada
 por todo gate (nada mudou nesse princípio), só o campo específico de custo mudou de forma.
+
+## Atualização — Conta Stripe própria do Social Shelf, separada da Rádio Kactus (2026-11-22)
+
+A Rádio Kactus (empresa por trás do Social Shelf) já tinha uma conta Stripe em uso real por
+outro produto seu, o Eaí Jurídico. Os 6 preços recorrentes e o webhook desta ADR foram
+inicialmente criados **nessa mesma conta compartilhada** — decisão revertida no mesmo dia, ao
+constatar que isso quebraria a identificação do produto nos documentos voltados ao cliente.
+
+**O problema**: a documentação do próprio Stripe ("Multiple separate accounts") é explícita —
+*"Using the same Stripe account for separate businesses can cause confusion as the public
+business information used is the same for both. For example, a customer who purchases from
+your business 'XYZ' might see a charge from your business 'ABC' on their statement."* O nome
+de empresa exibido em fatura, página de fatura hospedada e e-mail de recibo
+(`Public business information`, `dashboard.stripe.com/settings/public`) é uma configuração
+**por conta**, não por produto ou por `Price`/`Product` — não existe parâmetro de API pra
+sobrepor isso por assinatura. A descrição no extrato do cartão (`statement_descriptor`,
+documentada em `docs.stripe.com/get-started/account/statement-descriptors`) é a única peça
+customizável por `Product`, mas não resolve fatura/recibo/página hospedada.
+
+**Decisão**: criar uma segunda conta Stripe, "Social Shelf", via
+`dashboard.stripe.com` → seletor de conta → "Nova conta" — reaproveitando a pessoa jurídica
+(CNPJ) e os dados bancários já verificados na conta Eaí Jurídico (Stripe permite isso
+explicitamente: *"you can use the same tax ID and business information across multiple
+accounts"*), mas com **nome público, descrição no extrato ("SOCIALSHELF") e catálogo de
+produtos próprios**. Não foi usado Stripe Connect/plataforma (`docs.stripe.com/billing/
+multi-entity-business` recomenda Connect pra esse cenário) — overkill pra duas contas de
+produto sob o mesmo dono, sem necessidade de repasse entre contas.
+
+**Identificadores reais (modo live), pra rastreabilidade — nenhum segredo aqui, só IDs
+públicos do Stripe**:
+- Conta: `acct_1Ueb7iIncoSmDlx6` ("Social Shelf").
+- Produtos: `prod_VfxGr0eYCJmkuK` (Starter), `prod_VfxGqaW8yugull` (Pro),
+  `prod_VfxHZKU32tMTcE` (Agência) — cada um com 2 `Price`s (mensal/anual), nomes de env var
+  em `_local-adr-policy-043` (seção "Stripe: Checkout, Portal, Webhook").
+- Webhook: `we_1UebMxIncoSmDlx6na1dGTS0`, mesmos 5 eventos já documentados acima.
+- Radar: Lite (gratuito) — volume inicial não justifica os planos pagos por transação.
+- Os 6 `Price`s e o webhook criados por engano na conta Eaí Jurídico
+  (`acct_1TWyTAHdiw44ZQjw`) foram desativados (`active: false`/`disabled: true`), não
+  apagados — ficam como histórico morto nessa conta, sem efeito.
+
+Criação, migração e desativação feitas via Stripe MCP (conector autorizado pelo usuário nesta
+sessão), não pelo Dashboard direto — único passo que o Stripe reserva ao humano foi criar a
+conta em si e gerar a `Secret Key` (`sk_live_...`), que o MCP não consegue nem ler nem gerar
+por API, só o próprio Dashboard mostra uma vez.
 
 ## References
 
