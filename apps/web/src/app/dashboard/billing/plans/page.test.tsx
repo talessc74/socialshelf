@@ -34,7 +34,7 @@ describe('PlansPage', () => {
     expect(screen.getByText('Starter')).toBeInTheDocument()
     expect(screen.getByText('Pro')).toBeInTheDocument()
     expect(screen.getByText('Agência')).toBeInTheDocument()
-    expect(screen.getByText('R$ 29')).toBeInTheDocument()
+    expect(screen.getByText('R$ 39')).toBeInTheDocument()
   })
 
   it('troca pro preço anual ao clicar no seletor', () => {
@@ -42,7 +42,7 @@ describe('PlansPage', () => {
 
     fireEvent.click(screen.getByText(/Anual/))
 
-    expect(screen.getByText('R$ 290')).toBeInTheDocument()
+    expect(screen.getByText('R$ 390')).toBeInTheDocument()
   })
 
   it('inicia o checkout do plano Pro e redireciona pra url do Stripe', async () => {

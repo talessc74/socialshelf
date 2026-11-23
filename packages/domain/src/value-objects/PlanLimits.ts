@@ -68,7 +68,11 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
     maxAutonomyLevel: 'manual',
     maxAutoPostsPerDayCeiling: 1,
     historyRetentionDays: 7,
-    monthlyCreditsIncluded: 30,
+    // 30 → 15 (_local-bdr-policy-014, emenda 2026-11-23): o Grátis nunca gera receita — toda
+    // conta nesse tier é custo de aquisição garantido (R$0,216/crédito × 30 = R$6,48/mês/conta,
+    // sem limite de quantas contas a mesma pessoa cria, já que não pede cartão). Cortar pela
+    // metade reduz esse prejuízo recorrente sem matar o "experimentar".
+    monthlyCreditsIncluded: 15,
     allowTikTokVideo: false,
     allowPhotoCampaigns: false,
     allowPerformanceAnalytics: false,
@@ -121,6 +125,15 @@ function unlimitedPlanLimitsFor(tier: PlanTier): PlanLimits {
   return { ...PLAN_LIMITS['legacy'], tier }
 }
 
+// Saldo de créditos do teste grátis de 7 dias (_local-adr-policy-0NN, proteção contra reuso de
+// trial) — fixo, igual pra Starter/Pro/Agência, em vez do saldo cheio do tier escolhido.
+// Antes desta decisão, quem testava o Agência podia gastar até 600 créditos (R$129,60) sem
+// nunca ser cobrado, e nada desincentivava escolher sempre o plano mais caro pra testar. Com um
+// teto fixo pequeno, a exposição por teste vira a mesma pra qualquer plano, independente de
+// qual o usuário escolheu — só depois da primeira cobrança real (status deixa de ser
+// 'trialing') o saldo cheio do tier passa a valer.
+export const TRIAL_CREDITS_ALLOWANCE = 20
+
 // Ponto único de leitura de limites — todo gate chama esta função, nunca PLAN_LIMITS[tier]
 // diretamente, para que o bypass de admin funcione em todo lugar sem repetir a checagem
 // (_local-adr-policy-0NN, Fase 5).
@@ -128,5 +141,10 @@ export function resolveEffectivePlanLimits(subscription: Subscription): PlanLimi
   if (subscription.adminOverrideUnlimited) {
     return unlimitedPlanLimitsFor(subscription.tier)
   }
-  return PLAN_LIMITS[subscription.tier]
+
+  const base = PLAN_LIMITS[subscription.tier]
+  if (subscription.status === 'trialing' && base.monthlyCreditsIncluded !== null) {
+    return { ...base, monthlyCreditsIncluded: TRIAL_CREDITS_ALLOWANCE }
+  }
+  return base
 }

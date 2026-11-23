@@ -57,6 +57,7 @@ describe('HandleStripeWebhookUseCase', () => {
 
     mockSubscriptionRepo = {
       findByUserId: vi.fn().mockResolvedValue(makeSubscription()),
+      findByCardFingerprint: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
     }
 
@@ -68,7 +69,11 @@ describe('HandleStripeWebhookUseCase', () => {
     }
 
     constructEvent = vi.fn()
-    mockStripe = { webhooks: { constructEvent } } as unknown as Stripe
+    mockStripe = {
+      webhooks: { constructEvent },
+      setupIntents: { retrieve: vi.fn() },
+      subscriptions: { update: vi.fn().mockResolvedValue(undefined) },
+    } as unknown as Stripe
 
     useCase = new HandleStripeWebhookUseCase(mockStripe, mockSubscriptionRepo, mockCreditBalanceRepo, 'whsec_test')
   })
@@ -158,9 +163,95 @@ describe('HandleStripeWebhookUseCase', () => {
     expect(mockSubscriptionRepo.save).not.toHaveBeenCalled()
   })
 
+  describe('customer.subscription.updated (trialing) — proteção contra reuso de teste grátis', () => {
+    it('resolve o fingerprint do cartão via pending_setup_intent e salva no Subscription', async () => {
+      ;(mockStripe.setupIntents.retrieve as ReturnType<typeof vi.fn>).mockResolvedValue({
+        payment_method: { card: { fingerprint: 'fp_abc' } },
+      })
+      constructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: {
+          object: makeStripeSubscription({ status: 'trialing', trial_end: 1893456000, pending_setup_intent: 'seti_123' }),
+        },
+      })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockStripe.setupIntents.retrieve).toHaveBeenCalledWith('seti_123', { expand: ['payment_method'] })
+      expect(mockSubscriptionRepo.save).toHaveBeenCalledWith(expect.objectContaining({ cardFingerprint: 'fp_abc' }))
+      expect(mockStripe.subscriptions.update).not.toHaveBeenCalled()
+    })
+
+    it('encerra o trial na hora (trial_end: now) quando o mesmo cartão já testou em outro usuário', async () => {
+      ;(mockStripe.setupIntents.retrieve as ReturnType<typeof vi.fn>).mockResolvedValue({
+        payment_method: { card: { fingerprint: 'fp_reused' } },
+      })
+      mockSubscriptionRepo.findByCardFingerprint = vi
+        .fn()
+        .mockResolvedValue([makeSubscription({ userId: 'user-OUTRO', trialEndsAt: new Date('2026-01-01T00:00:00Z') })])
+      constructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: {
+          object: makeStripeSubscription({ status: 'trialing', trial_end: 1893456000, pending_setup_intent: 'seti_456' }),
+        },
+      })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockStripe.subscriptions.update).toHaveBeenCalledWith('sub_123', { trial_end: 'now' })
+    })
+
+    it('não encerra o trial quando o fingerprint reaparece só na própria conta', async () => {
+      ;(mockStripe.setupIntents.retrieve as ReturnType<typeof vi.fn>).mockResolvedValue({
+        payment_method: { card: { fingerprint: 'fp_same_user' } },
+      })
+      mockSubscriptionRepo.findByCardFingerprint = vi
+        .fn()
+        .mockResolvedValue([makeSubscription({ userId: 'user-1', trialEndsAt: new Date('2026-01-01T00:00:00Z') })])
+      constructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: {
+          object: makeStripeSubscription({ status: 'trialing', trial_end: 1893456000, pending_setup_intent: 'seti_789' }),
+        },
+      })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockStripe.subscriptions.update).not.toHaveBeenCalled()
+    })
+
+    it('não chama o Stripe de novo quando a Subscription já tem um cardFingerprint salvo', async () => {
+      mockSubscriptionRepo.findByUserId = vi.fn().mockResolvedValue(makeSubscription({ cardFingerprint: 'fp_already_known' }))
+      constructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: {
+          object: makeStripeSubscription({ status: 'trialing', trial_end: 1893456000, pending_setup_intent: 'seti_999' }),
+        },
+      })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockStripe.setupIntents.retrieve).not.toHaveBeenCalled()
+      expect(mockSubscriptionRepo.findByCardFingerprint).not.toHaveBeenCalled()
+      expect(mockSubscriptionRepo.save).toHaveBeenCalledWith(expect.objectContaining({ cardFingerprint: 'fp_already_known' }))
+    })
+
+    it('não faz nada quando o status não é trialing (assinatura ativa normal)', async () => {
+      constructEvent.mockReturnValue({
+        type: 'customer.subscription.updated',
+        data: { object: makeStripeSubscription({ status: 'active', pending_setup_intent: 'seti_should_be_ignored' }) },
+      })
+
+      await useCase.execute(Buffer.from('{}'), 'sig')
+
+      expect(mockStripe.setupIntents.retrieve).not.toHaveBeenCalled()
+    })
+  })
+
   describe('checkout.session.completed — compra avulsa de créditos', () => {
-    it('credita o pacote avulso quando mode é payment e o metadata está completo, via applyPurchaseOnce (idempotente)', async () => {
-      // makeSubscription() default (tier 'free') resolve monthlyCreditsIncluded 30.
+  it('credita o pacote avulso quando mode é payment e o metadata está completo, via applyPurchaseOnce (idempotente)', async () => {
+      // makeSubscription() default (tier 'free') resolve monthlyCreditsIncluded 15
+      // (_local-bdr-policy-014, emenda 2026-11-23).
       constructEvent.mockReturnValue({
         type: 'checkout.session.completed',
         data: { object: makeCheckoutSession({ mode: 'payment', metadata: { userId: 'user-1', creditAmount: '150' } }) },
@@ -171,7 +262,7 @@ describe('HandleStripeWebhookUseCase', () => {
       // applyPurchaseOnce, não save solto: a dedução/dedup por session.id acontece inteira
       // dentro da transação do repositório (_local-adr-policy-044) — o use-case nunca lê o
       // saldo e grava num passo separado, que seria vulnerável a correr duas vezes.
-      expect(mockCreditBalanceRepo.applyPurchaseOnce).toHaveBeenCalledWith('user-1', 'cs_123', 30, 150, expect.any(Date))
+      expect(mockCreditBalanceRepo.applyPurchaseOnce).toHaveBeenCalledWith('user-1', 'cs_123', 15, 150, expect.any(Date))
       expect(mockCreditBalanceRepo.save).not.toHaveBeenCalled()
     })
 

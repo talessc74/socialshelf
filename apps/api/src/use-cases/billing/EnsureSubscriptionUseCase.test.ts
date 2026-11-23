@@ -24,6 +24,7 @@ describe('EnsureSubscriptionUseCase', () => {
   beforeEach(() => {
     mockSubscriptionRepo = {
       findByUserId: vi.fn().mockResolvedValue(null),
+      findByCardFingerprint: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
     }
     mockBrandRepo = {

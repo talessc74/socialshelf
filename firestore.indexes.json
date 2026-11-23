@@ -132,6 +132,11 @@
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "updatedAt", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "subscription",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [{ "fieldPath": "cardFingerprint", "order": "ASCENDING" }]
     }
   ],
   "fieldOverrides": []

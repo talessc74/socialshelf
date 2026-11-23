@@ -94,6 +94,11 @@ export class HandleStripeWebhookUseCase {
     const resolved = priceId ? resolveTierAndCycleFromPriceId(priceId) : undefined
     const currentPeriodEnd = stripeSubscription.items.data[0]?.current_period_end
 
+    // Só tenta resolver/checar fingerprint se ainda não tem um salvo (primeiro evento desta
+    // assinatura) — depois disso vira no-op, sem chamada nenhuma ao Stripe.
+    const cardFingerprint =
+      existing.cardFingerprint ?? (await this.guardAgainstReusedTrial(stripeSubscription, existing.userId))
+
     const updated: Subscription = {
       ...existing,
       tier: resolved?.tier ?? existing.tier,
@@ -102,12 +107,45 @@ export class HandleStripeWebhookUseCase {
       stripeCustomerId:
         typeof stripeSubscription.customer === 'string' ? stripeSubscription.customer : stripeSubscription.customer.id,
       stripeSubscriptionId: stripeSubscription.id,
+      cardFingerprint,
       trialEndsAt: stripeSubscription.trial_end ? new Date(stripeSubscription.trial_end * 1000) : null,
       currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
       cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
       updatedAt: new Date(),
     }
     await this.subscriptionRepo.save(updated)
+  }
+
+  // Proteção contra reuso de teste grátis (_local-adr-policy-0NN): só roda enquanto a
+  // assinatura está em trial e ainda não tem fingerprint salvo — nunca depois (evita repetir a
+  // chamada ao Stripe a cada customer.subscription.updated subsequente, que são muitos). Lê o
+  // cartão coletado via `pending_setup_intent` (o Checkout não cobra nada ainda durante o
+  // trial, então o cartão fica como SetupIntent, não PaymentIntent). Se o mesmo cartão já
+  // passou por um trial em outro userId, encerra o trial atual na hora — o Stripe cobra o
+  // cartão imediatamente, tirando o incentivo de criar conta nova pra repetir o teste.
+  private async guardAgainstReusedTrial(stripeSubscription: Stripe.Subscription, userId: string): Promise<string | null> {
+    if (stripeSubscription.status !== 'trialing') return null
+
+    const setupIntentId =
+      typeof stripeSubscription.pending_setup_intent === 'string'
+        ? stripeSubscription.pending_setup_intent
+        : stripeSubscription.pending_setup_intent?.id
+    if (!setupIntentId) return null
+
+    const setupIntent = await this.stripe.setupIntents.retrieve(setupIntentId, { expand: ['payment_method'] })
+    const paymentMethod = setupIntent.payment_method
+    const fingerprint = typeof paymentMethod === 'object' ? (paymentMethod?.card?.fingerprint ?? null) : null
+    if (!fingerprint) return null
+
+    const otherSubscriptionsWithSameCard = await this.subscriptionRepo.findByCardFingerprint(fingerprint)
+    const cardAlreadyTrialedElsewhere = otherSubscriptionsWithSameCard.some(
+      (sub) => sub.userId !== userId && sub.trialEndsAt !== null,
+    )
+    if (cardAlreadyTrialedElsewhere) {
+      await this.stripe.subscriptions.update(stripeSubscription.id, { trial_end: 'now' })
+    }
+
+    return fingerprint
   }
 
   private async applySubscriptionDeleted(stripeSubscription: Stripe.Subscription): Promise<void> {

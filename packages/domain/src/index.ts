@@ -155,7 +155,12 @@ export {
 } from './value-objects/AiPricing.js'
 export type { GeminiUsageTokens } from './value-objects/AiPricing.js'
 export { isAdminEmail } from './value-objects/AdminAccess.js'
-export { PLAN_LIMITS, resolveEffectivePlanLimits, isAutonomyLevelWithinPlan } from './value-objects/PlanLimits.js'
+export {
+  PLAN_LIMITS,
+  TRIAL_CREDITS_ALLOWANCE,
+  resolveEffectivePlanLimits,
+  isAutonomyLevelWithinPlan,
+} from './value-objects/PlanLimits.js'
 export type { PlanLimits } from './value-objects/PlanLimits.js'
 export { brasiliaDateNow, startOfBrasiliaDay, brasiliaMonthKey } from './value-objects/BrasiliaDate.js'
 export { groupAiUsageEventsByMonth } from './value-objects/AiUsageAggregation.js'
