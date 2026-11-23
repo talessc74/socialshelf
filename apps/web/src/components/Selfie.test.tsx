@@ -1,8 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AssistantProvider, useSelfieDismissal, useSelfieNarration } from '../contexts/AssistantContext'
 import { Selfie } from './Selfie'
+
+vi.mock('../lib/api', () => ({
+  api: { askSelfie: vi.fn().mockResolvedValue('Vá em Central de Contas e clique em Reconectar.') },
+}))
 
 const DISMISSED_KEY = 'socialshelf:selfie:dismissed'
 
@@ -47,9 +51,13 @@ function mockReducedMotion(reduce: boolean) {
     }) as unknown as MediaQueryList
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   window.localStorage.clear()
   mockReducedMotion(false)
+  // `afterEach` abaixo chama vi.restoreAllMocks(), que também limpa a implementação deste
+  // mock global (não só spies criados no teste) — precisa ser restaurado a cada teste.
+  const { api } = await import('../lib/api')
+  vi.mocked(api.askSelfie).mockResolvedValue('Vá em Central de Contas e clique em Reconectar.')
 })
 
 afterEach(() => {
@@ -58,9 +66,10 @@ afterEach(() => {
 })
 
 describe('Selfie', () => {
-  it('não renderiza nada quando não há narração ativa', () => {
+  it('mostra o mascote mesmo sem narração ativa, mas sem nenhum balão de fala', () => {
     renderSelfie()
-    expect(screen.queryByTestId('selfie')).not.toBeInTheDocument()
+    expect(screen.getByTestId('selfie')).toBeInTheDocument()
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('renderiza o balão com a mensagem quando o contexto narra', async () => {
@@ -89,12 +98,13 @@ describe('Selfie', () => {
     expect(screen.getByTestId('selfie').querySelector('img')).toBeNull()
   })
 
-  it('some quando a narração é limpa', async () => {
+  it('o balão some quando a narração é limpa, mas o mascote continua visível', async () => {
     renderSelfie()
     await userEvent.click(screen.getByText('narrar'))
-    expect(screen.getByTestId('selfie')).toBeInTheDocument()
+    expect(screen.getByText('Escrevendo a copy…')).toBeInTheDocument()
     await userEvent.click(screen.getByText('limpar'))
-    expect(screen.queryByTestId('selfie')).not.toBeInTheDocument()
+    expect(screen.queryByText('Escrevendo a copy…')).not.toBeInTheDocument()
+    expect(screen.getByTestId('selfie')).toBeInTheDocument()
   })
 
   it('dispensar oculta o Selfie e persiste a preferência', async () => {
@@ -165,6 +175,43 @@ describe('Selfie', () => {
       vi.advanceTimersByTime(130)
     })
     expect(eyelid()).toHaveStyle({ transform: 'scaleY(0)' })
+  })
+
+  it('clicar no mascote abre o chat, substituindo o balão de narração', async () => {
+    renderSelfie()
+    await userEvent.click(screen.getByText('narrar'))
+    expect(screen.getByText('Escrevendo a copy…')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByLabelText('Perguntar algo ao Selfie'))
+
+    expect(screen.getByTestId('selfie-chat-panel')).toBeInTheDocument()
+    expect(screen.queryByText('Escrevendo a copy…')).not.toBeInTheDocument()
+  })
+
+  it('envia uma pergunta no chat e mostra a resposta da IA', async () => {
+    const { api } = await import('../lib/api')
+    renderSelfie()
+    await userEvent.click(screen.getByLabelText('Perguntar algo ao Selfie'))
+
+    await userEvent.type(screen.getByPlaceholderText('Digite sua pergunta…'), 'Como conecto o Instagram?')
+    await userEvent.click(screen.getByText('Enviar'))
+
+    expect(screen.getByText('Como conecto o Instagram?')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('Vá em Central de Contas e clique em Reconectar.')).toBeInTheDocument()
+    })
+    expect(api.askSelfie).toHaveBeenCalledWith('Como conecto o Instagram?', [])
+  })
+
+  it('fechar o chat volta a mostrar o mascote flutuante', async () => {
+    renderSelfie()
+    await userEvent.click(screen.getByLabelText('Perguntar algo ao Selfie'))
+    expect(screen.getByTestId('selfie-chat-panel')).toBeInTheDocument()
+
+    await userEvent.click(screen.getByLabelText('Fechar chat'))
+
+    expect(screen.queryByTestId('selfie-chat-panel')).not.toBeInTheDocument()
+    expect(screen.getByTestId('selfie')).toBeInTheDocument()
   })
 
   it('não deixa timer de piscada vazar após desmontar', () => {

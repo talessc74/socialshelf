@@ -126,6 +126,7 @@ export type { CampaignTimelineLockRepository } from './ports/CampaignTimelineLoc
 export type { AiUsageRecorderPort, NewAiUsageEvent } from './ports/AiUsageRecorderPort.js'
 export type { AiUsageReaderPort } from './ports/AiUsageReaderPort.js'
 export type { SubscriptionRepository } from './ports/SubscriptionRepository.js'
+export type { SelfieAssistantPort, SelfieChatTurn, SelfieAccountStatus } from './ports/SelfieAssistantPort.js'
 export type { CreditBalanceRepository } from './ports/CreditBalanceRepository.js'
 
 // Value Objects

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { api, type ApiSelfieChatTurn } from '../lib/api'
 
 /**
  * Estado de narração do assistente Selfie (ver _local-bdr-policy-011).
@@ -9,6 +10,18 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 interface Narration {
   active: boolean
   message: string | null
+}
+
+/**
+ * Estado do chat livre do Selfie (_local-adr-policy-045, emenda 2026-11-23 da
+ * _local-bdr-policy-011) — independente da narração acima. Histórico vive só no cliente,
+ * reenviado a cada pergunta; nada é persistido no servidor.
+ */
+interface SelfieChat {
+  open: boolean
+  messages: ApiSelfieChatTurn[]
+  sending: boolean
+  error: string | null
 }
 
 interface AssistantContextValue {
@@ -20,6 +33,10 @@ interface AssistantContextValue {
   /** false até lermos localStorage no cliente — evita flash de hidratação. */
   selfieHydrated: boolean
   setSelfieDismissed: (dismissed: boolean) => void
+  chat: SelfieChat
+  openChat: () => void
+  closeChat: () => void
+  sendQuestion: (question: string) => Promise<void>
 }
 
 const AssistantContext = createContext<AssistantContextValue | null>(null)
@@ -38,6 +55,7 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
   // piscar aparecendo e sumindo se o usuário já tinha desligado antes.
   const [selfieDismissed, setSelfieDismissedState] = useState(true)
   const [selfieHydrated, setSelfieHydrated] = useState(false)
+  const [chat, setChat] = useState<SelfieChat>({ open: false, messages: [], sending: false, error: null })
 
   useEffect(() => {
     setSelfieDismissedState(window.localStorage.getItem(SELFIE_DISMISSED_KEY) === '1')
@@ -64,9 +82,63 @@ export function AssistantProvider({ children }: { children: React.ReactNode }) {
     setSelfieDismissedState(dismissed)
   }, [])
 
+  // Abrir o chat pausa a narração passiva — os dois disputariam o mesmo espaço visual do
+  // balão de fala, e o usuário que acabou de abrir o chat está pedindo atenção ativa, não uma
+  // dica contextual por cima.
+  const openChat = useCallback(() => {
+    clearNarration()
+    setChat((prev) => (prev.open ? prev : { ...prev, open: true, error: null }))
+  }, [clearNarration])
+
+  const closeChat = useCallback(() => {
+    setChat((prev) => (prev.open ? { ...prev, open: false } : prev))
+  }, [])
+
+  const sendQuestion = useCallback(
+    async (question: string) => {
+      const trimmed = question.trim()
+      if (!trimmed) return
+
+      // Histórico enviado ao backend é o que existia ANTES desta pergunta — ela já vai
+      // separadamente como `question`, incluí-la aqui também duplicaria no prompt.
+      const historyBeforeThisTurn = chat.messages
+
+      setChat((prev) => ({
+        ...prev,
+        messages: [...prev.messages, { role: 'user', text: trimmed }],
+        sending: true,
+        error: null,
+      }))
+
+      try {
+        const answer = await api.askSelfie(trimmed, historyBeforeThisTurn)
+        setChat((prev) => ({
+          ...prev,
+          messages: [...prev.messages, { role: 'selfie', text: answer }],
+          sending: false,
+        }))
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Não consegui responder agora. Tente de novo.'
+        setChat((prev) => ({ ...prev, sending: false, error: message }))
+      }
+    },
+    [chat.messages],
+  )
+
   const value = useMemo(
-    () => ({ narration, narrate, clearNarration, selfieDismissed, selfieHydrated, setSelfieDismissed }),
-    [narration, narrate, clearNarration, selfieDismissed, selfieHydrated, setSelfieDismissed],
+    () => ({
+      narration,
+      narrate,
+      clearNarration,
+      selfieDismissed,
+      selfieHydrated,
+      setSelfieDismissed,
+      chat,
+      openChat,
+      closeChat,
+      sendQuestion,
+    }),
+    [narration, narrate, clearNarration, selfieDismissed, selfieHydrated, setSelfieDismissed, chat, openChat, closeChat, sendQuestion],
   )
 
   return <AssistantContext.Provider value={value}>{children}</AssistantContext.Provider>

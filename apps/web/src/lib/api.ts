@@ -106,6 +106,11 @@ export interface ApiBrand {
   accountType: AccountType
 }
 
+export interface ApiSelfieChatTurn {
+  role: 'user' | 'selfie'
+  text: string
+}
+
 export interface ApiConnection {
   id: string
   userId: string
@@ -830,6 +835,14 @@ export const api = {
   async getLatestPerformanceInsights(): Promise<ApiProfileDiagnosticRecord | null> {
     const data = await apiFetch<{ record: ApiProfileDiagnosticRecord | null }>('/performance-insights/latest')
     return data.record
+  },
+
+  async askSelfie(question: string, history: ApiSelfieChatTurn[]): Promise<string> {
+    const data = await apiFetch<{ answer: string }>('/selfie/ask', {
+      method: 'POST',
+      body: JSON.stringify({ question, history }),
+    })
+    return data.answer
   },
 
   async getImageUrl(path: string): Promise<string> {

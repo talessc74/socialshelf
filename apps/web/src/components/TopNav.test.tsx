@@ -9,6 +9,13 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
 }))
 
+// AssistantContext passou a importar lib/api (askSelfie, _local-adr-policy-045) — sem mock,
+// isso puxa a cadeia real do Firebase Auth (lib/api.ts -> lib/firebase.ts -> getAuth(app)),
+// que lança "auth/invalid-api-key" fora de um app Firebase de verdade.
+vi.mock('../lib/api', () => ({
+  api: { askSelfie: vi.fn() },
+}))
+
 function mockNavOverflow(nav: HTMLElement, { scrollLeft, clientWidth, scrollWidth }: { scrollLeft: number; clientWidth: number; scrollWidth: number }) {
   Object.defineProperty(nav, 'clientWidth', { configurable: true, value: clientWidth })
   Object.defineProperty(nav, 'scrollWidth', { configurable: true, value: scrollWidth })

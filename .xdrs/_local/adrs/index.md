@@ -57,6 +57,7 @@ Integração com sistemas externos.
 - [_local-adr-policy-034-tiktok-oauth-e-identificadores-pairwise](integration/034-tiktok-oauth-identificadores.md) - pairwiseId = open_id exclusivamente; union_id descartado no callback; refresh automático (24h/1 ano)
 - [_local-adr-policy-035-tiktok-publicacao-em-multiplas-etapas](integration/035-tiktok-publicacao-multi-chunk.md) - PULL_FROM_URL como estratégia de envio de vídeo ao TikTok, sem chunking client-side
 - [_local-adr-policy-038-selecao-de-pagina-conexao-multi-marca](integration/038-selecao-pagina-conexao-multi-marca.md) - Seleção explícita de página/organização para LinkedIn e Meta quando há múltiplas; aviso de troca de sessão para X
+- [_local-adr-policy-045-chat-do-selfie-com-gemini](integration/045-selfie-chat-integracao-gemini.md) - Chat livre do Selfie: SelfieAssistantPort, fluxo apps/web → apps/api → apps/generator, custo registrado como observabilidade sem descontar créditos
 
 ### platform
 Infraestrutura de plataforma e serviços GCP.
