@@ -1,5 +1,6 @@
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 import { refreshLinkedInToken } from '../../lib/linkedin-refresh.js'
+import { RECONNECT_REQUIRED_MESSAGE } from '../../lib/platformErrorMessages.js'
 
 const LI_REST = 'https://api.linkedin.com/rest'
 // Lançada em fev/2026 — sunset estimado fev/2027 (suporte mínimo de 12 meses garantido pela LinkedIn)
@@ -34,6 +35,11 @@ export class LinkedInAnalyticsReader implements AnalyticsReaderPort {
 
     if (!response.ok) {
       const err = await response.text()
+      // Chegar até aqui com 401 já passou pelo refresh acima (ou não tinha refresh_token) —
+      // o token em si está irrecuperável, só reconexão manual resolve.
+      if (response.status === 401) {
+        throw new Error(`LinkedIn metrics fetch failed: ${RECONNECT_REQUIRED_MESSAGE} — reconecte em Central de Contas`)
+      }
       throw new Error(`LinkedIn metrics fetch failed: ${response.status} ${err}`)
     }
 

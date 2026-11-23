@@ -111,7 +111,7 @@ describe('LinkedInAnalyticsReader', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
 
     await expect(reader.fetchPostMetrics('urn:li:share:111', mockConnection)).rejects.toThrow(
-      'LinkedIn metrics fetch failed: 401 Unauthorized',
+      'LinkedIn metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
     )
   })
 })

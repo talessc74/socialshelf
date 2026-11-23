@@ -113,6 +113,38 @@ describe('MetaAnalyticsReader', () => {
       expect(thrown?.message).not.toContain('IGApiException')
     })
 
+    it('translates an expired/invalid token error (code 190) into an actionable message, not the raw Graph API text', async () => {
+      const vault = makeVault({ page_access_token: 'page-token' })
+      const reader = new MetaAnalyticsReader(vault)
+
+      // Achado real em produção (2026-11-22): esse texto cru chegava direto pro usuário.
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        text: async () =>
+          JSON.stringify({
+            error: {
+              message:
+                "Error validating access token: Session has expired on Saturday, 19-Sep-26 02:39:14 PDT. The current time is Sunday, 22-Nov-26 15:28:59 PST.",
+              type: 'OAuthException',
+              code: 190,
+              fbtrace_id: 'AbCdEfGh123',
+            },
+          }),
+      })
+
+      let thrown: Error | undefined
+      try {
+        await reader.fetchPostMetrics('page-999_post-111', makeConnection(Platform.FACEBOOK))
+      } catch (err) {
+        thrown = err as Error
+      }
+
+      expect(thrown?.message).toContain('a conexão perdeu a validade ou uma permissão necessária')
+      expect(thrown?.message).not.toContain('Session has expired')
+      expect(thrown?.message).not.toContain('fbtrace_id')
+    })
+
     it('throws ContentNotFoundError when the post was deleted on Facebook', async () => {
       const vault = makeVault({ page_access_token: 'page-token' })
       const reader = new MetaAnalyticsReader(vault)

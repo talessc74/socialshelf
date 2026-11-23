@@ -118,7 +118,7 @@ describe('XAnalyticsReader', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
 
     await expect(reader.fetchPostMetrics('tweet-123', mockConnection)).rejects.toThrow(
-      'X metrics fetch failed: 401 Unauthorized',
+      'X metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
     )
   })
 })

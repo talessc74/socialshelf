@@ -1,5 +1,6 @@
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
 import { refreshXToken } from '../../lib/x-refresh.js'
+import { RECONNECT_REQUIRED_MESSAGE } from '../../lib/platformErrorMessages.js'
 
 const X_API = 'https://api.twitter.com/2'
 
@@ -48,6 +49,11 @@ export class XAnalyticsReader implements AnalyticsReaderPort {
 
     if (!response.ok) {
       const err = await response.text()
+      // Chegar até aqui com 401 já passou pelo refresh acima (ou não tinha refresh_token) —
+      // o token em si está irrecuperável, só reconexão manual resolve.
+      if (response.status === 401) {
+        throw new Error(`X metrics fetch failed: ${RECONNECT_REQUIRED_MESSAGE} — reconecte em Central de Contas`)
+      }
       throw new Error(`X metrics fetch failed: ${response.status} ${err}`)
     }
 
