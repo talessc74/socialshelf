@@ -29,6 +29,7 @@ import { aiUsageRoutes } from './routes/ai-usage.routes.js'
 import { storageCleanupRoutes } from './routes/storage-cleanup.routes.js'
 import { billingRoutes } from './routes/billing.routes.js'
 import { stripeWebhookRoutes } from './routes/stripe-webhook.routes.js'
+import { selfieRoutes } from './routes/selfie.routes.js'
 import { registerAuthMiddleware } from './middleware/auth.middleware.js'
 import { registerPlanLimitsMiddleware } from './middleware/planLimits.middleware.js'
 
@@ -82,6 +83,7 @@ export async function buildApp() {
   await app.register(storageCleanupRoutes)
   await app.register(billingRoutes)
   await app.register(stripeWebhookRoutes)
+  await app.register(selfieRoutes)
 
   return app
 }

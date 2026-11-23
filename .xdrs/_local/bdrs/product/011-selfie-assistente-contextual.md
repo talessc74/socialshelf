@@ -45,13 +45,44 @@ Selfie reaproveita o personagem já validado como camada de comunicação de dua
 
 - Conteúdo textual final de cada mensagem — implementação, seguindo o tom de voz definido em `_local-bdr-policy-005`.
 - Especificação de animação (keyframes) — decisão de design, não arquitetural.
-- Interação por texto livre (chat) com Selfie — fora de escopo; esta decisão cobre apenas mensagens contextuais unidirecionais.
+- ~~Interação por texto livre (chat) com Selfie — fora de escopo; esta decisão cobre apenas mensagens contextuais unidirecionais.~~ **Revertido em 2026-11-23 — ver emenda abaixo.**
 
 ### Atualização 2026-07-14 — Selfie expandido para todas as telas do produto; correção do modelo de dispensa
 
 A "segunda onda" descrita na versão original desta policy (onboarding, adiado até validação da primeira tela) foi substituída por decisão direta do usuário: Selfie ganhou interação própria em **todas** as telas do dashboard (Notícias, Performance, Agenda, Campanhas, Marca, Contas, Compose, Insights, Início), não só geração. Detalhe de cada tela — gatilho, fonte de dado, mensagem — registrado na `_local-edr-policy-049` (atualizada na mesma data).
 
 Essa expansão expôs uma inconsistência na decisão original que precisa ser corrigida aqui: o texto anterior definia dispensa "permanente por dica individual" (`dismissedTips: string[]`, Firestore), pensado para uma dica estática de onboarding. Com conteúdo dinâmico (o melhor post muda, a notícia do dia muda, o resumo da agenda muda a cada visita), dispensar permanentemente pelo conteúdo de hoje tornaria a mensagem inútil amanhã — o mecanismo nunca chegou a ser implementado dessa forma. **A regra vigente, já implementada desde o primeiro corte (EDR-049) e mantida na expansão, é: um único flag global por dispositivo (`localStorage`) — "não quero mais ver o Selfie", não "não quero ver esta dica específica".** Isso substitui a seção "Regra de dispensa" da versão original.
+
+### Atualização 2026-11-23 — chat livre com IA deixa de ser excluído; mascote passa a ser sempre visível
+
+Pedido direto do usuário: "quero dar um boost no nosso personagem de ajuda... que ele
+consiga responder perguntas técnicas e dúvidas dos usuários". Isso reverte explicitamente
+a exclusão original ("Interação por texto livre (chat) com Selfie — fora de escopo").
+
+**Por que agora é viável, e não era antes**: a exclusão original não tinha uma razão técnica
+registrada — era só escopo não desenhado ainda. Investigação confirmou que o custo de uma
+chamada de texto ao Gemini (`AiUsageRecorderPort`, categoria `text-generation`) é só
+observabilidade, nunca desconta o saldo de créditos do usuário (`applyCreditConsumption` só
+é chamado para imagens geradas, em `GenerateContentUseCase`) — então um chat de suporte não
+compete com o orçamento de geração de conteúdo do usuário nem exige desenho novo de billing.
+
+**O que muda, de fato**:
+- Selfie ganha um chat de texto livre, com IA (Gemini), que responde dúvidas sobre o produto
+  e enxerga o estado real de conexão das redes da marca (quais estão conectadas, se alguma
+  parece ter expirado) — ver `_local-adr-policy-045` pros detalhes técnicos.
+- **O mascote passa a ficar sempre visível** (uma vez hidratado e não dispensado), não só
+  durante uma narração ativa — precisa existir permanentemente como ponto de entrada clicável
+  pro chat. Isso não viola a regra de gatilho da narração (seção "Gatilhos permitidos" acima):
+  essa regra proíbe a *narração* aparecer por ociosidade, não proíbe uma affordance estática
+  (um botão sempre no mesmo lugar, que nunca interrompe ou puxa atenção sozinho) existir. O
+  balão de fala da narração continua seguindo a regra original à risca — só o mascote em si,
+  como botão de ajuda, ganhou visibilidade permanente.
+- Guardrails de escopo do chat (fora desta BDR, detalhados na ADR-045): responde só sobre o
+  produto, recusa educadamente pergunta fora de escopo, nunca inventa recurso inexistente.
+- Continua fora de escopo: histórico de conversa persistido no servidor (o front reenvia os
+  últimos turnos a cada pergunta; recarregar a página perde o histórico) e contexto da tela
+  atual (o chat é global, não sabe o que está na tela naquele momento — só o estado de
+  conexões). Ver `_local-adr-policy-045` para o racional completo dessas duas exclusões.
 
 ## Conflicts
 
@@ -65,3 +96,4 @@ Nenhum identificado. Esta decisão estende `_local-bdr-policy-006` (Princípios 
 - [_local-bdr-policy-010-paleta-logo-identidade-visual](010-paleta-logo-identidade-visual.md) - Paleta usada na imagem de referência do Selfie
 - [_local-adr-policy-002-arquitetura-hexagonal](../../adrs/application/002-hexagonal-architecture.md) - Padrão de portas e adapters seguido pelo serviço de gatilho
 - [_local-edr-policy-049-selfie-implementacao](../../edrs/application/049-selfie-implementacao.md) - Decisões de implementação, incluindo o mapeamento tela a tela da expansão de 2026-07-14
+- [_local-adr-policy-045-chat-do-selfie-com-gemini](../../adrs/integration/045-selfie-chat-integracao-gemini.md) - Arquitetura técnica do chat livre adicionado em 2026-11-23

@@ -75,6 +75,7 @@ describe('ComputeAudienceSignalUseCase', () => {
       findByPairwise: vi.fn(),
       findByBrandAndPlatform: vi.fn().mockResolvedValue(makeConnection()),
       findByBrand: vi.fn(),
+      findAllByPlatforms: vi.fn(),
       delete: vi.fn(),
     }
 

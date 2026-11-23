@@ -107,6 +107,7 @@ describe('AutonomyTickUseCase', () => {
       findByPairwise: vi.fn(),
       findByBrandAndPlatform: vi.fn(),
       findByBrand: vi.fn().mockResolvedValue([makeConnection(Platform.LINKEDIN)]),
+      findAllByPlatforms: vi.fn(),
       delete: vi.fn(),
     }
     postRepo = {

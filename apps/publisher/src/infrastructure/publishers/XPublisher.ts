@@ -1,5 +1,6 @@
 import { Platform } from '@socialshelf/domain'
 import type { PublisherPort, PublishResult, Post, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
+import { refreshXToken } from '../../lib/x-refresh.js'
 
 const X_API = 'https://api.twitter.com/2'
 
@@ -8,33 +9,6 @@ interface XStoredToken {
   refresh_token?: string | null
   expires_at?: string | null
   scope?: string
-}
-
-async function refreshXToken(refreshToken: string): Promise<{ access_token: string; refresh_token?: string; expires_in: number; scope: string }> {
-  const clientId = process.env['X_CLIENT_ID'] ?? ''
-  const clientSecret = process.env['X_CLIENT_SECRET'] ?? ''
-  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
-
-  const body = new URLSearchParams({
-    grant_type: 'refresh_token',
-    refresh_token: refreshToken,
-  })
-
-  const response = await fetch('https://api.twitter.com/2/oauth2/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${credentials}`,
-    },
-    body: body.toString(),
-  })
-
-  if (!response.ok) {
-    const text = await response.text()
-    throw new Error(`X token refresh failed: ${response.status} ${text}`)
-  }
-
-  return response.json() as Promise<{ access_token: string; refresh_token?: string; expires_in: number; scope: string }>
 }
 
 export class XPublisher implements PublisherPort {

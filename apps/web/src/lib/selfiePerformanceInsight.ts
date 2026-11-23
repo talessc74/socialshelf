@@ -1,5 +1,25 @@
+import { Platform } from '@socialshelf/domain'
 import type { ApiPostPerformanceEntry } from './api'
 import { PLATFORM_META } from './platformMeta'
+
+// Única fonte de verdade pra "este erro significa reconectar a conta" — usado tanto pelo aviso
+// na tela de Performance quanto pela narração do Selfie, pra não ter duas lógicas de
+// classificação divergindo. `RECONNECT_REQUIRED_MESSAGE` é a frase estável que os
+// AnalyticsReaders (apps/publisher) agora sempre incluem quando o erro é de token/permissão —
+// os outros termos ficam como compatibilidade com o formato cru antigo da Meta.
+export function isPermissionError(message: string): boolean {
+  return /OAuthException|pages_read_engagement|Page Public Content Access|perdeu a validade ou uma permiss[ãa]o necess[áa]ria/i.test(
+    message,
+  )
+}
+
+// A Meta só libera dados de Insights de Página (e dos posts dela) para Páginas com pelo menos
+// 100 seguidores — abaixo disso ela retorna o mesmo erro genérico de permissão acima, mesmo com
+// a permissão concedida e a conexão saudável (publicar continua funcionando). Reconectar a conta
+// não resolve esse caso: é uma trava da própria Meta pelo tamanho da Página.
+export function isFacebookFollowerThresholdError(platform: Platform, message: string): boolean {
+  return platform === Platform.FACEBOOK && isPermissionError(message)
+}
 
 function engagementRate(entry: ApiPostPerformanceEntry): number {
   const { impressions, likes, comments, shares } = entry.metrics
@@ -48,8 +68,29 @@ export function weekOverWeekDelta(entries: ApiPostPerformanceEntry[]): number | 
   return ((lastAvg - prevAvg) / prevAvg) * 100
 }
 
-/** Mensagem completa do Selfie para a tela de Performance. */
-export function buildPerformanceMessage(entries: ApiPostPerformanceEntry[]): string | null {
+export interface PerformanceErrorEntry {
+  platform: Platform
+  message: string
+}
+
+/**
+ * Mensagem completa do Selfie para a tela de Performance. Quando há um erro de conexão
+ * acionável (token expirado/permissão perdida, exceto o caso de seguidores mínimos do
+ * Facebook, que não é resolvido reconectando), o Selfie avisa disso em vez de comemorar o
+ * melhor post — é a informação mais útil pro usuário no momento (_local-bdr-policy-011).
+ */
+export function buildPerformanceMessage(
+  entries: ApiPostPerformanceEntry[],
+  errors: PerformanceErrorEntry[] = [],
+): string | null {
+  const reconnectError = errors.find(
+    (e) => isPermissionError(e.message) && !isFacebookFollowerThresholdError(e.platform, e.message),
+  )
+  if (reconnectError) {
+    const label = PLATFORM_META[reconnectError.platform]?.label ?? reconnectError.platform
+    return `Ei! A conexão com ${label} expirou ou perdeu uma permissão — vai em Contas e clica em Reconectar pra voltar a ver as métricas de lá.`
+  }
+
   const best = findBestPost(entries)
   if (!best) return null
   const rate = Math.round(engagementRate(best) * 100)

@@ -85,4 +85,40 @@ describe('XAnalyticsReader', () => {
       'X metrics fetch failed: 404 Not Found',
     )
   })
+
+  it('refreshes token on 401 and retries successfully', async () => {
+    const vault = makeVault({ access_token: 'expired-token', refresh_token: 'valid-refresh' })
+    const reader = new XAnalyticsReader(vault)
+
+    fetchMock
+      .mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 7200, scope: 'tweet.read' }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: { public_metrics: { impression_count: 10, like_count: 1, reply_count: 0, retweet_count: 0, quote_count: 0 } } }),
+      })
+
+    const result = await reader.fetchPostMetrics('tweet-123', mockConnection)
+
+    expect(result).toEqual({ impressions: 10, likes: 1, comments: 0, shares: 0 })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const stored = JSON.parse(vi.mocked(vault.store).mock.calls[0]![1] as string)
+    expect(stored.access_token).toBe('new-access')
+    const retryHeaders = fetchMock.mock.calls[2]![1]!.headers as Record<string, string>
+    expect(retryHeaders['Authorization']).toBe('Bearer new-access')
+  })
+
+  it('throws on 401 when no refresh token is stored', async () => {
+    const vault = makeVault({ access_token: 'expired-token' })
+    const reader = new XAnalyticsReader(vault)
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 401, text: async () => 'Unauthorized' })
+
+    await expect(reader.fetchPostMetrics('tweet-123', mockConnection)).rejects.toThrow(
+      'X metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
+    )
+  })
 })

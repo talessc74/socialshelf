@@ -1,5 +1,6 @@
 import { Platform, ContentNotFoundError } from '@socialshelf/domain'
 import type { AnalyticsReaderPort, PostMetrics, OAuthConnection, TokenVaultPort } from '@socialshelf/domain'
+import { RECONNECT_REQUIRED_MESSAGE } from '../../lib/platformErrorMessages.js'
 
 const GRAPH = 'https://graph.facebook.com/v21.0'
 
@@ -22,6 +23,12 @@ function isContentDeletedError(body: string): boolean {
 // documentada em MetaPublisher.friendlyReason pra publicar). Sem essa tradução, a tela de
 // Performance mostrava o JSON cru da Graph API — mesmo problema já corrigido na publicação.
 const INSIGHTS_PERMISSION_ERROR_CODE = 10
+// code 190 é o código estável da Graph API pra "OAuth exception" — token expirado, revogado ou
+// inválido. Achado real em produção (2026-11-22): sem este caso, caía no fallback
+// `graphError?.message` abaixo e mostrava o texto cru da Meta ("Error validating access token:
+// Session has expired on...") direto pro usuário — o mesmo código já tratado em
+// MetaPublisher.friendlyReason, nunca replicado aqui.
+const OAUTH_TOKEN_ERROR_CODE = 190
 
 function friendlyReason(status: number, rawBody: string): string {
   let graphError: { message?: string; code?: number } | undefined
@@ -32,7 +39,10 @@ function friendlyReason(status: number, rawBody: string): string {
   }
 
   if (graphError?.code === INSIGHTS_PERMISSION_ERROR_CODE) {
-    return 'sem permissão pra ler métricas dessa rede — confirme que a conta está liberada como testadora do app (mesma exigência pra publicar) e reconecte em Central de Contas'
+    return `sem permissão pra ler métricas dessa rede (${RECONNECT_REQUIRED_MESSAGE}) — confirme que a conta está liberada como testadora do app (mesma exigência pra publicar) e reconecte em Central de Contas`
+  }
+  if (graphError?.code === OAUTH_TOKEN_ERROR_CODE) {
+    return `${RECONNECT_REQUIRED_MESSAGE} — reconecte em Central de Contas`
   }
   if (graphError?.message) {
     return graphError.message

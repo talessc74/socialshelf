@@ -206,6 +206,106 @@ describe('PerformanceDashboardPage', () => {
     expect(technicalDetails).not.toHaveAttribute('open')
   })
 
+  it('mostra mensagem amigável quando o erro é o texto cru de token expirado da Meta (achado real em produção)', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.LINKEDIN })],
+        errors: [
+          {
+            platform: Platform.INSTAGRAM,
+            postId: 'post-2',
+            message:
+              'Instagram metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
+          },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Instagram/ }))
+
+    expect(
+      await screen.findByText(/perdeu uma permissão necessária para ler as métricas/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Reconectar conta/ })).toBeInTheDocument()
+  })
+
+  it('mostra mensagem amigável quando o erro é o JSON cru de token expirado do LinkedIn (achado real em produção)', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.FACEBOOK })],
+        errors: [
+          {
+            platform: Platform.LINKEDIN,
+            postId: 'post-2',
+            message:
+              'LinkedIn metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
+          },
+        ],
+      }),
+    )
+    const user = userEvent.setup()
+
+    renderPage()
+
+    expect(await screen.findByText('Texto do post de melhor desempenho')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /LinkedIn/ }))
+
+    expect(
+      await screen.findByText(/perdeu uma permissão necessária para ler as métricas/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Reconectar conta/ })).toBeInTheDocument()
+  })
+
+  it('narra pro Selfie que uma conexão precisa ser reconectada, em vez do melhor post', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.LINKEDIN })],
+        errors: [
+          {
+            platform: Platform.INSTAGRAM,
+            postId: 'post-2',
+            message:
+              'Instagram metrics fetch failed: a conexão perdeu a validade ou uma permissão necessária para ler as métricas — reconecte em Central de Contas',
+          },
+        ],
+      }),
+    )
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('Instagram')
+    })
+    expect(screen.getByTestId('selfie-narration')).toHaveTextContent('Reconectar')
+  })
+
+  it('não narra reconexão pro Selfie quando o único erro é o de seguidores mínimos do Facebook', async () => {
+    mockedApi.getPostsPerformance.mockResolvedValue(
+      makeResult({
+        entries: [makeEntry({ platform: Platform.INSTAGRAM })],
+        errors: [
+          {
+            platform: Platform.FACEBOOK,
+            postId: 'post-2',
+            message:
+              'Facebook metrics fetch failed: 400 {"error":{"message":"(#10) This endpoint requires the \'pages_read_engagement\' permission or the \'Page Public Content Access\' feature.","type":"OAuthException","code":10}}',
+          },
+        ],
+      }),
+    )
+
+    renderPageWithNarrationProbe()
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selfie-narration')).toHaveTextContent('Instagram')
+    })
+    expect(screen.getByTestId('selfie-narration')).not.toHaveTextContent('Reconectar')
+  })
+
   it('gera o diagnóstico automaticamente ao entrar na tela, sem precisar clicar', async () => {
     mockedApi.getPostsPerformance.mockResolvedValue(makeResult({ entries: [makeEntry()] }))
     mockedApi.getPerformanceInsights.mockResolvedValue(makeDiagnostic())

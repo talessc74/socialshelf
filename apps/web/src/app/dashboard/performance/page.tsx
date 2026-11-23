@@ -11,7 +11,11 @@ import type { ApiPostPerformanceEntry } from '../../../lib/api'
 import { ScoreBadge } from '../../../components/ScoreBadge'
 import { ProfileDiagnosticPanel } from '../../../components/ProfileDiagnosticPanel'
 import { EngagementOverTimeChart } from '../../../components/EngagementOverTimeChart'
-import { buildPerformanceMessage } from '../../../lib/selfiePerformanceInsight'
+import {
+  buildPerformanceMessage,
+  isPermissionError,
+  isFacebookFollowerThresholdError,
+} from '../../../lib/selfiePerformanceInsight'
 import { useSelfieNarrateOnReady } from '../../../contexts/AssistantContext'
 
 const PLATFORM_LABELS: Record<Platform, string> = {
@@ -30,20 +34,6 @@ const ALL_PLATFORMS = [
   Platform.TIKTOK,
 ]
 
-// Erros de permissão/OAuth do Graph API vêm como JSON crú da Meta — não são
-// acionáveis para o usuário, então tratamos como "precisa reconectar a conta".
-function isPermissionError(message: string): boolean {
-  return /OAuthException|pages_read_engagement|Page Public Content Access/i.test(message)
-}
-
-// A Meta só libera dados de Insights de Página (e dos posts dela) para Páginas com pelo
-// menos 100 seguidores — abaixo disso ela retorna o mesmo erro genérico de permissão acima,
-// mesmo com a permissão concedida e a conexão saudável (publicar continua funcionando).
-// Reconectar a conta não resolve esse caso: é uma trava da própria Meta pelo tamanho da Página.
-function isFacebookFollowerThresholdError(platform: Platform, message: string): boolean {
-  return platform === Platform.FACEBOOK && isPermissionError(message)
-}
-
 export default function PerformanceDashboardPage() {
   const router = useRouter()
 
@@ -53,13 +43,14 @@ export default function PerformanceDashboardPage() {
   })
 
   const entries = useMemo(() => data?.entries ?? [], [data])
-  useSelfieNarrateOnReady(useMemo(() => buildPerformanceMessage(entries), [entries]))
+  const errors = useMemo(() => data?.errors ?? [], [data])
+  useSelfieNarrateOnReady(useMemo(() => buildPerformanceMessage(entries, errors), [entries, errors]))
 
   const errorsByPlatform = useMemo(() => {
     const map = new Map<Platform, string>()
-    for (const e of data?.errors ?? []) map.set(e.platform, e.message)
+    for (const e of errors) map.set(e.platform, e.message)
     return map
-  }, [data])
+  }, [errors])
 
   const entriesByPlatform = useMemo(() => {
     const map = new Map<Platform, ApiPostPerformanceEntry[]>()

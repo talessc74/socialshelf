@@ -78,6 +78,7 @@ describe('PublishPostUseCase', () => {
         .fn()
         .mockImplementation((_, platform) => Promise.resolve(makeConnection(platform))),
       findByBrand: vi.fn(),
+      findAllByPlatforms: vi.fn(),
       delete: vi.fn(),
     }
 

@@ -1,7 +1,7 @@
 ---
 name: _local-edr-policy-049-selfie-implementacao
-description: Decisões de implementação do assistente contextual Selfie (_local-bdr-policy-011) — persistência de dispensa em localStorage, imagem oficial com fallback SVG em vez de Lottie/Rive, camada de animação "vivo" via CSS + timer de piscada, setters de contexto idempotentes, hook compartilhado useSelfieNarrateOnReady, narração imperativa na tela de geração (medidor de tempo economizado), e o mapeamento tela a tela da expansão para todo o produto. Use ao mexer em Selfie.tsx, AssistantContext.tsx, DashboardLayout, ou em qualquer tela que publique narração ao Selfie.
-apply-to: apps/web — Selfie.tsx, AssistantContext.tsx, DashboardLayout, e todas as telas do dashboard que narram ao Selfie
+description: Decisões de implementação do assistente contextual Selfie (_local-bdr-policy-011) — persistência de dispensa em localStorage, imagem oficial com fallback SVG em vez de Lottie/Rive, camada de animação "vivo" via CSS + timer de piscada, setters de contexto idempotentes, hook compartilhado useSelfieNarrateOnReady, narração imperativa na tela de geração (medidor de tempo economizado), o mapeamento tela a tela da expansão para todo o produto, e (2026-11-23) o painel de chat livre com mascote sempre visível. Use ao mexer em Selfie.tsx, SelfieMascot.tsx, SelfieChatPanel.tsx, AssistantContext.tsx, DashboardLayout, ou em qualquer tela que publique narração ao Selfie.
+apply-to: apps/web — Selfie.tsx, SelfieMascot.tsx, SelfieChatPanel.tsx, AssistantContext.tsx, DashboardLayout, e todas as telas do dashboard que narram ao Selfie
 valid-from: 2026-07-14
 ---
 
@@ -144,8 +144,51 @@ Notícias fica na página (`news/page.tsx`, query própria com a mesma
 não vazar a mesma mensagem para as outras telas onde ele também é
 renderizado.
 
+### Atualização 2026-11-23 — mascote extraído para componente próprio; painel de chat
+
+`_local-bdr-policy-011` (emenda 2026-11-23) reverteu a exclusão de chat livre. Decisões de
+implementação do front:
+
+**`SelfieMascot` virou um componente próprio** (`components/SelfieMascot.tsx`), extraído de
+dentro de `Selfie.tsx` — agora é consumido tanto por `<Selfie />` (o botão flutuante) quanto
+por `<SelfieChatPanel />` (ícone do cabeçalho, em escala reduzida via `scale-[0.32]` sobre um
+container `overflow-hidden`, já que o componente não parametriza o próprio tamanho). Evita
+import circular entre os dois (`Selfie.tsx` já importa `SelfieChatPanel.tsx` pra renderizá-lo
+condicionalmente).
+
+**`Selfie.tsx` não retorna mais `null` na ausência de narração.** A condição de saída passou a
+ser só `!selfieHydrated || selfieDismissed` — o balão de fala continua condicional
+(`narration.active && narration.message`), mas o mascote em si (agora dentro de um `<button>`
+com `aria-label="Perguntar algo ao Selfie"`) sempre renderiza. Quando `chat.open` é verdadeiro,
+`<Selfie />` renderiza só `<SelfieChatPanel />` no lugar do balão+mascote — os dois nunca
+aparecem ao mesmo tempo.
+
+**Estado do chat vive no mesmo `AssistantContext`, em uma chave separada (`chat`)** —
+`{ open, messages, sending, error }` — com ações `openChat`/`closeChat`/`sendQuestion`,
+paralelas a `narrate`/`clearNarration` sem interferir nelas. `openChat()` chama
+`clearNarration()` primeiro: abrir o chat sempre limpa qualquer narração em andamento, porque
+os dois disputariam o mesmo espaço visual. Histórico (`chat.messages`) não é persistido —
+vive só em `useState`, perdido ao recarregar a página ou navegar (por enquanto; ver
+`_local-adr-policy-045`).
+
+**`sendQuestion` captura o histórico ANTES de adicionar a pergunta atual** à lista de
+mensagens — do contrário a pergunta apareceria duplicada no prompt enviado ao backend (uma
+vez como `question`, outra dentro do `history`). A dependência do `useCallback` é
+`[chat.messages]` (não vazia) justamente para sempre capturar o histórico mais recente no
+fechamento — a troca de identidade da função a cada mensagem nova é inofensiva, só o
+`<SelfieChatPanel />` a consome via `useSelfie()`.
+
+**Acessibilidade do painel** (`SelfieChatPanel.tsx`): `role="dialog"` com foco automático no
+campo de texto ao montar; respostas chegando usam `role="status" aria-live="polite"`
+("Pensando…") e erros usam `role="alert"`, ecoando o padrão já usado no balão de narração.
+
+**Achado de teste**: `listRef.current.scrollTo` não existe no jsdom — o efeito que rola a
+lista de mensagens pro fim checa `typeof list.scrollTo === 'function'` antes de chamar, tanto
+pra não quebrar em teste quanto como defesa geral (nunca presumir que uma API de DOM existe).
+
 ## References
 
 - [_local-bdr-policy-011-selfie-assistente-contextual](../../bdrs/product/011-selfie-assistente-contextual.md) - Decisão de produto que esta EDR implementa
 - [_local-bdr-policy-006-visao-de-experiencia-de-produto](../../bdrs/product/006-visao-experiencia-produto.md) - Origem do requisito de IA visível que motiva a narração
 - [_local-edr-policy-030-testes-de-componente-em-apps-web](030-testes-componente-web.md) - Padrão de teste (Vitest + Testing Library, jsdom) seguido pela suíte do Selfie
+- [_local-adr-policy-045-chat-do-selfie-com-gemini](../../adrs/integration/045-selfie-chat-integracao-gemini.md) - Arquitetura de backend do chat (porta, rotas, custo sem crédito)
