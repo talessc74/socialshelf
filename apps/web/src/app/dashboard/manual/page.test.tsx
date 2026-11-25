@@ -13,8 +13,11 @@ describe('ManualPage', () => {
 
     expect(screen.getByText('Manual do SocialShelf')).toBeInTheDocument()
     expect(screen.getByText('O que é o SocialShelf')).toBeInTheDocument()
+    expect(screen.getByText('Antes de começar')).toBeInTheDocument()
     expect(screen.getByText('Menu principal')).toBeInTheDocument()
     expect(screen.getByText('Como conectar cada rede social')).toBeInTheDocument()
+    expect(screen.getByText('Confirmando que a conexão funcionou')).toBeInTheDocument()
+    expect(screen.getByText('Criando seu primeiro post')).toBeInTheDocument()
     expect(screen.getByText('Problemas comuns de conexão')).toBeInTheDocument()
     expect(screen.getByText('Créditos de IA')).toBeInTheDocument()
   })
@@ -36,6 +39,28 @@ describe('ManualPage', () => {
     expect(
       screen.getByText('A conta logou certo, mas não administra nenhuma Página do Facebook. Crie uma Página (grátis) antes de conectar.'),
     ).toBeInTheDocument()
+  })
+
+  it('explica os dois sinais de conexão bem-sucedida', () => {
+    render(<ManualPage />)
+
+    expect(screen.getByText('Uma faixa verde no topo da tela com a mensagem "Conectado com sucesso".')).toBeInTheDocument()
+    expect(
+      screen.getByText('O card da rede social passa a mostrar "● Conectado", com o nome da conta ou Página logo abaixo.'),
+    ).toBeInTheDocument()
+  })
+
+  it('mostra o passo a passo de criar o primeiro post', () => {
+    render(<ManualPage />)
+
+    expect(screen.getByText('Revise o texto e a imagem gerados — edite à vontade antes de publicar.')).toBeInTheDocument()
+    expect(screen.getByText(/Escolha publicar agora ou agendar/)).toBeInTheDocument()
+  })
+
+  it('inclui o erro genérico de falha ao conectar entre os problemas comuns', () => {
+    render(<ManualPage />)
+
+    expect(screen.getByText('"Falha ao conectar plataforma. Tente novamente"')).toBeInTheDocument()
   })
 
   it('linka pra Meus Gastos de IA no menu e pra comprar créditos na seção de créditos', () => {

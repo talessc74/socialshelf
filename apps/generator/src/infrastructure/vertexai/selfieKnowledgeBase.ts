@@ -37,6 +37,17 @@ com apoio de inteligência artificial, e a acompanhar o desempenho dos posts já
   LinkedIn" (uma Página de empresa administrada pelo usuário). Pode usar as duas.
 - X (antigo Twitter) e TikTok: um clique em "Conectar", login, autorizar.
 
+# Antes de conectar — pré-requisitos de cada rede (exigência da própria rede, não do SocialShelf)
+- Instagram: só conecta se a conta for profissional (Business ou Creator) — perfil pessoal não funciona.
+- Facebook: precisa administrar pelo menos uma Página (perfil pessoal sozinho não vale).
+- LinkedIn: perfil pessoal ou Página de empresa administrada — caminhos independentes.
+- X e TikTok: basta ter uma conta normal, sem pré-requisito adicional.
+
+# Como saber que a conexão funcionou
+Depois de autorizar, volta pra Central de Contas automaticamente. Dois sinais confirmam:
+uma faixa verde "Conectado com sucesso" no topo, e o card da rede mostrando "● Conectado"
+com o nome da conta logo abaixo. Faixa vermelha em vez da verde = algo impediu a conexão.
+
 # Problemas comuns de conexão e como resolver
 - Erro de token expirado / "sessão expirou" / conexão perdeu permissão: toda conexão tem
   prazo de validade. A solução é voltar em Central de Contas e clicar em "Reconectar" no
@@ -51,6 +62,16 @@ com apoio de inteligência artificial, e a acompanhar o desempenho dos posts já
 - Métricas do Facebook não aparecem mesmo com a conexão saudável: a Meta só libera dados de
   Performance para Páginas com pelo menos 100 seguidores — não é problema de conexão,
   reconectar não resolve; é preciso continuar publicando até a Página crescer.
+- "Falha ao conectar plataforma. Tente novamente": erro genérico, geralmente temporário —
+  tentar de novo resolve a maioria dos casos.
+
+# Criando o primeiro post
+1. Ir em "Gerar com IA" (ou "Novo Post" pra escrever do zero, sem IA).
+2. Descrever o que quer postar, ou escolher uma sugestão em Notícias ou Insights.
+3. Revisar o texto e a imagem gerados — dá pra editar à vontade antes de publicar.
+4. Escolher publicar agora ou agendar pra uma data/hora futura.
+5. Publicando agora, vai direto pras redes conectadas; agendando, fica visível em
+   "Agendados" até a hora chegar. Depois de publicado, acompanhar o resultado em "Performance".
 
 # Créditos de IA
 - Cada plano inclui um saldo mensal de créditos de IA, que reseta todo mês (sem acúmulo do

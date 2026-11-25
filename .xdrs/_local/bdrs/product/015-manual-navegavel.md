@@ -63,6 +63,19 @@ página de volta (ele já incorpora o conteúdo, não precisa linkar pra si mesm
   tradeoff já existente em outros pares de arquivo do projeto.
 - Novo item em `TopNav.NAV_ITEMS` ("Manual") — mais um destino na barra principal de navegação.
 
+## Atualização 2026-11-25 — conteúdo enriquecido com dois artifacts pré-existentes
+
+O usuário apontou que dois artifacts escritos antes desta página existir — "Guia Visual do
+SocialShelf" (passo a passo ilustrado) e "Manual do SocialShelf para Iniciantes" (um Doc) —
+não tinham sido trazidos pra página nem pro Selfie. Lidos os dois (`Artifact` tool e
+`Claude_Docs` connector), o Doc tinha três blocos de substância que nem a página nem
+`SELFIE_KNOWLEDGE_BASE` cobriam: os sinais de confirmação de conexão (faixa verde + selo
+"● Conectado"), o passo a passo de criar o primeiro post, e um quinto erro comum ("Falha ao
+conectar plataforma. Tente novamente"). Esses três blocos foram incorporados nos dois lugares
+(página e knowledge base), preservando a mesma fonte única de verdade estabelecida nesta BDR —
+os dois artifacts originais continuam existindo e acessíveis, mas deixam de ser a única cópia
+do conteúdo.
+
 ## Conflicts
 
 Nenhum identificado. Complementa `_local-bdr-policy-011` (Selfie) sem alterar seu
