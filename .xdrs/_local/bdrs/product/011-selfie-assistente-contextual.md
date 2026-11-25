@@ -97,3 +97,4 @@ Nenhum identificado. Esta decisão estende `_local-bdr-policy-006` (Princípios 
 - [_local-adr-policy-002-arquitetura-hexagonal](../../adrs/application/002-hexagonal-architecture.md) - Padrão de portas e adapters seguido pelo serviço de gatilho
 - [_local-edr-policy-049-selfie-implementacao](../../edrs/application/049-selfie-implementacao.md) - Decisões de implementação, incluindo o mapeamento tela a tela da expansão de 2026-07-14
 - [_local-adr-policy-045-chat-do-selfie-com-gemini](../../adrs/integration/045-selfie-chat-integracao-gemini.md) - Arquitetura técnica do chat livre adicionado em 2026-11-23
+- [_local-bdr-policy-015-manual-navegavel-do-produto](015-manual-navegavel.md) - Página de ajuda navegável que reaproveita o mesmo conteúdo-base do Selfie, sem alterar o chat
