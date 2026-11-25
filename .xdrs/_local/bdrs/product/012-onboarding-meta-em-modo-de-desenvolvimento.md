@@ -54,3 +54,4 @@ Não elimina a exigência da Meta de conta Business/Creator, nem acelera o proce
 - `apps/publisher/src/infrastructure/publishers/MetaPublisher.ts` (`friendlyReason`) - Padrão de tradução de erro que esta policy referencia
 - `apps/web/src/app/dashboard/accounts/page.tsx` - Aviso atual sobre conta Business/Creator, a ser estendido com o aviso de allowlist
 - Roadmap Notion: "Submeter Meta App Review (Instagram + Facebook)" (status: Bloqueado) e "Regularizar CNPJ da Rádio Kactus" - Pendências de negócio que destravam esta policy
+- [_local-bdr-policy-016-guia-de-onboarding-e-revisao-de-cadastros](016-guia-de-onboarding-e-revisao-de-cadastros.md) - Página pública explicando o processo de dois passos a um prospect, e página de admin pra conferir manualmente quem ainda precisa ser liberado como testador
