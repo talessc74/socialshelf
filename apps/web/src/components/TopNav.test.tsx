@@ -26,6 +26,10 @@ function getMobileNav(container: HTMLElement) {
   return container.querySelector('[data-testid="mobile-nav"]') as HTMLElement
 }
 
+function getDesktopNav(container: HTMLElement) {
+  return container.querySelector('[data-testid="desktop-nav"]') as HTMLElement
+}
+
 function renderTopNav(props: Partial<ComponentProps<typeof TopNav>> = {}) {
   return render(
     <ThemeProvider>
@@ -65,6 +69,32 @@ describe('TopNav - nav mobile (segunda linha)', () => {
 
     expect(container.querySelector('.bg-gradient-to-r')).toBeInTheDocument()
     expect(container.querySelector('.bg-gradient-to-l')).not.toBeInTheDocument()
+  })
+})
+
+describe('TopNav - nav desktop (barra principal)', () => {
+  // Bug real: com itens suficientes (13, contando "Manual"), a barra de desktop
+  // (overflow-x-auto) podia cortar itens à direita sem nenhum indício visual de que dava pra
+  // rolar — os gradientes de affordance só eram calculados a partir do nav mobile. Corrigido:
+  // updateScrollAffordance passa a ler o nav que estiver de fato visível (clientWidth > 0).
+  it('mostra gradiente à direita quando a barra de desktop tem itens escondidos', () => {
+    const { container } = renderTopNav()
+    const desktopNav = getDesktopNav(container)
+    mockNavOverflow(desktopNav, { scrollLeft: 0, clientWidth: 600, scrollWidth: 900 })
+    fireEvent.scroll(desktopNav)
+
+    expect(container.querySelector('.bg-gradient-to-l')).toBeInTheDocument()
+    expect(container.querySelector('.bg-gradient-to-r')).not.toBeInTheDocument()
+  })
+
+  it('não mostra gradiente na barra de desktop quando todos os itens cabem', () => {
+    const { container } = renderTopNav()
+    const desktopNav = getDesktopNav(container)
+    mockNavOverflow(desktopNav, { scrollLeft: 0, clientWidth: 900, scrollWidth: 900 })
+    fireEvent.scroll(desktopNav)
+
+    expect(container.querySelector('.bg-gradient-to-l')).not.toBeInTheDocument()
+    expect(container.querySelector('.bg-gradient-to-r')).not.toBeInTheDocument()
   })
 })
 

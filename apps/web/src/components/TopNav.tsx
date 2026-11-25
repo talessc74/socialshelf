@@ -106,6 +106,7 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
   const pathname = usePathname()
   const navItems = isAdmin ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS
   const mobileNavRef = useRef<HTMLElement>(null)
+  const desktopNavRef = useRef<HTMLElement>(null)
   const brandMenuRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -125,18 +126,26 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [brandMenuOpen])
 
+  // Qual dos dois <nav> está de fato visível agora — só um por vez, trocado por media query
+  // CSS (lg:flex/lg:hidden), nunca os dois ao mesmo tempo. clientWidth é 0 pro que está com
+  // `hidden` (display:none), então serve de sinal barato de "é esse que está na tela".
+  const activeNav = useCallback(
+    () => ((desktopNavRef.current?.clientWidth ?? 0) > 0 ? desktopNavRef.current : mobileNavRef.current),
+    [],
+  )
+
   const updateScrollAffordance = useCallback(() => {
-    const nav = mobileNavRef.current
+    const nav = activeNav()
     if (!nav) return
     setCanScrollLeft(nav.scrollLeft > 0)
     setCanScrollRight(nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1)
-  }, [])
+  }, [activeNav])
 
   useEffect(() => {
-    mobileNavRef.current
+    activeNav()
       ?.querySelector('[data-active="true"]')
       ?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-  }, [pathname])
+  }, [pathname, activeNav])
 
   useEffect(() => {
     updateScrollAffordance()
@@ -217,13 +226,19 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
 
       <div className="relative w-full border-t border-line">
         <div className="hidden justify-center px-4 py-2 lg:flex">
-          <nav className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-card-2 p-1">
+          <nav
+            ref={desktopNavRef}
+            data-testid="desktop-nav"
+            onScroll={updateScrollAffordance}
+            className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-card-2 p-1"
+          >
             {navItems.map(({ href, label, icon: Icon }) => {
               const isActive = href === '/dashboard' ? pathname === href : pathname.startsWith(href)
               return (
                 <Link
                   key={href}
                   href={href}
+                  data-active={isActive}
                   className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-contrast text-contrast-ink shadow-card'
@@ -262,12 +277,12 @@ export function TopNav({ email, onLogout, brands, activeBrandId, onBrandChange, 
           })}
         </nav>
         {canScrollLeft && (
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-bg via-bg/70 to-transparent lg:hidden">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex w-10 items-center justify-start bg-gradient-to-r from-bg via-bg/70 to-transparent">
             <ChevronLeft className="h-4 w-4 text-muted" />
           </div>
         )}
         {canScrollRight && (
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-bg via-bg/70 to-transparent lg:hidden">
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex w-10 items-center justify-end bg-gradient-to-l from-bg via-bg/70 to-transparent">
             <ChevronRight className="h-4 w-4 text-muted" />
           </div>
         )}

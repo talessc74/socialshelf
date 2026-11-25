@@ -76,6 +76,19 @@ conectar plataforma. Tente novamente"). Esses três blocos foram incorporados no
 os dois artifacts originais continuam existindo e acessíveis, mas deixam de ser a única cópia
 do conteúdo.
 
+## Atualização 2026-11-25 (2) — corrige affordance de rolagem que escondia "Manual" no desktop
+
+Usuário reportou não achar o link "Manual" no site depois do deploy. Investigação encontrou
+um bug real em `TopNav.tsx`, não causado por esta BDR mas exposto por ela: com 13 itens no
+menu principal (o item "Manual" sendo o mais novo, por último), a barra de navegação de
+desktop (`overflow-x-auto`) podia cortar itens à direita sem nenhuma indicação visual de que
+dava pra rolar — os gradientes de affordance de rolagem (seta + sombra) só eram calculados a
+partir da barra mobile (`mobileNavRef`), nunca da barra de desktop, e além disso tinham a
+classe `lg:hidden`, escondendo-os explicitamente em telas grandes mesmo que o cálculo
+existisse. Corrigido: `updateScrollAffordance` agora lê qual das duas barras está de fato
+visível (`clientWidth > 0` — só uma por vez, trocada por media query CSS) e os dois gradientes
+passaram a valer em qualquer largura de tela, não só mobile.
+
 ## Conflicts
 
 Nenhum identificado. Complementa `_local-bdr-policy-011` (Selfie) sem alterar seu
