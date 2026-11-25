@@ -2,6 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Download } from 'lucide-react'
+
+// PDF gerado a partir do mesmo conteúdo ilustrado do Guia Visual, com a identidade visual real
+// do produto (cores/logo) — não é a mesma renderização desta página, é um documento à parte
+// pensado pra impressão (marca d'água de direitos autorais em todo rodapé, cópia de
+// texto/imagem bloqueada via permissão do PDF, impressão liberada).
+const GUIA_VISUAL_PDF_HREF = '/guia-visual-socialshelf.pdf'
 
 // Conteúdo reaproveitado de apps/generator/src/infrastructure/vertexai/selfieKnowledgeBase.ts
 // (_local-bdr-policy-015, emenda 2026-11-25) — mesmo texto-base usado no prompt do Selfie,
@@ -84,6 +91,15 @@ export default function ManualPage() {
         minhas métricas não aparecem?&quot; — o Selfie (o mascote no canto da tela) também responde, vendo o estado
         real das suas conexões.
       </p>
+
+      <a
+        href={GUIA_VISUAL_PDF_HREF}
+        download
+        className="flex w-fit items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent/90"
+      >
+        <Download className="h-4 w-4" />
+        Baixar Guia Visual (PDF)
+      </a>
 
       <Section title="O que é o SocialShelf">
         <p>
