@@ -52,6 +52,13 @@ service cloud.firestore {
         allow read, write: if false;
       }
 
+      // Checklist do admin: se essa conta já foi cadastrada manualmente como testadora do app
+      // da Meta, enquanto o app segue em modo de desenvolvimento (_local-bdr-policy-016).
+      // Puramente interno — só o api-service lê/escreve (via Admin SDK, que ignora estas regras).
+      match /meta_tester_review/{doc} {
+        allow read, write: if false;
+      }
+
       // ── Brands ───────────────────────────────────────────────────────
       match /brands/{brandId} {
         allow read: if isAuthenticated() && isOwner(userId);

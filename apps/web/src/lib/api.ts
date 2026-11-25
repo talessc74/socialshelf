@@ -290,6 +290,19 @@ export interface ApiAdminAiUsageSummary {
   brands: ApiAdminAiUsageBrandSummary[]
 }
 
+// Substitui notificação por e-mail/Slack (_local-bdr-policy-016) — lista pra conferência manual
+// do admin, não um aviso em tempo real.
+export interface ApiAdminSignupEntry {
+  userId: string
+  email: string | null
+  signedUpAt: string
+  metaTesterHandled: boolean
+}
+
+export interface ApiAdminSignupsSummary {
+  signups: ApiAdminSignupEntry[]
+}
+
 // Mesma agregação mensal da tela de admin, aqui escopada à própria marca — vem de GET
 // /ai-usage, acessível a qualquer usuário autenticado (_local-edr-policy-073). credits é o
 // saldo efetivo de créditos de IA do usuário (_local-adr-policy-0NN) — o histórico em R$ aqui
@@ -1013,6 +1026,19 @@ export const api = {
   // R$ acontece na tela.
   async getAdminAiUsageSummary(): Promise<ApiAdminAiUsageSummary> {
     return apiFetch<ApiAdminAiUsageSummary>('/admin/ai-usage')
+  },
+
+  // Mesmo gate de admin do endpoint acima. Lista de cadastros pra conferência manual de quem
+  // ainda precisa ser liberado como testador do app da Meta (_local-bdr-policy-016).
+  async getAdminSignups(): Promise<ApiAdminSignupsSummary> {
+    return apiFetch<ApiAdminSignupsSummary>('/admin/signups')
+  },
+
+  async markSignupHandled(userId: string, handled: boolean): Promise<void> {
+    await apiFetch(`/admin/signups/${userId}/handled`, {
+      method: 'POST',
+      body: JSON.stringify({ handled }),
+    })
   },
 
   // Gasto de IA da própria marca — qualquer usuário autenticado, diferente do endpoint acima
