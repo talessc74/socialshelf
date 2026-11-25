@@ -72,9 +72,9 @@ export default function ManualPage() {
       </div>
 
       <p className="text-sm text-muted">
-        Um guia rápido de como o produto funciona. Pra uma dúvida específica sobre a sua conta — ex. "por que minhas
-        métricas não aparecem?" — o Selfie (o mascote no canto da tela) também responde, vendo o estado real das
-        suas conexões.
+        Um guia rápido de como o produto funciona. Pra uma dúvida específica sobre a sua conta — ex. &quot;por que
+        minhas métricas não aparecem?&quot; — o Selfie (o mascote no canto da tela) também responde, vendo o estado
+        real das suas conexões.
       </p>
 
       <Section title="O que é o SocialShelf">
