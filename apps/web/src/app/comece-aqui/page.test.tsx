@@ -20,10 +20,34 @@ describe('ComeceAquiPage', () => {
   it('linka para criar conta e para o e-mail de contato', () => {
     render(<ComeceAquiPage />)
 
-    expect(screen.getByRole('link', { name: 'Criar minha conta' })).toHaveAttribute('href', '/signup')
+    expect(screen.getAllByRole('link', { name: /Criar (minha conta|conta no SocialShelf)/ })[0]).toHaveAttribute(
+      'href',
+      '/signup',
+    )
     expect(screen.getByRole('link', { name: 'contato@socialshelf.com.br' })).toHaveAttribute(
       'href',
       'mailto:contato@socialshelf.com.br',
+    )
+  })
+
+  it('explica o pré-requisito de conta profissional do Instagram, com link pro artigo oficial', () => {
+    render(<ComeceAquiPage />)
+
+    expect(screen.getByText(/a conta precisa ser profissional/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /artigo oficial do Instagram/ })).toHaveAttribute(
+      'href',
+      'https://help.instagram.com/502981923235522',
+    )
+  })
+
+  it('linka pro Instagram, Facebook e documentação oficial da Meta sobre papéis de app', () => {
+    render(<ComeceAquiPage />)
+
+    expect(screen.getByRole('link', { name: 'app do Instagram' })).toHaveAttribute('href', 'https://www.instagram.com/')
+    expect(screen.getByRole('link', { name: 'Facebook' })).toHaveAttribute('href', 'https://www.facebook.com/')
+    expect(screen.getByRole('link', { name: /documentação oficial da Meta sobre papéis de app/ })).toHaveAttribute(
+      'href',
+      'https://developers.facebook.com/docs/development/build-and-test/app-roles',
     )
   })
 })

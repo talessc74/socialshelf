@@ -2,7 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ExternalLink } from 'lucide-react'
 import { api, type ApiAdminSignupEntry } from '../../../../lib/api'
+
+// Link estável da Meta pra "Minhas Apps" (developers.facebook.com/apps) — não dá pra linkar
+// direto pra tela de Roles/Testers de um app específico sem o App ID (META_APP_ID é segredo,
+// não lido aqui); o admin clica, escolhe o app do SocialShelf e vai em Funções do app.
+const META_APPS_DASHBOARD_URL = 'https://developers.facebook.com/apps/'
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -62,6 +68,23 @@ export default function AdminSignupsPage() {
         quem foi liberado assim (ver <strong>_local-bdr-policy-012</strong>). Marcar aqui não libera nada
         automaticamente: é só um lembrete de quem já teve a parte manual feita no painel da Meta.
       </p>
+
+      <div className="rounded-2xl border border-line bg-card p-4 shadow-card">
+        <p className="text-sm text-ink">
+          <strong>Sua parte, pra cada pessoa pendente:</strong> abra o app do SocialShelf no painel da Meta →
+          Funções do app → Testadores → Adicionar testadores, e informe o e-mail ou usuário do Instagram/Facebook
+          da pessoa.
+        </p>
+        <a
+          href={META_APPS_DASHBOARD_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-accent-ink hover:bg-accent/90"
+        >
+          Abrir Meta for Developers
+          <ExternalLink className="h-4 w-4" />
+        </a>
+      </div>
 
       {isLoading ? (
         <p className="text-sm text-muted">Carregando…</p>

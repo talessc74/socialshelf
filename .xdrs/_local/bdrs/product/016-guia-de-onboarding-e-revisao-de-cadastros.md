@@ -83,6 +83,41 @@ cadastro de Tester) — ambos fora do escopo de engenharia, já documentado na B
 cobre um prazo de SLA formal — "normalmente até 1 dia útil", citado na página pública, é uma
 expectativa razoável, não uma garantia contratual.
 
+## Atualização 2026-11-25 — links reais e diagramas por ícone, sem screenshot
+
+Usuário apontou que a primeira versão só descrevia os passos em texto, sem link nenhum pra
+clicar e sem nada visual — pediu capturas de tela e links de acesso nas três frentes
+(`/comece-aqui`, `/dashboard/admin/signups`, e o próprio documento que vai pro usuário novo,
+que é a mesma página).
+
+**Por que não são screenshots reais do Instagram/Meta**: não temos login nessas contas pra
+capturar a tela de verdade, e a interface deles muda com frequência — um screenshot
+desatualizado confunde mais do que ajuda, e recriar a UI deles em pixel não é um objetivo em si.
+Resolvido com **diagramas por ícone** (`StepCard`, `lucide-react`: `UserCheck`/`Mail`/
+`Smartphone`/`ShieldCheck`) por passo, mais visual que a lista numerada anterior sem depender de
+reproduzir a interface de terceiros.
+
+**Links reais adicionados em `/comece-aqui`**: `/signup` (já existia), `instagram.com` e
+`facebook.com` (abrir o app/site de cada rede), o artigo oficial do Instagram sobre conta
+profissional (`help.instagram.com/502981923235522`) e a documentação oficial da Meta sobre
+papéis de app (`developers.facebook.com/docs/development/build-and-test/app-roles`) — os dois
+últimos vieram de busca na web, não foram confirmados por fetch direto (rede do ambiente de
+sessão bloqueou o host); replicáveis, mas vale checar manualmente se ainda resolvem antes de um
+próximo ciclo de revisão desta página. Reafirmado também, nesta página (antes só estava no
+Manual), que o Instagram exige conta profissional (Business/Creator), não pessoal.
+
+**Link real adicionado em `/dashboard/admin/signups`**: botão pra `developers.facebook.com/apps/`
+("Minhas Apps" da Meta) — não dá pra linkar direto pra tela de Roles/Testers de um app
+específico sem o App ID, que é segredo (`META_APP_ID`) e não é lido nesta página; o admin clica,
+escolhe o app do SocialShelf e navega até Funções do app > Testadores a partir daí.
+
+**Por que não um PDF separado**: CSS de impressão (`print:`) foi adicionado direto em
+`/comece-aqui` — "Salvar como PDF" do navegador já produz um arquivo limpo (esconde nav/botões,
+mantém o conteúdo), sem precisar duplicar o pipeline Playwright+pikepdf do Guia Visual
+(`_local-bdr-policy-015`), que é pra outro documento com outro objetivo (marca impressa,
+proteção de cópia). Se o usuário quiser um PDF baixável de verdade depois, é extensão natural
+desta BDR, não uma nova decisão.
+
 ## Conflicts
 
 Nenhum identificado. Implementa, em cima de `_local-bdr-policy-012`, as duas pontas que faltavam

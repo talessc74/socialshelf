@@ -79,6 +79,17 @@ describe('AdminSignupsPage', () => {
     await waitFor(() => expect(mockedApi.markSignupHandled).toHaveBeenCalledWith('user-1', true))
   })
 
+  it('linka direto pro painel de apps da Meta', async () => {
+    mockedApi.getAdminSignups.mockResolvedValue(makeSummary())
+
+    renderPage()
+
+    expect(await screen.findByRole('link', { name: /Abrir Meta for Developers/ })).toHaveAttribute(
+      'href',
+      'https://developers.facebook.com/apps/',
+    )
+  })
+
   it('mostra estado vazio quando não há nenhum cadastro', async () => {
     mockedApi.getAdminSignups.mockResolvedValue({ signups: [] })
 
