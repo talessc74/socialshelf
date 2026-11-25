@@ -11,7 +11,7 @@ vi.mock('../lib/api', () => ({
 function renderPanel() {
   return render(
     <AssistantProvider>
-      <SelfieChatPanel animated={false} />
+      <SelfieChatPanel />
     </AssistantProvider>,
   )
 }
