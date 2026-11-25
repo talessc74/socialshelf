@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 // Arte oficial do Selfie. Se o arquivo existir em apps/web/public, é ele que
 // aparece; senão, cai no mascote SVG abaixo. Colocar um PNG com fundo
 // transparente para o personagem flutuar sem caixa de fundo.
-const SELFIE_IMAGE_SRC = '/selfie.png'
+export const SELFIE_IMAGE_SRC = '/selfie.png'
 
 // Sparkles do rastro de partículas — posição/tamanho/atraso conforme o
 // handoff de design (design_handoff_selfie_solo/README.md).

@@ -38,7 +38,7 @@ export function Selfie() {
   if (!selfieHydrated || selfieDismissed) return null
 
   if (chat.open) {
-    return <SelfieChatPanel animated={!reduceMotion} />
+    return <SelfieChatPanel />
   }
 
   return (

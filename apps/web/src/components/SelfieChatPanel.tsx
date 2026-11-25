@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useSelfie } from '../contexts/AssistantContext'
-import { SelfieMascot } from './SelfieMascot'
+import { SELFIE_IMAGE_SRC } from './SelfieMascot'
 
 /**
  * Painel de chat do Selfie (_local-adr-policy-045, emenda 2026-11-23 da
@@ -14,7 +14,7 @@ import { SelfieMascot } from './SelfieMascot'
  * (Enter envia, Tab circula pelos controles), sem travar leitor de tela — mesmas exigências já
  * em vigor pra narração na BDR-011.
  */
-export function SelfieChatPanel({ animated }: { animated: boolean }) {
+export function SelfieChatPanel() {
   const { chat, closeChat, sendQuestion } = useSelfie()
   const [draft, setDraft] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -47,10 +47,9 @@ export function SelfieChatPanel({ animated }: { animated: boolean }) {
     >
       <div className="flex items-center justify-between gap-2 border-b border-line px-4 py-2.5">
         <div className="flex items-center gap-2">
-          <div className="h-9 w-9 overflow-hidden">
-            <div className="origin-top-left scale-[0.32]">
-              <SelfieMascot animated={animated} />
-            </div>
+          <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-card-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={SELFIE_IMAGE_SRC} alt="" aria-hidden className="h-full w-full object-cover" />
           </div>
           <span className="text-sm font-semibold text-ink">Selfie</span>
         </div>
