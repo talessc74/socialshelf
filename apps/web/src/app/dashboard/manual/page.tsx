@@ -4,9 +4,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 // Conteúdo reaproveitado de apps/generator/src/infrastructure/vertexai/selfieKnowledgeBase.ts
-// (_local-bdr-policy-015) — mesmo texto-base usado no prompt do Selfie, reformatado aqui como
-// página navegável. Mantido em sincronia manualmente entre os dois arquivos, mesmo padrão já
-// usado em PlanLimits.ts/plans/page.tsx e priceMapping.ts/credits/page.tsx.
+// (_local-bdr-policy-015, emenda 2026-11-25) — mesmo texto-base usado no prompt do Selfie,
+// reformatado aqui como página navegável. Incorpora também a substância de dois artifacts
+// escritos antes desta página existir ("Guia Visual do SocialShelf" e "Manual do SocialShelf
+// para Iniciantes") — o conteúdo deles foi trazido pra cá e pro knowledge base do Selfie; os
+// artifacts em si continuam existindo, mas deixam de ser a única cópia. Mantido em sincronia
+// manualmente entre os dois arquivos, mesmo padrão já usado em PlanLimits.ts/plans/page.tsx e
+// priceMapping.ts/credits/page.tsx.
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -57,6 +61,10 @@ const CONNECTION_ISSUES: { problem: string; solution: string }[] = [
     solution:
       'A Meta só libera dados de Performance para Páginas com pelo menos 100 seguidores — não é problema de conexão, reconectar não resolve; é preciso continuar publicando até a Página crescer.',
   },
+  {
+    problem: '"Falha ao conectar plataforma. Tente novamente"',
+    solution: 'Erro genérico, geralmente temporário. Tente de novo; se persistir, comece o processo do zero pela Central de Contas.',
+  },
 ]
 
 export default function ManualPage() {
@@ -82,6 +90,30 @@ export default function ManualPage() {
           O SocialShelf é uma plataforma que ajuda a criar, agendar e publicar conteúdo em redes sociais com apoio de
           inteligência artificial, e a acompanhar o desempenho dos posts já publicados.
         </p>
+      </Section>
+
+      <Section title="Antes de começar">
+        <p>Algumas redes sociais têm exigências próprias (não são regras do SocialShelf) — verifique antes de tentar conectar:</p>
+        <ul className="ml-5 list-disc space-y-1">
+          <li>
+            <strong>Instagram</strong>: só pode ser conectado se a conta for profissional (Business ou Creator). Um
+            perfil pessoal não funciona. Para converter: no app do Instagram, Configurações → Tipo de conta e
+            ferramentas → Mudar para conta profissional (grátis, menos de um minuto).
+          </li>
+          <li>
+            <strong>Facebook</strong>: você precisa administrar pelo menos uma Página (não vale perfil pessoal
+            sozinho). Pra conectar o Instagram através do Facebook, a conta profissional do Instagram precisa estar
+            vinculada a essa Página.
+          </li>
+          <li>
+            <strong>LinkedIn</strong>: pode conectar seu perfil pessoal ou uma Página de empresa que você
+            administra — os dois caminhos existem separadamente.
+          </li>
+          <li>
+            <strong>X (antigo Twitter) e TikTok</strong>: basta ter uma conta normal na rede, sem pré-requisito
+            adicional.
+          </li>
+        </ul>
       </Section>
 
       <Section title="Menu principal">
@@ -137,6 +169,58 @@ export default function ManualPage() {
           <h3 className="font-medium text-ink">X (antigo Twitter) e TikTok</h3>
           <p>Um clique em &quot;Conectar&quot;, login, autorizar.</p>
         </div>
+      </Section>
+
+      <Section title="Confirmando que a conexão funcionou">
+        <p>Depois de autorizar, você volta pra Central de Contas automaticamente. Dois sinais confirmam que deu certo:</p>
+        <ul className="ml-5 list-disc space-y-1">
+          <li>Uma faixa verde no topo da tela com a mensagem &quot;Conectado com sucesso&quot;.</li>
+          <li>O card da rede social passa a mostrar &quot;● Conectado&quot;, com o nome da conta ou Página logo abaixo.</li>
+        </ul>
+        <p>Se aparecer uma faixa vermelha em vez da verde, alguma coisa impediu a conexão — veja a próxima seção.</p>
+      </Section>
+
+      <Section title="Criando seu primeiro post">
+        <ol className="ml-5 list-decimal space-y-1">
+          <li>
+            Vá em{' '}
+            <Link href="/dashboard/generate" className="font-medium text-accent hover:underline">
+              Gerar com IA
+            </Link>{' '}
+            (ou{' '}
+            <Link href="/dashboard/compose" className="font-medium text-accent hover:underline">
+              Novo Post
+            </Link>{' '}
+            pra escrever do zero, sem IA).
+          </li>
+          <li>
+            Descreva o que quer postar, ou escolha uma sugestão em{' '}
+            <Link href="/dashboard/news" className="font-medium text-accent hover:underline">
+              Notícias
+            </Link>{' '}
+            ou{' '}
+            <Link href="/dashboard/insights" className="font-medium text-accent hover:underline">
+              Insights
+            </Link>
+            .
+          </li>
+          <li>Revise o texto e a imagem gerados — edite à vontade antes de publicar.</li>
+          <li>Escolha publicar agora ou agendar pra uma data/hora futura.</li>
+          <li>
+            Publicando agora, o post vai direto pras redes conectadas; agendando, ele fica visível em{' '}
+            <Link href="/dashboard/scheduled" className="font-medium text-accent hover:underline">
+              Agendados
+            </Link>{' '}
+            até a hora chegar.
+          </li>
+        </ol>
+        <p>
+          Depois de publicado, acompanhe o resultado em{' '}
+          <Link href="/dashboard/performance" className="font-medium text-accent hover:underline">
+            Performance
+          </Link>
+          .
+        </p>
       </Section>
 
       <Section title="Problemas comuns de conexão">
