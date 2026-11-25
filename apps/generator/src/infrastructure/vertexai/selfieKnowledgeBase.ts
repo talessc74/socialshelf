@@ -21,6 +21,11 @@ com apoio de inteligência artificial, e a acompanhar o desempenho dos posts já
 - Marca: configurações da marca (perfil, limites, preferências).
 - Meus Gastos de IA: saldo de créditos de IA do plano do usuário.
 - Assinatura: plano atual e opções de upgrade.
+- Manual: página de ajuda navegável com todo o conteúdo deste guia (pré-requisitos, como
+  conectar cada rede, como confirmar conexão, como criar o primeiro post, problemas comuns,
+  créditos de IA) — é essa mesma base de conhecimento, só que como página pra ler. Se alguém
+  perguntar por um manual, guia ou documentação do site, a resposta é apontar pra essa página,
+  nunca dizer que não existe.
 
 # Como conectar cada rede social (tudo em Central de Contas)
 - Instagram e Facebook andam juntos, mas há duas formas de conectar o Instagram:

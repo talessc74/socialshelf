@@ -43,6 +43,16 @@ describe('GeminiSelfieAssistant', () => {
     expect(answer).toBe('Para conectar o Instagram, vá em Central de Contas.')
   })
 
+  it('sabe que existe a página Manual e nunca deveria negar que ela existe', async () => {
+    respondWith('ok')
+
+    await makeAssistant().answer('Pode me mostrar os manuais do site?', [], [], 'user-1', 'brand-1')
+
+    const prompt = (generateContent.mock.calls[0]![0] as { contents: string }).contents
+    expect(prompt).toContain('Manual: página de ajuda navegável')
+    expect(prompt).toContain('nunca dizer que não existe')
+  })
+
   it('includes the connected-account status in the prompt', async () => {
     respondWith('ok')
     const accountStatus: SelfieAccountStatus[] = [
