@@ -33,9 +33,9 @@ describe('CreditsPage', () => {
     expect(screen.getByText('50')).toBeInTheDocument()
     expect(screen.getByText('150')).toBeInTheDocument()
     expect(screen.getByText('400')).toBeInTheDocument()
-    expect(screen.getByText('R$ 15')).toBeInTheDocument()
-    expect(screen.getByText('R$ 45')).toBeInTheDocument()
-    expect(screen.getByText('R$ 120')).toBeInTheDocument()
+    expect(screen.getByText('R$ 17,50')).toBeInTheDocument()
+    expect(screen.getByText('R$ 52,50')).toBeInTheDocument()
+    expect(screen.getByText('R$ 140,00')).toBeInTheDocument()
   })
 
   it('mostra o saldo atual quando disponível', () => {

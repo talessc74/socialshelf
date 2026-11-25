@@ -11,17 +11,20 @@ interface CreditPack {
   priceBrl: number
 }
 
-// R$0,30/crédito em todos os pacotes (_local-adr-policy-0NN) — mantido em sincronia manualmente
-// com CREDIT_PACK_PRICE_BRL_CENTS_PER_CREDIT em
+// R$0,35/crédito em todos os pacotes (_local-bdr-policy-014, emenda 2026-11-23) — mantido em
+// sincronia manualmente com CREDIT_PACK_PRICE_BRL_CENTS_PER_CREDIT em
 // apps/api/src/infrastructure/stripe/priceMapping.ts.
 const PACKS: CreditPack[] = [
-  { amount: 50, priceBrl: 15 },
-  { amount: 150, priceBrl: 45 },
-  { amount: 400, priceBrl: 120 },
+  { amount: 50, priceBrl: 17.5 },
+  { amount: 150, priceBrl: 52.5 },
+  { amount: 400, priceBrl: 140 },
 ]
 
 function formatBrl(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 })
+  // Sempre 2 casas — diferente da vitrine de planos (preços sempre inteiros), os pacotes
+  // avulsos têm preço fracionário (R$0,35/crédito × 50 = R$17,50), e minimumFractionDigits: 0
+  // deixaria o Intl escolher o mínimo de casas "suficiente" (ex.: "R$ 17,5" em vez de "R$ 17,50").
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export default function CreditsPage() {

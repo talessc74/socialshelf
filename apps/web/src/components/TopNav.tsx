@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid, DollarSign, CreditCard } from 'lucide-react'
+import { Home, Tag, BarChart3, Sparkles, Send, LogOut, Lightbulb, Share2, Clock, Newspaper, Images, ChevronDown, ChevronLeft, ChevronRight, Bot, BookOpen, LayoutGrid, DollarSign, CreditCard, HelpCircle } from 'lucide-react'
 import { LanternToggle } from './LanternToggle'
 import { useSelfieDismissal } from '../contexts/AssistantContext'
 import { useViewMode } from '../contexts/ViewModeContext'
@@ -77,6 +77,9 @@ const NAV_ITEMS = [
   // Plano/assinatura (_local-adr-policy-0NN) — sempre visível, qualquer usuário autenticado
   // (legado e grátis também têm essa tela, só não têm botão de gerenciar no Portal do Stripe).
   { href: '/dashboard/billing', label: 'Assinatura', icon: CreditCard },
+  // Página de ajuda navegável (_local-bdr-policy-015) — complementa o chat do Selfie (resposta
+  // pontual sobre a conta) com uma referência estática que dá pra ler inteira.
+  { href: '/dashboard/manual', label: 'Manual', icon: HelpCircle },
 ]
 
 // Só para quem está na allowlist de admin (isAdminEmail) — o link em si não é o gate de

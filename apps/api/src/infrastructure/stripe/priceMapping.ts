@@ -32,10 +32,12 @@ export function resolveTierAndCycleFromPriceId(priceId: string): { tier: PlanTie
 
 // Créditos avulsos (_local-adr-policy-0NN) — comprados via Checkout mode 'payment', preço
 // fixo via `price_data` inline (não precisa de Price ID cadastrado no Dashboard, diferente da
-// assinatura: são só 3 pacotes, valor simples, sem necessidade de catálogo). R$0,30/crédito —
-// mesmo valor pra qualquer pacote, perto do preço implícito do Starter (R$0,29/crédito), com
-// margem real sobre o custo (R$0,22/crédito).
-export const CREDIT_PACK_PRICE_BRL_CENTS_PER_CREDIT = 30
+// assinatura: são só 3 pacotes, valor simples, sem necessidade de catálogo). R$0,35/crédito —
+// mesmo valor pra qualquer pacote, sem desconto por volume. Subiu de R$0,30 (_local-bdr-policy-014,
+// emenda 2026-11-23): no preço antigo a margem do avulso (~21-24%) era bem mais fina que a da
+// assinatura (~40%+), criando um desvio — contornar a própria assinatura via avulso saía mais
+// barato pra entregar do que deveria.
+export const CREDIT_PACK_PRICE_BRL_CENTS_PER_CREDIT = 35
 export const ALLOWED_CREDIT_PACKS = [50, 150, 400] as const
 export type CreditPackSize = (typeof ALLOWED_CREDIT_PACKS)[number]
 

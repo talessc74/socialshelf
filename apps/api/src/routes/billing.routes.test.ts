@@ -184,14 +184,15 @@ describe('billing.routes', () => {
       })
 
       expect(response.statusCode).toBe(200)
-      expect(response.json()).toMatchObject({ planRemaining: 30, purchasedRemaining: 0, totalAvailable: 30 })
+      // Grátis: 15 créditos/mês (_local-bdr-policy-014, emenda 2026-11-23).
+      expect(response.json()).toMatchObject({ planRemaining: 15, purchasedRemaining: 0, totalAvailable: 15 })
     })
 
     it('soma o saldo avulso comprado ao total disponível', async () => {
       mockFindCreditBalance.mockResolvedValue({
         userId: 'user-test-123',
         periodKey: new Date().toISOString().slice(0, 7),
-        planCreditsTotal: 30,
+        planCreditsTotal: 15,
         planCreditsUsed: 10,
         purchasedCreditsBalance: 40,
         createdAt: new Date(),
@@ -205,7 +206,7 @@ describe('billing.routes', () => {
       })
 
       expect(response.statusCode).toBe(200)
-      expect(response.json()).toMatchObject({ planRemaining: 20, purchasedRemaining: 40, totalAvailable: 60 })
+      expect(response.json()).toMatchObject({ planRemaining: 5, purchasedRemaining: 40, totalAvailable: 45 })
     })
   })
 

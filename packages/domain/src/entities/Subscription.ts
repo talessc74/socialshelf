@@ -21,6 +21,12 @@ export interface Subscription {
   // Setado só na criação (EnsureSubscriptionUseCase), a partir de isAdminEmail — nunca
   // sobrescrito pelo webhook do Stripe. Ver _local-adr-policy-0NN, Fase 5 (bypass de admin).
   adminOverrideUnlimited: boolean
+  // Fingerprint do cartão (Stripe `card.fingerprint`) usado no teste grátis — opcional pra não
+  // quebrar literais existentes; ausente/null significa "cartão ainda não resolvido" (conta
+  // nunca passou por um checkout de assinatura com trial). Único uso: HandleStripeWebhookUseCase
+  // detectar o mesmo cartão reaparecendo em outro userId e encerrar o teste na hora
+  // (_local-adr-policy-0NN, proteção contra reuso de teste grátis).
+  cardFingerprint?: string | null
   trialEndsAt: Date | null
   currentPeriodEnd: Date | null
   cancelAtPeriodEnd: boolean

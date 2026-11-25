@@ -1,7 +1,8 @@
 // Base de conhecimento do produto usada no prompt do Selfie (_local-adr-policy-045) — texto
-// fixo escrito à mão, não busca semântica sobre documentação. Reaproveita o conteúdo já escrito
-// no Manual/Guia Visual do SocialShelf desta mesma onda de trabalho, mantendo consistência
-// entre o que o usuário lê e o que o Selfie responde.
+// fixo escrito à mão, não busca semântica sobre documentação. Mesmo conteúdo-base da página
+// /dashboard/manual (apps/web/src/app/dashboard/manual/page.tsx, _local-bdr-policy-015) —
+// mantido em sincronia manualmente entre os dois arquivos, mesmo padrão já usado em
+// PlanLimits.ts/plans/page.tsx.
 export const SELFIE_KNOWLEDGE_BASE = `
 # O que é o SocialShelf
 SocialShelf é uma plataforma que ajuda a criar, agendar e publicar conteúdo em redes sociais

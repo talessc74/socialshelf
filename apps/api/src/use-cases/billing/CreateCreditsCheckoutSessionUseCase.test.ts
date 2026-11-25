@@ -30,6 +30,7 @@ describe('CreateCreditsCheckoutSessionUseCase', () => {
   beforeEach(() => {
     mockSubscriptionRepo = {
       findByUserId: vi.fn(),
+      findByCardFingerprint: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
     }
 
@@ -75,7 +76,7 @@ describe('CreateCreditsCheckoutSessionUseCase', () => {
           expect.objectContaining({
             price_data: expect.objectContaining({
               currency: 'brl',
-              unit_amount: creditAmount * 30,
+              unit_amount: creditAmount * 35,
             }),
             quantity: 1,
           }),

@@ -150,6 +150,7 @@ describe('AutonomyTickUseCase', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       }),
+      findByCardFingerprint: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
     }
     // null = usuário nunca gerou nada ainda — resolveEffectiveCreditState trata isso como saldo

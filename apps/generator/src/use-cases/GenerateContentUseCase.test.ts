@@ -170,6 +170,7 @@ function makeDeps(
 
   const subscriptionRepo: SubscriptionRepository = {
     findByUserId: vi.fn().mockResolvedValue(makeSubscription()),
+    findByCardFingerprint: vi.fn().mockResolvedValue([]),
     save: vi.fn().mockResolvedValue(undefined),
   }
 

@@ -33,6 +33,7 @@ describe('CreateCheckoutSessionUseCase', () => {
 
     mockSubscriptionRepo = {
       findByUserId: vi.fn(),
+      findByCardFingerprint: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
     }
 

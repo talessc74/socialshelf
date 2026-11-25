@@ -23,11 +23,23 @@ export class FirestoreSubscriptionRepository implements SubscriptionRepository {
       .set({
         ...subscription,
         billingCycle: subscription.billingCycle,
+        // undefined (campo opcional nunca setado) viraria erro no Firestore — normaliza pra
+        // null, mesmo tratamento dos outros campos opcionais aqui.
+        cardFingerprint: subscription.cardFingerprint ?? null,
         trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null,
         currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() ?? null,
         createdAt: subscription.createdAt.toISOString(),
         updatedAt: subscription.updatedAt.toISOString(),
       })
+  }
+
+  // Usado só pra detectar reuso de cartão entre contas diferentes no teste grátis
+  // (_local-adr-policy-0NN) — collection group, não um `where` dentro de um usuário, porque o
+  // reuso é exatamente entre userIds diferentes. Exige o índice declarado em
+  // firestore.indexes.json (collectionGroup "subscription", campo cardFingerprint).
+  async findByCardFingerprint(fingerprint: string): Promise<Subscription[]> {
+    const snapshot = await db.collectionGroup('subscription').where('cardFingerprint', '==', fingerprint).get()
+    return snapshot.docs.map((doc) => this.fromFirestore(doc.data()))
   }
 
   private fromFirestore(data: FirebaseFirestore.DocumentData): Subscription {
@@ -40,6 +52,7 @@ export class FirestoreSubscriptionRepository implements SubscriptionRepository {
       stripeSubscriptionId: (data['stripeSubscriptionId'] as string | null) ?? null,
       additionalProfessionalBrands: (data['additionalProfessionalBrands'] as number) ?? 0,
       adminOverrideUnlimited: (data['adminOverrideUnlimited'] as boolean) ?? false,
+      cardFingerprint: (data['cardFingerprint'] as string | null | undefined) ?? null,
       trialEndsAt: data['trialEndsAt'] ? new Date(data['trialEndsAt'] as string) : null,
       currentPeriodEnd: data['currentPeriodEnd'] ? new Date(data['currentPeriodEnd'] as string) : null,
       cancelAtPeriodEnd: (data['cancelAtPeriodEnd'] as boolean) ?? false,
