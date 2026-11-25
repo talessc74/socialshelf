@@ -1,7 +1,7 @@
 ---
 name: _local-bdr-policy-015-manual-navegavel-do-produto
 description: Define a existência de uma página de manual/ajuda navegável dentro do dashboard (/dashboard/manual), complementar ao chat do Selfie, com o conteúdo-base compartilhado entre os dois. Use ao adicionar/alterar conteúdo de ajuda do produto, ou ao mexer em selfieKnowledgeBase.ts ou apps/web/src/app/dashboard/manual/page.tsx.
-apply-to: apps/web (página /dashboard/manual, TopNav), apps/generator (selfieKnowledgeBase.ts)
+apply-to: apps/web (página /dashboard/manual, TopNav, guia-visual-socialshelf.pdf), apps/generator (selfieKnowledgeBase.ts)
 valid-from: 2026-11-25
 ---
 
@@ -88,6 +88,38 @@ classe `lg:hidden`, escondendo-os explicitamente em telas grandes mesmo que o c�
 existisse. Corrigido: `updateScrollAffordance` agora lê qual das duas barras está de fato
 visível (`clientWidth > 0` — só uma por vez, trocada por media query CSS) e os dois gradientes
 passaram a valer em qualquer largura de tela, não só mobile.
+
+## Atualização 2026-11-25 (3) — Guia Visual também vira PDF pra baixar, com marca e proteção
+
+Pedido direto do usuário: o Guia Visual (o artifact ilustrado, com mockups de tela — ver
+atualização acima) deveria estar disponível no site como **arquivo pra baixar**, carregando a
+identidade visual real do produto (pra que, impresso, traga a marca do SocialShelf), e de
+alguma forma protegido contra cópia sem crédito.
+
+**Decisão**: `apps/web/public/guia-visual-socialshelf.pdf`, gerado a partir de um HTML próprio
+(não publicado no repo — artefato de build, mesmo espírito de qualquer asset estático
+versionado só pelo resultado final) que reaproveita a mesma estrutura de 9 "paradas" do
+artifact, mas com:
+- **Tokens de cor reais** do produto (`apps/web/src/app/globals.css`, `:root`) — não uma
+  paleta própria do artifact, ainda que por coincidência já batessem com os valores reais.
+- **Logo oficial** (`apps/web/public/SocialShelfLogo.png`) numa capa dedicada.
+- **Rodapé de direitos autorais em toda página** (`&copy; SocialShelf — socialshelf.com.br —
+  reprodução permitida mediante créditos a esta fonte`) — a proteção que de fato sobrevive a
+  qualquer cópia, incluindo print/foto, já que não depende de nenhum mecanismo técnico.
+- **Permissão de PDF restrita** (`pikepdf`, sem senha de abertura): extração de texto/imagem e
+  edição bloqueadas, impressão liberada (alta e baixa resolução) — não é proteção forte (não
+  impede print-screen), mas dificulta o copy-paste trivial do conteúdo.
+
+**Geração**: `page.pdf()` do Playwright (Chromium headless, já usado em outras partes do
+projeto) sobre o HTML local, com `headerTemplate`/`footerTemplate` nativos pro rodapé de
+direitos autorais + número de página em toda folha, sem precisar de CSS de paginação manual.
+
+**Por que não é a mesma renderização da página `/dashboard/manual`**: a página web prioriza
+densidade de informação e navegação (links reais, texto corrido); o PDF prioriza ser um
+documento impresso bonito, com a mesma ilustração de telas que o artifact original já tinha —
+públicos e formatos diferentes, mesmo conteúdo de fundo.
+
+Link de download: botão "Baixar Guia Visual (PDF)" no topo de `/dashboard/manual`.
 
 ## Conflicts
 

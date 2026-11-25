@@ -70,6 +70,14 @@ describe('ManualPage', () => {
     expect(screen.getByRole('link', { name: 'Comprar créditos' })).toHaveAttribute('href', '/dashboard/billing/credits')
   })
 
+  it('linka o download do Guia Visual em PDF', () => {
+    render(<ManualPage />)
+
+    const downloadLink = screen.getByRole('link', { name: /Baixar Guia Visual \(PDF\)/ })
+    expect(downloadLink).toHaveAttribute('href', '/guia-visual-socialshelf.pdf')
+    expect(downloadLink).toHaveAttribute('download')
+  })
+
   it('volta pra tela anterior ao clicar em "Voltar"', () => {
     render(<ManualPage />)
 
